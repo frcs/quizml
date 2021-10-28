@@ -184,6 +184,8 @@ def convert_latex_eqs(data_json):
     f.write("\\end{document}\n")
     f.close()
 
+    print("-- compiling the equations --")
+
     call(["pdflatex", latex_filename], stdout=sys.stderr)
     call(["gs", "-dBATCH", '-q', "-dNOPAUSE", "-sDEVICE=pngalpha", "-r250",
           "-dTextAlphaBits=4", "-dGraphicsAlphaBits=4",
@@ -957,7 +959,30 @@ def main():
     latex_solutions_filename = basename + ".solutions.tex"
     
     with open(yaml_filename) as yaml_file:
-        yaml_data = yaml.load(yaml_file, Loader=yaml.FullLoader)
+        try:
+            yaml_data = yaml.load(yaml_file, Loader=yaml.FullLoader)
+        except yaml.YAMLError as exc:
+            print ("Error while parsing YAML file:")
+            if hasattr(exc, 'problem_mark'):
+                if exc.context != None:
+                    print ('  parser says\n' + str(exc.problem_mark) + '\n  ' +
+                           str(exc.problem) + ' ' + str(exc.context) +
+                           '\nPlease correct data and retry.')
+                else:
+                    with open(yaml_filename) as f:
+                        lines = f.readlines()
+                    l = exc.problem_mark.line-1
+                    c = exc.problem_mark.column+1
+                    print()
+                    print("in " + yaml_filename + ", line " + str(l) + ", column " + str(c))
+                    print("error: " + str(exc.problem))
+                    print("  " + lines[l][0:-1])
+                    print("  " + "~"*c + "^")
+                    print()
+                    
+            else:
+                print ("Something went wrong while parsing yaml file")
+            return
 
     html_md_dict = get_html_md_dict_from_yaml(yaml_data)  
     latex_md_dict = get_latex_md_dict_from_yaml(yaml_data)  
@@ -980,7 +1005,7 @@ def main():
         latex_solutions_file.write(latex_solutions_content)
         
         
-    print("----")
+    print("-- results --")
     print("HTML output       : " + html_filename)
     print("BlackBoard output : " + csv_filename)
     print("Latex output      : " + latex_filename)

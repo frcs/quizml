@@ -1,0 +1,9 @@
+- type: ma
+  question: |
+    What datasets are best suited for kernel methods?
+    
+  answers:
+  - correct false
+    answer: datasets with large $n$ and large $p$
+  - correct: false
+    answer: datasets with large $n$ and small $p$
