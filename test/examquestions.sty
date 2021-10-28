@@ -1,0 +1,76 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{examquestions}[2020/02/25 v0.1 Exam Paper Utilities]
+
+\newif\if@totalmarks\@totalmarksfalse
+\newif\if@sections\@sectionsfalse
+\DeclareOption{totalmarks}{\@totalmarkstrue}
+\DeclareOption{sections}{\@sectionstrue}
+\DeclareOption*{\PackageWarning{examquestions}{Unknown `\CurrentOption'}}
+\ProcessOptions\relax
+
+%% Sections (centered title)
+\if@sections
+  \RequirePackage{titlesec}
+  \renewcommand*{\thesection}{\Alph{section}}
+  \titleformat{\section}[block]{\filcenter\Large\bfseries SECTION~\thesection}{}{1em}{}
+\fi
+
+%% Directions to Students
+\newcommand*{\direction}[1]{\begin{center}
+  \bfseries\large #1
+\end{center}}
+
+%% Parameters
+\newcommand*{\weightunit}{ marks}
+\newcommand*{\subquestionskip}{1em}
+
+%% Question envirnoments
+\newcounter{question}
+\newcommand{\eqquestion}[2]{\refstepcounter{question}\par\medskip \textbf{Q.\thequestion\hspace{1em}#1\hfill #2}\par}
+
+\newcounter{subquestion}[question]
+\newsavebox{\qmarks}
+\renewcommand*{\thesubquestion}{\alph{subquestion}}
+\newenvironment{eqsubquestion}[1][]{\sbox\qmarks{\bfseries #1}\refstepcounter{subquestion}\par\medskip
+  \textbf{(\thesubquestion)}\hfill\begin{minipage}[t]{0.92\textwidth}
+  }{\hspace*{0em plus 1fill}\makebox{\bfseries [\usebox{\qmarks}]}\end{minipage}\vspace*{\subquestionskip}}
+
+% Automatic question totalling
+%% Default package options
+
+\if@totalmarks
+  \newcounter{totalmarks}
+  \RequirePackage{etoolbox}
+  \RequirePackage{totcount}
+  \regtotcounter{totalmarks}
+
+  \newcounter{every@question}
+  \pretocmd\eqquestion{
+    \stepcounter{every@question}
+    \begingroup
+      \edef\@tmpa{\endgroup\noexpand\newtotcounter{my@questionmarks-\arabic{every@question}}}
+    \@tmpa
+  }{}{}
+
+  \def\totquestionmarks{\total{my@questionmarks-\arabic{every@question}}}
+
+  \newcommand{\question}[1][]{\eqquestion{#1}{[Total: \totquestionmarks\weightunit]}}
+  \newenvironment{subquestion}[1][]{\addtocounter{my@questionmarks-\arabic{every@question}}{#1}\begin{eqsubquestion}[#1\weightunit]}{\end{eqsubquestion}}
+
+  \if@sections
+    \newcounter{every@section}
+    \pretocmd\section{
+      \stepcounter{every@section}
+      \begingroup
+        \edef\@tmpa{\endgroup\noexpand\newtotcounter{my@sectionmarks-\arabic{every@section}}}
+      \@tmpa
+    }{}{}
+    \def\totsectionmarks{\total{my@sectionmarks-\arabic{every@section}}}
+
+    \titleformat{\section}[block]{\filcenter\Large\bfseries SECTION~\thesection\ [\totsectionmarks\weightunit]}{}{1em}{}
+    \newenvironment{subquestion}[1][]{\addtocounter{my@sectionmarks-\arabic{every@section}}{#1}\addtocounter{my@questionmarks-\arabic{every@question}}{#1}\begin{eqsubquestion}[#1\weightunit]}{\end{eqsubquestion}}
+  \fi
+\else
+  \newcommand{\question}[1][]{\eqquestion{#1}{}}
+  \newenvironment{subquestion}[1][]{\begin{eqsubquestion}[#1\weightunit]}{\end{eqsubquestion}}
+\fi
