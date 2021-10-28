@@ -15,6 +15,7 @@ import struct
 from subprocess import call
 import tempfile
 import base64
+from collections import defaultdict
 
 
 def get_md_list_from_yaml(yaml_data):
@@ -218,7 +219,7 @@ def get_html_md_dict_from_yaml(yaml_data):
 
 
 def pandoc_md_to_latex(md_content):
-    cmd = ['pandoc', '-f', 'markdown', '-t', 'latex']
+    cmd = ['pandoc', '-f', 'markdown', '-t', 'latex', '--listings']
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                             stdin=subprocess.PIPE)
     result = proc.communicate(input=bytes(md_content, 'utf-8'))[0]
@@ -248,6 +249,10 @@ def get_latex_dict_from_md_list(latex_result, md_list):
         latex_content = latex_result[start:end]        
         latex_content = latex_content.replace('.svg}', '.pdf}')
         latex_content = latex_content.replace(',height=\\textheight', '')
+        latex_content = latex_content.replace('\\passthrough', '')
+
+        
+#        latex_content = latex_content.replace('\\begin{lstlisting}', '\\begin{lstlisting}\\begin{verbatim}')
 
         md_dict[txt] = latex_content
 
@@ -407,23 +412,25 @@ def latex_prelude(info, solutions):
                 'instructions': '',
                 'materials': '',
                 'additionalinformation': ''}
-
+   
     preamble = "\\documentclass{tcdexams}\n" \
     + "\\providecommand{\\tightlist}" \
     + "{\\setlength{\\itemsep}{0pt}\\setlength{\\parskip}{0pt}}" \
-    + "\\programmeyearname{" + info['programmeyear'] + "}\n" \
-    + "\\examsemester{" + info['examsemester'] + "}\n" \
-    + "\\examyear{" + str(info['examyear']) + "}\n" \
-    + "\\examdate{" + info['examdate'] + "}\n" \
-    + "\\examtime{" + info['examtime'] + "}\n" \
-    + "\\examvenue{" + info['examvenue'] + "}\n" \
-    + "\\modulename{" + info['modulename'] + "}\n" \
-    + "\\modulecode{" + info['modulecode'] + "}\n" \
-    + "\\examiner{" + info['examiner'] + "}\n" \
-    + "\\instructions{" + info['instructions'] + "}\n" \
-    + "\\materials{" + info['materials'] + "}\n" \
-    + "\\additionalinformation{" + info['additionalinformation'] + "}\n" \
+    + "\\programmeyearname{" + info.get('programmeyear','') + "}\n" \
+    + "\\examsemester{" + info.get('examsemester','') + "}\n" \
+    + "\\examyear{" + str(info.get('examyear',2100)) + "}\n" \
+    + "\\examdate{" + info.get('examdate','') + "}\n" \
+    + "\\examtime{" + info.get('examtime','') + "}\n" \
+    + "\\examvenue{" + info.get('examvenue','') + "}\n" \
+    + "\\modulename{" + info.get('modulename','') + "}\n" \
+    + "\\modulecode{" + info.get('modulecode','') + "}\n" \
+    + "\\examiner{" + info.get('examiner','') + "}\n" \
+    + "\\instructions{" + info.get('instructions','') + "}\n" \
+    + "\\materials{" + info.get('materials','') + "}\n" \
+    + "\\additionalinformation{" + info.get('additionalinformation','') + "}\n" \
     + "\\usepackage[totalmarks]{examquestions}\n" \
+    + "\\usepackage{listings}\n" \
+    + "\\lstset{frame=l,language=python,basicstyle=\\ttfamily\\scriptsize,numbers=left,numberstyle=\\tiny\\color{gray},keywordstyle=\\color{blue},commentstyle=\\color{green}\\ttfamily,stringstyle=\\color{red},texcl=false}" \
     + "\\newcounter{bbquestion}\n" \
     + "\\newenvironment{bbquestion}[1][]{\\sbox\\qmarks{\\bfseries #1 marks}"\
     + "\\refstepcounter{bbquestion}\\par\\medskip\\textbf{Q.\\thebbquestion.}"\
@@ -533,6 +540,9 @@ def latex_prelude(info, solutions):
 \\newcommand{\\xD}{{\\omrCHECK{\\XeTeXglyph 69}}}
 \\newcommand{\\xE}{{\\omrCHECK{\\XeTeXglyph 70}}}
 \\newcommand{\\xF}{{\\omrCHECK{\\XeTeXglyph 71}}}
+\\newcommand{\\xG}{{\\omrCHECK{\\XeTeXglyph 72}}}
+\\newcommand{\\xH}{{\\omrCHECK{\\XeTeXglyph 73}}}
+\\newcommand{\\xI}{{\\omrCHECK{\\XeTeXglyph 74}}}
 
 \\newcommand{\\oA}{{\\omrNOCHECK{\\XeTeXglyph 66}}}
 \\newcommand{\\oB}{{\\omrNOCHECK{\\XeTeXglyph 67}}}
@@ -540,6 +550,9 @@ def latex_prelude(info, solutions):
 \\newcommand{\\oD}{{\\omrNOCHECK{\\XeTeXglyph 69}}}
 \\newcommand{\\oE}{{\\omrNOCHECK{\\XeTeXglyph 70}}}
 \\newcommand{\\oF}{{\\omrNOCHECK{\\XeTeXglyph 71}}}
+\\newcommand{\\oG}{{\\omrNOCHECK{\\XeTeXglyph 72}}}
+\\newcommand{\\oH}{{\\omrNOCHECK{\\XeTeXglyph 73}}}
+\\newcommand{\\oI}{{\\omrNOCHECK{\\XeTeXglyph 74}}}
 
 \\newcommand{\\oT}{{\\omrNOCHECK{\\XeTeXglyph 85}}}
 \\newcommand{\\xT}{{\\omrCHECK{\\XeTeXglyph 85}}}
@@ -673,7 +686,7 @@ def latex_essay(entry, md_dict, marks):
         + md_dict[entry['question']] \
         + "\\end{bbquestion}\n" \
         + "\\begin{answer}\n" \
-        + entry['answer'] \
+        + md_dict[entry['answer']] \
         + "\\end{answer}\n"    
     return s
 
