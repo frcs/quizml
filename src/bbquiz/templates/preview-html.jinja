@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<title>Quiz</title>
+    <style type="text/css">
+	 html * {
+	 font-family: sans-serif;
+     	 line-height: 1.35;	 
+	 }
+     p {
+		 max-width: 37em;
+		 page-break-before: avoid;
+	     margin: 0.5em 0;
+	 }	 
+	 .incorrect {
+		 color: black;
+		 background: none;
+		 border: none;				   		 
+	 }
+	 .essay-answer {
+	 display: none;
+	 }
+	 .essay-answer.showanswers {
+	 display: block;	 
+	 }	 
+	 .correct {
+		 color: black;
+		 background: none;
+		 border: none;				   		 
+	 }
+     .correct.showanswers {
+		color: #3c763d;
+		background: #dff0d8;		 
+		border-color: #d6e9c6;
+		/* max-width: 37em; */
+		 /* border: 1px solid; */
+		border-radius: 4px;
+	}
+    .incorrect.showanswers {
+		color: #a94442;
+		background: #f2dede;
+		border-color: #ebccd1;
+		/* max-width: 37em; */
+		/* border: 1px solid; */
+		border-radius: 4px;				   
+	 }
+	 li p:first-child {
+		 margin-top: 0em;
+	 }
+	 li p:last-child {
+		 margin-bottom: 0em;
+	 }
+	 li {margin: 0.5em 0em}
+
+	 ol.question-list {
+		 list-style: none;
+		 counter-reset: item;
+	 }
+	 ol.answers {
+		 list-style: lower-latin;
+		 counter-reset: item;
+	 }
+	 li.question li:first-child {
+		 margin-top: 1.5em;
+     }
+	 ol.question-list {
+		 margin: 0em 0em 0em -2em;
+	 }
+	 ol.question-list li.question {
+		 margin: 1.25em 0em;
+		 counter-increment: item;
+		 margin-bottom: 5px;
+	 }
+	 ol.question-list li.question:before {
+	     margin-right: 10px;
+	     margin-bottom: 1em;
+		 content: "QUESTION " attr(data-questionid);
+		 font-size: 100%;
+		 font-weight: 600;
+	     display: inline-block;}
+	 .question {
+	     border: 1px solid lightgray;
+		 border-radius: 4px;
+		 padding: 1.5em;
+	 }
+	 .question-type{
+		 float: right;
+		 font-style: italic;
+	 }
+	 .marks {
+		 float: right;
+		 margin: 0em 1em;
+		 font-weight: 600;		 
+	 }
+	 .marks:after{
+		 content: ' marks ]'
+     }
+	 .marks:before{
+		 content: '[ '
+     }
+	 
+	 ol { max-width: 43em; page-break-before: avoid; }
+     li { max-width: 43em; page-break-before: avoid; }
+    </style>
+  </head>
+  <body>
+	<p><i>Total Possible Marks: << total_marks >> </i>
+	  <button onclick="toggleShowAnswers()"
+			  id="toggleShowAnswersBtn"
+			  style="float:right"
+			  title= "Shortcut: m">Show Answers</button>
+	  <button onclick="toggleSlideShow()"
+			  id="toggleSlideShowBtn"
+			  style="float:right"
+			  title= "Shortcut: l">Slide Show</button>
+    <ol class='question-list'>
+<| for q in questions |>
+<li class='question' id='Q<< loop.index >>' data-questionid='<< loop.index >>' style='vertical-align: top;'>
+<| if q.type == 'essay' |>
+<div class='question-type'>Essay</div><div class='marks'><< q.marks >></div>
+<<q.question>>
+<| if q.answer is defined |>
+  <div class='essay-answer' style='background:#eee; max-width: 34.5em;
+			  padding: 1em; margin-bottom:1em; margin-top:1em'>
+  <p><i>indicative answer:</i></p>
+  <<q.answer>>
+</div>
+  <| else |>
+  <div style='background:#eee; max-width: 34.5em;
+			  padding: 1em; margin-bottom:1em; margin-top:1em'>
+	no indicative answer given.
+  </div>	
+  <| endif |>
+<| elif q.type == 'mc'|>
+<div class='question-type'>Multiple Choice</div><div class='marks'><< q.marks >></div>
+<<q.question>>
+<ol class='answers'>
+<|-   for a in q.answers |>
+<|        if a.correct   -|>
+   <li class='correct'>
+<|-        else          -|>  
+   <li class='incorrect'>
+<|-        endif          |>  
+<<a.answer>>
+</li>
+<|-    endfor +|>
+</ol>
+<| elif q.type == 'ma'|>
+<div class='question-type'>Multiple Answers</div><div class='marks'><< q.marks >></div>
+<<q.question>>
+<ol class='answers'>
+<|-   for a in q.answers |>
+<|        if a.correct   -|>
+   <li class='correct'>
+<|-       else          -|>  
+   <li class='incorrect'>
+<|-       endif          |>  
+<<a.answer>>
+</li>
+<|-   endfor +|>
+</ol>
+<| elif q.type == 'matching' |>
+<div class='question-type'>Matching</div><div class='marks'><< q.marks >></div>
+<<q.question>>
+<ol class='answers'>
+<|-   for a in q.answers |>
+	<li>
+	  <ol>
+		<li>
+		  <div class='block'
+			   style='border-left:2px solid; padding-left:1em;
+					  border-color: #f2f;max-width: 30.25em;'>
+			<< a.answer >>
+		  </div>
+		</li>
+		<li>
+		  <div class='block'
+			   style='border-left:2px solid; border-color: #2ff;
+					  padding-left:1em; max-width: 30.25em;'>
+            << a.correct >> 
+          </div>
+	    </li>
+	  </ol>
+	</li>
+<|-    endfor +|>
+</ol>
+<| elif q.type == 'ordering' |>
+<div class='question-type'>Ordering</div><div class='marks'><< q.marks >></div>
+<<q.question>>
+<ol class='answers'>
+  <|-   for a in q.answers |>
+  <li>
+	<div class='block'
+		 style='border-left:2px solid; padding-left:1em;
+				border-color: #f2f;max-width: 30.25em;'>
+	  << a.answer >>
+	</div>
+  </li>
+  <|-    endfor +|>
+</ol>
+<|- endif          |>
+  </li>
+<| endfor |>
+	</ol>	
+
+<script>
+  var slideShow = false;
+  var showAnswers = false;
+  
+  var currentQuestion = 1;
+  var nQuestions = document.getElementsByClassName("question").length;
+ 
+  function toggleShowAnswers() {
+	  showAnswers = !showAnswers;
+
+	  nameList = ["correct", "incorrect", "essay-answer"]
+	  for (j in nameList){
+		  var elements = document.getElementsByClassName(nameList[j]);
+		  for (let i=0; i<elements.length; i++){ 
+			  elements[i].classList.toggle("showanswers");
+		  }
+	  }
+	  
+	  var button = document.getElementById("toggleShowAnswersBtn");
+
+	  if (showAnswers) {
+		  button.textContent = "Hide Answers";
+	  } else {
+		  button.textContent = "Show Answers";
+	  }
+  }
+
+ function toggleSlideShow() {
+     slideShow = !(slideShow);
+	 refreshShow();
+	 var button = document.getElementById("toggleSlideShowBtn");
+	  if (slideShow) {
+		  button.textContent = "Display All";
+	  } else {
+		  button.textContent = "Slide Show";
+	  }
+	 
+ }
+
+ function refreshShow() {
+	  if (slideShow){
+		  var elements = document.getElementsByClassName("question");
+		  for (let i=0; i<elements.length; i++){
+			  if (elements[i].getAttribute('data-questionid') === currentQuestion.toString()) {
+				  elements[i].style.display = 'block';
+			  }
+			  else {
+				  elements[i].style.display = 'none';			  
+			  }
+		  }
+	  }
+	  else {
+		  var elements = document.getElementsByClassName("question");
+		  for (let i=0; i<elements.length; i++){		  
+			  elements[i].style.display = 'block';
+		  }
+	  }
+	  var button = document.getElementById("toggleShowAnswersBtn");
+      if (showAnswers) {
+		  button.textContent = "Show Answers";
+	  } else {
+		  button.textContent = "Hide Answers";
+	  }	 
+  }  
+
+  
+  document.addEventListener("keydown", function onEvent(event) {
+      if (event.key === "m") {
+		  toggleShowAnswers()
+      }
+      if (event.key === "l") {
+		  toggleSlideShow()
+      }
+      if (event.key === "ArrowLeft"  ) {
+		  currentQuestion = Math.max(currentQuestion - 1, 1);
+		  refreshShow();		  
+      }
+      if (event.key === "ArrowRight" ) {
+		  currentQuestion = Math.min(currentQuestion + 1, nQuestions);
+		  refreshShow();		  
+      }
+	  
+  });
+	    
+</script>
+
+  </body>
+</html>
+
+

@@ -1,0 +1,96 @@
+- type: header
+  author: Foo Bar
+  date: Semester 2 - 2020/2021
+  title: Coding 101 Exam
+  examtime: 14:00--16:00
+  examdate: 01/01/2100
+  examyear: 2100
+  examvenue: online
+  examsemester: Semester 2
+  programmeyearname: Senior Sophister
+  modulename: Coding for Dummies
+  modulecode: C101 
+  examiner: Prof. F. Bar
+  instructions: "" 
+  materials: ""
+  additionalinformation: ""
+
+  desc: |
+    This is a BlackBoard exam. 
+
+- type: ma
+  marks: 2.5
+  question: |
+    Some question using pandoc markdown. I can use Latex maths ${\bf x} = \sum_i
+    \sin(i f 2\pi)^2$. 
+
+  answers:
+    - correct: false
+      answer: It is converging
+    - correct: false
+      answer: It is not converging
+    - correct: true
+      answer: It depends
+    - correct: false
+      answer: clueless
+
+- type: ma
+  marks: 2.5
+  question: |
+    Some question using pandoc markdown. I can use Latex maths ${\bf x} = \sum_i
+    \sin(i f 2\pi)^2$. 
+
+  answers:
+    - correct: false
+      answer: It is converging
+    - correct: false
+      answer: It is not converging
+    - correct: true
+      answer: It depends
+    - correct: false
+      answer: clueless
+      
+- type: ma
+  marks: 2.5
+  question: |
+    We want to write some code. Is the following network definition correct?
+    
+    ```
+      inputs = Input(shape=(144, 56))
+      h = SimpleRNN(10, return_sequences=False)(inputs)
+      k = SimpleRNN(10, return_sequences=True)(h)
+      output = Dense(3, activation='softmax')(k)
+      m = Model(inputs, output)
+    ```
+  answers:
+    - correct: true
+      answer: "False"
+    - correct: false
+      answer: "True"
+      
+- type: essay
+  marks: 5  
+  question: |
+    What are $1 \times 1$ convolutions usually used for?
+    
+  answer: |    
+    Some suggested answer
+
+- type: essay
+  marks: 5
+  question: |
+    Consider the dataset below:
+
+    ![](figures/dogcat.jpg){width=30em }
+
+    Explain how you could design a classification system for this dataset.
+
+  answer: |
+    We could go back to difference equations or we can go directly:
+    $$
+      Y(z) = \frac{1}{2}\left( X(z) + X(-z) \right)
+    $$
+
+
+
+    

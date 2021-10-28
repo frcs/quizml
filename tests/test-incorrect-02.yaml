@@ -1,0 +1,21 @@
+- type: ma
+  v: "toto"
+  question: |
+    something basou ds
+  answers:
+    - answer: 1
+      correct: true
+
+- type: pouf
+  v: "toto"
+  question: |
+    something basou ds
+  answers:
+    - answer: 1
+      correct: true
+      
+- u: 0
+  v: "toto"
+
+- u: 1
+  v: "tata"

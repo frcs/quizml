@@ -1,0 +1,40 @@
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bbquiz"
+version = "0.4"
+dependencies = [
+  "bs4",
+  "strictyaml>=1.7",
+  "rich",
+  "rich-argparse",
+  "jinja2",
+  "colorama",
+  "watchdog",
+  "mistletoe>=1.2",
+  "css_inline",
+  "latex2mathml",
+  "appdirs"
+]
+requires-python = ">=3.8"
+authors = [
+  {name = "Francois Pitie", email = "francois.pitie@gmail.com"}
+]
+description = """
+  Tool for converting a list of questions in yaml/markdown to a\
+  BlackBoard test or to a Latex exam source file"""
+readme = "README.md"
+license = {text = "GPLv3"}
+keywords = ["BlackBoard", "exam", "test", "quiz", "mcq", "Latex"]
+
+[project.urls]
+Repository = "https://github.com/frcs/bbquiz.git"
+Homepage = "https://github.com/frcs/bbquiz"
+
+[project.scripts]
+bbquiz="bbquiz.cli.cli:main"
+
+
