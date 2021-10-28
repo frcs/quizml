@@ -12,6 +12,8 @@ import hashlib
 import json
 import struct
 
+import argparse
+
 from subprocess import call
 import tempfile
 import base64
@@ -936,8 +938,21 @@ def csv_parse(yaml_data, md_dict):
 
 ###########################################################################
 
+def parse():
+    parser = argparse.ArgumentParser(description = "Converts a questions in a YAML/markdown format into"\
+                        +  "a Blackboard test or a Latex script")
+
+    parser.add_argument("yaml_filename", metavar="quiz.yaml", type=str, 
+                        help = "path to the quiz in a yaml format")
+    
+    return parser.parse_args()
+
+
 def main():
 
+    args = parse()
+    yaml_filename = args.yaml_filename
+    
     try:
         my_name = sys.argv[0]
         yaml_filename = sys.argv[1]
