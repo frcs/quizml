@@ -54,7 +54,7 @@ def join_unique(alist, blist):
     return alist
 
 
-def parse_json(json_data):
+def get_eq_list_from_json(json_data):
     eq_list = []
     if isinstance(json_data, dict):
         for key, val in json_data.items():
@@ -62,10 +62,10 @@ def parse_json(json_data):
                 join_unique(eq_list, [json_data["c"]])
             if isinstance(val, list):
                 for i in val:
-                    eq_list = join_unique(eq_list, parse_json(i))
+                    eq_list = join_unique(eq_list, get_eq_list_from_json(i))
     if isinstance(json_data, list):
         for i in json_data:
-            eq_list = join_unique(eq_list, parse_json(i))
+            eq_list = join_unique(eq_list, get_eq_list_from_json(i))
                     
     return eq_list
 
@@ -155,7 +155,7 @@ def pandoc_json_to_sefcontained_html(json_data):
 
 def convert_latex_eqs(data_json):
 
-    eq_list = parse_json(data_json)
+    eq_list = get_eq_list_from_json(data_json)
     
     latex_preamble = \
         "\\documentclass[multi={mymath1,mymath2},border=1pt]{standalone}\n" + \
@@ -252,9 +252,6 @@ def get_latex_dict_from_md_list(latex_result, md_list):
         latex_content = latex_content.replace('.svg}', '.pdf}')
         latex_content = latex_content.replace(',height=\\textheight', '')
         latex_content = latex_content.replace('\\passthrough', '')
-
-        
-#        latex_content = latex_content.replace('\\begin{lstlisting}', '\\begin{lstlisting}\\begin{verbatim}')
 
         md_dict[txt] = latex_content
 
@@ -904,7 +901,7 @@ def latex_parse(yaml_data, md_dict):
 
     header_info = get_header_info(yaml_data)
     solutions = get_solutions(yaml_data)
-    print(solutions)
+
     s = latex_prelude(header_info, solutions);
     
     for entry in yaml_data:
@@ -953,13 +950,6 @@ def main():
     args = parse()
     yaml_filename = args.yaml_filename
     
-    try:
-        my_name = sys.argv[0]
-        yaml_filename = sys.argv[1]
-    except IndexError:
-        print("Usage: %s INPUT.yaml" % os.path.basename(MY_NAME))
-        exit(1)
-
     (basename, _) = os.path.splitext(yaml_filename)
     csv_filename = basename + ".txt"
     html_filename = basename + ".html"
@@ -990,6 +980,7 @@ def main():
         latex_solutions_file.write(latex_solutions_content)
         
         
+    print("----")
     print("HTML output       : " + html_filename)
     print("BlackBoard output : " + csv_filename)
     print("Latex output      : " + latex_filename)
