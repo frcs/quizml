@@ -18,6 +18,9 @@ from subprocess import call
 import tempfile
 import base64
 from collections import defaultdict
+import logging
+
+
 
 
 def get_md_list_from_yaml(yaml_data):
@@ -937,7 +940,7 @@ def csv_parse(yaml_data, md_dict):
 
 ###########################################################################
 
-def parse():
+def parse_args():
     parser = argparse.ArgumentParser(description = "Converts a questions in a YAML/markdown format into"\
                         +  "a Blackboard test or a Latex script")
 
@@ -945,12 +948,98 @@ def parse():
                         help = "path to the quiz in a yaml format")
     
     return parser.parse_args()
+    
 
+def load_yaml_file(yaml_filename):
+    try:
+        with open(yaml_filename) as yaml_file:
+            yaml_data = yaml.load(yaml_file, Loader=yaml.FullLoader)
+    except yaml.YAMLError as exc:
+        logging.error("Error while parsing YAML file")
+        if hasattr(exc, 'problem_mark'):
+            with open(yaml_filename) as f:
+                lines = f.readlines()                
+            l = exc.problem_mark.line
+            c = exc.problem_mark.column
+            ctx = str(exc.context) if exc.context!=None else ''
+            print("in {}, line {}, column {}".format(yaml_filename, str(l+1), str(c+1)))
+            print("  " + lines[l][0:-1])
+            if (c > 4):
+                print("  " + "~"*(c-1) + "^")
+            else:
+                print("  " + " "*(c-1) + "^~~~~")
+                
+            print("Parsing Error: " + str(exc.problem) + ctx )
+        else:
+            print ("Something went wrong while parsing yaml file")
+        pass
+
+    if type(yaml_data) != list:
+        logging.error("BBQuiz Syntax Error: no question")
+        raise
+
+    return yaml_data
+    
+def check_yaml_syntax(yaml_data):
+    if type(yaml_data) != list:
+        logging.error("BBQuiz Syntax Error: this document contains no question\n")
+        raise
+    for entry in yaml_data:
+        if 'type' not in entry:
+            logging.error("BBQuiz Syntax Error: the question doesn't have a 'type':\n" + yaml.dump([entry]))
+            raise
+
+        if entry['type'] not in ['ma', 'essay', 'header']:
+            logging.warning("BBQuiz Syntax Error: unkown question type '{}':\n".format(entry['type']) + yaml.dump([entry]))
+            
+
+        if entry['type'] == 'ma':
+            for k in entry.keys():
+                if k not in ['answers', 'question', 'marks', 'type']:
+                    logging.warning("BBQuiz Syntax Error: unkown key '{}':\n".format(k) + yaml.dump([entry]))
+            if 'answers' not in entry:        
+                logging.error("BBQuiz Syntax Error: the question doesn't have 'answers':\n" + yaml.dump([entry]))
+                raise
+            if 'question' not in entry:
+                logging.error("BBQuiz Syntax Error: the question doesn't have 'answers':\n" + yaml.dump([entry]))
+                raise
+            if type(entry['answers']) != list:
+                logging.error("BBQuiz Syntax Error: the 'answers' should be a list:\n" + yaml.dump([entry]))
+                raise
+            for a in entry['answers']:
+                if 'correct' not in a:
+                    logging.error("BBQuiz Syntax Error: 'correct' must be defined:\n" + yaml.dump([a]))
+                    raise
+                if 'answer' not in a:
+                    logging.error("BBQuiz Syntax Error: 'answer' must be defined:\n" + yaml.dump([a]))
+                    raise
+        if entry['type'] == 'essay':
+            for k in entry.keys():
+                if k not in ['answer', 'question', 'marks', 'type']:
+                    logging.warning("BBQuiz Syntax Error: unkown key '{}':\n".format(k) + yaml.dump([entry]))                
+
+            if 'question' not in entry:        
+                logging.error("BBQuiz Syntax Error: the question doesn't have 'answers':\n" + yaml.dump([entry]))
+                raise
+            
 
 def main():
 
-    args = parse()
+    args = parse_args()
     yaml_filename = args.yaml_filename
+
+    if not os.path.exists(yaml_filename):
+        logging.error("No file {} found".format(yaml_filename))
+
+    try:
+        yaml_data = load_yaml_file(yaml_filename)
+    except:
+        return
+    try:
+        check_yaml_syntax(yaml_data)
+    except:
+        return
+        
     
     (basename, _) = os.path.splitext(yaml_filename)
     csv_filename = basename + ".txt"
@@ -958,32 +1047,6 @@ def main():
     latex_filename = basename + ".tex"
     latex_solutions_filename = basename + ".solutions.tex"
     
-    with open(yaml_filename) as yaml_file:
-        try:
-            yaml_data = yaml.load(yaml_file, Loader=yaml.FullLoader)
-        except yaml.YAMLError as exc:
-            print ("Error while parsing YAML file:")
-            if hasattr(exc, 'problem_mark'):
-                if exc.context != None:
-                    print ('  parser says\n' + str(exc.problem_mark) + '\n  ' +
-                           str(exc.problem) + ' ' + str(exc.context) +
-                           '\nPlease correct data and retry.')
-                else:
-                    with open(yaml_filename) as f:
-                        lines = f.readlines()
-                    l = exc.problem_mark.line-1
-                    c = exc.problem_mark.column+1
-                    print()
-                    print("in " + yaml_filename + ", line " + str(l) + ", column " + str(c))
-                    print("error: " + str(exc.problem))
-                    print("  " + lines[l][0:-1])
-                    print("  " + "~"*c + "^")
-                    print()
-                    
-            else:
-                print ("Something went wrong while parsing yaml file")
-            return
-
     html_md_dict = get_html_md_dict_from_yaml(yaml_data)  
     latex_md_dict = get_latex_md_dict_from_yaml(yaml_data)  
     
