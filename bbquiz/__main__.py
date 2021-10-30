@@ -1,0 +1,75 @@
+#!/usr/bin/python
+import os
+import sys
+import yaml
+import argparse
+import logging
+
+from bbyaml.loader import load
+from markdown_export.html_dict_from_md_list import get_html_md_dict_from_yaml
+from markdown_export.html_dict_from_md_list import get_latex_md_dict_from_yaml
+import render.to_csv
+import render.to_html
+import render.to_latex
+
+def parse_args():
+    parser = argparse.ArgumentParser(description = "Converts a questions in a YAML/markdown format into"\
+                        +  "a Blackboard test or a Latex script")
+
+    parser.add_argument("yaml_filename", metavar="quiz.yaml", type=str, 
+                        help = "path to the quiz in a yaml format")
+    
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
+    yaml_filename = args.yaml_filename
+
+    if not os.path.exists(yaml_filename):
+        logging.error("No file {} found".format(yaml_filename))
+
+    try:
+        yaml_data = load(yaml_filename)
+    except:
+        return
+        
+    
+    (basename, _) = os.path.splitext(yaml_filename)
+    csv_filename = basename + ".txt"
+    html_filename = basename + ".html"
+    latex_filename = basename + ".tex"
+    latex_solutions_filename = basename + ".solutions.tex"
+    
+    html_md_dict = get_html_md_dict_from_yaml(yaml_data)  
+    latex_md_dict = get_latex_md_dict_from_yaml(yaml_data)  
+
+    with open(csv_filename, "w") as csv_file:
+        csv_content = render.to_csv.render(yaml_data, html_md_dict)
+        csv_file.write(csv_content)
+        
+    with open(html_filename, "w") as html_file:
+        html_content = render.to_html.render(yaml_data, html_md_dict)
+        html_file.write(html_content)
+
+    with open(latex_filename, "w") as latex_file:
+        latex_content = render.to_latex.render(yaml_data, latex_md_dict)
+        latex_file.write(latex_content)
+
+    with open(latex_solutions_filename, "w") as latex_solutions_file:
+        latex_solutions_content = "\\let\\ifmyflag\\iftrue\\input{" \
+            + latex_filename + "}"
+        latex_solutions_file.write(latex_solutions_content)
+        
+        
+    print("-- results --")
+    print("HTML output       : " + html_filename)
+    print("BlackBoard output : " + csv_filename)
+    print("Latex output      : " + latex_filename)
+    print("Latex Solutions   : " + latex_solutions_filename)
+    print("Latex cmd         : latexmk -xelatex -pvc " + latex_filename)
+    print("Latex cmd         : latexmk -xelatex -pvc " \
+          + latex_solutions_filename)
+
+    ###########################################################################
+        
+main()

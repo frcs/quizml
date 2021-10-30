@@ -21,8 +21,6 @@ from collections import defaultdict
 import logging
 
 
-
-
 def get_md_list_from_yaml(yaml_data):
     def get_md_list_from_yaml_rec(yaml_data, md_list):
         # keys that with a string value that should not be converted to markdown
@@ -245,9 +243,10 @@ def get_latex_dict_from_md_list(latex_result, md_list):
         
         start = latex_result.find(latex_section)
         if (start < 0):
-            print("couldn't find hash in md_list. This shouldn't happen."
-                  + "I'm quitting.\n")
-            quit()
+            logging.error(
+                "couldn't find hash in md_list. This shouldn't happen."
+                + "I'm quitting.\n")
+            raise()
         else:
             start = latex_result.find("}}\n", start) + 3
             
@@ -974,54 +973,68 @@ def load_yaml_file(yaml_filename):
             print ("Something went wrong while parsing yaml file")
         pass
 
+    return yaml_data
+
+
+def syntax_error(msg, entry=None):
+    logging.error("Syntax Error: " + msg)
+    print("Syntax Error: " + msg )
+    if entry!=None:
+        print(yaml.dump(entry))
+    raise
+
+def syntax_warning(msg, entry=None):
+    logging.warning("Syntax Warning: " + msg)
+    print("Syntax Warning: " + msg )
+    if entry!=None:
+        print(yaml.dump(entry))
+   
+def check_yaml_syntax_ma(entry):
+    for k in entry.keys():
+        if k not in ['answers', 'question', 'marks', 'type']:
+            syntax_warning("unkown key '{}'".format(k), entry)
+    if 'answers' not in entry:        
+        syntax_error("the question doesn't have 'answers'", entry)
+    if 'question' not in entry:
+        syntax_error("the question doesn't have 'answers'", entry)
+    if type(entry['answers']) != list:
+        syntax_error("'answers' should be a list", entry)
+    for a in entry['answers']:
+        if 'correct' not in a:
+            syntax_error("'correct' must be defined for all answers:\n", entry)
+        if 'answer' not in a:
+            syntax_error("'answer' must be defined for all answers:\n", entry)
+
+def check_yaml_syntax_essay(entry):
+
+    for k in entry.keys():
+        if k not in ['answer', 'question', 'marks', 'type']:
+            syntax_warning("unkown key '{}':\n".format(k), entry)
+            
+    if 'question' not in entry:        
+        syntax_error("the question doesn't have 'question':\n", entry)
+
+            
+def check_yaml_syntax(yaml_data):
+
     if type(yaml_data) != list:
-        logging.error("BBQuiz Syntax Error: no question")
+        syntax_error("this document contains no question")
         raise
 
-    return yaml_data
-    
-def check_yaml_syntax(yaml_data):
-    if type(yaml_data) != list:
-        logging.error("BBQuiz Syntax Error: this document contains no question\n")
-        raise
     for entry in yaml_data:
+
         if 'type' not in entry:
-            logging.error("BBQuiz Syntax Error: the question doesn't have a 'type':\n" + yaml.dump([entry]))
+            syntax_error("the question doesn't have a 'type'")
             raise
 
         if entry['type'] not in ['ma', 'essay', 'header']:
-            logging.warning("BBQuiz Syntax Error: unkown question type '{}':\n".format(entry['type']) + yaml.dump([entry]))
-            
+            syntax_warning("unkown question type '{}'".format(entry['type']))
 
         if entry['type'] == 'ma':
-            for k in entry.keys():
-                if k not in ['answers', 'question', 'marks', 'type']:
-                    logging.warning("BBQuiz Syntax Error: unkown key '{}':\n".format(k) + yaml.dump([entry]))
-            if 'answers' not in entry:        
-                logging.error("BBQuiz Syntax Error: the question doesn't have 'answers':\n" + yaml.dump([entry]))
-                raise
-            if 'question' not in entry:
-                logging.error("BBQuiz Syntax Error: the question doesn't have 'answers':\n" + yaml.dump([entry]))
-                raise
-            if type(entry['answers']) != list:
-                logging.error("BBQuiz Syntax Error: the 'answers' should be a list:\n" + yaml.dump([entry]))
-                raise
-            for a in entry['answers']:
-                if 'correct' not in a:
-                    logging.error("BBQuiz Syntax Error: 'correct' must be defined:\n" + yaml.dump([a]))
-                    raise
-                if 'answer' not in a:
-                    logging.error("BBQuiz Syntax Error: 'answer' must be defined:\n" + yaml.dump([a]))
-                    raise
-        if entry['type'] == 'essay':
-            for k in entry.keys():
-                if k not in ['answer', 'question', 'marks', 'type']:
-                    logging.warning("BBQuiz Syntax Error: unkown key '{}':\n".format(k) + yaml.dump([entry]))                
+            check_yaml_syntax_ma(entry)
 
-            if 'question' not in entry:        
-                logging.error("BBQuiz Syntax Error: the question doesn't have 'answers':\n" + yaml.dump([entry]))
-                raise
-            
+        if entry['type'] == 'essay':
+            check_yaml_syntax_essay(entry)
 
 def main():
 
