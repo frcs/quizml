@@ -1,19 +1,21 @@
 \documentclass{tcdexams}
 
 %% loading information to template
-\programmeyearname{$programmeyear}
-\examsemester{$examsemester)
-\examyear{$examyear}
-\examdate{$examdate}
-\examtime{$examtime}
-\examvenue{$examvenue}
-\modulename{$modulename}
-\modulecode{$modulecode}
-\examiner{$examiner}
-\instructions{$instructions}
-\materials{$materials}
-\additionalinformation{$additionalinformation}
-\questions{$questions}
+$info
+
+\programmeyearname{\infoprogrammeyearname}
+\examsemester{\infoexamsemester}
+\examyear{\infoexamyear}
+\examdate{\infoexamdate}
+\examtime{\infoexamtime}
+\examvenue{\infoexamvenue}
+\modulename{\infomodulename}
+\modulecode{\infomodulecode}
+\examiner{\infoexaminer}
+\instructions{\infoinstructions}
+\materials{\infomaterials}
+\additionalinformation{\infoadditionalinformation}
+
 
 %% rest of the template
 \usepackage{amsmath,amssymb}
@@ -31,7 +33,7 @@
   keywordstyle=\color{blue},
   commentstyle=\color{green}\ttfamily,
   stringstyle=\color{red},
-  texcl=false}"
+  texcl=false}
 
 \newcounter{bbquestion}
 \newenvironment{bbquestion}[1][]{\sbox\qmarks{\bfseries #1 marks}
@@ -219,9 +221,7 @@ questions with multiple choices, mark all solutions that are correct
 \vspace{0.5em}
 
 \begin{multicols}{3}
-  \begin{enumerate}
-
-    \end{enumerate}
+  $omranswers
 \end{multicols}
 
 
@@ -235,6 +235,6 @@ This page is intentionally left blank.
 
 \pagebreak
 
-\questions
+$questions
 
 \end{document}

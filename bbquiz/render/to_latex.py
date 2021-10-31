@@ -1,3 +1,6 @@
+import os
+from string import Template
+
 default_marks_handler = {
     'mc': 2.5,
     'ma': 2.5,
@@ -7,9 +10,9 @@ default_marks_handler = {
     'ordering': 2.5,
 }
 
-def latex_info_render(info):
+def latex_render_info(info):
     if info is None:
-        info = {'programmeyear': '',
+        info = {'programmeyearname': '',
                 'examyear': '',
                 'examsemester': '',
                 'examdate': '',
@@ -22,22 +25,24 @@ def latex_info_render(info):
                 'materials': '',
                 'additionalinformation': ''}
    
-    s = "%% passing header info"
-    for k,v in info:
-        s += "\\{" + k + "}{" + v + "}\n"
+    s = "%% passing header info\n"
+    for k, v in info.items():
+        if k != 'type':
+            s += "\\def \\info" + k + " {" + str(v) + "}\n"
 
+    print(s)
     return s
 
-def latex_omr_answers(solutions):
+def latex_render_omr_answers(solutions):
 
     n = len(solutions)
 
     letter = ["A", "B", "C", "D", "E", "F", "G", "H"];
 
-    s = ""
+    s = "\\begin{enumerate}"
     
     for i, q in enumerate(solutions):
-        s += "    \item[{\\bf\\textit Q."+str(i+1) + ".}] "
+        s += "\n    \item[{\\bf\\textit Q."+str(i+1) + ".}] "
 
         if q['type'] == 'essay':
             s += "essay question"
@@ -52,18 +57,20 @@ def latex_omr_answers(solutions):
                 else:
                     s += unchecked
                     
-                s += "\n"
-
-
-    
-def latex_header(entry, md_dict, marks):
-    return ""
-
-def latex_multiple_choice(entry, md_dict, marks):        
-    s = latex_multiple_answer(entry, md_dict, marks)
+                s += ""
+    s += "\n\\end{enumerate}"
+                
     return s
 
-def latex_essay(entry, md_dict, marks):        
+    
+def latex_render_header(entry, md_dict, marks):
+    return ""
+
+def latex_render_multiple_choice(entry, md_dict, marks):        
+    s = latex_render_multiple_answer(entry, md_dict, marks)
+    return s
+
+def latex_render_essay(entry, md_dict, marks):        
     s = "\\begin{bbquestion}[" + str(marks) + "]\n" \
         + md_dict[entry['question']] \
         + "\\end{bbquestion}\n" \
@@ -72,19 +79,19 @@ def latex_essay(entry, md_dict, marks):
         + "\\end{answer}\n"    
     return s
 
-def latex_ordering(entry, md_dict, marks):        
+def latex_render_ordering(entry, md_dict, marks):        
     s = "\\begin{bbquestion}[" + str(marks) + "]\n" \
         + md_dict[entry['question']] \
         + "\\end{bbquestion}\n"
     return s
 
-def latex_matching(entry, md_dict, marks):        
+def latex_render_matching(entry, md_dict, marks):        
     s = "\\begin{bbquestion}[" + str(marks) + "]\n" \
         + md_dict[entry['question']] \
         + "\\end{bbquestion}\n"
     return s
 
-def latex_multiple_answer(entry, md_dict, marks):        
+def latex_render_multiple_answer(entry, md_dict, marks):        
     s = "\\begin{bbquestion}[" + str(marks) + "]\n" \
         + md_dict[entry['question']] \
         + "  \\begin{enumerate}\\setcounter{enumii}{0}\n" \
@@ -124,15 +131,15 @@ def get_solutions(yaml_data):
 
 #########################################
 
-def latex_questions_render():
+def latex_render_questions(yaml_data, md_dict):
 
     handlers = {
-        'mc': latex_multiple_choice,
-        'ma': latex_multiple_answer,
-        'essay': latex_essay,
-        'header': latex_header,
-        'matching': latex_matching,
-        'ordering': latex_ordering,
+        'mc': latex_render_multiple_choice,
+        'ma': latex_render_multiple_answer,
+        'essay': latex_render_essay,
+        'header': latex_render_header,
+        'matching': latex_render_matching,
+        'ordering': latex_render_ordering,
     }
     
     all_marks = []
@@ -145,29 +152,33 @@ def latex_questions_render():
             entry_marks = default_marks_handler[entry['type']]
         all_marks.append(entry_marks)        
         questions += handlers[entry['type']](entry, md_dict, entry_marks)
-
+    return questions
 
 def render(yaml_data, md_dict):
-   
-    handlers = {
-        'mc': latex_multiple_choice,
-        'ma': latex_multiple_answer,
-        'essay': latex_essay,
-        'header': latex_header,
-        'matching': latex_matching,
-        'ordering': latex_ordering,
-    }
-   
-    all_marks = []
-
+      
     header_info = get_header_info(yaml_data)
     solutions = get_solutions(yaml_data)
+    
+    info_str = latex_render_info(header_info)
+    questions_str = latex_render_questions(yaml_data, md_dict)
+    print(questions_str)
+
+    omranswers_str = latex_render_omr_answers(solutions)
+    print(omranswers_str)
 
     
-    info_str = latex_info_render(info)
-    questions_str = latex_questions_render(info)
-        
-    s += latex_postlude(all_marks)
-    return s
+    dirname = os.path.dirname(__file__)
+    template_filename = os.path.join(
+        dirname, '../../templates/tcd-eleceng-exam.tex')
+
+    
+    with open(template_filename, 'r') as template_file:
+        template = Template(template_file.read())
+    latex_content = template.substitute(
+        info=info_str,
+        omranswers=omranswers_str,
+        questions=questions_str)
+    
+    return latex_content
 
 
