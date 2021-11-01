@@ -5,12 +5,12 @@ import yaml
 import argparse
 import logging
 
-from bbyaml.loader import load
-from markdown_export.html_dict_from_md_list import get_html_md_dict_from_yaml
-from markdown_export.html_dict_from_md_list import get_latex_md_dict_from_yaml
-import render.to_csv
-import render.to_html
-import render.to_latex
+from .bbyaml.loader import load
+from .markdown_export.html_dict_from_md_list import get_html_md_dict_from_yaml
+from .markdown_export.html_dict_from_md_list import get_latex_md_dict_from_yaml
+from .render import to_csv
+from .render import to_html
+from .render import to_latex
 
 def parse_args():
     parser = argparse.ArgumentParser(description = "Converts a questions in a YAML/markdown format into"\
@@ -44,15 +44,15 @@ def main():
     latex_md_dict = get_latex_md_dict_from_yaml(yaml_data)  
 
     with open(csv_filename, "w") as csv_file:
-        csv_content = render.to_csv.render(yaml_data, html_md_dict)
+        csv_content = to_csv.render(yaml_data, html_md_dict)
         csv_file.write(csv_content)
         
     with open(html_filename, "w") as html_file:
-        html_content = render.to_html.render(yaml_data, html_md_dict)
+        html_content = to_html.render(yaml_data, html_md_dict)
         html_file.write(html_content)
 
     with open(latex_filename, "w") as latex_file:
-        latex_content = render.to_latex.render(yaml_data, latex_md_dict)
+        latex_content = to_latex.render(yaml_data, latex_md_dict)
         latex_file.write(latex_content)
 
     with open(latex_solutions_filename, "w") as latex_solutions_file:

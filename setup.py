@@ -1,9 +1,14 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(name='bbquiz',
       version='0.1',
       author='Francois Pitie',
-      packages=['bbquiz'],
+      packages=['bbquiz',
+                'bbquiz.bbyaml',
+                'bbquiz.markdown_export',
+                'bbquiz.render'],
+      package_dir={'bbquiz': 'bbquiz'},
+      package_data={'bbquiz': ['templates/*.tex']},
       entry_points={
           "console_scripts": [
               "bbquiz = bbquiz.__main__:main"

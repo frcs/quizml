@@ -169,7 +169,7 @@ def render(yaml_data, md_dict):
     
     dirname = os.path.dirname(__file__)
     template_filename = os.path.join(
-        dirname, '../../templates/tcd-eleceng-exam.tex')
+        dirname, '../templates/tcd-eleceng-exam.tex')
 
     
     with open(template_filename, 'r') as template_file:
