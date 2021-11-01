@@ -1,0 +1,23 @@
+
+# latex files
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.xdv
+
+# OSX 
+*.DS_Store
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+
+*.egg-info
+
+# emacs temp files
+\#*
+
+build
+
