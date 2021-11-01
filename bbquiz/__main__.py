@@ -5,12 +5,15 @@ import yaml
 import argparse
 import logging
 
-from .bbyaml.loader import load
-from .markdown_export.html_dict_from_md_list import get_html_md_dict_from_yaml
-from .markdown_export.html_dict_from_md_list import get_latex_md_dict_from_yaml
-from .render import to_csv
-from .render import to_html
-from .render import to_latex
+from bbquiz.bbyaml.loader import load
+from bbquiz.markdown_export.html_dict_from_md_list import get_html_md_dict_from_yaml
+from bbquiz.markdown_export.html_dict_from_md_list import get_latex_md_dict_from_yaml
+from bbquiz.render import to_csv
+from bbquiz.render import to_html
+from bbquiz.render import to_latex
+
+from rich.traceback import install
+install(show_locals=False)
 
 def parse_args():
     parser = argparse.ArgumentParser(description = "Converts a questions in a YAML/markdown format into"\
@@ -22,6 +25,7 @@ def parse_args():
     return parser.parse_args()
 
 def main():
+
     args = parse_args()
     yaml_filename = args.yaml_filename
 

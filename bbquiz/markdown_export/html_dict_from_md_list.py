@@ -19,29 +19,43 @@ import tempfile
 import base64
 from collections import defaultdict
 import logging
-
-
-def get_md_list_from_yaml(yaml_data):
-    def get_md_list_from_yaml_rec(yaml_data, md_list):
-        # keys that with a string value that should not be converted to markdown
-        non_md_keys = ['type']
-        for i in yaml_data:
-            for key, val in i.items():
-                if isinstance(val, list):
-                    get_md_list_from_yaml_rec(val, md_list)
-                elif isinstance(val, str) and key not in non_md_keys:
-                    if val not in md_list:
-                        md_list.append(val)
-
-    md_list = []
-    get_md_list_from_yaml_rec(yaml_data, md_list);
-    return md_list
     
-                 
+
+def get_md_list_from_yaml(yaml_data, md_list=[]):
+    """
+    List all Markdown entries in the yaml file.
+
+    Parameters
+    ----------
+    yaml_data : list  
+        yaml file content, as decoded by bbyaml.load
+    md_list : list
+        output list of markdown entries
+    """
+    non_md_keys = ['type']
+    for i in yaml_data:
+        for key, val in i.items():
+            if isinstance(val, list):
+                md_list = get_md_list_from_yaml(val, md_list)
+            elif isinstance(val, str) and key not in non_md_keys:
+                if val not in md_list:
+                    md_list.append(val)
+    return md_list
+
+
 def get_hash(txt):
     return hashlib.md5(txt.encode('utf-8')).hexdigest()
  
 def md_combine_list(md_list):
+    """
+    Collate all Markdown entries into a single Markdown document.
+
+    Parameters
+    ----------
+    md_list : list  
+        list of markdown entries
+    """
+
     txt = ""
     for md_entry in md_list:
         txt = txt + "\n\n# " + get_hash(md_entry) + "\n\n" + md_entry
@@ -58,6 +72,7 @@ def get_eq_list_from_json(json_data):
     if isinstance(json_data, dict):
         for key, val in json_data.items():
             if key == 't' and val == 'Math':
+                print(json_data["c"])
                 append_unique(eq_list, [json_data["c"]])
             if isinstance(val, list):
                 for i in val:
@@ -69,7 +84,7 @@ def get_eq_list_from_json(json_data):
     return eq_list
 
 
-def replace_with_image(c, eq_dict):
+def replace_eq_with_image(c, eq_dict):
     [w, h, base64] = eq_dict[c[0]['t'] + c[1]]
     return {
         "t":
@@ -84,7 +99,7 @@ def parse_json_replace_maths(json_data, eq_dict):
     if isinstance(json_data, dict):
         for key, val in json_data.items():
             if key == 't' and val == 'Math':
-                return replace_with_image(json_data["c"], eq_dict)
+                return replace_eq_with_image(json_data["c"], eq_dict)
             if isinstance(val, list):
                 new_val = []
                 for i in val:
@@ -110,7 +125,6 @@ def png_file_to_base64(pngfile):
         data64 = "data:image/png;base64," + \
             base64.b64encode(data).decode('ascii')
     return (w, h, data64)
-
 
 def pandoc_md_to_json(md_content):
     cmd = ['pandoc', '-f', 'markdown', '-t', 'json']
