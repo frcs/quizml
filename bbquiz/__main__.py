@@ -7,7 +7,7 @@ import logging
 
 from bbquiz.bbyaml.loader import load
 from bbquiz.markdown_export.html_dict_from_md_list import get_html_md_dict_from_yaml
-from bbquiz.markdown_export.html_dict_from_md_list import get_latex_md_dict_from_yaml
+from bbquiz.markdown_export.latex_dict_from_md_list import get_latex_md_dict_from_yaml
 from bbquiz.render import to_csv
 from bbquiz.render import to_html
 from bbquiz.render import to_latex
@@ -16,8 +16,9 @@ from rich.traceback import install
 install(show_locals=False)
 
 def parse_args():
-    parser = argparse.ArgumentParser(description = "Converts a questions in a YAML/markdown format into"\
-                        +  "a Blackboard test or a Latex script")
+    parser = argparse.ArgumentParser(
+        description = "Converts a questions in a YAML/markdown format into"\
+        +  "a Blackboard test or a Latex script")
 
     parser.add_argument("yaml_filename", metavar="quiz.yaml", type=str, 
                         help = "path to the quiz in a yaml format")
@@ -25,7 +26,7 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-
+    print("HEHEHEHEH\n")
     args = parse_args()
     yaml_filename = args.yaml_filename
 

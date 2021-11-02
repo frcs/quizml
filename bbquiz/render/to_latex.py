@@ -30,7 +30,6 @@ def latex_render_info(info):
         if k != 'type':
             s += "\\def \\info" + k + " {" + str(v) + "}\n"
 
-    print(s)
     return s
 
 def latex_render_omr_answers(solutions):
@@ -161,10 +160,8 @@ def render(yaml_data, md_dict):
     
     info_str = latex_render_info(header_info)
     questions_str = latex_render_questions(yaml_data, md_dict)
-    print(questions_str)
 
     omranswers_str = latex_render_omr_answers(solutions)
-    print(omranswers_str)
 
     
     dirname = os.path.dirname(__file__)
