@@ -72,7 +72,6 @@ def get_eq_list_from_json(json_data):
     if isinstance(json_data, dict):
         for key, val in json_data.items():
             if key == 't' and val == 'Math':
-                print(json_data["c"])
                 append_unique(eq_list, [json_data["c"]])
             if isinstance(val, list):
                 for i in val:

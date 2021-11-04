@@ -102,13 +102,11 @@ def get_latex_md_dict_from_yaml(yaml_data):
 
     md_combined = md_combine_list(md_list)
     
-    print(md_combined)
     with open("stuff.md", "w") as f:
         f.write(md_combined)
     
     
     latex_result = pandoc_md_to_latex(md_combined)  
-    print(latex_result)
     
     md_dict = get_latex_dict_from_md_list(latex_result, md_list)
 

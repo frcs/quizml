@@ -26,7 +26,7 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-    print("HEHEHEHEH\n")
+
     args = parse_args()
     yaml_filename = args.yaml_filename
 
