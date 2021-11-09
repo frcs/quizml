@@ -15,6 +15,10 @@ from bbquiz.render import to_latex
 from rich.traceback import install
 install(show_locals=False)
 
+from time import sleep
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description = "Converts a questions in a YAML/markdown format into"\
@@ -22,13 +26,14 @@ def parse_args():
 
     parser.add_argument("yaml_filename", metavar="quiz.yaml", type=str, 
                         help = "path to the quiz in a yaml format")
-    
+    parser.add_argument("-w", "--watch",
+                        help="continuously compiles the document on file change",
+                        action="store_true")
+
     return parser.parse_args()
 
-def main():
 
-    args = parse_args()
-    yaml_filename = args.yaml_filename
+def compile(yaml_filename):
 
     if not os.path.exists(yaml_filename):
         logging.error("No file {} found".format(yaml_filename))
@@ -76,5 +81,37 @@ def main():
           + latex_solutions_filename)
 
     ###########################################################################
+
+def compile_on_change(yaml_filename):
+    full_yaml_path = os.path.abspath(yaml_filename)
+    class Handler(FileSystemEventHandler):
+        def on_modified(self, event):
+            if event.src_path == full_yaml_path:
+                compile(yaml_filename)
+
+    observer = Observer()
+    observer.schedule(Handler(), ".") # watch the local directory
+    observer.start()
+
+    try:
+        while True:
+            sleep(1)
+    except KeyboardInterrupt:
+        observer.stop()
+        quit()
+
+    observer.join()
+
+
+def main():
+
+    args = parse_args()
+    yaml_filename = args.yaml_filename
+
+    if args.watch:
+        compile(yaml_filename)        
+        compile_on_change(yaml_filename)
+    else:
+        compile(yaml_filename)
         
 main()
