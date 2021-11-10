@@ -83,14 +83,13 @@ def compile(yaml_filename):
     ###########################################################################
 
 def compile_on_change(yaml_filename):
-    print("\n...waiting for a file change to re-compile the document...\n " \
-    
+    print("\n...waiting for a file change to re-compile the document...\n " )    
     full_yaml_path = os.path.abspath(yaml_filename)
     class Handler(FileSystemEventHandler):
         def on_modified(self, event):
             if event.src_path == full_yaml_path:
                 compile(yaml_filename)
-                print("\n...waiting for a file change to re-compile the document...\n " \
+                print("\n...waiting for a file change to re-compile the document...\n ")
                 
 
     observer = Observer()

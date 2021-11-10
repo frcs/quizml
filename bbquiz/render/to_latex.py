@@ -11,24 +11,33 @@ default_marks_handler = {
 }
 
 def latex_render_info(info):
+    default_info = {
+        'programmeyearname': '',
+        'examyear': '',
+        'examsemester': '',
+        'examdate': '',
+        'examtime': '',
+        'examvenue': '',
+        'modulename': '',
+        'modulecode': '',
+        'examiner': '',
+        'instructions': '',
+        'materials': '',
+        'additionalinformation': ''}
+    
     if info is None:
-        info = {'programmeyearname': '',
-                'examyear': '',
-                'examsemester': '',
-                'examdate': '',
-                'examtime': '',
-                'examvenue': '',
-                'modulename': '',
-                'modulecode': '',
-                'examiner': '',
-                'instructions': '',
-                'materials': '',
-                'additionalinformation': ''}
-   
+        info = default_info.copy()
+
+    # setting the default keys
+    for k, v in default_info.items():
+        if k not in info:
+            info[k] = v
+        
     s = "%% passing header info\n"
-    for k, v in info.items():
+    for k,v in info.items():
         if k != 'type':
             s += "\\def \\info" + k + " {" + str(v) + "}\n"
+            
 
     return s
 
