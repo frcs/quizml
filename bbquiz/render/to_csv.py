@@ -16,40 +16,40 @@
 #       - FIB_PLUS = multiple fill in blanks
 
 def correctness(a):
-    if a['correct']:
+    if a.get('correct', 'incorrect'):
         return 'correct'
     else:
         return 'incorrect'
 
 def csv_matching(entry, md_dict):
-    seq = ['MAT', md_dict[entry['question']]]
-    for a in entry['answers']:
-        seq.append(md_dict[a['answer']])
-        seq.append(md_dict[a['correct']])
+    seq = ['MAT', md_dict[entry.get('question','')]]
+    for a in entry.get('answers', None):
+        seq.append(md_dict[a.get('answer','')])
+        seq.append(md_dict[a.get('correct')])
     return "\t".join(seq) + "\n" 
 
 def csv_ordering(entry, md_dict):
-    seq = ['ORD', md_dict[entry['question']]]
-    for a in entry['answers']:
-        seq.append(md_dict[a['answer']])
+    seq = ['ORD', md_dict[entry.get('question', '')]]
+    for a in entry.get('answers', None):
+        seq.append(md_dict[a.get('answer', '')])
     return "\t".join(seq) + "\n" 
 
 def csv_multiple_choice(entry, md_dict):
-    seq = ['MC', md_dict[entry['question']]]
-    for a in entry['answers']:
-        seq.append(md_dict[a['answer']])
+    seq = ['MC', md_dict[entry.get('question', '')]]
+    for a in entry.get('answers', None):
+        seq.append(md_dict[a.get('answer', '')])
         seq.append(correctness(a))
     return "\t".join(seq) + "\n" 
 
 def csv_multiple_answer(entry, md_dict):
-    seq = ['MA', md_dict[entry['question']]]
-    for a in entry['answers']:
-        seq.append(md_dict[a['answer']])
+    seq = ['MA', md_dict[entry.get('question', '')]]
+    for a in entry.get('answers', None):
+        seq.append(md_dict[a.get('answer', '')])
         seq.append(correctness(a))
     return "\t".join(seq) + "\n" 
   
 def csv_essay(entry, md_dict):
-    seq = ['ESS', md_dict[entry['question']], md_dict[entry['answer']]]
+    seq = ['ESS', md_dict[entry.get('question', '')], md_dict[entry.get('answer', '')]]
     return "\t".join(seq) + "\n" 
 
 def csv_header(entry, md_dict):

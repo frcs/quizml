@@ -40,8 +40,10 @@ def check_bbyaml_syntax_essay(entry):
             syntax_warning("unkown key '{}':\n".format(k), entry)
             
     if 'question' not in entry:        
-        syntax_error("the question doesn't have 'question':\n", entry)
+        syntax_error("the question doesn't have a 'question' field:\n", entry)
 
+    if 'answer' not in entry:        
+        syntax_warning("the question doesn't have an 'answer' field:\n", entry)
             
 def check_bbyaml_syntax(yaml_data):
 
