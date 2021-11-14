@@ -11,27 +11,9 @@ default_marks_handler = {
 }
 
 def latex_render_info(info):
-    default_info = {
-        'programmeyearname': '',
-        'examyear': '',
-        'examsemester': '',
-        'examdate': '',
-        'examtime': '',
-        'examvenue': '',
-        'modulename': '',
-        'modulecode': '',
-        'examiner': '',
-        'instructions': '',
-        'materials': '',
-        'additionalinformation': ''}
     
     if info is None:
-        info = default_info.copy()
-
-    # setting the default keys
-    for k, v in default_info.items():
-        if k not in info:
-            info[k] = v
+        info = {}
         
     s = "%% passing header info\n"
     for k,v in info.items():
@@ -45,7 +27,7 @@ def latex_render_omr_answers(solutions):
 
     n = len(solutions)
 
-    letter = ["A", "B", "C", "D", "E", "F", "G", "H"];
+    letter = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
     s = "\\begin{enumerate}"
     
@@ -102,6 +84,7 @@ def latex_render_matching(entry, md_dict, marks):
 def latex_render_multiple_answer(entry, md_dict, marks):        
     s = "\\begin{bbquestion}[" + str(marks) + "]\n" \
         + md_dict[entry['question']] \
+        + "  \\vspace{1em}\n" \
         + "  \\begin{enumerate}\\setcounter{enumii}{0}\n" \
         + "     \\setlength\\itemsep{0em}"
     for a in entry['answers']:
