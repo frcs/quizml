@@ -34,57 +34,23 @@ def html_multiple_choice(entry, md_dict, marks):
         + "</li>\n"
     return s
 
-def html_ordering(entry, md_dict, marks):
-    s = "<li class='question' style='vertical-align: top;'>" \
-        + "<b>Ordering [" + str(marks) + " Marks]</b>"   \
-        + md_dict[entry['question']] \
-        + "<ol>"
-    for a in entry['answers']:
-        s += "<li><div class='block' style='border-left:2px solid; "\
-            + "padding-left:1em; border-color: #f2f;max-width: 30.25em;'>"\
-            + md_dict[a['answer']] \
-            + "</div></li>" 
-    s += "</ol></li>\n"
-    return s
-
-
-def html_matching(entry, md_dict, marks):
-    s = "<li class='question'>"\
-        + "<b>Matching [" + str(marks) + " Marks]</b>"   \
-        + md_dict[entry['question']]
-
-    s += "<ol class='input' type='a'>"
-    id = uuid.uuid4().hex
-    for a in entry['answers']:
-        s += "<li><ol><li><div class='block' "\
-            + "style='border-left:2px solid; "\
-            + "padding-left:1em; border-color: #f2f;max-width: 30.25em;'>"\
-            + md_dict[a['answer']] \
-            + "</div></li>" \
-            + "<li><div class='block' " \
-            + "style='border-left:2px solid; border-color: #2ff; "\
-            + "padding-left:1em; max-width: 30.25em;'>"\
-            + md_dict[a['correct']] \
-            + "</div></li></ol></li>" 
-    s += "</ol></li>"
-    return s
-
-
 def html_essay(entry, md_dict, marks):
+    
     s = "<li class='question'><b>Essay [" + str(marks) + " Marks]</b>" \
         + md_dict[entry['question']] \
         + "<div style='background:#eee; max-width: 34.5em; "\
         + "padding: 1em; margin-bottom:1em; margin-top:1em'>\n" \
         + "<p style='margin:0 0 1em 0'><b>indicative answer:</b></p>" \
-        + md_dict[entry['answer']] \
+        + (md_dict[entry['answer']] if 'answer' in entry else '<no answer given>') \
         + "</div></li>\n"
     return s
 
 def html_header(entry, md_dict, marks):
-    title = md_dict[entry['title']]
-    date = md_dict[entry['date']]
-    author = md_dict[entry['author']]
 
+    title = md_dict[entry['title']] if 'title' in entry else 'test'
+    author = md_dict[entry['author']] if 'author' in entry else 'author'
+    date = md_dict[entry['date']] if 'date' in entry else 'date'
+    
     return "<h1>" + title + "</h1>" \
         + "<p>" + date + "</p>" \
         + "<p>" + author + "</p>"
@@ -153,17 +119,6 @@ def html_matching(entry, md_dict, marks):
     return s
 
 
-def html_essay(entry, md_dict, marks):
-    s = "<li class='question'><b>Essay [" + str(marks) + " Marks]</b>" \
-        + md_dict[entry['question']] \
-        + "<div style='background:#eee; max-width: 34.5em; "\
-        + "padding: 1em; margin-bottom:1em; margin-top:1em'>\n" \
-        + "<p style='margin:0 0 1em 0'><b>indicative answer:</b></p>" \
-        + md_dict[entry['answer']] \
-        + "</div></li>\n"
-    return s
-
-
 def render(yaml_data, md_dict):
 
     handlers = {
@@ -175,7 +130,7 @@ def render(yaml_data, md_dict):
         'ordering': html_ordering,
     }
 
-    default_marks_handler = {
+    default_marks = {
         'mc': 2.5,
         'ma': 2.5,
         'essay': 5,
@@ -187,10 +142,7 @@ def render(yaml_data, md_dict):
     all_marks = []
     s = html_prelude()    
     for entry in yaml_data:
-        if "marks" in entry:
-            entry_marks = entry['marks']
-        else:
-            entry_marks = default_marks_handler[entry['type']]
+        entry_marks = entry.get('marks', default_marks[entry['type']])        
         all_marks.append(entry_marks)
         s += handlers[entry['type']](entry, md_dict, entry_marks)
         

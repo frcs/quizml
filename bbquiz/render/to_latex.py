@@ -1,7 +1,7 @@
 import os
 from string import Template
 
-default_marks_handler = {
+default_marks = {
     'mc': 2.5,
     'ma': 2.5,
     'essay': 5,
@@ -83,7 +83,7 @@ def latex_render_essay(entry, md_dict, marks):
         + md_dict[entry['question']] \
         + "\\end{bbquestion}\n" \
         + "\\begin{answer}\n" \
-        + md_dict[entry['answer']] \
+        + (md_dict[entry['answer']] if 'answer' in entry else 'no answer given')\
         + "\\end{answer}\n"    
     return s
 
@@ -116,10 +116,11 @@ def latex_render_multiple_answer(entry, md_dict, marks):
 
 
 def get_header_info(yaml_data):
-    if yaml_data[0]['type'] == 'header':
-        header = yaml_data[0]
-    else:
-        header = None        
+    header = None
+    for entry in yaml_data:
+        if entry['type'] == 'answer':
+            header = yaml_data[0]
+            break
     return header
 
 
@@ -154,10 +155,7 @@ def latex_render_questions(yaml_data, md_dict):
 
     questions = ""
     for entry in yaml_data:
-        if "marks" in entry:
-            entry_marks = entry['marks']
-        else:
-            entry_marks = default_marks_handler[entry['type']]
+        entry_marks = entry.get('marks', default_marks[entry['type']])        
         all_marks.append(entry_marks)        
         questions += handlers[entry['type']](entry, md_dict, entry_marks)
     return questions

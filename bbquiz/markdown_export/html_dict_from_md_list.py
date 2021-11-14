@@ -196,9 +196,23 @@ def convert_latex_eqs(data_json):
     f.write("\\end{document}\n")
     f.close()
 
-    print("-- compiling the equations --")
+    print("compiling the equations using pdflatex...")
 
-    call(["pdflatex", latex_filename], stdout=sys.stderr)
+#    call(["pdflatex", latex_filename], stdout=sys.stderr)
+    pdflatex = subprocess.Popen(["pdflatex", latex_filename],
+                                stdout = subprocess.PIPE,
+                                universal_newlines = True)
+    latex_verb = False
+    for line in pdflatex.stdout:
+        if line.startswith('!') and not latex_verb:
+            sys.stdout.write('\033[91m' + "╭" + "pdflatex Error".center(81, "─") + "╮" + '\033[0m\n')
+            latex_verb = True
+        if latex_verb:
+            sys.stdout.write('\033[91m' + "│ " + '\033[0m' +  line[:-1].ljust(79) + '\033[91m' + " │" + '\033[0m\n')
+
+    if latex_verb:
+        sys.stdout.write('\033[91m' + "╰" + "─"*81 + "╯" + '\033[0m\n')           
+
     call(["gs", "-dBATCH", '-q', "-dNOPAUSE", "-sDEVICE=pngalpha", "-r250",
           "-dTextAlphaBits=4", "-dGraphicsAlphaBits=4",
           "-sOutputFile=" + png_base + "%05d.png", pdf_filename])

@@ -107,14 +107,14 @@ def compile_on_change(yaml_filename):
 
 
 def main():
-
     args = parse_args()
     yaml_filename = args.yaml_filename
 
     if args.watch:
-        compile(yaml_filename)        
+        compile(yaml_filename)
         compile_on_change(yaml_filename)
     else:
         compile(yaml_filename)
-        
-main()
+
+if __name__=="__main__":
+    main()
