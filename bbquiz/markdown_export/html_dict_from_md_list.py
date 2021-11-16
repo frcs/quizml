@@ -21,7 +21,7 @@ from collections import defaultdict
 import logging
     
 
-def get_md_list_from_yaml(yaml_data, md_list=[]):
+def get_md_list_from_yaml(yaml_data, md_list=None):
     """
     List all Markdown entries in the yaml file.
 
@@ -32,6 +32,9 @@ def get_md_list_from_yaml(yaml_data, md_list=[]):
     md_list : list
         output list of markdown entries
     """
+    if md_list is None:
+        md_list = []
+        
     non_md_keys = ['type']
     for i in yaml_data:
         for key, val in i.items():
