@@ -11,7 +11,6 @@ default_marks = {
 }
 
 def latex_render_info(info):
-    
     if info is None:
         info = {}
         
@@ -101,7 +100,7 @@ def latex_render_multiple_answer(entry, md_dict, marks):
 def get_header_info(yaml_data):
     header = None
     for entry in yaml_data:
-        if entry['type'] == 'answer':
+        if entry['type'] == 'header':
             header = yaml_data[0]
             break
     return header
