@@ -142,10 +142,23 @@ def get_html_dict_from_md_list(html_result, md_list):
         end = html_result.find("<h1 id", start + 1)
         html_content = html_result[start:end]
 
+
+        # Problem: we need to remove any tab or any newline 
+        # from the string as it must be passed as a CSV entry
+        # for blackboard exams.
+
+        # here we try to find html tags in the text and remove the 
+        
         regex = r"([\n]*)([ ]*<[/]?[a-zA-Z \'=\"]+>[ ]*)([\n]*)"
         subst = "\\2"
+
         html_content = re.sub(regex, subst, html_content, 0, re.MULTILINE)
-        html_content = html_content.replace('\n', '<br>').replace(
+
+        # this line below is super dodgy:
+        html_content = html_content.replace('\n', '<br>')
+
+        # in the future, this styling should be done outside        
+        html_content = html_content.replace(
             'class="math inline"',
             'class="math inline" style="vertical-align:middle"')
         html_content = html_content.replace(
