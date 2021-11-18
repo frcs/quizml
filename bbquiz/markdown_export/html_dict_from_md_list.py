@@ -9,6 +9,8 @@ import re
 import html
 import hashlib
 
+from bs4 import BeautifulSoup
+
 import json
 import struct
 
@@ -134,6 +136,25 @@ def pandoc_md_to_json(md_content):
     result = proc.communicate(input=bytes(md_content, 'utf-8'))[0]
     return json.loads(result)
 
+
+
+def remove_newline_and_tabs(html_content):
+    # Problem: we need to remove any tab or any newline 
+    # from the string as it must be passed as a CSV entry
+    # for blackboard exams.
+    
+    htmlsrc = BeautifulSoup(html_content, "html.parser")
+    for code in htmlsrc.findAll(name="code"):
+        s = BeautifulSoup(str(code).replace('\n', '<br>'),
+                          "html.parser")
+        code.replace_with(s)
+        
+    html_content = str(htmlsrc)        
+    html_content = html_content.replace('\n', '').replace('\t', '  ')
+
+    return html_content
+    
+
 def get_html_dict_from_md_list(html_result, md_list):
     md_dict = {}
     i = 0
@@ -145,22 +166,9 @@ def get_html_dict_from_md_list(html_result, md_list):
         end = html_result.find("<h1 id", start + 1)
         html_content = html_result[start:end]
 
-
-        # Problem: we need to remove any tab or any newline 
-        # from the string as it must be passed as a CSV entry
-        # for blackboard exams.
-
-        # here we try to find html tags in the text and remove the 
+        html_content = remove_newline_and_tabs(html_content)
         
-        regex = r"([\n]*)([ ]*<[/]?[a-zA-Z \'=\"]+>[ ]*)([\n]*)"
-        subst = "\\2"
-
-        html_content = re.sub(regex, subst, html_content, 0, re.MULTILINE)
-
-        # this line below is super dodgy:
-        html_content = html_content.replace('\n', '<br>')
-
-        # in the future, this styling should be done outside        
+        # in the future, this styling should be done outside
         html_content = html_content.replace(
             'class="math inline"',
             'class="math inline" style="vertical-align:middle"')
