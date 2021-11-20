@@ -14,7 +14,6 @@ def latex_render_info(info, md_dict):
     if info is None:
         info = {}
 
-    print(md_dict)
     s = "%% passing header info\n"
     for k,v in info.items():
         if k != 'type':                   
