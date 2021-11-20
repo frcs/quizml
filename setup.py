@@ -9,6 +9,9 @@ setup(name='bbquiz',
                 'bbquiz.render'],
       package_dir={'bbquiz': 'bbquiz'},
       package_data={'bbquiz': ['templates/*.tex']},
+      install_requires=[
+          'markdown','bs4','pyyaml','rich'
+      ],      
       entry_points={
           "console_scripts": [
               "bbquiz = bbquiz.__main__:main"
