@@ -10,14 +10,15 @@ default_marks = {
     'ordering': 2.5,
 }
 
-def latex_render_info(info):
+def latex_render_info(info, md_dict):
     if info is None:
         info = {}
-        
+
+    print(md_dict)
     s = "%% passing header info\n"
     for k,v in info.items():
-        if k != 'type':
-            s += "\\def \\info" + k + " {" + str(v) + "}\n"
+        if k != 'type':                   
+            s += "\\def \\info" + k + " {" + str(md_dict[str(v)]) + "}\n"
             
 
     return s
@@ -83,7 +84,7 @@ def latex_render_matching(entry, md_dict, marks):
 def latex_render_multiple_answer(entry, md_dict, marks):        
     s = "\\begin{bbquestion}[" + str(marks) + "]\n" \
         + md_dict[entry['question']] \
-        + "  \\vspace{1em}\n" \
+        + "\n\n  \\vspace{1em}\n" \
         + "  \\begin{enumerate}\\setcounter{enumii}{0}\n" \
         + "     \\setlength\\itemsep{0em}"
     for a in entry['answers']:
@@ -147,7 +148,7 @@ def render(yaml_data, md_dict):
     header_info = get_header_info(yaml_data)
     solutions = get_solutions(yaml_data)
     
-    info_str = latex_render_info(header_info)
+    info_str = latex_render_info(header_info, md_dict)
     questions_str = latex_render_questions(yaml_data, md_dict)
 
     omranswers_str = latex_render_omr_answers(solutions)

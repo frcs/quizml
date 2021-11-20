@@ -37,9 +37,12 @@ def get_md_list_from_yaml(yaml_data, md_list=[]):
         for key, val in i.items():
             if isinstance(val, list):
                 md_list = get_md_list_from_yaml(val, md_list)
-            elif isinstance(val, str) and key not in non_md_keys:
+            elif (isinstance(val, str) or
+                  isinstance(val, int) or
+                  isinstance(val, float) or
+                  isinstance(val, complex)) and key not in non_md_keys:
                 if val not in md_list:
-                    md_list.append(val)
+                    md_list.append(str(val))
     return md_list
     
                  
@@ -85,7 +88,7 @@ def get_latex_dict_from_md_list(latex_result, md_list):
             
         end = latex_result.find("\\hypertarget{", start + 1) 
         
-        latex_content = latex_result[start:end]        
+        latex_content = latex_result[start:end].strip()
         latex_content = latex_content.replace('.svg}', '.pdf}')
         latex_content = latex_content.replace(',height=\\textheight', '')
         latex_content = latex_content.replace('\\passthrough', '')
