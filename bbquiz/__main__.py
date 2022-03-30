@@ -22,7 +22,7 @@ install(show_locals=False)
 from time import sleep
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-
+from .utils import *
 
 
 def zsh_completion_script():
@@ -93,20 +93,28 @@ def compile(yaml_filename):
         
 
     results_fmt = (
-        f'HTML output       : {html_filename}\n'
-        f'BlackBoard output : {csv_filename}\n'
-        f'Latex output      : {latex_filename}\n'
-        f'Latex solutions   : {latex_solutions_filename}\n'
-        f'Latex cmd         : latexmk -xelatex -pvc {latex_filename}\n'
-        f'Latex cmd         : latexmk -xelatex -pvc {latex_solutions_filename}\n'
+        f'HTML output     : {html_filename}\n'
+        f'BB output       : {csv_filename}\n'
+        f'Latex output    : {latex_filename}\n'
+        f'Latex solutions : {latex_solutions_filename}\n'
+        f'Latex cmd       : latexmk -xelatex -pvc {latex_filename}\n'
+        f'Latex cmd       : latexmk -xelatex -pvc {latex_solutions_filename}\n'
     )
                    
+    print_box("Results", results_fmt)
+    
+    # COL = '\033[96m'
+    # sys.stdout.write(COL + "╭" + "Results".center(81, "─") + "╮" + '\033[0m\n')
+    # for line in results_fmt.splitlines():
+    #     sys.stdout.write(COL + "│ " + '\033[0m' +  line[:].ljust(79) + COL + " │" + '\033[0m\n')
+    # sys.stdout.write(COL + "╰" + "─"*81 + "╯" + '\033[0m\n')           
 
-    COL = '\033[96m'
-    sys.stdout.write(COL + "╭" + "Results".center(81, "─") + "╮" + '\033[0m\n')
-    for line in results_fmt.splitlines():
-        sys.stdout.write(COL + "│ " + '\033[0m' +  line[:].ljust(79) + COL + " │" + '\033[0m\n')
-    sys.stdout.write(COL + "╰" + "─"*81 + "╯" + '\033[0m\n')           
+    
+    # COL = '\033[96m'
+    # sys.stdout.write(COL + "╭" + "Results".center(81, "─") + "╮" + '\033[0m\n')
+    # for line in results_fmt.splitlines():
+    #     sys.stdout.write(COL + "│ " + '\033[0m' +  line[:].ljust(79) + COL + " │" + '\033[0m\n')
+    # sys.stdout.write(COL + "╰" + "─"*81 + "╯" + '\033[0m\n')           
         
     # print("HTML output       : " + html_filename)
     # print("BlackBoard output : " + csv_filename)

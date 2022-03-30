@@ -2,20 +2,28 @@ import os
 import sys
 import yaml
 import logging
+from ..utils import *
 
 
+class BBYamlSyntaxError(Exception):
+    pass
+  
 def syntax_error(msg, entry=None):
-    logging.error("Syntax Error: " + msg)
-    print("Syntax Error: " + msg )
+    #    logging.error("Syntax Error: " + msg)
     if entry!=None:
-        print(yaml.dump(entry))
-    raise
+        msg = msg + "\n\n" + yaml.dump(entry)
+
+    print_box("Syntax Error: ", msg, color=Fore.RED)
+
+    raise BBYamlSyntaxError
 
 def syntax_warning(msg, entry=None):
-    logging.warning("Syntax Warning: " + msg)
-    print("Syntax Warning: " + msg )
+    #logging.warning("Syntax Warning: " + msg)
+
     if entry!=None:
-        print(yaml.dump(entry))
+        msg = msg + "\n\n" + yaml.dump(entry)
+
+    print_box("Syntax Warning: ", msg, color=Fore.YELLOW)
    
 def check_bbyaml_syntax_ma(entry):
     for k in entry.keys():
