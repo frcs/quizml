@@ -7,7 +7,11 @@ import logging
 
 from bbquiz.bbyaml.loader import load
 from bbquiz.markdown_export.html_dict_from_md_list import get_html_md_dict_from_yaml
+from bbquiz.markdown_export.html_dict_from_md_list import PandocError
+from bbquiz.markdown_export.html_dict_from_md_list import LatexError
+
 from bbquiz.markdown_export.latex_dict_from_md_list import get_latex_md_dict_from_yaml
+
 from bbquiz.render import to_csv
 from bbquiz.render import to_html
 from bbquiz.render import to_latex
@@ -19,18 +23,30 @@ from time import sleep
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description = "Converts a questions in a YAML/markdown format into"\
-        +  "a Blackboard test or a Latex script")
 
-    parser.add_argument("yaml_filename", metavar="quiz.yaml", type=str, 
-                        help = "path to the quiz in a yaml format")
-    parser.add_argument("-w", "--watch",
-                        help="continuously compiles the document on file change",
-                        action="store_true")
 
-    return parser.parse_args()
+def zsh_completion_script():
+    return ( 
+"""
+function _bbquiz(){
+  _arguments \\
+    "-h[Show help information]"\\
+    "--help[Show help information]"\\
+    "-w[continuously watch for file updates and recompile on change]"\\
+    "--watch[continuously watch for file updates and recompile on change]"\\
+    "--zsh[A helper command used for exporting the command completion code in zsh]"\\
+    '*:yaml file:_files -g \\*.\\(yml\|yaml\\)'
+}
+
+compdef _bbquiz bbquiz
+""")
+
+
+# def parse_args():
+    
+
+#     return parser.parse_args()
+
 
 
 def compile(yaml_filename):
@@ -49,9 +65,14 @@ def compile(yaml_filename):
     html_filename = basename + ".html"
     latex_filename = basename + ".tex"
     latex_solutions_filename = basename + ".solutions.tex"
-    
-    html_md_dict = get_html_md_dict_from_yaml(yaml_data)  
-    latex_md_dict = get_latex_md_dict_from_yaml(yaml_data)  
+
+    try:
+        html_md_dict = get_html_md_dict_from_yaml(yaml_data)  
+        latex_md_dict = get_latex_md_dict_from_yaml(yaml_data)
+    except (PandocError):
+        print("\nXXX compilation stopped because of errors !\n ")
+        return
+        
 
     with open(csv_filename, "w") as csv_file:
         csv_content = to_csv.render(yaml_data, html_md_dict)
@@ -107,14 +128,36 @@ def compile_on_change(yaml_filename):
 
 
 def main():
-    args = parse_args()
-    yaml_filename = args.yaml_filename
 
+    parser = argparse.ArgumentParser(
+        description = "Converts a questions in a YAML/markdown format into"\
+        +  "a Blackboard test or a Latex script")
+
+    parser.add_argument("yaml_filename", nargs='?',
+                        metavar="quiz.yaml", type=str, 
+                        help = "path to the quiz in a yaml format")
+    parser.add_argument("-w", "--watch",
+                        help="continuously compiles the document on file change",
+                        action="store_true")
+    parser.add_argument("--zsh",
+                        help="A helper command used for exporting the "
+                        "command completion code in zsh",
+                        action="store_true")
+    
+    args = parser.parse_args()
+
+    if args.zsh:
+        print(zsh_completion_script())
+        return
+    
+    if not args.yaml_filename:
+        parser.error("quiz.yaml is required")
+        
     if args.watch:
-        compile(yaml_filename)
-        compile_on_change(yaml_filename)
+        compile(args.yaml_filename)
+        compile_on_change(args.yaml_filename)
     else:
-        compile(yaml_filename)
+        compile(args.yaml_filename)
 
 if __name__=="__main__":
     main()

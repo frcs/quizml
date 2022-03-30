@@ -21,7 +21,14 @@ import tempfile
 import base64
 from collections import defaultdict
 import logging
-    
+
+
+class PandocError(Exception):
+    pass
+
+class LatexError(Exception):
+    pass
+
 
 def get_md_list_from_yaml(yaml_data, md_list=None):
     """
@@ -132,9 +139,26 @@ def png_file_to_base64(pngfile):
 
 def pandoc_md_to_json(md_content):
     cmd = ['pandoc', '-f', 'markdown', '-t', 'json']
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-    result = proc.communicate(input=bytes(md_content, 'utf-8'))[0]
-    return json.loads(result)
+    proc = subprocess.Popen(cmd,
+                            stdout = subprocess.PIPE,
+                            stdin  = subprocess.PIPE,
+                            stderr = subprocess.PIPE)
+    
+    stdout, stderr = proc.communicate(input=bytes(md_content, 'utf-8'))
+
+    if (stderr):
+        sys.stdout.write('\033[91m' + "╭" + "pandoc Error".center(81, "─") + "╮" + '\033[0m\n')
+
+        for line in stderr.decode('utf-8').splitlines():
+            sys.stdout.write('\033[91m' + "│ " + '\033[0m' +  line[:].ljust(79) + '\033[91m' + " │" + '\033[0m\n')
+
+        sys.stdout.write('\033[91m' + "╰" + "─"*81 + "╯" + '\033[0m\n')           
+
+        #  logging.error("Pandoc Error: " + stderr.decode('utf-8'))
+        
+        raise PandocError
+    
+    return json.loads(stdout)
 
 
 
@@ -184,10 +208,30 @@ def get_html_dict_from_md_list(html_result, md_list):
 def pandoc_json_to_sefcontained_html(json_data):
     cmd = [ 'pandoc', '-f', 'json', '-t', 'html', '--self-contained',
             '--metadata', 'title="temp"']
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+    pandoc = subprocess.Popen(cmd,
+                              stdout = subprocess.PIPE,
+                              stdin  = subprocess.PIPE,
+                              stderr = subprocess.PIPE)
     
-    result = proc.communicate(input=bytes(json.dumps(json_data), 'utf-8'))[0]
-    return result.decode('utf-8')
+    stdout, stderr = pandoc.communicate(input=bytes(json.dumps(json_data), 'utf-8'))
+
+    if (stderr):
+
+        sys.stdout.write("\nusing pandoc to generate self-contained html " +
+                         "but encountered an error!\n\n")
+        
+        sys.stdout.write('\033[91m' + "╭" + "pandoc Error".center(81, "─") + "╮" + '\033[0m\n')
+
+        for line in stderr.decode('utf-8').splitlines():
+            sys.stdout.write('\033[91m' + "│ " + '\033[0m' +  line[:].ljust(79) + '\033[91m' + " │" + '\033[0m\n')
+
+        sys.stdout.write('\033[91m' + "╰" + "─"*81 + "╯" + '\033[0m\n')           
+
+        #  logging.error("Pandoc Error: " + stderr.decode('utf-8'))
+        
+        raise PandocError
+
+    return stdout.decode('utf-8')
 
 def convert_latex_eqs(data_json):
 
@@ -263,7 +307,7 @@ def get_html_md_dict_from_yaml(yaml_data):
     data_json = pandoc_md_to_json(md_combined)
 
     data_json = convert_latex_eqs(data_json)
-    
+
     html_result = pandoc_json_to_sefcontained_html(data_json)
     
     md_dict = get_html_dict_from_md_list(html_result, md_list)
