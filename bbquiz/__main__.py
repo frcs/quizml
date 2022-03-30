@@ -91,15 +91,30 @@ def compile(yaml_filename):
             + latex_filename + "}"
         latex_solutions_file.write(latex_solutions_content)
         
+
+    results_fmt = (
+        f'HTML output       : {html_filename}\n'
+        f'BlackBoard output : {csv_filename}\n'
+        f'Latex output      : {latex_filename}\n'
+        f'Latex solutions   : {latex_solutions_filename}\n'
+        f'Latex cmd         : latexmk -xelatex -pvc {latex_filename}\n'
+        f'Latex cmd         : latexmk -xelatex -pvc {latex_solutions_filename}\n'
+    )
+                   
+
+    COL = '\033[96m'
+    sys.stdout.write(COL + "╭" + "Results".center(81, "─") + "╮" + '\033[0m\n')
+    for line in results_fmt.splitlines():
+        sys.stdout.write(COL + "│ " + '\033[0m' +  line[:].ljust(79) + COL + " │" + '\033[0m\n')
+    sys.stdout.write(COL + "╰" + "─"*81 + "╯" + '\033[0m\n')           
         
-    print("-- results --")
-    print("HTML output       : " + html_filename)
-    print("BlackBoard output : " + csv_filename)
-    print("Latex output      : " + latex_filename)
-    print("Latex Solutions   : " + latex_solutions_filename)
-    print("Latex cmd         : latexmk -xelatex -pvc " + latex_filename)
-    print("Latex cmd         : latexmk -xelatex -pvc " \
-          + latex_solutions_filename)
+    # print("HTML output       : " + html_filename)
+    # print("BlackBoard output : " + csv_filename)
+    # print("Latex output      : " + latex_filename)
+    # print("Latex Solutions   : " + latex_solutions_filename)
+    # print("Latex cmd         : latexmk -xelatex -pvc " + latex_filename)
+    # print("Latex cmd         : latexmk -xelatex -pvc " \
+    #       + latex_solutions_filename)
 
     ###########################################################################
 
