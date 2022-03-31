@@ -69,7 +69,7 @@ def compile(yaml_filename):
     try:
         html_md_dict = get_html_md_dict_from_yaml(yaml_data)  
         latex_md_dict = get_latex_md_dict_from_yaml(yaml_data)
-    except (PandocError):
+    except (LatexError, PandocError):
         print("\nXXX compilation stopped because of errors !\n ")
         return
         
@@ -103,27 +103,6 @@ def compile(yaml_filename):
                    
     print_box("Results", results_fmt)
     
-    # COL = '\033[96m'
-    # sys.stdout.write(COL + "╭" + "Results".center(81, "─") + "╮" + '\033[0m\n')
-    # for line in results_fmt.splitlines():
-    #     sys.stdout.write(COL + "│ " + '\033[0m' +  line[:].ljust(79) + COL + " │" + '\033[0m\n')
-    # sys.stdout.write(COL + "╰" + "─"*81 + "╯" + '\033[0m\n')           
-
-    
-    # COL = '\033[96m'
-    # sys.stdout.write(COL + "╭" + "Results".center(81, "─") + "╮" + '\033[0m\n')
-    # for line in results_fmt.splitlines():
-    #     sys.stdout.write(COL + "│ " + '\033[0m' +  line[:].ljust(79) + COL + " │" + '\033[0m\n')
-    # sys.stdout.write(COL + "╰" + "─"*81 + "╯" + '\033[0m\n')           
-        
-    # print("HTML output       : " + html_filename)
-    # print("BlackBoard output : " + csv_filename)
-    # print("Latex output      : " + latex_filename)
-    # print("Latex Solutions   : " + latex_solutions_filename)
-    # print("Latex cmd         : latexmk -xelatex -pvc " + latex_filename)
-    # print("Latex cmd         : latexmk -xelatex -pvc " \
-    #       + latex_solutions_filename)
-
     ###########################################################################
 
 def compile_on_change(yaml_filename):

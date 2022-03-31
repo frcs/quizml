@@ -23,6 +23,8 @@ from collections import defaultdict
 import logging
 
 
+from ..utils import *
+
 class PandocError(Exception):
     pass
 
@@ -143,16 +145,18 @@ def pandoc_md_to_json(md_content):
                             stdout = subprocess.PIPE,
                             stdin  = subprocess.PIPE,
                             stderr = subprocess.PIPE)
-    
+
     stdout, stderr = proc.communicate(input=bytes(md_content, 'utf-8'))
 
     if (stderr):
-        sys.stdout.write('\033[91m' + "╭" + "pandoc Error".center(81, "─") + "╮" + '\033[0m\n')
+        print_box("Pandoc Error", stderr.decode('utf-8'), Fore.RED)
+        
+        # sys.stdout.write('\033[91m' + "╭" + "pandoc Error".center(81, "─") + "╮" + '\033[0m\n')
 
-        for line in stderr.decode('utf-8').splitlines():
-            sys.stdout.write('\033[91m' + "│ " + '\033[0m' +  line[:].ljust(79) + '\033[91m' + " │" + '\033[0m\n')
+        # for line in stderr.decode('utf-8').splitlines():
+        #     sys.stdout.write('\033[91m' + "│ " + '\033[0m' +  line[:].ljust(79) + '\033[91m' + " │" + '\033[0m\n')
 
-        sys.stdout.write('\033[91m' + "╰" + "─"*81 + "╯" + '\033[0m\n')           
+        # sys.stdout.write('\033[91m' + "╰" + "─"*81 + "╯" + '\033[0m\n')           
 
         #  logging.error("Pandoc Error: " + stderr.decode('utf-8'))
         
@@ -208,6 +212,7 @@ def get_html_dict_from_md_list(html_result, md_list):
 def pandoc_json_to_sefcontained_html(json_data):
     cmd = [ 'pandoc', '-f', 'json', '-t', 'html', '--self-contained',
             '--metadata', 'title="temp"']
+
     pandoc = subprocess.Popen(cmd,
                               stdout = subprocess.PIPE,
                               stdin  = subprocess.PIPE,
@@ -217,20 +222,14 @@ def pandoc_json_to_sefcontained_html(json_data):
 
     if (stderr):
 
-        sys.stdout.write("\nusing pandoc to generate self-contained html " +
-                         "but encountered an error!\n\n")
-        
-        sys.stdout.write('\033[91m' + "╭" + "pandoc Error".center(81, "─") + "╮" + '\033[0m\n')
-
-        for line in stderr.decode('utf-8').splitlines():
-            sys.stdout.write('\033[91m' + "│ " + '\033[0m' +  line[:].ljust(79) + '\033[91m' + " │" + '\033[0m\n')
-
-        sys.stdout.write('\033[91m' + "╰" + "─"*81 + "╯" + '\033[0m\n')           
-
-        #  logging.error("Pandoc Error: " + stderr.decode('utf-8'))
+        results_fmt = "\nerror while using pandoc to generate self-contained html:\n\n" \
+            +  stderr.decode('utf-8')
+       
+        print_box("Pandoc Error", results_fmt, Fore.RED)
         
         raise PandocError
 
+    
     return stdout.decode('utf-8')
 
 def convert_latex_eqs(data_json):
@@ -266,20 +265,25 @@ def convert_latex_eqs(data_json):
 
     print("compiling the equations using pdflatex...")
 
-#    call(["pdflatex", latex_filename], stdout=sys.stderr)
-    pdflatex = subprocess.Popen(["pdflatex", latex_filename],
+    pdflatex = subprocess.Popen(["pdflatex", "-interaction=nonstopmode", latex_filename],
                                 stdout = subprocess.PIPE,
                                 universal_newlines = True)
-    latex_verb = False
-    for line in pdflatex.stdout:
-        if line.startswith('!') and not latex_verb:
-            sys.stdout.write('\033[91m' + "╭" + "pdflatex Error".center(81, "─") + "╮" + '\033[0m\n')
-            latex_verb = True
-        if latex_verb:
-            sys.stdout.write('\033[91m' + "│ " + '\033[0m' +  line[:-1].ljust(79) + '\033[91m' + " │" + '\033[0m\n')
+    found_pdflatex_errors = False
 
-    if latex_verb:
-        sys.stdout.write('\033[91m' + "╰" + "─"*81 + "╯" + '\033[0m\n')           
+    # I would need to improve this by making print_box compatible with _io.TextIOWrapper
+    
+    for line in pdflatex.stdout:
+        if line.startswith('!') and not found_pdflatex_errors:
+            w, _ = os.get_terminal_size(0)
+
+            sys.stdout.write(Fore.RED + "╭" + "pdflatex Error".center(w - 2, "─") + "╮" + '\033[0m\n')
+            found_pdflatex_errors = True
+        if found_pdflatex_errors:
+            sys.stdout.write(Fore.RED + "│ " + '\033[0m' +  line[:-1].ljust(w - 4) + '\033[91m' + " │" + '\033[0m\n')
+
+    if found_pdflatex_errors:
+        sys.stdout.write(Fore.RED + "╰" + "─"*(w-2) + "╯" + '\033[0m\n')
+        raise LatexError
 
     call(["gs", "-dBATCH", '-q', "-dNOPAUSE", "-sDEVICE=pngalpha", "-r250",
           "-dTextAlphaBits=4", "-dGraphicsAlphaBits=4",
