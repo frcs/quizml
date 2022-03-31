@@ -17,6 +17,3 @@ def print_box(title, msg, color=Fore.MAGENTA):
     sys.stdout.write(color + "╰" + "─"*(w - 2) + "╯" + '\033[0m\n')           
 
 
-
-
-    

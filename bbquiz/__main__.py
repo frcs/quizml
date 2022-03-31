@@ -15,6 +15,7 @@ from bbquiz.markdown_export.latex_dict_from_md_list import get_latex_md_dict_fro
 from bbquiz.render import to_csv
 from bbquiz.render import to_html
 from bbquiz.render import to_latex
+from bbquiz.render import to_blackboardpkg
 
 from rich.traceback import install
 install(show_locals=False)
@@ -65,11 +66,12 @@ def compile(yaml_filename):
     html_filename = basename + ".html"
     latex_filename = basename + ".tex"
     latex_solutions_filename = basename + ".solutions.tex"
+    blackboardpkg_filename = basename + ".blackboardpkg.zip"
 
     try:
         html_md_dict = get_html_md_dict_from_yaml(yaml_data)  
         latex_md_dict = get_latex_md_dict_from_yaml(yaml_data)
-    except (PandocError):
+    except (PandocError, LatexError):
         print("\nXXX compilation stopped because of errors !\n ")
         return
         
@@ -91,7 +93,8 @@ def compile(yaml_filename):
             + latex_filename + "}"
         latex_solutions_file.write(latex_solutions_content)
         
-
+    to_blackboardpkg.render(blackboardpkg_filename, yaml_data, html_md_dict)
+        
     results_fmt = (
         f'HTML output     : {html_filename}\n'
         f'BB output       : {csv_filename}\n'
