@@ -65,7 +65,7 @@ def render(filename, yaml_data, md_dict):
                                  description="",
                                  instructions="",
                                  points_per_q=6,
-                                 questions_per_test=1) as pool:
+                                 questions_per_test=6) as pool:
 
                 for entry in yaml_data:
                     handlers[entry['type']](pool, entry, md_dict)
