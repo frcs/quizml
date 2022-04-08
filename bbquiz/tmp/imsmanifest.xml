@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="man00001"
+   xmlns:bb="http://www.blackboard.com/content-packaging/"><organizations/><resources><resource bb:file="res00001.dat"
+   bb:title="_name_" identifier="res00001" type="assessment/x-bb-qti-test" xml:base="res00001"/><resource
+   bb:file="res00002.dat" bb:title="Assessment Creation Settings" identifier="res00002"
+   type="course/x-bb-courseassessmentcreationsettings" xml:base="res00002"/><resource bb:file="res00003.dat"
+   bb:title="LearnRubrics" identifier="res00003" type="course/x-bb-rubrics" xml:base="res00003"/><resource
+   bb:file="res00004.dat" bb:title="CSResourceLinks" identifier="res00004" type="course/x-bb-csresourcelinks"
+   xml:base="res00004"/><resource bb:file="res00005.dat" bb:title="CourseRubricAssociation" identifier="res00005"
+   type="course/x-bb-crsrubricassocation" xml:base="res00005"/></resources></manifest>

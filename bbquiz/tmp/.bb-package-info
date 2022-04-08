@@ -1,0 +1,25 @@
+#Bb PackageInfo Property File
+#Thu Mar 31 13:29:54 BST 2022
+cx.config.learn.site.id=c0867ae9-797e-47d5-947d-6a85f3bf7ed3
+db.product.version=Oracle Database 12c Enterprise Edition Release 12.2.0.1.0 - 64bit Production
+cx.config.full.value=CxConfig{operation\=EXPORT, courseid\=EEU44C08-A-SEM202-202021, package\=/usr/local/blackboard/apps/tomcat/temp/plugins/bb-assessment/a0595604-992c-4bb2-8c21-e28e4f76bf26/Test_ExportFile_EEU44C08-A-SEM202-202021__name_.zip, logger\=CxLogger{logs\=[Log{name\=/usr/local/blackboard/apps/tomcat/temp/plugins/bb-assessment/a0595604-992c-4bb2-8c21-e28e4f76bf26/Test_ExportFile_EEU44C08-A-SEM202-202021__name_.log, verbosity\=default}, Log{name\=STDOUT, verbosity\=default}], logHooks\=[]}, resource_type_inclusions\=[], area_inclusions\=[ALIGNMENTS, RUBRIC], area_exclusions\=[ALL], object_inclusions\={ASSESSMENT\=[_701881_1]}, object_exclusions\={}, features\={BypassDiskQuotaCheck\=false, ArchiveUserPasswords\=true, CreateOrg\=false, ArchiveForUltraRestore\=false, AlternateAssessmentCsLinks\=false, RevertFromUltraRestore\=false, ImportCourseStructure\=false, Bb5LinkToBrokenImageFix\=true}, strHostName\=null, isCommandLineRequest\=false, isCourseConversion\=false, eventHandlers\=[], primaryNode\=null, nodes\=[], title\=null, packageVersion\=null, archiveCSItems\=true, archiveECSItems\=false, archiveOnlyReferencedPpg\=true, commonCartridge\=false, qti21Package\=false, createChildFolder\=false, csDir\=, excludedCsFolderIds\=null, homeDir\=, includeGradeHistoryInArchive\=false, isExportPackage\=false, logDetailRubricInfo\=false, taskId\=null, useDefaultLog\=true}
+cx.config.learn.installation.id=d06855487c604d7a825562e81d978bbf
+java.version=11.0.8
+os.arch=amd64
+cx.config.package.name=/usr/local/blackboard/apps/tomcat/temp/plugins/bb-assessment/a0595604-992c-4bb2-8c21-e28e4f76bf26/Test_ExportFile_EEU44C08-A-SEM202-202021__name_.zip
+java.class.path=/usr/local/blackboard/apps/service-wrapper/lib/wrapper.jar\:/usr/local/blackboard/jdk/lib/tools.jar\:/usr/local/blackboard/apps/tomcat/lib/bb-tomcat-bootstrap.jar\:/usr/local/blackboard/apps/tomcat/bin/bootstrap.jar\:/usr/local/blackboard/apps/tomcat/bin/tomcat-juli.jar
+app.release.number=3900.21.0-rel.28+dd6c7ec
+cx.package.info.version=6.0
+java.home=/usr/local/blackboard/jdk
+os.version=3.10.0-1160.2.2.el7.x86_64
+java.default.locale=en_US
+db.product.name=Oracle
+cx.config.operation=blackboard.apps.cx.CxConfig$Operation\:EXPORT
+cx.config.logs=[Log{name\=/usr/local/blackboard/apps/tomcat/temp/plugins/bb-assessment/a0595604-992c-4bb2-8c21-e28e4f76bf26/Test_ExportFile_EEU44C08-A-SEM202-202021__name_.log, verbosity\=default}, Log{name\=STDOUT, verbosity\=default}]
+cx.config.course.id=EEU44C08-A-SEM202-202021
+java.vendor=Amazon.com Inc.
+cx.config.file.references=false
+cx.config.package.identifier=55ffc1916f76488cb8e4ee8d0eb52e6f
+db.driver.name=Oracle JDBC driver
+os.name=Linux
+db.driver.version=12.2.0.1.0
