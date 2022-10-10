@@ -285,9 +285,7 @@ def addMAQ(
         elt_solutionmaterial = etree.SubElement(
             elt_solution, 'solutionmaterial')
         
-        flow_mat(solutionmaterial, '')
-        
-    print("Added MAQ " + repr(title))
+        flow_mat(solutionmaterial, '')        
     
 
 class BlackBoardObject:
