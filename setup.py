@@ -11,7 +11,7 @@ setup(name='bbquiz',
       package_dir={'bbquiz': 'bbquiz'},
       package_data={'bbquiz': ['templates/*.tex']},
       install_requires=[
-          'markdown','bs4','pyyaml','rich'
+          'markdown','bs4','pyyaml','rich','watchdog', 'colorama'
       ],      
       entry_points={
           "console_scripts": [
