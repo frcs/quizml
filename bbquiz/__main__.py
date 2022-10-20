@@ -64,6 +64,11 @@ def get_info(yaml_data):
     nb_questions = 0
     question_id = 0
     expected_mark = 0
+
+
+    print(f"Question \t marks, choices, expected mark")
+    print(f"{'='*30}")
+
     for entry in yaml_data:
         if is_bbquestion(entry):
             nb_questions = nb_questions + 1
@@ -73,29 +78,41 @@ def get_info(yaml_data):
             else:
                 question_marks = 5
             total_marks = total_marks + question_marks
-
-
-
             
             if entry['type']=='mc':
                 question_expected_mark = question_marks / len(entry['answers'])
-                print(f"Q{question_id}-MC: mark={question_marks}, choices={len(entry['answers'])}, expected mark={question_expected_mark}")
                 
             elif entry['type']=='ma':
                 question_expected_mark = question_marks / (2 ** len(entry['answers']))
-                print(f"Q{question_id}-MA: mark={question_marks}, choices={len(entry['answers'])}, expected mark={question_expected_mark}")
                 
             elif entry['type']=='essay':
                 question_expected_mark = 0
             else:
                 question_expected_mark = 0
             expected_mark = expected_mark + question_expected_mark
+
+            print(f"{question_id:2d} mark={question_marks:1.1f}, choices={len(entry['answers']):2d}, expected mark={question_expected_mark:2.1f}")
+
             
     print(f"Nb questions = {nb_questions}")
     print(f"Total = {total_marks}")
     print(f"total expected mark = {expected_mark}")
     
 
+
+# msg = (f'{"Question":10s}{"marks":7s}{"choices":8s}{"expected-mark":13s}\n')
+# msg = msg + f'{"─"*40}\n'
+    
+# for i in range(10):
+#     question_id = i
+#     question_marks = 5
+#     question_expected_mark = 1
+#     choices = 10
+#     msg = msg + f"{question_id:^10d}{question_marks:^5.1f}{choices:^8d}{question_expected_mark:^13.1f}\n"
+
+# print_box("info", msg, color=Fore.BLUE)
+
+    
 def compile(yaml_filename):
 
     if not os.path.exists(yaml_filename):
