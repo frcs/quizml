@@ -51,6 +51,14 @@ def is_bbquestion(yaml_entry):
     return yaml_entry['type'] in ['mc', 'ma', 'essay', 'matching', 'ordering']
 
 
+# print(f'{"My Grocery List":^30s}')
+# print(f'{"="*30}')
+# print(f'{strApples:10s}{numApples:10d}\t${prcApples:>5.2f}')
+# print(f'{strBread:10s}{numBread:10d}\t${prcBread:>5.2f}')
+# print(f'{strCheese:10s}{numCheese:10d}\t${prcCheese:>5.2f}')
+# print(f'{"Total:":>20s}\t${total:>5.2f}')
+
+
 def get_info(yaml_data):
     total_marks = 0
     nb_questions = 0
@@ -65,7 +73,10 @@ def get_info(yaml_data):
             else:
                 question_marks = 5
             total_marks = total_marks + question_marks
-                
+
+
+
+            
             if entry['type']=='mc':
                 question_expected_mark = question_marks / len(entry['answers'])
                 print(f"Q{question_id}-MC: mark={question_marks}, choices={len(entry['answers'])}, expected mark={question_expected_mark}")
