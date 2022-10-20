@@ -47,7 +47,43 @@ compdef _bbquiz bbquiz
 
 #     return parser.parse_args()
 
+def is_bbquestion(yaml_entry):
+    return yaml_entry['type'] in ['mc', 'ma', 'essay', 'matching', 'ordering']
 
+
+def get_info(yaml_data):
+    total_marks = 0
+    nb_questions = 0
+    question_id = 0
+    expected_mark = 0
+    for entry in yaml_data:
+        if is_bbquestion(entry):
+            nb_questions = nb_questions + 1
+            question_id = question_id + 1
+            if 'marks' in entry:
+                question_marks = entry['marks']
+            else:
+                question_marks = 5
+            total_marks = total_marks + question_marks
+                
+            if entry['type']=='mc':
+                question_expected_mark = question_marks / len(entry['answers'])
+                print(f"Q{question_id}-MC: mark={question_marks}, choices={len(entry['answers'])}, expected mark={question_expected_mark}")
+                
+            elif entry['type']=='ma':
+                question_expected_mark = question_marks / (2 ** len(entry['answers']))
+                print(f"Q{question_id}-MA: mark={question_marks}, choices={len(entry['answers'])}, expected mark={question_expected_mark}")
+                
+            elif entry['type']=='essay':
+                question_expected_mark = 0
+            else:
+                question_expected_mark = 0
+            expected_mark = expected_mark + question_expected_mark
+            
+    print(f"Nb questions = {nb_questions}")
+    print(f"Total = {total_marks}")
+    print(f"total expected mark = {expected_mark}")
+    
 
 def compile(yaml_filename):
 
@@ -72,7 +108,8 @@ def compile(yaml_filename):
     except (LatexError, PandocError):
         print("\nXXX compilation stopped because of errors !\n ")
         return
-        
+
+    get_info(yaml_data)
 
     with open(csv_filename, "w") as csv_file:
         csv_content = to_csv.render(yaml_data, html_md_dict)

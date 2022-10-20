@@ -71,3 +71,4 @@ def render(yaml_data, md_dict):
         s += handlers[entry['type']](entry, md_dict)       
     return s
 
+
