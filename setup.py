@@ -8,7 +8,7 @@ setup(name='bbquiz',
                 'bbquiz.markdown_export',
                 'bbquiz.render'],
       package_dir={'bbquiz': 'bbquiz'},
-      package_data={'bbquiz': ['templates/*.tex']},
+      package_data={'bbquiz': ['templates/*']},
       install_requires=[
           'markdown','bs4','pyyaml','rich'
       ],      

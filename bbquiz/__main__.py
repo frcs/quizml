@@ -20,6 +20,7 @@ from bbquiz.markdown_export.latex_dict_from_md_list import get_latex_md_dict_fro
 from bbquiz.render import to_csv
 from bbquiz.render import to_html
 from bbquiz.render import to_latex
+from bbquiz.render import to_jinja
 
 from rich.traceback import install
 install(show_locals=False)
@@ -46,9 +47,41 @@ compdef _bbquiz bbquiz
 """)
 
 
+# def transcode_yaml(yaml_data, md_dict):
+#     for entry in yaml_data:
+#         transcode_yaml(entry, yaml_data)
 
 
+def transcode_md_in_yaml(yaml_data, md_dict):
+    """
+    translate all strings in md_dict into their transcribed text
 
+    Parameters
+    ----------
+    yaml_data : list  
+        yaml file content, as decoded by bbyaml.load
+    md_dict : dictionary 
+        markdown entries with their transcriptions
+    """
+    out_yaml = []
+    for entry in yaml_data:
+        entry_yaml = {}
+        for key, val in entry.items():
+            if isinstance(val, list):
+                entry_yaml[key] = transcode_md_in_yaml(val, md_dict)
+            elif isinstance(val, str):
+                if val in md_dict:
+                    entry_yaml[key] = md_dict[val]
+                else:
+                    entry_yaml[key] = val
+            else:
+                entry_yaml[key] = val
+
+        out_yaml.append(entry_yaml)
+    return out_yaml
+
+
+        
     
 def compile(yaml_filename):
 
@@ -73,6 +106,10 @@ def compile(yaml_filename):
         print("\nXXX compilation stopped because of errors !\n ")
         return
 
+    yaml_html = transcode_md_in_yaml(yaml_data, html_md_dict)
+    yaml_latex = transcode_md_in_yaml(yaml_data, latex_md_dict)
+
+    print(yaml_latex)
     print_box("Stats", get_stats(yaml_data), Fore.BLUE)
 
     with open(csv_filename, "w") as csv_file:
@@ -86,13 +123,18 @@ def compile(yaml_filename):
     with open(latex_filename, "w") as latex_file:
         latex_content = to_latex.render(yaml_data, latex_md_dict)
         latex_file.write(latex_content)
-
+       
     with open(latex_solutions_filename, "w") as latex_solutions_file:
         latex_solutions_content = "\\let\\ifmyflag\\iftrue\\input{" \
             + latex_filename + "}"
         latex_solutions_file.write(latex_solutions_content)
         
 
+    with open("toto.latex", "w") as jinja_file:
+        jinja_content = to_jinja.render(yaml_latex)
+        jinja_file.write(jinja_content)
+
+        
     results_fmt = (
         f'HTML output     : {html_filename}\n'
         f'BB output       : {csv_filename}\n'
