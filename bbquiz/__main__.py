@@ -5,7 +5,12 @@ import yaml
 import argparse
 import logging
 
+from .utils import *
+
 from bbquiz.bbyaml.loader import load
+
+from bbquiz.bbyaml.stats import get_stats
+
 from bbquiz.markdown_export.html_dict_from_md_list import get_html_md_dict_from_yaml
 from bbquiz.markdown_export.html_dict_from_md_list import PandocError
 from bbquiz.markdown_export.html_dict_from_md_list import LatexError
@@ -22,7 +27,6 @@ install(show_locals=False)
 from time import sleep
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from .utils import *
 
 
 def zsh_completion_script():
@@ -42,75 +46,8 @@ compdef _bbquiz bbquiz
 """)
 
 
-# def parse_args():
-    
-
-#     return parser.parse_args()
-
-def is_bbquestion(yaml_entry):
-    return yaml_entry['type'] in ['mc', 'ma', 'essay', 'matching', 'ordering']
 
 
-# print(f'{"My Grocery List":^30s}')
-# print(f'{"="*30}')
-# print(f'{strApples:10s}{numApples:10d}\t${prcApples:>5.2f}')
-# print(f'{strBread:10s}{numBread:10d}\t${prcBread:>5.2f}')
-# print(f'{strCheese:10s}{numCheese:10d}\t${prcCheese:>5.2f}')
-# print(f'{"Total:":>20s}\t${total:>5.2f}')
-
-
-def get_info(yaml_data):
-    total_marks = 0
-    nb_questions = 0
-    question_id = 0
-    expected_mark = 0
-
-
-    print(f"Question \t marks, choices, expected mark")
-    print(f"{'='*30}")
-
-    for entry in yaml_data:
-        if is_bbquestion(entry):
-            nb_questions = nb_questions + 1
-            question_id = question_id + 1
-            if 'marks' in entry:
-                question_marks = entry['marks']
-            else:
-                question_marks = 5
-            total_marks = total_marks + question_marks
-            
-            if entry['type']=='mc':
-                question_expected_mark = question_marks / len(entry['answers'])
-                
-            elif entry['type']=='ma':
-                question_expected_mark = question_marks / (2 ** len(entry['answers']))
-                
-            elif entry['type']=='essay':
-                question_expected_mark = 0
-            else:
-                question_expected_mark = 0
-            expected_mark = expected_mark + question_expected_mark
-
-            print(f"{question_id:2d} mark={question_marks:1.1f}, choices={len(entry['answers']):2d}, expected mark={question_expected_mark:2.1f}")
-
-            
-    print(f"Nb questions = {nb_questions}")
-    print(f"Total = {total_marks}")
-    print(f"total expected mark = {expected_mark}")
-    
-
-
-# msg = (f'{"Question":10s}{"marks":7s}{"choices":8s}{"expected-mark":13s}\n')
-# msg = msg + f'{"─"*40}\n'
-    
-# for i in range(10):
-#     question_id = i
-#     question_marks = 5
-#     question_expected_mark = 1
-#     choices = 10
-#     msg = msg + f"{question_id:^10d}{question_marks:^5.1f}{choices:^8d}{question_expected_mark:^13.1f}\n"
-
-# print_box("info", msg, color=Fore.BLUE)
 
     
 def compile(yaml_filename):
@@ -122,8 +59,7 @@ def compile(yaml_filename):
         yaml_data = load(yaml_filename)
     except:
         return
-        
-    
+            
     (basename, _) = os.path.splitext(yaml_filename)
     csv_filename = basename + ".txt"
     html_filename = basename + ".html"
@@ -137,7 +73,7 @@ def compile(yaml_filename):
         print("\nXXX compilation stopped because of errors !\n ")
         return
 
-    get_info(yaml_data)
+    print_box("Stats", get_stats(yaml_data), Fore.BLUE)
 
     with open(csv_filename, "w") as csv_file:
         csv_content = to_csv.render(yaml_data, html_md_dict)
