@@ -22,7 +22,7 @@ def get_stats(yaml_data):
     }
 
     
-    msg = f'{"Question":10s}{"Type":6s}{"Marks":7s}{"Choices":9s}{"ExpMark":9s}\n'
+    msg = f'{"Question":10s}{"Type":6s}{"Marks":7s}{"Choices":9s}{"ExpMark":9s}{" Text"}\n'
     msg = msg + f"{'─'*40}\n"
     
     for entry in yaml_data:
@@ -46,14 +46,21 @@ def get_stats(yaml_data):
 
             msg = msg + f"{question_id:6d}   "
             msg = msg + f"{entry['type']:^6s}"
-            msg = msg + f"{question_marks:5.1f}" + ("*" if 'marks' not in entry else " ")
+            msg = msg + f"{question_marks:6.1f}" + ("*" if 'marks' not in entry else " ")
             msg = msg + f"{len(entry['answers']):6d}    "
-            msg = msg + f"{question_expected_mark:7.1f}\n"
+            msg = msg + f"{question_expected_mark:5.1f}      "
+            msg = msg + f"{entry['question'].splitlines()[0] + '...':33}\n"
 
     msg = msg + f"{'─'*40}\n"            
-    msg = msg + f"Nb of Questions          : {nb_questions}\n"
-    msg = msg + f"Total Mark               : {total_marks}\n"
-    msg = msg + f"Expexted Score (random)  : {expected_mark/total_marks*100:.1f}/100\n"
+    msg = msg + f"{question_id:6d}   "
+    msg = msg + f"  --  "
+    msg = msg + f"{total_marks:6.1f}"
+    msg = msg + f"      -   "
+    msg = msg + f"{expected_mark/total_marks*100:6.1f}%\n"
+    # msg = msg + f"{'─'*40}\n"            
+    # msg = msg + f"Nb of Questions          : {nb_questions}\n"
+    # msg = msg + f"Total Mark               : {total_marks}\n"
+    # msg = msg + f"Expected Score (random)  : {expected_mark/total_marks*100:.1f}/100\n"
     
     return msg
 
