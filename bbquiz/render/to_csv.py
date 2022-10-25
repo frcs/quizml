@@ -21,41 +21,41 @@ def correctness(a):
     else:
         return 'incorrect'
 
-def csv_matching(entry, md_dict):
-    seq = ['MAT', md_dict[entry.get('question','')]]
+def csv_matching(entry):
+    seq = ['MAT', entry.get('question','')]
     for a in entry.get('answers', None):
-        seq.append(md_dict[a.get('answer','')])
-        seq.append(md_dict[a.get('correct')])
+        seq.append(a.get('answer',''))
+        seq.append(a.get('correct'))
     return "\t".join(seq) + "\n" 
 
-def csv_ordering(entry, md_dict):
-    seq = ['ORD', md_dict[entry.get('question', '')]]
+def csv_ordering(entry):
+    seq = ['ORD', entry.get('question', '')]
     for a in entry.get('answers', None):
-        seq.append(md_dict[a.get('answer', '')])
+        seq.append(a.get('answer', ''))
     return "\t".join(seq) + "\n" 
 
-def csv_multiple_choice(entry, md_dict):
-    seq = ['MC', md_dict[entry.get('question', '')]]
+def csv_multiple_choice(entry):
+    seq = ['MC', entry.get('question', '')]
     for a in entry.get('answers', None):
-        seq.append(md_dict[a.get('answer', '')])
+        seq.append(a.get('answer', ''))
         seq.append(correctness(a))
     return "\t".join(seq) + "\n" 
 
-def csv_multiple_answer(entry, md_dict):
-    seq = ['MA', md_dict[entry.get('question', '')]]
+def csv_multiple_answer(entry):
+    seq = ['MA', entry.get('question', '')]
     for a in entry.get('answers', None):
-        seq.append(md_dict[a.get('answer', '')])
+        seq.append(a.get('answer', ''))
         seq.append(correctness(a))
     return "\t".join(seq) + "\n" 
   
-def csv_essay(entry, md_dict):
-    seq = ['ESS', md_dict[entry.get('question', '')], md_dict[entry.get('answer', '')]]
+def csv_essay(entry):
+    seq = ['ESS', entry.get('question', ''), entry.get('answer', '')]
     return "\t".join(seq) + "\n" 
 
-def csv_header(entry, md_dict):
+def csv_header(entry):
     return ""
 
-def render(yaml_data, md_dict):
+def render(yaml_data):
 
     handlers = {
         'mc': csv_multiple_choice,
@@ -68,7 +68,7 @@ def render(yaml_data, md_dict):
     
     s = ""
     for entry in yaml_data:
-        s += handlers[entry['type']](entry, md_dict)       
+        s += handlers[entry['type']](entry)       
     return s
 
 

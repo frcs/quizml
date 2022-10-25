@@ -84,15 +84,15 @@ def compile(yaml_filename):
     print_box("Stats", get_stats(yaml_data), Fore.BLUE)
 
     with open(csv_filename, "w") as csv_file:
-        csv_content = to_csv.render(yaml_data, html_md_dict)
+        csv_content = to_csv.render(yaml_html)
         csv_file.write(csv_content)
         
     with open(html_filename, "w") as html_file:
-        html_content = to_html.render(yaml_data, html_md_dict)
+        html_content = to_html.render(yaml_html)
         html_file.write(html_content)
 
     with open(latex_filename, "w") as latex_file:
-        latex_content = to_latex.render(yaml_data, latex_md_dict)
+        latex_content = to_latex.render(yaml_latex)
         latex_file.write(latex_content)
        
     with open(latex_solutions_filename, "w") as latex_solutions_file:

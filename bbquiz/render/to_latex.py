@@ -10,14 +10,14 @@ default_marks = {
     'ordering': 2.5,
 }
 
-def latex_render_info(info, md_dict):
+def latex_render_info(info):
     if info is None:
         info = {}
 
     s = "%% passing header info\n"
     for k,v in info.items():
         if k != 'type':                   
-            s += "\\def \\info" + k + " {" + str(md_dict[str(v)]) + "}\n"
+            s += "\\def \\info" + k + " {" + str(v) + "}\n"
             
 
     return s
@@ -52,43 +52,43 @@ def latex_render_omr_answers(solutions):
     return s
 
     
-def latex_render_header(entry, md_dict, marks):
+def latex_render_header(entry, marks):
     return ""
 
-def latex_render_multiple_choice(entry, md_dict, marks):        
-    s = latex_render_multiple_answer(entry, md_dict, marks)
+def latex_render_multiple_choice(entry, marks):        
+    s = latex_render_multiple_answer(entry, marks)
     return s
 
-def latex_render_essay(entry, md_dict, marks):        
+def latex_render_essay(entry, marks):        
     s = "\\begin{bbquestion}[" + str(marks) + "]\n" \
-        + md_dict[entry['question']] \
+        + entry['question'] \
         + "\\end{bbquestion}\n" \
         + "\\begin{answer}\n" \
-        + (md_dict[entry['answer']] if 'answer' in entry else 'no answer given')\
+        + (entry['answer'] if 'answer' in entry else 'no answer given')\
         + "\\end{answer}\n"    
     return s
 
-def latex_render_ordering(entry, md_dict, marks):        
+def latex_render_ordering(entry, marks):        
     s = "\\begin{bbquestion}[" + str(marks) + "]\n" \
-        + md_dict[entry['question']] \
+        + entry['question'] \
         + "\\end{bbquestion}\n"
     return s
 
-def latex_render_matching(entry, md_dict, marks):        
+def latex_render_matching(entry, marks):        
     s = "\\begin{bbquestion}[" + str(marks) + "]\n" \
-        + md_dict[entry['question']] \
+        + entry['question'] \
         + "\\end{bbquestion}\n"
     return s
 
-def latex_render_multiple_answer(entry, md_dict, marks):        
+def latex_render_multiple_answer(entry, marks):        
     s = "\\begin{bbquestion}[" + str(marks) + "]\n" \
-        + md_dict[entry['question']] \
+        + entry['question'] \
         + "\n\n  \\vspace{1em}\n" \
         + "  \\begin{enumerate}\\setcounter{enumii}{0}\n" \
         + "     \\setlength\\itemsep{0em}"
     for a in entry['answers']:
         s += "    \\item" + ("[\\iX]" if a['correct'] else "[\\iO]") \
-            + md_dict[a['answer']] \
+            + a['answer'] \
             + "\n" 
     s += "  \\end{enumerate}\n\\end{bbquestion}\n"
     return s
@@ -122,7 +122,7 @@ def get_solutions(yaml_data):
 
 #########################################
 
-def latex_render_questions(yaml_data, md_dict):
+def latex_render_questions(yaml_data):
 
     handlers = {
         'mc': latex_render_multiple_choice,
@@ -139,25 +139,23 @@ def latex_render_questions(yaml_data, md_dict):
     for entry in yaml_data:
         entry_marks = entry.get('marks', default_marks[entry['type']])        
         all_marks.append(entry_marks)        
-        questions += handlers[entry['type']](entry, md_dict, entry_marks)
+        questions += handlers[entry['type']](entry, entry_marks)
     return questions
 
-def render(yaml_data, md_dict):
+def render(yaml_data):
       
     header_info = get_header_info(yaml_data)
     solutions = get_solutions(yaml_data)
     
-    info_str = latex_render_info(header_info, md_dict)
-    questions_str = latex_render_questions(yaml_data, md_dict)
+    info_str = latex_render_info(header_info)
+    questions_str = latex_render_questions(yaml_data)
 
     omranswers_str = latex_render_omr_answers(solutions)
-
     
     dirname = os.path.dirname(__file__)
     template_filename = os.path.join(
         dirname, '../templates/tcd-eleceng-exam.tex')
-
-    
+   
     with open(template_filename, 'r') as template_file:
         template = Template(template_file.read())
     latex_content = template.substitute(
