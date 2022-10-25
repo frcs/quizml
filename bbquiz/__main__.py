@@ -8,7 +8,7 @@ import logging
 from .utils import *
 
 from bbquiz.bbyaml.loader import load
-
+from bbquiz.bbyaml.utils import transcode_md_in_yaml
 from bbquiz.bbyaml.stats import get_stats
 
 from bbquiz.markdown_export.html_dict_from_md_list import get_html_md_dict_from_yaml
@@ -52,34 +52,6 @@ compdef _bbquiz bbquiz
 #         transcode_yaml(entry, yaml_data)
 
 
-def transcode_md_in_yaml(yaml_data, md_dict):
-    """
-    translate all strings in md_dict into their transcribed text
-
-    Parameters
-    ----------
-    yaml_data : list  
-        yaml file content, as decoded by bbyaml.load
-    md_dict : dictionary 
-        markdown entries with their transcriptions
-    """
-    out_yaml = []
-    for entry in yaml_data:
-        entry_yaml = {}
-        for key, val in entry.items():
-            if isinstance(val, list):
-                entry_yaml[key] = transcode_md_in_yaml(val, md_dict)
-            elif isinstance(val, str):
-                if val in md_dict:
-                    entry_yaml[key] = md_dict[val]
-                else:
-                    entry_yaml[key] = val
-            else:
-                entry_yaml[key] = val
-
-        out_yaml.append(entry_yaml)
-    return out_yaml
-
 
         
     
@@ -109,7 +81,6 @@ def compile(yaml_filename):
     yaml_html = transcode_md_in_yaml(yaml_data, html_md_dict)
     yaml_latex = transcode_md_in_yaml(yaml_data, latex_md_dict)
 
-    print(yaml_latex)
     print_box("Stats", get_stats(yaml_data), Fore.BLUE)
 
     with open(csv_filename, "w") as csv_file:

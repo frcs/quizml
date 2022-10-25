@@ -21,31 +21,8 @@ from collections import defaultdict
 import logging
 
 from ..utils import *
+from ..bbyaml.utils import get_md_list_from_yaml
 
-
-def get_md_list_from_yaml(yaml_data, md_list=[]):
-    """
-    List all Markdown entries in the yaml file.
-
-    Parameters
-    ----------
-    yaml_data : list  
-        yaml file content, as decoded by bbyaml.load
-    md_list : list
-        output list of markdown entries
-    """
-    non_md_keys = ['type']
-    for i in yaml_data:
-        for key, val in i.items():
-            if isinstance(val, list):
-                md_list = get_md_list_from_yaml(val, md_list)
-            elif (isinstance(val, str) or
-                  isinstance(val, int) or
-                  isinstance(val, float) or
-                  isinstance(val, complex)) and key not in non_md_keys:
-                if val not in md_list:
-                    md_list.append(str(val))
-    return md_list
     
                  
 def get_hash(txt):

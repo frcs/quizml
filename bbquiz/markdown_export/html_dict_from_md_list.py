@@ -24,6 +24,7 @@ import logging
 
 
 from ..utils import *
+from ..bbyaml.utils import get_md_list_from_yaml
 
 class PandocError(Exception):
     pass
@@ -32,29 +33,32 @@ class LatexError(Exception):
     pass
 
 
-def get_md_list_from_yaml(yaml_data, md_list=None):
-    """
-    List all Markdown entries in the yaml file.
+# def get_md_list_from_yaml(yaml_data, md_list=None):
+#     """
+#     List all Markdown entries in the yaml file.
 
-    Parameters
-    ----------
-    yaml_data : list  
-        yaml file content, as decoded by bbyaml.load
-    md_list : list
-        output list of markdown entries
-    """
-    if md_list is None:
-        md_list = []
+#     Parameters
+#     ----------
+#     yaml_data : list  
+#         yaml file content, as decoded by bbyaml.load
+#     md_list : list
+#         output list of markdown entries
+#     """
+#     if md_list is None:
+#         md_list = []
         
-    non_md_keys = ['type']
-    for i in yaml_data:
-        for key, val in i.items():
-            if isinstance(val, list):
-                md_list = get_md_list_from_yaml(val, md_list)
-            elif isinstance(val, str) and key not in non_md_keys:
-                if val not in md_list:
-                    md_list.append(val)
-    return md_list
+#     non_md_keys = ['type']
+#     for i in yaml_data:
+#         for key, val in i.items():
+#             if isinstance(val, list):
+#                 md_list = get_md_list_from_yaml(val, md_list)
+#             elif isinstance(val, str) and key not in non_md_keys:
+#                 if val not in md_list:
+#                     md_list.append(val)
+#     return md_list
+
+
+
 
 
 def get_hash(txt):
@@ -170,6 +174,9 @@ def remove_newline_and_tabs(html_content):
     # Problem: we need to remove any tab or any newline 
     # from the string as it must be passed as a CSV entry
     # for blackboard exams.
+
+    # replace \n with <br> inside <code> </code> blocks so as
+    # preserve formatting inside these verbatim blocks
     
     htmlsrc = BeautifulSoup(html_content, "html.parser")
     for code in htmlsrc.findAll(name="code"):
@@ -177,7 +184,10 @@ def remove_newline_and_tabs(html_content):
                           "html.parser")
         code.replace_with(s)
         
-    html_content = str(htmlsrc)        
+    html_content = str(htmlsrc)
+
+    # now we can delete any spurious \n or \t
+    
     html_content = html_content.replace('\n', '').replace('\t', '  ')
 
     return html_content
