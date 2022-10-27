@@ -101,9 +101,9 @@ def compile(yaml_filename):
         latex_solutions_file.write(latex_solutions_content)
         
 
-    with open("toto.latex", "w") as jinja_file:
-        jinja_content = to_jinja.render(yaml_latex)
-        jinja_file.write(jinja_content)
+    # with open("toto.latex", "w") as jinja_file:
+    #     jinja_content = to_jinja.render(yaml_latex)
+    #     jinja_file.write(jinja_content)
 
         
     results_fmt = (
