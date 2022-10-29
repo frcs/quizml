@@ -59,7 +59,7 @@ def get_stats(yaml_data):
             choices = (str(len(entry['answers']) if 'answers' in entry else '-'))
             msg = msg + f"{choices:^9s}"
             msg = msg + f"{question_expected_mark:5.1f}      "
-            msg = msg + f"{entry['question'].splitlines()[0] + '...':33}\n"
+            msg = msg + f"{entry['question'].splitlines()[0] + '…':33}\n"
 
     msg = msg + f"{'─'*40}\n"            
     msg = msg + f"{question_id:6d}   "

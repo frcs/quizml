@@ -12,8 +12,11 @@ def print_box(title, msg, color=Fore.MAGENTA):
 
     for line in msg.splitlines():
         if len(line) > w - 4 :
-            line = line[0:(w - 4)]
-        sys.stdout.write(color + "│ " + '\033[0m' +  line[:].ljust(w - 4) + color + " │" + '\033[0m\n')
+            line = line[0:(w - 5)] + '…'
+            
+        sys.stdout.write(color + "│ " + '\033[0m'
+                         +  line[:].ljust(w - 4)
+                         + color + " │" + '\033[0m\n')
     sys.stdout.write(color + "╰" + "─"*(w - 2) + "╯" + '\033[0m\n')           
 
 
