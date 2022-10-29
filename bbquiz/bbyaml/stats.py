@@ -1,4 +1,5 @@
 from colorama import Fore, Back, Style
+import os
 
 def is_bbquestion(yaml_entry):
     return yaml_entry['type'] in ['mc', 'ma', 'essay', 'matching', 'ordering']
@@ -28,10 +29,10 @@ def get_stats(yaml_data):
     question_id = 0
     expected_mark = 0
 
-
-    
-    msg = f'{"Question":10s}{"Type":6s}{"Marks":7s}{"Choices":9s}{"ExpMark":9s}{" Text"}\n'
-    msg = msg + f"{'─'*40}\n"
+    w, _ = os.get_terminal_size(0)
+       
+    msg = f'{"Question":10s}{"Type":6s}{"Marks":7s}{"Choices":9s}{"ExpMark":9s}{"Text"}\n'
+    msg = msg + f"{'─'*(w-4)}\n"
     
     for entry in yaml_data:
         if is_bbquestion(entry):
@@ -58,19 +59,18 @@ def get_stats(yaml_data):
             msg = msg + f"{question_marks:6.1f}" + ("*" if 'marks' not in entry else " ")
             choices = (str(len(entry['answers']) if 'answers' in entry else '-'))
             msg = msg + f"{choices:^9s}"
-            msg = msg + f"{question_expected_mark:5.1f}      "
-            msg = msg + f"{entry['question'].splitlines()[0] + '…':33}\n"
+            msg = msg + f"{question_expected_mark:6.1f}    "
+            lines = entry['question'].splitlines()
+             
+            msg = msg + f"{lines[0]}" + (" […]" if len(lines)>1 else "") + "\n"
 
-    msg = msg + f"{'─'*40}\n"            
+
+    msg = msg + f"{'─'*(w-4)}\n"
     msg = msg + f"{question_id:6d}   "
     msg = msg + f"  --  "
     msg = msg + f"{total_marks:6.1f}"
     msg = msg + f"    -    "
-    msg = msg + f"{expected_mark/total_marks*100:6.1f}%\n"
-    # msg = msg + f"{'─'*40}\n"            
-    # msg = msg + f"Nb of Questions          : {nb_questions}\n"
-    # msg = msg + f"Total Mark               : {total_marks}\n"
-    # msg = msg + f"Expected Score (random)  : {expected_mark/total_marks*100:.1f}/100\n"
+    msg = msg + f"{expected_mark/total_marks*100:7.1f}%\n"
     
     return msg
 
