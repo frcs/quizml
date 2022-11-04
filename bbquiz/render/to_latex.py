@@ -35,7 +35,7 @@ def latex_render_omr_answers(solutions):
 
         if q['type'] == 'essay':
             s += "essay question"
-        elif q['type'] == 'ma':
+        elif q['type'] in ['ma', 'mc']:
             for j, correct in enumerate(q['solutions']):
                 checked   = "\\x" + letter[j]
                 unchecked = "\\o" + letter[j]
@@ -111,11 +111,16 @@ def get_solutions(yaml_data):
     for entry in yaml_data:
         if entry['type'] == 'essay':
             solutions.append({'type': 'essay'})
-        if entry['type'] == 'ma':
+        if entry['type'] in 'ma':
             s = []
             for a in entry['answers']:
                 s.append(a['correct'])
             solutions.append({'type': 'ma', 'solutions': s})
+        if entry['type'] in 'mc':
+            s = []
+            for a in entry['answers']:
+                s.append(a['correct'])
+            solutions.append({'type': 'mc', 'solutions': s})
 
     return solutions
 
