@@ -33,34 +33,6 @@ class LatexError(Exception):
     pass
 
 
-# def get_md_list_from_yaml(yaml_data, md_list=None):
-#     """
-#     List all Markdown entries in the yaml file.
-
-#     Parameters
-#     ----------
-#     yaml_data : list  
-#         yaml file content, as decoded by bbyaml.load
-#     md_list : list
-#         output list of markdown entries
-#     """
-#     if md_list is None:
-#         md_list = []
-        
-#     non_md_keys = ['type']
-#     for i in yaml_data:
-#         for key, val in i.items():
-#             if isinstance(val, list):
-#                 md_list = get_md_list_from_yaml(val, md_list)
-#             elif isinstance(val, str) and key not in non_md_keys:
-#                 if val not in md_list:
-#                     md_list.append(val)
-#     return md_list
-
-
-
-
-
 def get_hash(txt):
     return hashlib.md5(txt.encode('utf-8')).hexdigest()
  
@@ -153,17 +125,7 @@ def pandoc_md_to_json(md_content):
     stdout, stderr = proc.communicate(input=bytes(md_content, 'utf-8'))
 
     if (stderr):
-        print_box("Pandoc Error", stderr.decode('utf-8'), Fore.RED)
-        
-        # sys.stdout.write('\033[91m' + "╭" + "pandoc Error".center(81, "─") + "╮" + '\033[0m\n')
-
-        # for line in stderr.decode('utf-8').splitlines():
-        #     sys.stdout.write('\033[91m' + "│ " + '\033[0m' +  line[:].ljust(79) + '\033[91m' + " │" + '\033[0m\n')
-
-        # sys.stdout.write('\033[91m' + "╰" + "─"*81 + "╯" + '\033[0m\n')           
-
-        #  logging.error("Pandoc Error: " + stderr.decode('utf-8'))
-        
+        print_box("Pandoc Error", stderr.decode('utf-8'), Fore.RED)               
         raise PandocError
     
     return json.loads(stdout)
@@ -171,12 +133,14 @@ def pandoc_md_to_json(md_content):
 
 
 def remove_newline_and_tabs(html_content):
-    # Problem: we need to remove any tab or any newline 
-    # from the string as it must be passed as a CSV entry
-    # for blackboard exams.
+    """
+    Problem: we need to remove any tab or any newline 
+    from the string as it must be passed as a CSV entry
+    for blackboard exams.
 
-    # replace \n with <br> inside <code> </code> blocks so as
-    # preserve formatting inside these verbatim blocks
+    replace \n with <br> inside <code> </code> blocks so as
+    preserve formatting inside these verbatim blocks
+    """
     
     htmlsrc = BeautifulSoup(html_content, "html.parser")
     for code in htmlsrc.findAll(name="code"):
@@ -222,29 +186,28 @@ def get_html_dict_from_md_list(html_result, md_list):
 def pandoc_json_to_sefcontained_html(json_data):
     cmd = [ 'pandoc', '-f', 'json', '-t', 'html', '--self-contained',
             '--metadata', 'title="temp"']
-
     pandoc = subprocess.Popen(cmd,
                               stdout = subprocess.PIPE,
                               stdin  = subprocess.PIPE,
                               stderr = subprocess.PIPE)
-    
     stdout, stderr = pandoc.communicate(input=bytes(json.dumps(json_data), 'utf-8'))
 
     if (stderr):
-
         results_fmt = "\nerror while using pandoc to generate self-contained html:\n\n" \
             +  stderr.decode('utf-8')
-       
         print_box("Pandoc Error", results_fmt, Fore.RED)
-        
         raise PandocError
 
-    
     return stdout.decode('utf-8')
 
 def convert_latex_eqs(data_json):
-
+# Converts all equations in the pandoc json into PNGs using pdflatex and gs
+    
     eq_list = get_eq_list_from_json(data_json)
+
+    # if we don't have any equations, exit
+    if not eq_list:
+        return data_json
     
     latex_preamble = \
         "\\documentclass[multi={mymath1,mymath2},border=1pt]{standalone}\n" + \
@@ -286,19 +249,27 @@ def convert_latex_eqs(data_json):
         if line.startswith('!') and not found_pdflatex_errors:
             w, _ = os.get_terminal_size(0)
 
-            sys.stdout.write(Fore.RED + "╭" + "pdflatex Error".center(w - 2, "─") + "╮" + '\033[0m\n')
+            sys.stdout.write(Fore.RED + "╭"
+                             + "pdflatex Error".center(w - 2, "─")
+                             + "╮" + '\033[0m\n')
             found_pdflatex_errors = True
         if found_pdflatex_errors:
-            sys.stdout.write(Fore.RED + "│ " + '\033[0m' +  line[:-1].ljust(w - 4) + '\033[91m' + " │" + '\033[0m\n')
+            sys.stdout.write(Fore.RED + "│ " + '\033[0m'
+                             +  line[:-1].ljust(w - 4)
+                             + '\033[91m' + " │" + '\033[0m\n')
 
     if found_pdflatex_errors:
         sys.stdout.write(Fore.RED + "╰" + "─"*(w-2) + "╯" + '\033[0m\n')
         raise LatexError
 
+    # converting all pages in pdf doc into png files using gs
+    
     call(["gs", "-dBATCH", '-q', "-dNOPAUSE", "-sDEVICE=pngalpha", "-r250",
           "-dTextAlphaBits=4", "-dGraphicsAlphaBits=4",
           "-sOutputFile=" + png_base + "%05d.png", pdf_filename])
 
+    # converting all png files into base64 strings
+    
     it = 0
     eq_dict = {}
     for eq in eq_list:
@@ -314,17 +285,12 @@ def convert_latex_eqs(data_json):
 
 def get_html_md_dict_from_yaml(yaml_data):
     
-    md_list = get_md_list_from_yaml(yaml_data)
-
+    md_list     = get_md_list_from_yaml(yaml_data)
     md_combined = md_combine_list(md_list)
-
-    data_json = pandoc_md_to_json(md_combined)
-
-    data_json = convert_latex_eqs(data_json)
-
-    html_result = pandoc_json_to_sefcontained_html(data_json)
-    
-    md_dict = get_html_dict_from_md_list(html_result, md_list)
+    data_json   = pandoc_md_to_json(md_combined)
+    data_json   = convert_latex_eqs(data_json)
+    html_result = pandoc_json_to_sefcontained_html(data_json)   
+    md_dict     = get_html_dict_from_md_list(html_result, md_list)
 
     return md_dict
 

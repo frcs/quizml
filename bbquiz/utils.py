@@ -21,5 +21,3 @@ def print_box(title, msg, color=Fore.MAGENTA):
 
 
 
-
-    
