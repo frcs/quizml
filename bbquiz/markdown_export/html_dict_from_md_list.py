@@ -16,6 +16,8 @@ import struct
 
 import argparse
 
+import colorama
+
 from subprocess import call
 import tempfile
 import base64
@@ -200,6 +202,14 @@ def pandoc_json_to_sefcontained_html(json_data):
 
     return stdout.decode('utf-8')
 
+def spinning_cursor():
+    """Spinner taken from http://stackoverflow.com/questions/4995733/how-to-create-a-spinning-command-line-cursor-using-python/4995896#4995896."""
+
+    while True:
+        for cursor in '|/-\\':
+             yield cursor
+
+             
 def convert_latex_eqs(data_json):
 # Converts all equations in the pandoc json into PNGs using pdflatex and gs
     
@@ -236,13 +246,21 @@ def convert_latex_eqs(data_json):
     f.write("\\end{document}\n")
     f.close()
 
-    print("compiling the equations using pdflatex...")
+    sys.stdout.write("compiling the equations using pdflatex...")
 
     pdflatex = subprocess.Popen(["pdflatex", "-interaction=nonstopmode", latex_filename],
                                 stdout = subprocess.PIPE,
                                 universal_newlines = True)
     found_pdflatex_errors = False
 
+    spinner = spinning_cursor()
+    
+    while pdflatex.poll()==None:
+        # Print spinner
+        sys.stdout.write(next(spinner))
+        sys.stdout.flush()
+        sys.stdout.write('\b')
+        
     # I would need to improve this by making print_box compatible with _io.TextIOWrapper
     
     for line in pdflatex.stdout:
@@ -262,6 +280,9 @@ def convert_latex_eqs(data_json):
         sys.stdout.write(Fore.RED + "╰" + "─"*(w-2) + "╯" + '\033[0m\n')
         raise LatexError
 
+    sys.stdout.write(" done\n")
+
+    
     # converting all pages in pdf doc into png files using gs
     
     call(["gs", "-dBATCH", '-q', "-dNOPAUSE", "-sDEVICE=pngalpha", "-r250",
@@ -280,6 +301,7 @@ def convert_latex_eqs(data_json):
     os.chdir(olddir)
 
     json_out = parse_json_replace_maths(data_json, eq_dict)
+    
     return json_out
 
 
