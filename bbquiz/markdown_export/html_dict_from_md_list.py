@@ -16,7 +16,7 @@ import struct
 
 import argparse
 
-import colorama
+# import colorama
 
 from subprocess import call
 import tempfile
