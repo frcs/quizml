@@ -154,7 +154,7 @@ def remove_newline_and_tabs(html_content):
 
     # now we can delete any spurious \n or \t
     
-    html_content = html_content.replace('\n', '').replace('\t', '  ')
+    html_content = html_content.replace('\n', ' ').replace('\t', '  ')
 
     return html_content
     
@@ -533,19 +533,26 @@ def get_html_md_dict_from_yaml(yaml_data):
     md_list     = get_md_list_from_yaml(yaml_data)
     md_combined = md_combine_list(md_list)
 
-    with open("bbquiz-mdcombine.md", "w") as f:
-        f.write(md_combined)        
+    # with open("bbquiz-mdcombine.md", "w") as f:
+    #     f.write(md_combined)        
     
     data_json   = pandoc_md_to_json(md_combined)
 
-    with open("bbquiz-md.json", "w") as f:
-        f.write(str(data_json))
+    # with open("bbquiz-md.json", "w") as f:
+    #     f.write(str(data_json))
+
+    # print(data_json)
     
     data_json   = convert_latex_eqs(data_json)
+
+    # print(data_json)
+    
     html_result = pandoc_json_to_sefcontained_html(data_json)
 
-    with open("bbquiz-out.html", "w") as f:
-        f.write(html_result)    
+    # print(html_result)
+    
+    # with open("bbquiz-out.html", "w") as f:
+    #     f.write(html_result)    
     
     md_dict     = get_html_dict_from_md_list(html_result, md_list)
 
