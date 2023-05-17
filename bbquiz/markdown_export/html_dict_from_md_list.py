@@ -186,7 +186,7 @@ def get_html_dict_from_md_list(html_result, md_list):
     return md_dict
 
 def pandoc_json_to_sefcontained_html(json_data):
-    cmd = [ 'pandoc', '-f', 'json', '-t', 'html', '--self-contained',
+    cmd = [ 'pandoc', '-f', 'json', '-t', 'html', '--embed-resources', '--standalone',
             '--metadata', 'title="temp"']
     pandoc = subprocess.Popen(cmd,
                               stdout = subprocess.PIPE,
@@ -310,8 +310,243 @@ def get_html_md_dict_from_yaml(yaml_data):
     md_list     = get_md_list_from_yaml(yaml_data)
     md_combined = md_combine_list(md_list)
     data_json   = pandoc_md_to_json(md_combined)
+    
+    
+    for eq in eq_list:
+        if eq[0]['t'] == 'InlineMath':
+            f.write("\\begin{mymath2}" + eq[1] + "\\end{mymath2}\n")
+        if eq[0]['t'] == 'DisplayMath':
+            f.write("\\begin{mymath1}" + eq[1] + "\\end{mymath1}\n")
+
+    f.write("\\end{document}\n")
+    f.close()
+
+    sys.stdout.write("compiling the equations using pdflatex...")
+
+    pdflatex = subprocess.Popen(["pdflatex", "-interaction=nonstopmode", latex_filename],
+                                stdout = subprocess.PIPE,
+                                universal_newlines = True)
+    found_pdflatex_errors = False
+
+    spinner = spinning_cursor()
+    
+    while pdflatex.poll()==None:
+        # Print spinner
+        sys.stdout.write(next(spinner))
+        sys.stdout.flush()
+        sys.stdout.write('\b')
+        
+    # I would need to improve this by making print_box compatible with _io.TextIOWrapper
+    
+    for line in pdflatex.stdout:
+        if line.startswith('!') and not found_pdflatex_errors:
+            w, _ = os.get_terminal_size(0)
+
+            sys.stdout.write(Fore.RED + "╭"
+                             + "pdflatex Error".center(w - 2, "─")
+                             + "╮" + '\033[0m\n')
+            found_pdflatex_errors = True
+        if found_pdflatex_errors:
+            sys.stdout.write(Fore.RED + "│ " + '\033[0m'
+                             +  line[:-1].ljust(w - 4)
+                             + '\033[91m' + " │" + '\033[0m\n')
+
+    if found_pdflatex_errors:
+        sys.stdout.write(Fore.RED + "╰" + "─"*(w-2) + "╯" + '\033[0m\n')
+        raise LatexError
+
+    sys.stdout.write(" done\n")
+
+    
+    # converting all pages in pdf doc into png files using gs
+    
+    call(["gs", "-dBATCH", '-q', "-dNOPAUSE", "-sDEVICE=pngalpha", "-r250",
+          "-dTextAlphaBits=4", "-dGraphicsAlphaBits=4",
+          "-sOutputFile=" + png_base + "%05d.png", pdf_filename])
+
+    # converting all png files into base64 strings
+    
+    it = 0
+    eq_dict = {}
+    for eq in eq_list:
+        it = it + 1
+        [w, h, data64] = png_file_to_base64(png_base + "%05d.png" % it)
+        eq_dict[eq[0]['t'] + eq[1]] = (w, h, data64)
+
+    os.chdir(olddir)
+
+    json_out = parse_json_replace_maths(data_json, eq_dict)
+    
+    return json_out
+
+
+def get_html_md_dict_from_yaml(yaml_data):
+    
+    md_list     = get_md_list_from_yaml(yaml_data)
+    md_combined = md_combine_list(md_list)
+    data_json   = pandoc_md_to_json(md_combined)
+    
+    for eq in eq_list:
+        if eq[0]['t'] == 'InlineMath':
+            f.write("\\begin{mymath2}" + eq[1] + "\\end{mymath2}\n")
+        if eq[0]['t'] == 'DisplayMath':
+            f.write("\\begin{mymath1}" + eq[1] + "\\end{mymath1}\n")
+
+    f.write("\\end{document}\n")
+    f.close()
+
+    sys.stdout.write("compiling the equations using pdflatex...")
+
+    pdflatex = subprocess.Popen(["pdflatex", "-interaction=nonstopmode", latex_filename],
+                                stdout = subprocess.PIPE,
+                                universal_newlines = True)
+    found_pdflatex_errors = False
+
+    spinner = spinning_cursor()
+    
+    while pdflatex.poll()==None:
+        # Print spinner
+        sys.stdout.write(next(spinner))
+        sys.stdout.flush()
+        sys.stdout.write('\b')
+        
+    # I would need to improve this by making print_box compatible with _io.TextIOWrapper
+    
+    for line in pdflatex.stdout:
+        if line.startswith('!') and not found_pdflatex_errors:
+            w, _ = os.get_terminal_size(0)
+
+            sys.stdout.write(Fore.RED + "╭"
+                             + "pdflatex Error".center(w - 2, "─")
+                             + "╮" + '\033[0m\n')
+            found_pdflatex_errors = True
+        if found_pdflatex_errors:
+            sys.stdout.write(Fore.RED + "│ " + '\033[0m'
+                             +  line[:-1].ljust(w - 4)
+                             + '\033[91m' + " │" + '\033[0m\n')
+
+    if found_pdflatex_errors:
+        sys.stdout.write(Fore.RED + "╰" + "─"*(w-2) + "╯" + '\033[0m\n')
+        raise LatexError
+
+    sys.stdout.write(" done\n")
+
+    
+    # converting all pages in pdf doc into png files using gs
+    
+    call(["gs", "-dBATCH", '-q', "-dNOPAUSE", "-sDEVICE=pngalpha", "-r250",
+          "-dTextAlphaBits=4", "-dGraphicsAlphaBits=4",
+          "-sOutputFile=" + png_base + "%05d.png", pdf_filename])
+
+    # converting all png files into base64 strings
+    
+    it = 0
+    eq_dict = {}
+    for eq in eq_list:
+        it = it + 1
+        [w, h, data64] = png_file_to_base64(png_base + "%05d.png" % it)
+        eq_dict[eq[0]['t'] + eq[1]] = (w, h, data64)
+
+    os.chdir(olddir)
+
+    json_out = parse_json_replace_maths(data_json, eq_dict)
+    
+    return json_out
+
+
+def get_html_md_dict_from_yaml(yaml_data):
+    
+    md_list     = get_md_list_from_yaml(yaml_data)
+    md_combined = md_combine_list(md_list)
+    data_json   = pandoc_md_to_json(md_combined)
+    
+    for eq in eq_list:
+        if eq[0]['t'] == 'InlineMath':
+            f.write("\\begin{mymath2}" + eq[1] + "\\end{mymath2}\n")
+        if eq[0]['t'] == 'DisplayMath':
+            f.write("\\begin{mymath1}" + eq[1] + "\\end{mymath1}\n")
+
+    f.write("\\end{document}\n")
+    f.close()
+
+    sys.stdout.write("compiling the equations using pdflatex...")
+
+    pdflatex = subprocess.Popen(["pdflatex", "-interaction=nonstopmode", latex_filename],
+                                stdout = subprocess.PIPE,
+                                universal_newlines = True)
+    found_pdflatex_errors = False
+
+    spinner = spinning_cursor()
+    
+    while pdflatex.poll()==None:
+        # Print spinner
+        sys.stdout.write(next(spinner))
+        sys.stdout.flush()
+        sys.stdout.write('\b')
+        
+    # I would need to improve this by making print_box compatible with _io.TextIOWrapper
+    
+    for line in pdflatex.stdout:
+        if line.startswith('!') and not found_pdflatex_errors:
+            w, _ = os.get_terminal_size(0)
+
+            sys.stdout.write(Fore.RED + "╭"
+                             + "pdflatex Error".center(w - 2, "─")
+                             + "╮" + '\033[0m\n')
+            found_pdflatex_errors = True
+        if found_pdflatex_errors:
+            sys.stdout.write(Fore.RED + "│ " + '\033[0m'
+                             +  line[:-1].ljust(w - 4)
+                             + '\033[91m' + " │" + '\033[0m\n')
+
+    if found_pdflatex_errors:
+        sys.stdout.write(Fore.RED + "╰" + "─"*(w-2) + "╯" + '\033[0m\n')
+        raise LatexError
+
+    sys.stdout.write(" done\n")
+
+    
+    # converting all pages in pdf doc into png files using gs
+    
+    call(["gs", "-dBATCH", '-q', "-dNOPAUSE", "-sDEVICE=pngalpha", "-r250",
+          "-dTextAlphaBits=4", "-dGraphicsAlphaBits=4",
+          "-sOutputFile=" + png_base + "%05d.png", pdf_filename])
+
+    # converting all png files into base64 strings
+    
+    it = 0
+    eq_dict = {}
+    for eq in eq_list:
+        it = it + 1
+        [w, h, data64] = png_file_to_base64(png_base + "%05d.png" % it)
+        eq_dict[eq[0]['t'] + eq[1]] = (w, h, data64)
+
+    os.chdir(olddir)
+
+    json_out = parse_json_replace_maths(data_json, eq_dict)
+    
+    return json_out
+
+
+def get_html_md_dict_from_yaml(yaml_data):
+    
+    md_list     = get_md_list_from_yaml(yaml_data)
+    md_combined = md_combine_list(md_list)
+
+    with open("bbquiz-mdcombine.md", "w") as f:
+        f.write(md_combined)        
+    
+    data_json   = pandoc_md_to_json(md_combined)
+
+    with open("bbquiz-md.json", "w") as f:
+        f.write(str(data_json))
+    
     data_json   = convert_latex_eqs(data_json)
-    html_result = pandoc_json_to_sefcontained_html(data_json)   
+    html_result = pandoc_json_to_sefcontained_html(data_json)
+
+    with open("bbquiz-out.html", "w") as f:
+        f.write(html_result)    
+    
     md_dict     = get_html_dict_from_md_list(html_result, md_list)
 
     return md_dict
