@@ -154,7 +154,7 @@ def remove_newline_and_tabs(html_content):
 
     # now we can delete any spurious \n or \t
     
-    html_content = html_content.replace('\n', ' ').replace('\t', '  ')
+    html_content = html_content.replace('\n', '').replace('\t', '  ')
 
     return html_content
     
@@ -186,7 +186,8 @@ def get_html_dict_from_md_list(html_result, md_list):
     return md_dict
 
 def pandoc_json_to_sefcontained_html(json_data):
-    cmd = [ 'pandoc', '-f', 'json', '-t', 'html', '--embed-resources', '--standalone',
+    cmd = [ 'pandoc', '-f', 'json', '-t', 'html', '--wrap=none',
+            '--embed-resources', '--standalone',
             '--metadata', 'title="temp"']
     pandoc = subprocess.Popen(cmd,
                               stdout = subprocess.PIPE,
