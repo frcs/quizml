@@ -39,6 +39,7 @@ function _bbquiz(){
     "--help[Show help information]"\\
     "-w[continuously watch for file updates and recompile on change]"\\
     "--watch[continuously watch for file updates and recompile on change]"\\
+    "--latex-template [filename of the jinja2 latex template]"\\
     "--zsh[A helper command used for exporting the command completion code in zsh]"\\
     '*:yaml file:_files -g \\*.\\(yml\|yaml\\)'
 }
@@ -55,8 +56,11 @@ compdef _bbquiz bbquiz
 
         
     
-def compile(yaml_filename):
+def compile(args):
 
+    yaml_filename = args.yaml_filename
+    latex_template_filename = args.latextemplate
+    
     if not os.path.exists(yaml_filename):
         logging.error("No file {} found".format(yaml_filename))
 
@@ -99,12 +103,12 @@ def compile(yaml_filename):
         latex_solutions_content = "\\let\\ifmyflag\\iftrue\\input{" \
             + latex_filename + "}"
         latex_solutions_file.write(latex_solutions_content)
+
+#    latex_template_filename = ''
         
-
-    # with open("toto.latex", "w") as jinja_file:
-    #     jinja_content = to_jinja.render(yaml_latex)
-    #     jinja_file.write(jinja_content)
-
+    with open("toto.latex", "w") as jinja_file:
+        jinja_content = to_jinja.render(yaml_latex, latex_template_filename)
+        jinja_file.write(jinja_content)
         
     results_fmt = (
         f'HTML output     : {html_filename}\n'
@@ -119,13 +123,13 @@ def compile(yaml_filename):
     
     ###########################################################################
 
-def compile_on_change(yaml_filename):
+def compile_on_change(args):
     print("\n...waiting for a file change to re-compile the document...\n " )    
-    full_yaml_path = os.path.abspath(yaml_filename)
+    full_yaml_path = os.path.abspath(args.yaml_filename)
     class Handler(FileSystemEventHandler):
         def on_modified(self, event):
             if event.src_path == full_yaml_path:
-                compile(yaml_filename)
+                compile(args)
                 print("\n...waiting for a file change to re-compile the document...\n ")
                 
 
@@ -155,6 +159,9 @@ def main():
     parser.add_argument("-w", "--watch",
                         help="continuously compiles the document on file change",
                         action="store_true")
+    parser.add_argument("--latextemplate", 
+                        metavar="latex-template.jinja2",  
+                        help="continuously compiles the document on file change")
     parser.add_argument("--zsh",
                         help="A helper command used for exporting the "
                         "command completion code in zsh",
@@ -162,6 +169,8 @@ def main():
     
     args = parser.parse_args()
 
+    #    if not args.latextemplate:
+    
     if args.zsh:
         print(zsh_completion_script())
         return
@@ -170,10 +179,10 @@ def main():
         parser.error("quiz.yaml is required")
         
     if args.watch:
-        compile(args.yaml_filename)
-        compile_on_change(args.yaml_filename)
+        compile(args)
+        compile_on_change(args)
     else:
-        compile(args.yaml_filename)
+        compile(args)
 
 if __name__=="__main__":
     main()

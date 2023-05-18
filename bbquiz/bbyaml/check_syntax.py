@@ -65,7 +65,7 @@ def check_bbyaml_syntax(yaml_data):
             syntax_error("the question doesn't have a 'type'")
             raise
 
-        if entry['type'] not in ['ma', 'essay', 'header', 'mc']:
+        if entry['type'] not in ['ma', 'essay', 'header', 'mc', 'matching']:
             syntax_warning("unkown question type '{}'".format(entry['type']))
 
         if entry['type'] == 'ma':

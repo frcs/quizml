@@ -156,18 +156,19 @@ def render(yaml_data):
     questions_str = latex_render_questions(yaml_data)
 
     omranswers_str = latex_render_omr_answers(solutions)
-    
+
     dirname = os.path.dirname(__file__)
     template_filename = os.path.join(
         dirname, '../templates/tcd-eleceng-exam.tex')
-   
+
     with open(template_filename, 'r') as template_file:
         template = Template(template_file.read())
-    latex_content = template.substitute(
-        info=info_str,
-        omranswers=omranswers_str,
-        questions=questions_str)
-    
+        latex_content = template.substitute(
+            info=info_str,
+            omranswers=omranswers_str,
+            questions=questions_str)
+        
+        
     return latex_content
 
 
