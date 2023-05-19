@@ -1,15 +1,15 @@
 \documentclass{tcdexams}
 
-%% loading information to template
-%% environment = jinja2.Environment(loader=loader, trim_blocks=True,block_start_string='@@'
-%% ,block_end_string='@@',variable_start_string='@=', variable_end_string='=@')
-
 <# passing the header variables to template #>
+<| if header      -|>
 <| for key, value in header.items()      -|>
 <|   if key != 'type'                     |>
 \def \info<<key>> {<<value>>}
 <|   endif           |>  
 <|- endfor                                |>
+<|- endif      |>  
+
+
 
 \providecommand{\infoprogrammeyearname}{}
 \providecommand{\infoexamsemester}{}
@@ -41,7 +41,6 @@
 \usepackage{longtable,booktabs}
 
 
-%% rest of the template
 \usepackage{amsmath,amssymb}
 
 \providecommand{\tightlist}
@@ -156,7 +155,6 @@
 \newcommand{\iO}{\refstepcounter{enumii}\omrNOCHECK{\alph{enumii}}}
 \newcommand{\iX}{\refstepcounter{enumii}\omrNOCHECK{\alph{enumii}}}
 \fi
-
 
 \newcommand{\xA}{{\omrCHECK{\XeTeXglyph 66}}}
 \newcommand{\xB}{{\omrCHECK{\XeTeXglyph 67}}}
@@ -280,6 +278,8 @@ essay question
 
 \cleardoublepage
 
+SGSHGSHJGSHJGS
+
 <| for q in questions |>
 <| if q.type == 'essay' |>
 \begin{bbquestion}[<<q.marks>>]
@@ -303,8 +303,19 @@ essay question
 <|-    endfor +|>
   \end{enumerate}
 \end{bbquestion}
+<| elif q.type == 'matching' |>
+\begin{bbquestion}[<<q.marks>>]
+<<q.question>>
+
+\begin{tabular}{cc}
+<|-   for a in q.answers |>
+    \adjustbox{max width=0.45\linewidth}{\vbox{<<a.answer>>}} &
+	\adjustbox{max width=0.45\linewidth}{\vbox{<<a.correct>>}} \\
+	  (a) & (1) \\	  
+<|-    endfor +|>
+  \end{tabular}
+\end{bbquestion}
 <| endif |>  
 <| endfor |>
 
 \end{document}
-

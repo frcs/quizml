@@ -21,6 +21,7 @@ from bbquiz.render import to_csv
 from bbquiz.render import to_html
 from bbquiz.render import to_latex
 from bbquiz.render import to_jinja
+from bbquiz.render.to_jinja import Jinja2SyntaxError
 
 from rich.traceback import install
 install(show_locals=False)
@@ -95,9 +96,9 @@ def compile(args):
         html_content = to_html.render(yaml_html)
         html_file.write(html_content)
 
-    with open(latex_filename, "w") as latex_file:
-        latex_content = to_latex.render(yaml_latex)
-        latex_file.write(latex_content)
+    # with open(latex_filename, "w") as latex_file:
+    #     latex_content = to_latex.render(yaml_latex)
+    #     latex_file.write(latex_content)
        
     with open(latex_solutions_filename, "w") as latex_solutions_file:
         latex_solutions_content = "\\let\\ifmyflag\\iftrue\\input{" \
@@ -106,9 +107,12 @@ def compile(args):
 
 #    latex_template_filename = ''
         
-    with open("toto.latex", "w") as jinja_file:
-        jinja_content = to_jinja.render(yaml_latex, latex_template_filename)
-        jinja_file.write(jinja_content)
+    with open(latex_filename, "w") as latex_file:
+        try:
+            latex_content = to_jinja.render(yaml_latex, latex_template_filename)
+            latex_file.write(latex_content)            
+        except (Jinja2SyntaxError):
+            print("\nXXX did not generate Latex file because of template errors  !\n ")
         
     results_fmt = (
         f'HTML output     : {html_filename}\n'
