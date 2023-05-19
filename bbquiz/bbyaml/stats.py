@@ -1,4 +1,6 @@
 from colorama import Fore, Back, Style
+import math
+
 import os
 
 def is_bbquestion(yaml_entry):
@@ -42,11 +44,11 @@ def get_stats(yaml_data):
             total_marks = total_marks + question_marks
             
             if entry['type']=='mc':
-                question_expected_mark = question_marks / len(entry['answers'])
-                
+                question_expected_mark = question_marks / len(entry['answers'])                
             elif entry['type']=='ma':
                 question_expected_mark = question_marks / (2 ** (len(entry['answers'])-1))
-                
+            elif entry['type']=='matching':
+                question_expected_mark =  question_marks / math.factorial(len(entry['answers']))
             elif entry['type']=='essay':
                 question_expected_mark = 0
             else:
@@ -66,7 +68,7 @@ def get_stats(yaml_data):
 
 
     msg = msg + f"{'─'*(w-4)}\n"
-    msg = msg + f'{question_id:3d}   --  {total_marks:3.1f}   -  {expected_mark/total_marks*100:3.1f}\n'
+    msg = msg + f'{question_id:3d}   --  {total_marks:3.1f}   -  {expected_mark/total_marks*100:3.1f}%\n'
     
     return msg
 

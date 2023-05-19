@@ -61,6 +61,7 @@ def compile(args):
 
     yaml_filename = args.yaml_filename
     latex_template_filename = args.latextemplate
+    html_template_filename = args.htmltemplate
     
     if not os.path.exists(yaml_filename):
         logging.error("No file {} found".format(yaml_filename))
@@ -92,9 +93,9 @@ def compile(args):
         csv_content = to_csv.render(yaml_html)
         csv_file.write(csv_content)
         
-    with open(html_filename, "w") as html_file:
-        html_content = to_html.render(yaml_html)
-        html_file.write(html_content)
+    # with open(html_filename, "w") as html_file:
+    #     html_content = to_html.render(yaml_html)
+    #     html_file.write(html_content)
 
     # with open(latex_filename, "w") as latex_file:
     #     latex_content = to_latex.render(yaml_latex)
@@ -106,7 +107,16 @@ def compile(args):
         latex_solutions_file.write(latex_solutions_content)
 
 #    latex_template_filename = ''
-        
+
+
+    with open(html_filename, "w") as html_file:
+        try:
+            html_content = to_jinja.render(yaml_html, html_template_filename)
+            html_file.write(html_content)            
+        except (Jinja2SyntaxError):
+            print("\nXXX did not generate HTML Preview file because of template errors  !\n ")
+
+
     with open(latex_filename, "w") as latex_file:
         try:
             latex_content = to_jinja.render(yaml_latex, latex_template_filename)
@@ -165,7 +175,10 @@ def main():
                         action="store_true")
     parser.add_argument("--latextemplate", 
                         metavar="latex-template.jinja2",  
-                        help="continuously compiles the document on file change")
+                        help="Latex jinja2 template")
+    parser.add_argument("--htmltemplate", 
+                        metavar="html-template.jinja2",  
+                        help="HTML jinja2 template")
     parser.add_argument("--zsh",
                         help="A helper command used for exporting the "
                         "command completion code in zsh",

@@ -1,0 +1,47 @@
+    <!DOCTYPE html>
+    <style>
+    p {max-width: 40em;   page-break-before: avoid;}
+    .correct { background: #bfb; max-width: 34em }
+    .incorrect { background: #fbb; max-width: 34em }
+    .question {  }
+    ol.input input {
+      display: none;
+      float: left;
+      position: relative;
+      left: -2em;
+      top: 1ex;
+      page-break-before: avoid;
+    }
+    ol { max-width: 40em; page-break-before: avoid; }
+    li { max-width: 40em; page-break-before: avoid; }
+    div.block { }
+    </style>
+    <ol>
+
+<| for q in questions |>
+
+<li class='question' style='vertical-align: top;'>
+<b> <<q.type>> [ << q.marks >> ]</b>
+<<q.question>>
+
+<| if q.type == 'essay' |>
+<| elif q.type == 'mc' or q.type == 'ma' |>
+<ol class='input' type='a'>
+<|-   for a in q.answers |>
+<|        if a.correct   -|>
+   <li class='correct'>
+<|-        else          -|>  
+   <li class='incorrect'>
+<|-        endif          |>  
+<input name='yu' type='radio'>
+<<a.answer>>
+</div></li>
+<|-    endfor +|>
+</ol></li>
+<|- endif          |>  
+<| endfor |>
+</ol>
+<br><p><b>Total Marks</b></p><br></ol>
+
+
+
