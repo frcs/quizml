@@ -10,7 +10,7 @@ setup(name='bbquiz',
       package_dir={'bbquiz': 'bbquiz'},
       package_data={'bbquiz': ['templates/*']},
       install_requires=[
-          'markdown','bs4','pyyaml','rich', 'jinja2', 'colorama', 'watchdog'
+          'markdown','bs4','pyyaml','rich', 'jinja2', 'colorama', 'watchdog', 'pathlib', 'textwrap'
       ],      
       entry_points={
           "console_scripts": [
