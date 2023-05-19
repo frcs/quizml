@@ -53,16 +53,23 @@ compdef _bbquiz bbquiz
 #     for entry in yaml_data:
 #         transcode_yaml(entry, yaml_data)
 
-
-
-        
     
 def compile(args):
 
     yaml_filename = args.yaml_filename
     latex_template_filename = args.latextemplate
     html_template_filename = args.htmltemplate
-    
+
+    dirname = os.path.dirname(__file__)
+
+    if not latex_template_filename:
+        latex_template_filename = os.path.join(
+            dirname, 'templates/tcd-eleceng-latex.jinja')
+
+    if not html_template_filename:
+        html_template_filename = os.path.join(
+            dirname, 'templates/preview-html.jinja')
+
     if not os.path.exists(yaml_filename):
         logging.error("No file {} found".format(yaml_filename))
 
@@ -93,21 +100,10 @@ def compile(args):
         csv_content = to_csv.render(yaml_html)
         csv_file.write(csv_content)
         
-    # with open(html_filename, "w") as html_file:
-    #     html_content = to_html.render(yaml_html)
-    #     html_file.write(html_content)
-
-    # with open(latex_filename, "w") as latex_file:
-    #     latex_content = to_latex.render(yaml_latex)
-    #     latex_file.write(latex_content)
-       
     with open(latex_solutions_filename, "w") as latex_solutions_file:
         latex_solutions_content = "\\let\\ifmyflag\\iftrue\\input{" \
             + latex_filename + "}"
         latex_solutions_file.write(latex_solutions_content)
-
-#    latex_template_filename = ''
-
 
     with open(html_filename, "w") as html_file:
         try:
@@ -170,7 +166,7 @@ def main():
     parser.add_argument("yaml_filename", nargs='?',
                         metavar="quiz.yaml", type=str, 
                         help = "path to the quiz in a yaml format")
-    parser.add_argument("-w", "--watch",
+    parser.add_argument("-w", "--watch", 
                         help="continuously compiles the document on file change",
                         action="store_true")
     parser.add_argument("--latextemplate", 

@@ -30,9 +30,9 @@ def check_bbyaml_syntax_ma(entry):
         if k not in ['answers', 'question', 'marks', 'type']:
             syntax_warning("unkown key '{}'".format(k), entry)
     if 'answers' not in entry:        
-        syntax_error("the question doesn't have 'answers'", entry)
+        syntax_error("this question doesn't have 'answers'", entry)
     if 'question' not in entry:
-        syntax_error("the question doesn't have 'answers'", entry)
+        syntax_error("this question doesn't have 'answers'", entry)
     if type(entry['answers']) != list:
         syntax_error("'answers' should be a list", entry)
     for a in entry['answers']:
@@ -48,10 +48,10 @@ def check_bbyaml_syntax_essay(entry):
             syntax_warning("unkown key '{}':\n".format(k), entry)
             
     if 'question' not in entry:        
-        syntax_error("the question doesn't have a 'question' field:\n", entry)
+        syntax_error("this question doesn't have a 'question' field:\n", entry)
 
     if 'answer' not in entry:        
-        syntax_warning("the question doesn't have an 'answer' field:\n", entry)
+        syntax_warning("this question doesn't have an 'answer' field:\n", entry)
             
 def check_bbyaml_syntax(yaml_data):
 
@@ -62,10 +62,10 @@ def check_bbyaml_syntax(yaml_data):
     for entry in yaml_data:
 
         if 'type' not in entry:
-            syntax_error("the question doesn't have a 'type'")
+            syntax_error("this question doesn't have a 'type'")
             raise
 
-        if entry['type'] not in ['ma', 'essay', 'header', 'mc', 'matching']:
+        if entry['type'] not in ['ma', 'essay', 'header', 'mc', 'matching', 'ordering']:
             syntax_warning("unkown question type '{}'".format(entry['type']))
 
         if entry['type'] == 'ma':

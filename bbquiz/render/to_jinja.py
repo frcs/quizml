@@ -3,64 +3,35 @@ import jinja2
 from pathlib import Path
 
 from bbquiz.utils import *
-
+from bbquiz.bbyaml.stats import get_total_marks
+from bbquiz.bbyaml.utils import *
 
 class Jinja2SyntaxError(Exception):
     pass
-
-
-def get_header_info(yaml_data):
-    header = None
-    for entry in yaml_data:
-        if entry['type'] == 'header':
-            header = yaml_data[0]
-            break
-    return header
-
-
-def get_solutions(yaml_data):
-    solutions = []
-    for entry in yaml_data:
-        if entry['type'] == 'essay':
-            solutions.append({'type': 'essay'})
-        if entry['type'] == 'ma':
-            s = []
-            for a in entry['answers']:
-                s.append(a['correct'])
-            solutions.append({'type': 'ma', 'solutions': s})
-        if entry['type'] == 'matching':
-            s = []
-            for a in entry['answers']:
-                s.append(a['correct'])
-            solutions.append({'type': 'ma', 'solutions': s})
-
-    return solutions
-
-
     
 
-def render(yaml_data, template_filename=''):
-      
+def render(yaml_data, template_filename):
 
     if not template_filename:
-        dirname = os.path.dirname(__file__)
-        template_filename = os.path.join(
-            dirname, '../templates/tcd-eleceng-latex.jinja')
-    
-    if not os.path.exists(template_filename):
-        print_box("Error", f"latex template file not found:  {template_filename}", color=Fore.RED)
-        return ''
+        print_box("Error",
+                  "Template filename is missing, can't render jinja.",
+                  Fore.RED)
+        raise Exception
 
-    header_info = get_header_info(yaml_data)
+    if not template_filename:
+        print_box("Error",
+                  f"latex template file not found:  {template_filename}",
+                  Fore.RED)
+        raise Exception
 
-    # some weird bug in default jinja2's loader behaviour, so can't use normal way. 
-    
+    (header, questions) = get_header_questions(yaml_data)
 
-
+    # some weird bug in default jinja2's loader behaviour, so can't use normal way.    
     
     context = {
-        "header" : header_info,
-        "questions" : yaml_data[1:]
+        "header" : header,
+        "questions" : questions,
+        "total_marks": get_total_marks(yaml_data)
     }  
    
     with open(template_filename, 'r') as template_file:
@@ -112,21 +83,6 @@ def render(yaml_data, template_filename=''):
             print_box("Exception" , msg, color=Fore.RED)
             raise Jinja2SyntaxError
         
-        # try:
-        #     latex_content = template.render(context, debug=True)
-
-
-        # except jinja2.TemplateSyntaxError as exc:
-        #     error_context.update(filename=exc.filename, line_no=exc.lineno)
-        #     error_message = exc.message
-        #     print(error_message)            
-        # except jinja2.TemplateError as exc:
-        #     error_message = exc.message
-        #     print(error_message)            
-        # except Exception as exc:
-        #     error_message = "%s" % exc
-        #     print(error_message)            
-
         
         return latex_content
     

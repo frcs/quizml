@@ -6,7 +6,14 @@ import os
 def is_bbquestion(yaml_entry):
     return yaml_entry['type'] in ['mc', 'ma', 'essay', 'matching', 'ordering']
 
-def get_marks(entry):
+def get_total_marks(yaml_data):
+    total_marks = 0
+    for entry in yaml_data:
+        if is_bbquestion(entry):
+            total_marks = total_marks + get_entry_marks(entry)
+    return total_marks
+
+def get_entry_marks(entry):
 
     default_marks = {
         'mc': 2.5,
@@ -40,7 +47,7 @@ def get_stats(yaml_data):
         if is_bbquestion(entry):
             nb_questions = nb_questions + 1
             question_id = question_id + 1
-            question_marks = get_marks(entry)
+            question_marks = get_entry_marks(entry)
             total_marks = total_marks + question_marks
             
             if entry['type']=='mc':

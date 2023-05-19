@@ -1,5 +1,40 @@
 
 
+def get_header_questions(yaml_data):
+    header = None
+    questions = []
+    for entry in yaml_data:
+        if entry['type'] == 'header':
+            header = entry
+            break
+        else:
+            questions.append(entry)
+    return (header, questions)
+
+
+def get_solutions(yaml_data):
+    solutions = []
+    for entry in yaml_data:
+        if entry['type'] == 'essay':
+            solutions.append({'type': 'essay'})
+        if entry['type'] == 'ma':
+            s = []
+            for a in entry['answers']:
+                s.append(a['correct'])
+            solutions.append({'type': 'ma', 'solutions': s})
+        if entry['type'] == 'matching':
+            s = []
+            for a in entry['answers']:
+                s.append(a['correct'])
+            solutions.append({'type': 'ma', 'solutions': s})
+        if entry['type'] == 'ordering':
+            s = []
+            for a in entry['answers']:
+                s.append(a['correct'])
+            solutions.append({'type': 'ordering', 'solutions': s})
+
+    return solutions
+
 
 def get_md_list_from_yaml(yaml_data, md_list=[]):
     """

@@ -21,11 +21,25 @@
 <| for q in questions |>
 
 <li class='question' style='vertical-align: top;'>
-<b> <<q.type>> [ << q.marks >> ]</b>
-<<q.question>>
-
 <| if q.type == 'essay' |>
-<| elif q.type == 'mc' or q.type == 'ma' |>
+<b> Essay [ << q.marks >> ]</b>
+<<q.question>>
+<| if q.answer is defined |>
+  <div style='background:#eee; max-width: 34.5em;
+			  padding: 1em; margin-bottom:1em; margin-top:1em'>
+  <p style='margin:0 0 1em 0'><b>indicative answer:</b></p>
+  <<q.answer>>
+</div>
+  <| else |>
+  <div style='background:#eee; max-width: 34.5em;
+			  padding: 1em; margin-bottom:1em; margin-top:1em'>
+	no indicative answer given.
+  </div>	
+  <| endif |>
+</li> 
+<| elif q.type == 'mc'|>
+<b> Multiple Choice [ << q.marks >> ]</b>
+<<q.question>>
 <ol class='input' type='a'>
 <|-   for a in q.answers |>
 <|        if a.correct   -|>
@@ -37,11 +51,66 @@
 <<a.answer>>
 </div></li>
 <|-    endfor +|>
-</ol></li>
-<|- endif          |>  
+</ol>
+<| elif q.type == 'ma'|>
+<b> Multiple Answers [ << q.marks >> ]</b>
+<<q.question>>
+<ol class='input' type='a'>
+<|-   for a in q.answers |>
+<|        if a.correct   -|>
+   <li class='correct'>
+<|-        else          -|>  
+   <li class='incorrect'>
+<|-        endif          |>  
+<input name='yu' type='checkbox'>
+<<a.answer>>
+</div></li>
+<|-    endfor +|>
+</ol>
+<| elif q.type == 'matching' |>
+  <b> Matching [ << q.marks >> ]</b>
+<<q.question>>
+<ol class='input' type='a'>
+  <|-   for a in q.answers |>
+	<li>
+	  <ol>
+		<li>
+		  <div class='block'
+			   style='border-left:2px solid; padding-left:1em;
+					  border-color: #f2f;max-width: 30.25em;'>
+			<< a.answer >>
+		  </div>
+		</li>
+		<li>
+		  <div class='block'
+			   style='border-left:2px solid; border-color: #2ff;
+					  padding-left:1em; max-width: 30.25em;'>
+            << a.correct >> 
+          </div>
+	    </li>
+	  </ol>
+	</li>
+<|-    endfor +|>
+</ol>
+<| elif q.type == 'ordering' |>
+  <b> Ordering [ << q.marks >> ]</b>
+<<q.question>>
+<ol class='input' type='a'>
+  <|-   for a in q.answers |>
+  <li>
+	<div class='block'
+		 style='border-left:2px solid; padding-left:1em;
+				border-color: #f2f;max-width: 30.25em;'>
+	  << a.answer >>
+	</div>
+  </li>
+<|-    endfor +|>
+</ol>
+<|- endif          |>
+  </li>
 <| endfor |>
 </ol>
-<br><p><b>Total Marks</b></p><br></ol>
+<br><p><b>Total Marks: << total_marks >> </b></p><br></ol>
 
 
 
