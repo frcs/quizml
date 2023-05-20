@@ -53,12 +53,22 @@ compdef _bbquiz bbquiz
 #     for entry in yaml_data:
 #         transcode_yaml(entry, yaml_data)
 
-    
+
+def jinja_render_file(out_filename, template_filename, yaml_code):
+    with open(out_filename, "w") as f:
+        try:
+            content = to_jinja.render(yaml_code, template_filename)
+            f.write(content)            
+        except (Jinja2SyntaxError):
+            print(f"\n {Fore.RED} did not generate {out_filename} because of template errors  ! {Fore.RESET}\n ")
+
+
 def compile(args):
 
     yaml_filename = args.yaml_filename
     latex_template_filename = args.latextemplate
     html_template_filename = args.htmltemplate
+    csv_template_filename = args.htmltemplate
 
     dirname = os.path.dirname(__file__)
 
@@ -66,6 +76,10 @@ def compile(args):
         latex_template_filename = os.path.join(
             dirname, 'templates/tcd-eleceng-latex.jinja')
 
+    if not csv_template_filename:
+        csv_template_filename = os.path.join(
+            dirname, 'templates/bb.jinja')
+        
     if not html_template_filename:
         html_template_filename = os.path.join(
             dirname, 'templates/preview-html.jinja')
@@ -96,29 +110,15 @@ def compile(args):
 
     print_box("Stats", get_stats(yaml_data), Fore.BLUE)
 
-    with open(csv_filename, "w") as csv_file:
-        csv_content = to_csv.render(yaml_html)
-        csv_file.write(csv_content)
-        
+       
     with open(latex_solutions_filename, "w") as latex_solutions_file:
         latex_solutions_content = "\\let\\ifmyflag\\iftrue\\input{" \
             + latex_filename + "}"
         latex_solutions_file.write(latex_solutions_content)
-
-    with open(html_filename, "w") as html_file:
-        try:
-            html_content = to_jinja.render(yaml_html, html_template_filename)
-            html_file.write(html_content)            
-        except (Jinja2SyntaxError):
-            print("\nXXX did not generate HTML Preview file because of template errors  !\n ")
-
-
-    with open(latex_filename, "w") as latex_file:
-        try:
-            latex_content = to_jinja.render(yaml_latex, latex_template_filename)
-            latex_file.write(latex_content)            
-        except (Jinja2SyntaxError):
-            print("\nXXX did not generate Latex file because of template errors  !\n ")
+        
+    jinja_render_file(csv_filename, csv_template_filename, yaml_html)
+    jinja_render_file(html_filename, html_template_filename, yaml_html)
+    jinja_render_file(latex_filename, latex_template_filename, yaml_latex)
         
     results_fmt = (
         f'HTML output     : {html_filename}\n'
