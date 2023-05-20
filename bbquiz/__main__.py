@@ -4,6 +4,7 @@ import sys
 import yaml
 import argparse
 import logging
+from string import Template
 
 from .utils import *
 
@@ -49,9 +50,35 @@ compdef _bbquiz bbquiz
 """)
 
 
-# def transcode_yaml(yaml_data, md_dict):
-#     for entry in yaml_data:
-#         transcode_yaml(entry, yaml_data)
+targets =[
+    {
+        "filename": "${inputbasename}.txt",
+        "descr"   : "BlackBoard",
+        "fmt"     : "html",
+        "cmd"     : "${inputbasename}.txt",
+        "template": "${bbquiztemplates}/bb.jinja"
+    },
+    {
+        "filename": "${inputbasename}.html",
+        "descr"   : "html preview",
+        "fmt"     : "html",
+        "cmd"     : "${inputbasename}.html",
+        "template": "${bbquiztemplates}/preview-html.jinja"
+    },
+    {
+        "filename": "${inputbasename}.tex",
+        "descr"   : "Latex",
+        "fmt"     : "latex",
+        "cmd"     : "latexmk -xelatex -pvc ${inputbasename}.tex",
+        "template": "${bbquiztemplates}/tcd-eleceng-latex.jinja"
+    }]
+    # {
+    #     filename  = "${basename}.solutions.tex",
+    #     descr      = "Latex solutions",
+    #     fmt       = "latex",
+    #     cmd       = "latexmk -xelatex -pvc ${basename}.solutions.tex",
+    #     template  = "${bbquiztemplates}/latex-solutions.jinja",
+    # }
 
 
 def jinja_render_file(out_filename, template_filename, yaml_code):
@@ -66,23 +93,12 @@ def jinja_render_file(out_filename, template_filename, yaml_code):
 def compile(args):
 
     yaml_filename = args.yaml_filename
-    latex_template_filename = args.latextemplate
-    html_template_filename = args.htmltemplate
-    csv_template_filename = args.htmltemplate
+    # latex_template_filename = args.latextemplate
+    # html_template_filename = args.htmltemplate
+    # csv_template_filename = args.htmltemplate
 
     dirname = os.path.dirname(__file__)
-
-    if not latex_template_filename:
-        latex_template_filename = os.path.join(
-            dirname, 'templates/tcd-eleceng-latex.jinja')
-
-    if not csv_template_filename:
-        csv_template_filename = os.path.join(
-            dirname, 'templates/bb.jinja')
-        
-    if not html_template_filename:
-        html_template_filename = os.path.join(
-            dirname, 'templates/preview-html.jinja')
+    (basename, _) = os.path.splitext(yaml_filename)
 
     if not os.path.exists(yaml_filename):
         logging.error("No file {} found".format(yaml_filename))
@@ -91,12 +107,7 @@ def compile(args):
         yaml_data = load(yaml_filename)
     except:
         return
-            
-    (basename, _) = os.path.splitext(yaml_filename)
-    csv_filename = basename + ".txt"
-    html_filename = basename + ".html"
-    latex_filename = basename + ".tex"
-    latex_solutions_filename = basename + ".solutions.tex"
+
 
     try:
         html_md_dict = get_html_md_dict_from_yaml(yaml_data)  
@@ -110,24 +121,53 @@ def compile(args):
 
     print_box("Stats", get_stats(yaml_data), Fore.BLUE)
 
+    results_fmt = ''
+
+    for tgt in targets:
+        out_filename = Template(tgt["filename"]).substitute({'inputbasename': basename})
+        cmd = Template(tgt["cmd"]).substitute({'inputbasename': basename})
+        template_ = Template(tgt["template"]).substitute({'bbquiztemplates':os.path.join(dirname, 'templates')})
+        template_filename = os.path.realpath(os.path.expanduser(template_)) 
+        jinja_render_file(out_filename,  template_filename, yaml_latex if tgt["fmt"] == "latex" else yaml_html )
+        results_fmt = results_fmt +  f'{tgt["descr"]}     : {cmd}\n'
+    
+        
+    # if not latex_template_filename:
+    #     latex_template_filename = os.path.join(
+    #         dirname, 'templates/tcd-eleceng-latex.jinja')
+
+    # if not csv_template_filename:
+    #     csv_template_filename = os.path.join(
+    #         dirname, 'templates/bb.jinja')
+        
+    # if not html_template_filename:
+    #     html_template_filename = os.path.join(
+    #         dirname, 'templates/preview-html.jinja')
+
+            
+    # csv_filename = basename + ".txt"
+    # html_filename = basename + ".html"
+    # latex_filename = basename + ".tex"
+    # latex_solutions_filename = basename + ".solutions.tex"
+
        
-    with open(latex_solutions_filename, "w") as latex_solutions_file:
-        latex_solutions_content = "\\let\\ifmyflag\\iftrue\\input{" \
-            + latex_filename + "}"
-        latex_solutions_file.write(latex_solutions_content)
+    # with open(latex_solutions_filename, "w") as latex_solutions_file:
+    #     latex_solutions_content = "\\let\\ifmyflag\\iftrue\\input{" \
+    #         + latex_filename + "}"
+    #     latex_solutions_file.write(latex_solutions_content)
         
-    jinja_render_file(csv_filename, csv_template_filename, yaml_html)
-    jinja_render_file(html_filename, html_template_filename, yaml_html)
-    jinja_render_file(latex_filename, latex_template_filename, yaml_latex)
+    # jinja_render_file(csv_filename, csv_template_filename, yaml_html)
+    # jinja_render_file(html_filename, html_template_filename, yaml_html)
+    # jinja_render_file(latex_filename, latex_template_filename, yaml_latex)
         
-    results_fmt = (
-        f'HTML output     : {html_filename}\n'
-        f'BB output       : {csv_filename}\n'
-        f'Latex output    : {latex_filename}\n'
-        f'Latex solutions : {latex_solutions_filename}\n'
-        f'Latex cmd       : latexmk -xelatex -pvc {latex_filename}\n'
-        f'Latex cmd       : latexmk -xelatex -pvc {latex_solutions_filename}\n'
-    )
+    # results_fmt = (
+    #     f'HTML output     : {html_filename}\n'
+    #     f'BB output       : {csv_filename}\n'
+    #     f'Latex output    : {latex_filename}\n'
+    #     f'Latex solutions : {latex_solutions_filename}\n'
+    #     f'Latex cmd       : latexmk -xelatex -pvc {latex_filename}\n'
+    #     f'Latex cmd       : latexmk -xelatex -pvc {latex_solutions_filename}\n'
+    # )
                    
     print_box("Results", results_fmt)
     
