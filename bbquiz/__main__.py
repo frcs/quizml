@@ -27,6 +27,9 @@ from bbquiz.render.to_jinja import Jinja2SyntaxError
 from rich.traceback import install
 install(show_locals=False)
 
+from rich import print
+from rich.panel import Panel
+
 from time import sleep
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -121,17 +124,23 @@ def compile(args):
 
     print_box("Stats", get_stats(yaml_data), Fore.BLUE)
 
-    results_fmt = ''
-
+    descr_list = []
+    cmd_list = []
+    
     for tgt in targets:
         out_filename = Template(tgt["filename"]).substitute({'inputbasename': basename})
         cmd = Template(tgt["cmd"]).substitute({'inputbasename': basename})
+        descr = tgt["descr"]
         template_ = Template(tgt["template"]).substitute({'bbquiztemplates':os.path.join(dirname, 'templates')})
         template_filename = os.path.realpath(os.path.expanduser(template_)) 
         jinja_render_file(out_filename,  template_filename, yaml_latex if tgt["fmt"] == "latex" else yaml_html )
-        results_fmt = results_fmt +  f'{tgt["descr"]}     : {cmd}\n'
+        descr_list.append(descr)
+        cmd_list.append(cmd)
     
-        
+    spacer = len(max(descr_list, key=len))
+    results_fmt = "\n".join([f"{d:{spacer+1}}: {c}" for d, c in zip(descr_list, cmd_list)])
+    
+    
     # if not latex_template_filename:
     #     latex_template_filename = os.path.join(
     #         dirname, 'templates/tcd-eleceng-latex.jinja')
@@ -168,8 +177,11 @@ def compile(args):
     #     f'Latex cmd       : latexmk -xelatex -pvc {latex_filename}\n'
     #     f'Latex cmd       : latexmk -xelatex -pvc {latex_solutions_filename}\n'
     # )
-                   
-    print_box("Results", results_fmt)
+
+    
+    print(Panel(results_fmt, title="Results",border_style="magenta"))
+
+#    print_box("Results", results_fmt)
     
     ###########################################################################
 
