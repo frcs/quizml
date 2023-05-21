@@ -25,6 +25,18 @@ from collections import defaultdict
 import logging
 
 
+from rich import print
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import Progress
+
+from rich.columns import Columns
+from rich.panel import Panel
+from rich.live import Live
+from rich.text import Text
+from rich.spinner import Spinner
+
+
 from ..utils import *
 from ..bbyaml.utils import get_md_list_from_yaml
 
@@ -247,6 +259,92 @@ def convert_latex_eqs(data_json):
     f.write("\\end{document}\n")
     f.close()
 
+#    sys.stdout.write("compiling the equations using pdflatex...")
+
+    pdflatex = subprocess.Popen(["pdflatex", "-interaction=nonstopmode", latex_filename],
+                                stdout = subprocess.PIPE,
+                                universal_newlines = True)
+    found_pdflatex_errors = False
+
+
+    pdflatex_progress =  Spinner("dots", "pdflatex compilation")
+
+    with Live(pdflatex_progress) as live:
+        while pdflatex.poll()==None:
+            pdflatex_progress.update()
+    
+    err_msg = ''
+    for line in pdflatex.stdout:
+        if line.startswith('!') and not found_pdflatex_errors:
+            sys.stdout.write("\n")            
+            found_pdflatex_errors = True
+        if found_pdflatex_errors:
+            err_msg = err_msg + line
+
+    if found_pdflatex_errors:
+        print(Panel(err_msg, title="Latex Error",border_style="red"))
+        raise LatexError
+   
+    # converting all pages in pdf doc into png files using gs
+    
+    call(["gs", "-dBATCH", '-q', "-dNOPAUSE", "-sDEVICE=pngalpha", "-r250",
+          "-dTextAlphaBits=4", "-dGraphicsAlphaBits=4",
+          "-sOutputFile=" + png_base + "%05d.png", pdf_filename])
+
+    # converting all png files into base64 strings
+    
+    it = 0
+    eq_dict = {}
+    for eq in eq_list:
+        it = it + 1
+        [w, h, data64] = png_file_to_base64(png_base + "%05d.png" % it)
+        eq_dict[eq[0]['t'] + eq[1]] = (w, h, data64)
+
+    os.chdir(olddir)
+
+    json_out = parse_json_replace_maths(data_json, eq_dict)
+    
+    return json_out
+
+
+
+
+def convert_latex_eqs_old(data_json):
+# Converts all equations in the pandoc json into PNGs using pdflatex and gs
+    
+    eq_list = get_eq_list_from_json(data_json)
+
+    # if we don't have any equations, exit
+    if not eq_list:
+        return data_json
+    
+    latex_preamble = \
+        "\\documentclass[multi={mymath1,mymath2},border=1pt]{standalone}\n" + \
+        "\\usepackage{amsmath}\n"+ \
+        "\\newenvironment{mymath1}{$\displaystyle}{$}\n" +\
+        "\\newenvironment{mymath2}{$}{$}\n" +\
+        "\\begin{document}\n"
+
+    tmpdir = tempfile.mkdtemp()
+    olddir = os.getcwd()
+    os.chdir(tmpdir)
+
+    latex_filename = "eq_list.tex"
+    pdf_filename = "eq_list.pdf"
+    png_base = "eq_img_"
+
+    f = open(latex_filename, 'w')
+    f.write(latex_preamble)
+
+    for eq in eq_list:
+        if eq[0]['t'] == 'InlineMath':
+            f.write("\\begin{mymath2}" + eq[1] + "\\end{mymath2}\n")
+        if eq[0]['t'] == 'DisplayMath':
+            f.write("\\begin{mymath1}" + eq[1] + "\\end{mymath1}\n")
+
+    f.write("\\end{document}\n")
+    f.close()
+
     sys.stdout.write("compiling the equations using pdflatex...")
 
     pdflatex = subprocess.Popen(["pdflatex", "-interaction=nonstopmode", latex_filename],
@@ -261,6 +359,7 @@ def convert_latex_eqs(data_json):
         sys.stdout.write(next(spinner))
         sys.stdout.flush()
         sys.stdout.write('\b')
+
         
     # I would need to improve this by making print_box compatible with _io.TextIOWrapper
     
