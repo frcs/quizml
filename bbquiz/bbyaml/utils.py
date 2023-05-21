@@ -6,7 +6,6 @@ def get_header_questions(yaml_data):
     for entry in yaml_data:
         if entry['type'] == 'header':
             header = entry
-            break
         else:
             questions.append(entry)
     return (header, questions)

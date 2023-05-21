@@ -120,7 +120,7 @@ def compile(args):
 
     yaml_html = transcode_md_in_yaml(yaml_data, html_md_dict)
     yaml_latex = transcode_md_in_yaml(yaml_data, latex_md_dict)
-
+    
     print_stats(yaml_data)
 
     descr_list = []
