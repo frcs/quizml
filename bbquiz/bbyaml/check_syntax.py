@@ -4,26 +4,26 @@ import yaml
 import logging
 from ..utils import *
 
+from rich.panel import Panel
+from rich.console import Console
 
 class BBYamlSyntaxError(Exception):
     pass
   
 def syntax_error(msg, entry=None):
-    #    logging.error("Syntax Error: " + msg)
     if entry!=None:
         msg = msg + "\n\n" + yaml.dump(entry)
 
-    print_box("Syntax Error: ", msg, color=Fore.RED)
-
+    console = Console()
+    console.print(Panel(msg, title="Syntax Error in BBYaml file", border_style="red"))
     raise BBYamlSyntaxError
 
 def syntax_warning(msg, entry=None):
-    #logging.warning("Syntax Warning: " + msg)
-
     if entry!=None:
         msg = msg + "\n\n" + yaml.dump(entry)
-
-    print_box("Syntax Warning: ", msg, color=Fore.YELLOW)
+        
+    console = Console()
+    console.print(Panel(msg, title="Syntax Warning in BBYaml file", border_style="yellow"))
    
 def check_bbyaml_syntax_ma(entry):
     for k in entry.keys():

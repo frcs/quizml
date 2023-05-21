@@ -1,5 +1,12 @@
-from colorama import Fore, Back, Style
 import math
+
+from rich.table import box
+from rich.align import Align
+from rich.console import Console
+from rich.live import Live
+from rich.table import Table
+from rich.text import Text
+from rich.panel import Panel
 
 import os
 
@@ -32,7 +39,7 @@ def get_entry_marks(entry):
         return 0
 
 
-def get_stats(yaml_data):
+def print_stats(yaml_data):
     total_marks = 0
     nb_questions = 0
     question_id = 0
@@ -42,6 +49,8 @@ def get_stats(yaml_data):
        
     msg = '  Q  Type  Marks  #  Exp  Question Statement\n'
     msg = msg + f"{'─'*(w-4)}\n"
+
+    rows = []
     
     for entry in yaml_data:
         if is_bbquestion(entry):
@@ -62,20 +71,28 @@ def get_stats(yaml_data):
                 question_expected_mark = 0
 
             expected_mark = expected_mark + question_expected_mark
-
-            msg = msg + f"{question_id:3d} "
-            msg = msg + f"{entry['type']:^7s}"
-            msg = msg + f" {question_marks:2.1f}" + ("*" if 'marks' not in entry else " ")
             choices = (str(len(entry['answers']) if 'answers' in entry else '-'))
-            msg = msg + f"{choices:^5s}"
-            msg = msg + f"{question_expected_mark:3.1f}  "
             lines = entry['question'].splitlines()
-             
-            msg = msg + f"{lines[0]}" + (" […]" if len(lines)>1 else "") + "\n"
+            excerpt = f"{lines[0]}" + (" […]" if len(lines)>1 else "")
+            
+            rows.append([f"{question_id}",
+                         f"{entry['type']}",
+                         f"{question_marks:2.1f}",
+                         f"{choices}",
+                         f"{question_expected_mark:3.1f}",
+                         excerpt ])
+            
+    table = Table(box=box.SIMPLE,collapse_padding=True, show_footer=True)
+    table.add_column("Q", f"{question_id}", no_wrap=True, justify="right")
+    table.add_column("Type", "--", no_wrap=True, justify="center")
+    table.add_column("Marks", f"{total_marks:3.1f}",  no_wrap=True, justify="right")
+    table.add_column("#", "-", no_wrap=True, justify="right")
+    table.add_column("Exp", f"{expected_mark/total_marks*100:3.1f}%", no_wrap=True, justify="right")
+    table.add_column("Question Statement", no_wrap=False, justify="left")
+    for r in rows:
+        table.add_row(*r)
+       
+    console = Console()
+    console.print(Panel(table, title="Results",border_style="blue"))
 
-
-    msg = msg + f"{'─'*(w-4)}\n"
-    msg = msg + f'{question_id:3d}   --  {total_marks:3.1f}   -  {expected_mark/total_marks*100:3.1f}%\n'
-    
-    return msg
 

@@ -10,7 +10,7 @@ from .utils import *
 
 from bbquiz.bbyaml.loader import load
 from bbquiz.bbyaml.utils import transcode_md_in_yaml
-from bbquiz.bbyaml.stats import get_stats
+from bbquiz.bbyaml.stats import print_stats
 
 from bbquiz.markdown_export.html_dict_from_md_list import get_html_md_dict_from_yaml
 from bbquiz.markdown_export.html_dict_from_md_list import PandocError
@@ -111,7 +111,6 @@ def compile(args):
     except:
         return
 
-
     try:
         html_md_dict = get_html_md_dict_from_yaml(yaml_data)  
         latex_md_dict = get_latex_md_dict_from_yaml(yaml_data)
@@ -122,7 +121,7 @@ def compile(args):
     yaml_html = transcode_md_in_yaml(yaml_data, html_md_dict)
     yaml_latex = transcode_md_in_yaml(yaml_data, latex_md_dict)
 
-    print_box("Stats", get_stats(yaml_data), Fore.BLUE)
+    print_stats(yaml_data)
 
     descr_list = []
     cmd_list = []
@@ -139,49 +138,8 @@ def compile(args):
     
     spacer = len(max(descr_list, key=len))
     results_fmt = "\n".join([f"{d:{spacer+1}}: {c}" for d, c in zip(descr_list, cmd_list)])
-    
-    
-    # if not latex_template_filename:
-    #     latex_template_filename = os.path.join(
-    #         dirname, 'templates/tcd-eleceng-latex.jinja')
-
-    # if not csv_template_filename:
-    #     csv_template_filename = os.path.join(
-    #         dirname, 'templates/bb.jinja')
-        
-    # if not html_template_filename:
-    #     html_template_filename = os.path.join(
-    #         dirname, 'templates/preview-html.jinja')
-
-            
-    # csv_filename = basename + ".txt"
-    # html_filename = basename + ".html"
-    # latex_filename = basename + ".tex"
-    # latex_solutions_filename = basename + ".solutions.tex"
-
-       
-    # with open(latex_solutions_filename, "w") as latex_solutions_file:
-    #     latex_solutions_content = "\\let\\ifmyflag\\iftrue\\input{" \
-    #         + latex_filename + "}"
-    #     latex_solutions_file.write(latex_solutions_content)
-        
-    # jinja_render_file(csv_filename, csv_template_filename, yaml_html)
-    # jinja_render_file(html_filename, html_template_filename, yaml_html)
-    # jinja_render_file(latex_filename, latex_template_filename, yaml_latex)
-        
-    # results_fmt = (
-    #     f'HTML output     : {html_filename}\n'
-    #     f'BB output       : {csv_filename}\n'
-    #     f'Latex output    : {latex_filename}\n'
-    #     f'Latex solutions : {latex_solutions_filename}\n'
-    #     f'Latex cmd       : latexmk -xelatex -pvc {latex_filename}\n'
-    #     f'Latex cmd       : latexmk -xelatex -pvc {latex_solutions_filename}\n'
-    # )
-
-    
+      
     print(Panel(results_fmt, title="Results",border_style="magenta"))
-
-#    print_box("Results", results_fmt)
     
     ###########################################################################
 
@@ -193,8 +151,7 @@ def compile_on_change(args):
             if event.src_path == full_yaml_path:
                 compile(args)
                 print("\n...waiting for a file change to re-compile the document...\n ")
-                
-
+               
     observer = Observer()
     observer.schedule(Handler(), ".") # watch the local directory
     observer.start()
