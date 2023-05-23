@@ -93,6 +93,7 @@ def print_stats(yaml_data):
         table.add_row(*r)
        
     console = Console()
-    console.print(Panel(table, title="Results",border_style="blue"))
+    console.print(table)
+
 
 
