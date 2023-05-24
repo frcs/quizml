@@ -45,6 +45,14 @@ def load(bbyaml_filename):
     yaml_data = load_yaml_file(bbyaml_filename)
     check_syntax.check_bbyaml_syntax(yaml_data)
 
+    # add header if it doesn't already exist
+    if (not yaml_data) or (yaml_data[0]['type'] != 'header'):
+        yaml_data.insert(0, {'type': 'header'})
+
+    # add basename metadata to header 
+    (basename, _) = os.path.splitext(bbyaml_filename)
+    yaml_data[0]['inputbasename'] = basename
+    
     return yaml_data
 
     

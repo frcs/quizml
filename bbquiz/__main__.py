@@ -59,29 +59,29 @@ targets =[
         "descr"   : "BlackBoard",
         "fmt"     : "html",
         "cmd"     : "${inputbasename}.txt",
-        "template": "${bbquiztemplates}/bb.jinja"
+        "template": "bb.jinja"
     },
     {
         "filename": "${inputbasename}.html",
         "descr"   : "html preview",
         "fmt"     : "html",
         "cmd"     : "${inputbasename}.html",
-        "template": "${bbquiztemplates}/preview-html.jinja"
+        "template": "preview-html.jinja"
     },
     {
         "filename": "${inputbasename}.tex",
         "descr"   : "Latex",
         "fmt"     : "latex",
         "cmd"     : "latexmk -xelatex -pvc ${inputbasename}.tex",
-        "template": "${bbquiztemplates}/tcd-eleceng-latex.jinja"
+        "template": "tcd-eleceng-latex.jinja"
+    },
+    {
+        "filename": "${inputbasename}.solutions.tex",
+        "descr"   : "Latex solutions",
+        "fmt"     : "latex",
+        "cmd"     : "latexmk -xelatex -pvc ${inputbasename}.solutions.tex",
+        "template": "latex-solutions.jinja",
     }]
-    # {
-    #     filename  = "${basename}.solutions.tex",
-    #     descr      = "Latex solutions",
-    #     fmt       = "latex",
-    #     cmd       = "latexmk -xelatex -pvc ${basename}.solutions.tex",
-    #     template  = "${bbquiztemplates}/latex-solutions.jinja",
-    # }
 
 
 def jinja_render_file(out_filename, template_filename, yaml_code):
@@ -130,7 +130,9 @@ def compile(args):
         out_filename = Template(tgt["filename"]).substitute({'inputbasename': basename})
         cmd = Template(tgt["cmd"]).substitute({'inputbasename': basename})
         descr = tgt["descr"]
-        template_ = Template(tgt["template"]).substitute({'bbquiztemplates':os.path.join(dirname, 'templates')})
+#        ${bbquiztemplates}/
+        template_ = os.path.join(dirname, 'templates', tgt["template"])
+#        template_ = Template(tgt["template"]).substitute({'bbquiztemplates':os.path.join(dirname, 'templates')})
         template_filename = os.path.realpath(os.path.expanduser(template_)) 
         jinja_render_file(out_filename,  template_filename, yaml_latex if tgt["fmt"] == "latex" else yaml_html )
         descr_list.append(descr)

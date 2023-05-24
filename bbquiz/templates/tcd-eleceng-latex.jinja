@@ -144,13 +144,13 @@
 
 \newcommand{\omrNOCHECK}[1]{\raisebox{-6pt}{\scalebox{1}{\tikz{\filldraw[fill=black!0, draw=none] (0, 0) circle (0.25); \node (x1) at (0, 0) {\omrFONT #1};}}}}
 
-\ifcsname ifmyflag\endcsname\else
-  \expandafter\let\csname ifmyflag\expandafter\endcsname
+\ifcsname ifsolutions\endcsname\else
+  \expandafter\let\csname ifsolutions\expandafter\endcsname
                   \csname iffalse\endcsname
                   \fi
 
 
-\ifmyflag
+\ifsolutions
 \newcommand{\iO}{\refstepcounter{enumii}\omrNOCHECK{\alph{enumii}}}
 \newcommand{\iX}{\refstepcounter{enumii}\omrCHECK{\alph{enumii}}}
 \else
@@ -184,7 +184,7 @@
 \newcommand{\Q}[1]{{\\[1em]{\bf\textit Q#1. }}}
 
 
-\ifmyflag
+\ifsolutions
      \newenvironment{answer}[1][]
      {\par\medskip 
       \noindent \color{red} }
@@ -268,7 +268,7 @@ essay question
 <|- elif q.type == 'mc' or q.type == 'ma' |>
 <|-   for a in q.answers -|>
 <|-     if a.correct  -|>
-\ifmyflag\x<<letter[loop.index0]>>\else\o<<letter[loop.index0]>>\fi
+\ifsolutions\x<<letter[loop.index0]>>\else\o<<letter[loop.index0]>>\fi
 <|-     else  -|>
 \o<<letter[loop.index0]>>
 <|- endif -|>
