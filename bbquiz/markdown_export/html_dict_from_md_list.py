@@ -54,7 +54,6 @@ from mistletoe.span_token import tokenize_inner
 from mistletoe.span_token import SpanToken
 
 
-
 class MathInline(SpanToken):
     content = ''
     parse_group = 1
@@ -150,8 +149,6 @@ def md_combine_list(md_list):
         txt = txt + "\n\n# " + get_hash(md_entry) + "\n\n" + md_entry
     return txt
 
-
-
 def append_unique(alist, blist):
     for b in blist:
         if b not in alist:
@@ -189,7 +186,7 @@ def print_doc(doc):
             print_doc(a)
     
 
-def convert_latex_eqs(doc):
+def get_eq_dict(doc):
 # Converts all equations in the pandoc json into PNGs using pdflatex and gs
 
     eq_dict = {}
@@ -276,13 +273,6 @@ def convert_latex_eqs(doc):
     return eq_dict
 
 
-# def mistletoe_md_to_json(md_content):
-    
-#     json = Document(md_content)
-#     return json
-    
-
-
 def remove_newline_and_tabs(html_content):
     """
     Problem: we need to remove any tab or any newline 
@@ -305,8 +295,12 @@ def remove_newline_and_tabs(html_content):
     
     html_content = html_content.replace('\n', ' ').replace('\t', '  ')
 
+    return html_content   
+
+
+def capture_width_in_img_tags(html_content):
+#    <p><img alt="" src="figures/rd-multires.png">{width=30em}</p>
     return html_content
-    
 
 def get_html_dict_from_md_list(html_result, md_list):
     md_dict = {}
@@ -318,7 +312,7 @@ def get_html_dict_from_md_list(html_result, md_list):
         html_content = html_result[start:end]
 
         html_content = remove_newline_and_tabs(html_content)
-        
+       
         # in the future, this styling should be done outside
         html_content = html_content.replace(
             'class="math inline"',
@@ -332,20 +326,6 @@ def get_html_dict_from_md_list(html_result, md_list):
         md_dict[txt] = html_content
     return md_dict
 
-
-# def mistletoe_json_to_sefcontained_html(json_data):
-#     """
-#     using mistletoe to convert json to html
-#     """
-
-#     rendered = ''
-#     with HTMLRenderer() as renderer:
-#         rendered = renderer.render(json)
-        
-#     return rendered
-
-
-
 class MathRenderer(HTMLRenderer):
     def __init__(self, eq_dict):
         super().__init__(MathInline,MathDisplay)
@@ -357,7 +337,6 @@ class MathRenderer(HTMLRenderer):
         [w, h, data64] = self.eq_dict['##Display##' + token.content]
         return f"<img src='{data64}' alt='{token.content}' width='{w/2}' height='{h/2}'>"
     
-
 def get_html_md_dict_from_yaml(yaml_data):
     
     md_list     = get_md_list_from_yaml(yaml_data)
@@ -369,7 +348,7 @@ def get_html_md_dict_from_yaml(yaml_data):
     with ASTRenderer(MathInline,MathDisplay) as renderer:
         doc = Document(md_combined)
 
-    eq_dict = convert_latex_eqs(doc)
+    eq_dict = get_eq_dict(doc)
 
     with MathRenderer(eq_dict) as renderer:
         html_result = renderer.render(doc)
