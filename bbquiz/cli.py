@@ -36,6 +36,9 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 
+import appdirs
+
+
 def zsh_completion_script():
     return ( 
 """
@@ -54,36 +57,6 @@ compdef _bbquiz bbquiz
 """)
 
 
-targets =[
-    {
-        "filename": "${inputbasename}.txt",
-        "descr"   : "BlackBoard",
-        "fmt"     : "html",
-        "cmd"     : "${inputbasename}.txt",
-        "template": "bb.jinja"
-    },
-    {
-        "filename": "${inputbasename}.html",
-        "descr"   : "html preview",
-        "fmt"     : "html",
-        "cmd"     : "${inputbasename}.html",
-        "template": "preview-html.jinja"
-    },
-    {
-        "filename": "${inputbasename}.tex",
-        "descr"   : "Latex",
-        "fmt"     : "latex",
-        "cmd"     : "latexmk -xelatex -pvc ${inputbasename}.tex",
-        "template": "tcd-eleceng-latex.jinja"
-    },
-    {
-        "filename": "${inputbasename}.solutions.tex",
-        "descr"   : "Latex solutions",
-        "fmt"     : "latex",
-        "cmd"     : "latexmk -xelatex -pvc ${inputbasename}.solutions.tex",
-        "template": "latex-solutions.jinja",
-    }]
-
 
 def jinja_render_file(out_filename, template_filename, yaml_code):
     with open(out_filename, "w") as f:
@@ -95,18 +68,18 @@ def jinja_render_file(out_filename, template_filename, yaml_code):
 
 
 def compile(args):
-
+   
     yaml_filename = args.yaml_filename
     # latex_template_filename = args.latextemplate
     # html_template_filename = args.htmltemplate
     # csv_template_filename = args.htmltemplate
 
-    dirname = os.path.dirname(__file__)
+    pkg_dirname = os.path.dirname(__file__)
+    pkg_template_dir = os.path.join(pkg_dirname, 'templates')
     (basename, _) = os.path.splitext(yaml_filename)
 
     if not os.path.exists(yaml_filename):
         logging.error("No file {} found".format(yaml_filename))
-
     try:
         yaml_data = load(yaml_filename)
     except:
@@ -126,15 +99,36 @@ def compile(args):
 
     descr_list = []
     cmd_list = []
+
+    config_dir = appdirs.user_config_dir(appname="bbquiz", appauthor='frcs')
+    config_file = os.path.join(config_dir, 'bbquiz.cfg')
     
-    for tgt in targets:
-        out_filename = Template(tgt["filename"]).substitute({'inputbasename': basename})
-        cmd = Template(tgt["cmd"]).substitute({'inputbasename': basename})
+    for d in [os.getcwd(), config_dir, pkg_template_dir]:
+        fname = os.path.join(d, 'bbquiz.cfg')
+        config_file = os.path.realpath(os.path.expanduser(fname))
+        if os.path.exists(config_file):
+            break
+        
+    try:
+        with open(config_file) as f:
+            config = yaml.load(f, Loader=yaml.FullLoader)
+    except yaml.YAMLError as exc:
+        print ("Something went wrong while parsing the config file " + config_file)
+        raise exception
+    
+    for tgt in config['targets']:
+        out_filename = Template(tgt["out"]).substitute({'inputbasename': basename})
+        if ("descr_cmd" not in tgt) or tgt["descr_cmd"] is None:
+            tgt["descr_cmd"] = ""
+        cmd = Template(tgt["descr_cmd"]).substitute({'inputbasename': basename})
         descr = tgt["descr"]
-#        ${bbquiztemplates}/
-        template_ = os.path.join(dirname, 'templates', tgt["template"])
-#        template_ = Template(tgt["template"]).substitute({'bbquiztemplates':os.path.join(dirname, 'templates')})
-        template_filename = os.path.realpath(os.path.expanduser(template_)) 
+
+        for d in [os.getcwd(), config_dir, pkg_template_dir]:
+            template_ = os.path.join(d, tgt["template"])
+            template_filename = os.path.realpath(os.path.expanduser(template_))
+            if os.path.exists(template_filename):
+                break
+        
         jinja_render_file(out_filename,  template_filename, yaml_latex if tgt["fmt"] == "latex" else yaml_html )
         descr_list.append(descr)
         cmd_list.append(cmd)
@@ -170,7 +164,7 @@ def compile_on_change(args):
 
 
 def main():
-
+   
     parser = argparse.ArgumentParser(
         description = "Converts a questions in a YAML/markdown format into"\
         +  "a Blackboard test or a Latex script")
@@ -209,3 +203,7 @@ def main():
     else:
         compile(args)
 
+
+
+
+        
