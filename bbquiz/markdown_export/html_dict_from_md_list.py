@@ -7,7 +7,6 @@ import yaml
 import markdown
 import re
 import html
-import hashlib
 
 from bs4 import BeautifulSoup
 
@@ -35,6 +34,7 @@ from rich.live import Live
 from rich.text import Text
 from rich.spinner import Spinner
 
+from .utils import *
 from ..utils import *
 from ..bbyaml.utils import get_md_list_from_yaml
 
@@ -49,6 +49,7 @@ import mistletoe
 from mistletoe import Document, HTMLRenderer
 from mistletoe.ast_renderer import ASTRenderer
 from mistletoe.latex_token import Math
+from mistletoe import span_token
 from mistletoe.span_token import Image
 from mistletoe.span_token import tokenize_inner
 from mistletoe.span_token import SpanToken
@@ -131,43 +132,19 @@ class MathDisplay(SpanToken):
             self.content = match.group(5)
 
 
-def get_hash(txt):
-    return hashlib.md5(txt.encode('utf-8')).hexdigest()
- 
-def md_combine_list(md_list):
-    """
-    Collate all Markdown entries into a single Markdown document.
-
-    Parameters
-    ----------
-    md_list : list  
-        list of markdown entries
-    """
-
-    txt = ""
-    for md_entry in md_list:
-        txt = txt + "\n\n# " + get_hash(md_entry) + "\n\n" + md_entry
-    return txt
-
-def append_unique(alist, blist):
-    for b in blist:
-        if b not in alist:
-            alist.append(b)
-    return alist
-
-def get_image_info(data):
-    w, h = struct.unpack('>LL', data[16:24])
-    width = int(w)
-    height = int(h)
-    return width, height
-
-def png_file_to_base64(pngfile):
-    with open(pngfile, "rb") as image_file:
+def embed_base64(path):
+    filename, ext = os.path.splitext(path)
+    ext = ext[1:]
+    if ext=='svg':
+        ext = 'svg+xml'
+    print(ext)
+    with open(path, "rb") as image_file:
         data = image_file.read()
         [w, h] = get_image_info(data)
-        data64 = "data:image/png;base64," + \
+        data64 = f"data:image/{ext};base64," + \
             base64.b64encode(data).decode('ascii')
     return (w, h, data64)
+
 
 def get_eq_list_from_doc(doc):
     eq_list = []
@@ -259,7 +236,7 @@ def get_eq_dict(doc):
     # converting all png files into base64 strings
     
     for it, eq in enumerate(eq_list,start=1):
-        [w, h, data64] = png_file_to_base64(png_base + "%05d.png" % it)
+        [w, h, data64] = embed_base64(png_base + "%05d.png" % it)
 
         if isinstance(eq,MathInline):
             key = "##Inline##" + eq.content
@@ -299,8 +276,18 @@ def remove_newline_and_tabs(html_content):
 
 
 def capture_width_in_img_tags(html_content):
-#    <p><img alt="" src="figures/rd-multires.png">{width=30em}</p>
-    return html_content
+    """
+    Problem: we can allow for width parameters to passed to image:
+    ![a pic](fig/pic.jpeg){width=40em}
+    so we need to capture the width 
+    """
+
+    #    <p><img alt="" src="figures/rd-multires.png"/>{width=30em}</p>
+    regex = r"<p><img\s*alt=\"(.*)\"\s*src=\"(.*)\"\s*[/]?>{\s*width\s*=\s*(.*)}\s*</p>"
+    subst = "<p><img alt=\"\\1\" src=\"\\2\" style=\"width:\\3\"></p>"
+    result = re.sub(regex, subst, html_content, 0, re.MULTILINE | re.DOTALL)  
+    return result
+
 
 def get_html_dict_from_md_list(html_result, md_list):
     md_dict = {}
@@ -310,9 +297,8 @@ def get_html_dict_from_md_list(html_result, md_list):
         start = html_result.find(html_h1) + len(html_h1)
         end = html_result.find("<h1>", start + 1)
         html_content = html_result[start:end]
-
         html_content = remove_newline_and_tabs(html_content)
-       
+        html_content = capture_width_in_img_tags(html_content)       
         # in the future, this styling should be done outside
         html_content = html_content.replace(
             'class="math inline"',
@@ -336,7 +322,16 @@ class MathRenderer(HTMLRenderer):
     def render_math_display(self, token):
         [w, h, data64] = self.eq_dict['##Display##' + token.content]
         return f"<img src='{data64}' alt='{token.content}' width='{w/2}' height='{h/2}'>"
+    def render_image(self, token: span_token.Image) -> str:       
+        template = '<img src="{}" alt="{}"{} />'
+        if token.title:
+            title = ' title="{}"'.format(html.escape(token.title))
+        else:
+            title = ''
+        [w, h, data64] = embed_base64(token.src)            
+        return template.format(data64, self.render_to_plain(token), title)
     
+
 def get_html_md_dict_from_yaml(yaml_data):
     
     md_list     = get_md_list_from_yaml(yaml_data)
