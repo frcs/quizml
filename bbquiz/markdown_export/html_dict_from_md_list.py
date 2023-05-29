@@ -38,13 +38,6 @@ from .utils import *
 from ..utils import *
 from ..bbyaml.utils import get_md_list_from_yaml
 
-class PandocError(Exception):
-    pass
-
-class LatexError(Exception):
-    pass
-
-
 import mistletoe
 from mistletoe import Document, HTMLRenderer
 from mistletoe.ast_renderer import ASTRenderer
@@ -53,6 +46,10 @@ from mistletoe import span_token
 from mistletoe.span_token import Image
 from mistletoe.span_token import tokenize_inner
 from mistletoe.span_token import SpanToken
+
+
+class LatexError(Exception):
+    pass
 
 
 class MathInline(SpanToken):
@@ -137,7 +134,6 @@ def embed_base64(path):
     ext = ext[1:]
     if ext=='svg':
         ext = 'svg+xml'
-    print(ext)
     with open(path, "rb") as image_file:
         data = image_file.read()
         [w, h] = get_image_info(data)
@@ -154,17 +150,10 @@ def get_eq_list_from_doc(doc):
     elif isinstance(doc, MathInline) or isinstance(doc, MathDisplay):
         eq_list.append(doc)
     return eq_list
-
-
-def print_doc(doc):
-    print(doc)
-    if hasattr(doc, 'children'):
-        for a in doc.children:
-            print_doc(a)
-    
+   
 
 def get_eq_dict(doc):
-# Converts all equations in the pandoc json into PNGs using pdflatex and gs
+# Converts all equations into PNGs using pdflatex and gs
 
     eq_dict = {}
     
