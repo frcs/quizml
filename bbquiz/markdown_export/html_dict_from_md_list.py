@@ -52,6 +52,28 @@ class LatexError(Exception):
     pass
 
 
+class MarkdownError(Exception):
+    pass
+
+
+class ImageWithWidth(SpanToken):
+    content = ''
+    src = ''
+    title = ''
+    width = ''
+
+    parse_group = 1
+    parse_inner = False
+#    precedence = 6    
+    pattern = re.compile(r"""
+	!\[([^\]]*)\]\(([^\)]*)\)\{\s*width\s*=([^\}]*)\}
+	""", re.MULTILINE | re.VERBOSE | re.DOTALL)
+    def __init__(self, match):
+        self.title = match.group(1)
+        self.src = match.group(2)
+        self.width = match.group(3)
+
+
 class MathInline(SpanToken):
     content = ''
     parse_group = 1
@@ -87,6 +109,7 @@ class MathInline(SpanToken):
             self.content = match.group(4)
 
 
+            
 class MathDisplay(SpanToken):
     content = ''
     parse_group = 1
@@ -129,6 +152,16 @@ class MathDisplay(SpanToken):
             self.content = match.group(5)
 
 
+def filter_remove_empty_blockcode(doc):
+    if isinstance(doc, mistletoe.block_token.BlockCode):
+        txt = doc.children[0].content
+        if txt.strip() == '':
+            doc = None
+    elif hasattr(doc, 'children'):
+        doc.children = list(filter(filter_remove_empty_blockcode, doc.children))
+    return doc
+
+            
 def embed_base64(path):
     filename, ext = os.path.splitext(path)
     ext = ext[1:]
@@ -287,7 +320,7 @@ def get_html_dict_from_md_list(html_result, md_list):
         end = html_result.find("<h1>", start + 1)
         html_content = html_result[start:end]
         html_content = remove_newline_and_tabs(html_content)
-        html_content = capture_width_in_img_tags(html_content)       
+        #        html_content = capture_width_in_img_tags(html_content)       
         # in the future, this styling should be done outside
         html_content = html_content.replace(
             'class="math inline"',
@@ -303,7 +336,7 @@ def get_html_dict_from_md_list(html_result, md_list):
 
 class MathRenderer(HTMLRenderer):
     def __init__(self, eq_dict):
-        super().__init__(MathInline,MathDisplay)
+        super().__init__(MathInline,MathDisplay,ImageWithWidth)
         self.eq_dict = eq_dict
     def render_math_inline(self, token):
         [w, h, data64] = self.eq_dict['##Inline##' + token.content]
@@ -319,6 +352,14 @@ class MathRenderer(HTMLRenderer):
             title = ''
         [w, h, data64] = embed_base64(token.src)            
         return template.format(data64, self.render_to_plain(token), title)
+    def render_image_with_width(self, token) -> str:
+        template = '<img src="{}" alt="{}"{} style="width:{}"/>'
+        if token.title:
+            title = ' title="{}"'.format(html.escape(token.title))
+        else:
+            title = ''
+        [w, h, data64] = embed_base64(token.src)
+        return template.format(data64, self.render_to_plain(token), title, token.width)
     
 
 def get_html_md_dict_from_yaml(yaml_data):
@@ -329,9 +370,12 @@ def get_html_md_dict_from_yaml(yaml_data):
     # with open("bbquiz-mdcombine.md", "w") as f:
     #     f.write(md_combined)        
 
-    with ASTRenderer(MathInline,MathDisplay) as renderer:
+    with ASTRenderer(MathInline,MathDisplay,ImageWithWidth) as renderer:
         doc = Document(md_combined)
 
+    # trailing spaces can cause empty BlockCodes ... removing them
+    doc = filter_remove_empty_blockcode(doc)
+        
     eq_dict = get_eq_dict(doc)
 
     with MathRenderer(eq_dict) as renderer:
@@ -343,4 +387,4 @@ def get_html_md_dict_from_yaml(yaml_data):
 
 
 
-
+    

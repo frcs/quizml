@@ -14,7 +14,7 @@ from bbquiz.bbyaml.utils import transcode_md_in_yaml
 from bbquiz.bbyaml.stats import print_stats
 
 from bbquiz.markdown_export.html_dict_from_md_list import get_html_md_dict_from_yaml
-from bbquiz.markdown_export.html_dict_from_md_list import PandocError
+from bbquiz.markdown_export.html_dict_from_md_list import MarkdownError
 from bbquiz.markdown_export.html_dict_from_md_list import LatexError
 
 from bbquiz.markdown_export.latex_dict_from_md_list import get_latex_md_dict_from_yaml
@@ -154,7 +154,7 @@ def compile(args):
         
         latex_md_dict = get_latex_md_dict_from_yaml(yaml_data)
         yaml_latex = transcode_md_in_yaml(yaml_data, latex_md_dict)        
-    except (LatexError, PandocError):
+    except (LatexError, MarkdownError):
         print("\nXXX compilation stopped because of errors !\n ")
         return
 
