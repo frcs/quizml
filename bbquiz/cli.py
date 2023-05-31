@@ -30,6 +30,8 @@ install(show_locals=False)
 
 from rich import print
 from rich.panel import Panel
+from rich_argparse import *
+
 
 from time import sleep
 from watchdog.observers import Observer
@@ -207,6 +209,7 @@ def compile_on_change(args):
 def main():
    
     parser = argparse.ArgumentParser(
+        formatter_class=RawDescriptionRichHelpFormatter,
         description = "Converts a questions in a YAML/markdown format into"\
         +  "a Blackboard test or a Latex script")
 
@@ -216,9 +219,13 @@ def main():
     parser.add_argument("-w", "--watch", 
                         help="continuously compiles the document on file change",
                         action="store_true")
+
+    default_config_dir = appdirs.user_config_dir(appname="bbquiz", appauthor='frcs')
+    
     parser.add_argument("--config", 
                         metavar="bbquiz.cfg",  
-                        help="user config file")
+                        help=f"user config file. default is {default_config_dir}"
+                        )
     parser.add_argument("--latextemplate", 
                         metavar="latex-template.jinja",  
                         help="Latex jinja2 template")
