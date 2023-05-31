@@ -207,11 +207,26 @@ def compile_on_change(args):
 
 
 def main():
-   
+
+    RichHelpFormatter.styles = {
+        'argparse.args': 'cyan', 
+        'argparse.groups': 'yellow',
+        'argparse.help': 'grey50',
+        'argparse.metavar': 'dark_cyan', 
+        'argparse.prog': 'default', 
+        'argparse.syntax': 'bold',
+        'argparse.text': 'default',
+        "argparse.pyproject": "green"
+    }
+
+    
+    formatter = lambda prog: RawDescriptionRichHelpFormatter(
+        prog, max_help_position=52)
+
     parser = argparse.ArgumentParser(
-        formatter_class=RawDescriptionRichHelpFormatter,
+        formatter_class=formatter,
         description = "Converts a questions in a YAML/markdown format into"\
-        +  "a Blackboard test or a Latex script")
+        +  " a Blackboard test or a Latex script")
 
     parser.add_argument("yaml_filename", nargs='?',
                         metavar="quiz.yaml", type=str, 
@@ -223,14 +238,14 @@ def main():
     default_config_dir = appdirs.user_config_dir(appname="bbquiz", appauthor='frcs')
     
     parser.add_argument("--config", 
-                        metavar="bbquiz.cfg",  
-                        help=f"user config file. default is {default_config_dir}"
+                        metavar="CONFIGFILE",  
+                        help=f"user config file. Default location is {default_config_dir}"
                         )
     parser.add_argument("--latextemplate", 
-                        metavar="latex-template.jinja",  
+                        metavar="TEMPLATEFILE",  
                         help="Latex jinja2 template")
     parser.add_argument("--htmltemplate", 
-                        metavar="preview-html.jinja",  
+                        metavar="TEMPLATEFILE",  
                         help="HTML jinja2 template")
     parser.add_argument("--zsh",
                         help="A helper command used for exporting the "
