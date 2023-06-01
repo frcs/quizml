@@ -8,7 +8,7 @@ import textwrap
 
 from bbquiz.bbyaml.stats import get_total_marks
 from bbquiz.bbyaml.utils import get_header_questions
-from bbquiz.bbyaml.utils import get_total_marks
+from bbquiz.bbyaml.stats import get_total_marks
 
 class Jinja2SyntaxError(Exception):
     pass
