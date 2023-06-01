@@ -7,6 +7,7 @@ from . import check_syntax
 from .check_syntax import BBYamlSyntaxError
 from ..utils import *
 
+from rich.panel import Panel
 
 def load_yaml_file(yaml_filename):
     try:
@@ -29,7 +30,9 @@ def load_yaml_file(yaml_filename):
                 msg = msg + "  " + " "*(c-1) + "^~~~~" + "\n"
                 
             msg = msg + "\nParsing Error: \n" + str(exc.problem) + "\n" + ctx + "\n"
-            print_box("Syntax Error", msg, Fore.RED)
+
+            
+            print(Panel(msg, title="Syntax Error",border_style="red"))
 
             raise BBYamlSyntaxError
         else:

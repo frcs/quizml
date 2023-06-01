@@ -2,6 +2,56 @@
 
 Tool for converting a list of questions in yaml/markdown to a BlackBoard test or to a Latex exam source file
 
+
+Here is a quick example. You write the questions in a YAML file, using a
+Markdown syntax:
+
+```yaml
+- type: ma
+  marks: 5           
+  question: |
+    If vector ${\bf w}$ is of dimension $3 \times 1$ and matrix ${\bf A}$ of
+    dimension $5 \times 3$, then what is the dimension of $\left({\bf w}^{\top}{\bf
+    A}^{\top}{\bf A}{\bf w}\right)^{\top}$?
+
+  answers:
+    - answer:  ${\tt 5}\times {\tt 5}$
+      correct: false
+    - answer:  ${\tt 3}\times {\tt 3}$
+      correct: false
+    - answer:  ${\tt 3}\times {\tt 1}$
+      correct: false
+    - answer:  ${\tt 1}\times {\tt 1}$
+      correct: true
+
+- type: ma
+  marks: 5         
+  question: |
+    Is this the image of a tree?
+    
+    ![](figures/tree.png){ width=30em }
+    
+  answers:
+    - answer: "yes"
+      correct: false
+    - answer: "false"
+      correct: true     
+```
+
+
+
+
+
+
+
+```
+Usage: bbquiz [-h] [-w] [--config CONFIGFILE] [--latextemplate TEMPLATEFILE] [--htmltemplate TEMPLATEFILE] [--zsh] [quiz.yaml]
+
+```
+
+
+
+
 # Installation
 
 ```bash

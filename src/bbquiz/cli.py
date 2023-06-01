@@ -1,5 +1,12 @@
 #!/usr/bin/python
 
+from rich.traceback import install
+install(show_locals=False)
+
+from rich import print
+from rich.panel import Panel
+from rich_argparse import *
+
 import os
 import sys
 import yaml
@@ -13,30 +20,17 @@ from bbquiz.bbyaml.loader import load
 from bbquiz.bbyaml.utils import transcode_md_in_yaml
 from bbquiz.bbyaml.stats import print_stats
 
-from bbquiz.markdown_export.html_dict_from_md_list import get_html_md_dict_from_yaml
-from bbquiz.markdown_export.html_dict_from_md_list import MarkdownError
-from bbquiz.markdown_export.html_dict_from_md_list import LatexError
+from bbquiz.markdown.html_dict_from_md_list import get_html_md_dict_from_yaml
+from bbquiz.markdown.html_dict_from_md_list import MarkdownError
+from bbquiz.markdown.html_dict_from_md_list import LatexError
+from bbquiz.markdown.latex_dict_from_md_list import get_latex_md_dict_from_yaml
 
-from bbquiz.markdown_export.latex_dict_from_md_list import get_latex_md_dict_from_yaml
-
-from bbquiz.render import to_csv
-from bbquiz.render import to_html
-from bbquiz.render import to_latex
 from bbquiz.render import to_jinja
 from bbquiz.render.to_jinja import Jinja2SyntaxError
-
-from rich.traceback import install
-install(show_locals=False)
-
-from rich import print
-from rich.panel import Panel
-from rich_argparse import *
-
 
 from time import sleep
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-
 
 import appdirs
 
