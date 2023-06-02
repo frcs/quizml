@@ -3,7 +3,8 @@ import sys
 from pathlib import Path
 
 import strictyaml
-from strictyaml import Any, Map, Float, Seq, Bool, Int, Str, YAMLValidationError, Optional, MapCombined
+from strictyaml import Any, Map, Float, Seq, Bool, Int, Str, Optional, MapCombined
+from strictyaml import YAMLError
 
 class BBYamlSyntaxError(Exception):
     pass
@@ -55,9 +56,11 @@ def load(bbyaml_filename):
                 # by choosing Map({}) as schema. so any key will fail 
                 a.revalidate(Map({})) 
                 
-    except YAMLValidationError as err:
+    except YAMLError as err:
         raise BBYamlSyntaxError(str(err.problem) + '\n' + str(err.problem_mark) )
-
+    # except ScannerError as err:
+    #     raise BBYamlSyntaxError(str(err.problem) + '\n' + str(err.problem_mark) )
+        
     yaml_data = yamldoc.data
         
     # add header if it doesn't already exist
