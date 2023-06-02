@@ -1,13 +1,6 @@
 import os
 import sys
-# import logging
 from pathlib import Path
-
-# from . import check_syntax
-# from .check_syntax import BBYamlSyntaxError
-# from ..utils import *
-
-# from rich.panel import Panel
 
 import strictyaml
 from strictyaml import Any, Map, Float, Seq, Bool, Int, Str, YAMLValidationError, Optional, MapCombined
