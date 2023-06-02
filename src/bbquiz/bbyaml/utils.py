@@ -1,5 +1,13 @@
 
 
+def filter_yaml(yaml, f):
+    if isinstance(yaml, list):
+        return [filter_yaml(a,f) for a in yaml]
+    elif isinstance(yaml, dict):
+        return dict(zip(yaml.keys(), [filter_yaml(a, f) for a in yaml.values()]))
+    else:
+        return f(yaml)
+
 def get_header_questions(yaml_data):
     header = None
     questions = []

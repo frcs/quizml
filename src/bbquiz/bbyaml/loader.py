@@ -2,12 +2,15 @@ import os
 import sys
 from pathlib import Path
 
+from bbquiz.bbyaml.utils import filter_yaml
+
 import strictyaml
 from strictyaml import Any, Map, Float, Seq, Bool, Int, Str, Optional, MapCombined
 from strictyaml import YAMLError
 
 class BBYamlSyntaxError(Exception):
     pass
+
 
 def load(bbyaml_filename):
 
@@ -58,10 +61,12 @@ def load(bbyaml_filename):
                 
     except YAMLError as err:
         raise BBYamlSyntaxError(str(err.problem) + '\n' + str(err.problem_mark) )
-    # except ScannerError as err:
-    #     raise BBYamlSyntaxError(str(err.problem) + '\n' + str(err.problem_mark) )
         
     yaml_data = yamldoc.data
+
+    # trim all the text entries
+    f = lambda a : a.strip() if isinstance(a, str) else a
+    yaml_data = filter_yaml(yaml_data, f)
         
     # add header if it doesn't already exist
     if (not yaml_data) or (yaml_data[0]['type'] != 'header'):
