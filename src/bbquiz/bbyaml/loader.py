@@ -1,18 +1,16 @@
 import os
 import sys
-#import yaml
-import logging
+# import logging
 from pathlib import Path
 
-from . import check_syntax
-from .check_syntax import BBYamlSyntaxError
-from ..utils import *
+# from . import check_syntax
+# from .check_syntax import BBYamlSyntaxError
+# from ..utils import *
 
-from rich.panel import Panel
+# from rich.panel import Panel
 
 import strictyaml
 from strictyaml import Any, Map, Float, Seq, Bool, Int, Str, YAMLValidationError, Optional, MapCombined
-
 
 class BBYamlSyntaxError(Exception):
     pass
@@ -66,9 +64,6 @@ def load(bbyaml_filename):
                 
     except YAMLValidationError as err:
         raise BBYamlSyntaxError(str(err.problem) + '\n' + str(err.problem_mark) )
-
-        #    yaml_data = load_yaml_file(bbyaml_filename)
-        #    check_syntax.check_bbyaml_syntax(yaml_data)
 
     yaml_data = yamldoc.data
         
