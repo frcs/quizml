@@ -19,10 +19,12 @@ from .utils import *
 from bbquiz.bbyaml.loader import load
 from bbquiz.bbyaml.utils import transcode_md_in_yaml
 from bbquiz.bbyaml.stats import print_stats
+from bbquiz.bbyaml.loader import BBYamlSyntaxError
 
 from bbquiz.markdown.html_dict_from_md_list import get_html_md_dict_from_yaml
 from bbquiz.markdown.html_dict_from_md_list import MarkdownError
 from bbquiz.markdown.html_dict_from_md_list import LatexError
+
 from bbquiz.markdown.latex_dict_from_md_list import get_latex_md_dict_from_yaml
 
 from bbquiz.render import to_jinja
@@ -91,7 +93,7 @@ def get_config(args):
                 break
                     
     try:
-        with open(config_file) as f:
+        with open(config_file) as f:            
             config = yaml.load(f, Loader=yaml.FullLoader)
     except yaml.YAMLError as exc:
         print ("Something went wrong while parsing the config file " + config_file)
@@ -137,8 +139,9 @@ def compile(args):
         logging.error("No file {} found".format(yaml_filename))
     try:
         yaml_data = load(yaml_filename)
-    except:
-        return   
+    except BBYamlSyntaxError as err:
+        print(Panel(str(err), title="BByaml Syntax Error", border_style="red"))
+        return 
 
     config = get_config(args)
     

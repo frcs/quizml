@@ -1,7 +1,8 @@
 import os
 import sys
-import yaml
+#import yaml
 import logging
+from pathlib import Path
 
 from . import check_syntax
 from .check_syntax import BBYamlSyntaxError
@@ -9,45 +10,68 @@ from ..utils import *
 
 from rich.panel import Panel
 
-def load_yaml_file(yaml_filename):
-    try:
-        with open(yaml_filename) as yaml_file:
-            yaml_data = yaml.load(yaml_file, Loader=yaml.FullLoader)
-    except yaml.YAMLError as exc:
-        #        logging.error("Error while parsing YAML file")
-        if hasattr(exc, 'problem_mark'):
-            with open(yaml_filename) as f:
-                lines = f.readlines()                
-            l = exc.problem_mark.line
-            c = exc.problem_mark.column
-            ctx = str(exc.context) if exc.context!=None else ''
+import strictyaml
+from strictyaml import Any, Map, Float, Seq, Bool, Int, Str, YAMLValidationError, Optional, MapCombined
 
-            msg = f"in {yaml_filename}, line {l+1}, column {c+1}:\n\n"
-            msg = msg + "  " + lines[l][0:-1] + "\n"
-            if (c > 4):
-                msg = msg + "  " + "~"*(c-1) + "^" + "\n"
-            else:
-                msg = msg + "  " + " "*(c-1) + "^~~~~" + "\n"
-                
-            msg = msg + "\nParsing Error: \n" + str(exc.problem) + "\n" + ctx + "\n"
 
-            
-            print(Panel(msg, title="Syntax Error",border_style="red"))
-
-            raise BBYamlSyntaxError
-        else:
-            print ("Something went wrong while parsing yaml file")
-            raise BBYamlSyntaxError
-            
-        pass
-
-    return yaml_data
-
+class BBYamlSyntaxError(Exception):
+    pass
 
 def load(bbyaml_filename):
-    yaml_data = load_yaml_file(bbyaml_filename)
-    check_syntax.check_bbyaml_syntax(yaml_data)
 
+    schema_overall = Seq(MapCombined({"type": Str()},
+                                     Str(), Any()))
+    
+    schema_item = {
+        'ma': Map({"type": Str(),
+                   Optional("marks"): Float(),
+                   "question": Str(),
+                   "answers": Seq(
+                       Map({ "answer": Str(),
+                             "correct": Bool()}))}),
+        'mc': Map({"type": Str(),
+                   Optional("marks"): Float(),
+                   "question": Str(),
+                   "answers": Seq(
+                       Map({ "answer": Str(),
+                             "correct": Bool()}))}),
+        'essay': Map({"type": Str(),
+                      Optional("marks"): Float(),
+                      "question": Str(),
+                      Optional("answer"): Str()}),
+        'matching': Map({"type": Str(),
+                      Optional("marks"): Float(),
+                      "question": Str(),
+                      "answers": Seq(Map({"answer": Str(), "correct": Str()}))}),
+        'ordering': Map({"type": Str(),
+                      Optional("marks"): Float(),
+                      "question": Str(),
+                      "answers": Seq(Map({"answer": Str()}))}),
+        'header': Any()
+    }
+
+    yaml_txt = Path(bbyaml_filename).read_text()
+
+    try:
+        yamldoc = strictyaml.load(yaml_txt, schema_overall, label="myfilename")
+    
+        for a in yamldoc:
+            if a['type'] in schema_item.keys():
+                a.revalidate(schema_item[a['type']])
+            else:            
+                # entered 'type' is not valid 
+                # tricking the validation system to trigger an error
+                # by choosing Map({}) as schema. so any key will fail 
+                a.revalidate(Map({})) 
+                
+    except YAMLValidationError as err:
+        raise BBYamlSyntaxError(str(err.problem) + '\n' + str(err.problem_mark) )
+
+        #    yaml_data = load_yaml_file(bbyaml_filename)
+        #    check_syntax.check_bbyaml_syntax(yaml_data)
+
+    yaml_data = yamldoc.data
+        
     # add header if it doesn't already exist
     if (not yaml_data) or (yaml_data[0]['type'] != 'header'):
         yaml_data.insert(0, {'type': 'header'})
@@ -58,4 +82,3 @@ def load(bbyaml_filename):
     
     return yaml_data
 
-    

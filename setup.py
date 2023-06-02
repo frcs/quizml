@@ -20,7 +20,7 @@ setup(name='bbquiz',
       packages=['bbquiz', 'bbquiz.bbyaml', 'bbquiz.render', 'bbquiz.markdown'],
 
       install_requires=[
-          'markdown','bs4','pyyaml','rich', 'rich-argparse',
+          'markdown','bs4','strictyaml','rich', 'rich-argparse',
           'jinja2', 'colorama', 'watchdog', 'mistletoe', 'appdirs'
       ],      
       entry_points={

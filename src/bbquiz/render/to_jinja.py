@@ -35,10 +35,9 @@ def msg_context(lines, lineo, charno=None):
 def render(yaml_data, template_filename):
 
     if not template_filename:
-        print(Panel("Template filename is missing, can't render jinja.",
-                    title="Error",border_style="red"))
-        raise Exception
-
+        msg = "Template filename is missing, can't render jinja."
+        raise Exception(msg)
+    
     (header, questions) = get_header_questions(yaml_data)
     
     context = {
@@ -67,28 +66,24 @@ def render(yaml_data, template_filename):
             msg = "in " + Fore.YELLOW + template_filename + Fore.RESET + f", line {l}\n\n"
             msg = msg + msg_context(lines, l) + "\n"
             msg = msg + text_wrap(exc.message)
-            print(Panel(msg, "Template Syntax Error",border_style="red"))
-            raise Jinja2SyntaxError
+            raise Jinja2SyntaxError(msg)
             
         except jinja2.UndefinedError as exc:
             msg = "in " + Fore.YELLOW + template_filename + Fore.RESET + "\n\n"
             msg = msg + exc.message + "\n\n"
             msg = msg + "The template tries to access an undefined variable. "
             msg = msg + "Have you checked if the header exits? \n\n"
-            print(Panel(msg, "Template Error",border_style="red"))                       
-            raise Jinja2SyntaxError
+            raise Jinja2SyntaxError(msg)
 
         except jinja2.TemplateError as exc:
             msg = "in " + Fore.YELLOW + template_filename + Fore.RESET + "\n\n"
             msg = msg + exc.message + "\n\n"
-            print(Panel(msg, "Template Error",border_style="red"))                        
-            raise Jinja2SyntaxError
+            raise Jinja2SyntaxError(msg)
             
         except Exception as exc:
             msg = "in " + Fore.YELLOW + template_filename + Fore.RESET + "\n\n"
             msg = msg + "%s" % exc + "\n\n"
-            print(Panel(msg, "Template Exception",border_style="red"))
-            raise Jinja2SyntaxError
+            raise Jinja2SyntaxError(msg)
                
         return latex_content
     

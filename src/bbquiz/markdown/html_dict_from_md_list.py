@@ -231,7 +231,7 @@ def get_eq_dict(doc):
     found_pdflatex_errors = False
 
 
-    pdflatex_progress =  Spinner("dots", "pdflatex compilation")
+    pdflatex_progress =  Spinner("simpleDotsScrolling", "pdflatex compilation")
 
     with Live(pdflatex_progress) as live:
         while pdflatex.poll()==None:
