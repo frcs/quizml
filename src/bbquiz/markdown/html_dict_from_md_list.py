@@ -340,10 +340,10 @@ class MathRenderer(HTMLRenderer):
         self.eq_dict = eq_dict
     def render_math_inline(self, token):
         [w, h, data64] = self.eq_dict['##Inline##' + token.content]
-        return f"<img src='{data64}' alt='{token.content}' width='{w/2}' height='{h/2}' style='vertical-align:middle;'>"
+        return f"<img src='{data64}' alt='{token.content}' width='{int(w/2):d}' height='{int(h/2):d}' style='vertical-align:middle;'>"
     def render_math_display(self, token):
         [w, h, data64] = self.eq_dict['##Display##' + token.content]
-        return f"<img src='{data64}' alt='{token.content}' width='{w/2}' height='{h/2}'>"
+        return f"<img src='{data64}' alt='{token.content}' width='{int(w/2):d}' height='{int(h/2):d}'>"
     def render_image(self, token: span_token.Image) -> str:       
         template = '<img src="{}" alt="{}"{} />'
         if token.title:

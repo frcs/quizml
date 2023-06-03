@@ -17,7 +17,7 @@
     }
     ol { max-width: 40em; page-break-before: avoid; }
     li { max-width: 40em; page-break-before: avoid; }
-    div.block { }
+    div.block {}
     </style>
   </head>
   <body>
@@ -41,7 +41,6 @@
 	no indicative answer given.
   </div>	
   <| endif |>
-</li> 
 <| elif q.type == 'mc'|>
 <b> Multiple Choice [ << q.marks >> ]</b>
 <<q.question>>
@@ -54,7 +53,7 @@
 <|-        endif          |>  
 <input name='yu' type='radio'>
 <<a.answer>>
-</div></li>
+</li>
 <|-    endfor +|>
 </ol>
 <| elif q.type == 'ma'|>
@@ -64,19 +63,19 @@
 <|-   for a in q.answers |>
 <|        if a.correct   -|>
    <li class='correct'>
-<|-        else          -|>  
+<|-       else          -|>  
    <li class='incorrect'>
-<|-        endif          |>  
+<|-       endif          |>  
 <input name='yu' type='checkbox'>
 <<a.answer>>
-</div></li>
-<|-    endfor +|>
+</li>
+<|-   endfor +|>
 </ol>
 <| elif q.type == 'matching' |>
   <b> Matching [ << q.marks >> ]</b>
 <<q.question>>
 <ol class='input' type='a'>
-  <|-   for a in q.answers |>
+<|-   for a in q.answers |>
 	<li>
 	  <ol>
 		<li>
@@ -109,7 +108,7 @@
 	  << a.answer >>
 	</div>
   </li>
-<|-    endfor +|>
+  <|-    endfor +|>
 </ol>
 <|- endif          |>
   </li>

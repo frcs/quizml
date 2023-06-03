@@ -2,12 +2,12 @@
 
 <# passing the header variables to template #>
 <| if header      -|>
-<| for key, value in header.items()      -|>
-<|   if key != 'type'                     |>
+<|   for key, value in header.items()      -|>
+<|     if key != 'type'                     |>
 \def \info<<key>> {<<value>>}
-<|   endif           |>  
-<|- endfor                                |>
-<|- endif      |>  
+<|     endif           |>  
+<|-  endfor                                |>
+<|-endif      |>  
 
 
 

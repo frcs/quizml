@@ -61,8 +61,11 @@ def jinja_render_file(out_filename, template_filename, yaml_code):
         try:
             content = to_jinja.render(yaml_code, template_filename)
             f.write(content)            
-        except (Jinja2SyntaxError):
-            print(f"\n {Fore.RED} did not generate {out_filename} because of template errors  ! {Fore.RESET}\n ")
+        except Jinja2SyntaxError as err:
+            print(Panel(
+                f"\n did not generate {out_filename} because of template errors  ! \n "
+                + str(err), title='Jinja Template Error', border_style="red"))
+            
 
 
 def cfg_template_render(target, key, substitutions_dict, default_template):
