@@ -21,11 +21,10 @@ from bbquiz.bbyaml.utils import transcode_md_in_yaml
 from bbquiz.bbyaml.stats import print_stats
 from bbquiz.bbyaml.loader import BBYamlSyntaxError
 
-from bbquiz.markdown.html_dict_from_md_list import get_html_md_dict_from_yaml
-from bbquiz.markdown.html_dict_from_md_list import MarkdownError
-from bbquiz.markdown.html_dict_from_md_list import LatexError
-
-from bbquiz.markdown.latex_dict_from_md_list import get_latex_md_dict_from_yaml
+#from bbquiz.markdown.html_dict_from_md_list import get_html_md_dict_from_yaml
+from bbquiz.markdown.markdown import get_dicts_from_yaml
+from bbquiz.markdown.exceptions import MarkdownError, LatexError
+#from bbquiz.markdown.latex_dict_from_md_list import get_latex_md_dict_from_yaml
 
 from bbquiz.render import to_jinja
 from bbquiz.render.to_jinja import Jinja2SyntaxError
@@ -151,11 +150,11 @@ def compile(args):
     # transcode markdown to html and latex
     
     try:
-        html_md_dict = get_html_md_dict_from_yaml(yaml_data)
-        yaml_html = transcode_md_in_yaml(yaml_data, html_md_dict)
-        
-        latex_md_dict = get_latex_md_dict_from_yaml(yaml_data)
+        (latex_md_dict, html_md_dict) = get_dicts_from_yaml(yaml_data)
+#        html_md_dict = get_html_md_dict_from_yaml(yaml_data)
+#        latex_md_dict = get_latex_md_dict_from_yaml(yaml_data)
         yaml_latex = transcode_md_in_yaml(yaml_data, latex_md_dict)        
+        yaml_html = transcode_md_in_yaml(yaml_data, html_md_dict)
     except (LatexError, MarkdownError):
         print("\nXXX compilation stopped because of errors !\n ")
         return

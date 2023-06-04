@@ -1,0 +1,27 @@
+- type: 'mc'
+  question: |
+    In this *question* we will have an inline equation $J(t)=\int_x \frac{\partial
+    E}{\partial x}(x) \sin(x)dx$, and we ask, what is:
+      $$
+      \arg\max_t J(t)
+      $$
+  answers:
+    - answer: |
+        ![pic](figures/dogcat.jpg)
+      correct: true
+    - answer: |
+        ![pic](figures/dogcat.jpg){ width = 30em }
+      correct: true
+    - answer: |
+        \[
+        \cos(2x) + \pi^2
+        \]
+      correct: true
+    - answer: |
+        we start with an equation:
+        \begin{equation}
+        \cos(2x) + \pi^2
+        \end{equation}
+
+        Then we use inline $x,t(x)$.
+      correct: true
