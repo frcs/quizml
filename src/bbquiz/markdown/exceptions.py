@@ -1,5 +1,5 @@
 class MarkdownError(Exception):
     pass
 
-class LatexError(Exception):
+class LatexEqError(Exception):
     pass

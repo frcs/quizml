@@ -39,23 +39,19 @@ def get_entry_marks(entry):
         return 0
 
 
-def print_stats(yaml_data):
+
+def get_stats(yaml_data):
     total_marks = 0
     nb_questions = 0
-    question_id = 0
     expected_mark = 0
 
     w, _ = os.get_terminal_size(0)
        
-    msg = '  Q  Type  Marks  #  Exp  Question Statement\n'
-    msg = msg + f"{'─'*(w-4)}\n"
-
-    rows = []
+    stats = {"questions": []}
     
     for entry in yaml_data:
         if is_bbquestion(entry):
             nb_questions = nb_questions + 1
-            question_id = question_id + 1
             question_marks = get_entry_marks(entry)
             total_marks = total_marks + question_marks
             
@@ -75,25 +71,69 @@ def print_stats(yaml_data):
             lines = entry['question'].splitlines()
             excerpt = f"{lines[0]}" + (" […]" if len(lines)>1 else "")
             
-            rows.append([f"{question_id}",
-                         f"{entry['type']}",
-                         f"{question_marks:2.1f}",
-                         f"{choices}",
-                         f"{question_expected_mark:3.1f}",
-                         excerpt ])
-            
-    table = Table(box=box.SIMPLE,collapse_padding=True, show_footer=True)
-    table.add_column("Q", f"{question_id}", no_wrap=True, justify="right")
-    table.add_column("Type", "--", no_wrap=True, justify="center")
-    table.add_column("Marks", f"{total_marks:3.1f}",  no_wrap=True, justify="right")
-    table.add_column("#", "-", no_wrap=True, justify="right")
-    table.add_column("Exp", f"{expected_mark/total_marks*100:3.1f}%", no_wrap=True, justify="right")
-    table.add_column("Question Statement", no_wrap=False, justify="left")
-    for r in rows:
-        table.add_row(*r)
+            stats["questions"].append({"type":  entry['type'],
+                                       "marks": question_marks,
+                                       "choices": choices,
+                                       "EM": expected_mark, 
+                                       "excerpt": excerpt})
+
+    stats["total marks"] = total_marks
+    stats["expected mark"] = expected_mark/total_marks*100
+    stats["nb questions"] = nb_questions
+    return stats
+
+    
+# def stats(yaml_data):
+#     total_marks = 0
+#     nb_questions = 0
+#     question_id = 0
+#     expected_mark = 0
+
+#     w, _ = os.get_terminal_size(0)
        
-    console = Console()
-    console.print(table)
+#     stats = {}
+    
+#     for entry in yaml_data:
+#         if is_bbquestion(entry):
+#             nb_questions = nb_questions + 1
+#             question_id = question_id + 1
+#             question_marks = get_entry_marks(entry)
+#             total_marks = total_marks + question_marks
+            
+#             if entry['type']=='mc':
+#                 question_expected_mark = question_marks / len(entry['answers'])                
+#             elif entry['type']=='ma':
+#                 question_expected_mark = question_marks / (2 ** (len(entry['answers'])-1))
+#             elif entry['type']=='matching':
+#                 question_expected_mark =  question_marks / math.factorial(len(entry['answers']))
+#             elif entry['type']=='essay':
+#                 question_expected_mark = 0
+#             else:
+#                 question_expected_mark = 0
+
+#             expected_mark = expected_mark + question_expected_mark
+#             choices = (str(len(entry['answers']) if 'answers' in entry else '-'))
+#             lines = entry['question'].splitlines()
+#             excerpt = f"{lines[0]}" + (" […]" if len(lines)>1 else "")
+            
+#             stats["q"].append({"id":    question_id,
+#                                "type":  entry['type'],
+#                                "marks": question_marks,
+#                                "choices": choices})
+
+#             stats["q"].append({"id":    question_id,
+#                                "type":  entry['type'],
+#                                "marks": question_marks,
+#                                "choices": choices})
+
+#             rows.append([f"{question_id}",
+#                          f"{entry['type']}",
+#                          f"{question_marks:2.1f}",
+#                          f"{choices}",
+#                          f"{question_expected_mark:3.1f}",
+#                          excerpt ])
+            
 
 
-
+#     return rows
+#

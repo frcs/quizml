@@ -27,14 +27,9 @@ from mistletoe.html_renderer import HTMLRenderer
 
 from .utils import append_unique, get_image_info, get_hash
 from .extensions import MathInline, MathDisplay, ImageWithWidth
-from .exceptions import LatexError
+from .exceptions import LatexEqError
 
 from mistletoe import span_token
-
-
-# should rename this to PDFLaTexError
-class LatexError(Exception):
-    pass
 
 
 def embed_base64(path):
@@ -133,8 +128,7 @@ def get_eq_dict(eq_list):
             err_msg = err_msg + line
 
     if found_pdflatex_errors:
-        print(Panel(err_msg, title="Latex Error",border_style="red"))
-        raise LatexError(err_msg)
+        raise LatexEqError(err_msg)
    
     # converting all pages in pdf doc into png files using gs
     
@@ -181,7 +175,6 @@ def strip_newlines_and_tabs(html_content):
     html_content = html_content.replace('\n', ' ').replace('\t', '  ')
 
     return html_content   
-
 
 class BBYamlHTMLRenderer(HTMLRenderer):
     """

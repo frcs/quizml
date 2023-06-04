@@ -5,6 +5,10 @@ install(show_locals=False)
 
 from rich import print
 from rich.panel import Panel
+from rich.table import Table
+from rich.table import box
+from rich.console import Console
+
 from rich_argparse import *
 
 import os
@@ -18,12 +22,12 @@ from .utils import *
 
 from bbquiz.bbyaml.loader import load
 from bbquiz.bbyaml.utils import transcode_md_in_yaml
-from bbquiz.bbyaml.stats import print_stats
+from bbquiz.bbyaml.stats import get_stats
 from bbquiz.bbyaml.loader import BBYamlSyntaxError
 
 #from bbquiz.markdown.html_dict_from_md_list import get_html_md_dict_from_yaml
 from bbquiz.markdown.markdown import get_dicts_from_yaml
-from bbquiz.markdown.exceptions import MarkdownError, LatexError
+from bbquiz.markdown.exceptions import MarkdownError, LatexEqError
 #from bbquiz.markdown.latex_dict_from_md_list import get_latex_md_dict_from_yaml
 
 from bbquiz.render import to_jinja
@@ -34,6 +38,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 import appdirs
+import pathlib
 
 
 def zsh_completion_script():
@@ -132,11 +137,37 @@ def get_target_list(yaml_filename, config):
         target_list.append(target)
     
     return target_list
-            
-def compile(args):
-   
-    yaml_filename = args.yaml_filename
 
+def print_stats_table(stats):
+    console = Console()
+
+    table = Table(box=box.SIMPLE,collapse_padding=True, show_footer=True)
+    table.add_column("Q", f"{stats['nb questions']}", no_wrap=True, justify="right")
+    table.add_column("Type", "--", no_wrap=True, justify="center")
+    table.add_column("Marks", f"{stats['total marks']:3.1f}",  no_wrap=True, justify="right")
+    table.add_column("#", "-", no_wrap=True, justify="right")
+    table.add_column("Exp", f"{stats['expected mark']:2.1f}" + "%", no_wrap=True, justify="right")
+    table.add_column("Question Statement", no_wrap=False, justify="left")
+    for i, q in enumerate(stats["questions"]):
+        table.add_row(f"{i}", q["type"], f"{q['marks']:2.1f}",
+                       f"{q['choices']}", f"{q['EM']:3.1f}", q["excerpt"] )
+
+    console.print(table)
+
+
+def compile(args):
+    """
+    compiles the targets of a bbyaml file
+    """
+
+    # read config file
+
+    config = get_config(args)
+
+    # load BBYaml file
+
+    yaml_filename = args.yaml_filename
+    
     if not os.path.exists(yaml_filename):
         logging.error("No file {} found".format(yaml_filename))
     try:
@@ -144,45 +175,68 @@ def compile(args):
     except BBYamlSyntaxError as err:
         print(Panel(str(err), title="BByaml Syntax Error", border_style="red"))
         return 
-
-    config = get_config(args)
     
-    # transcode markdown to html and latex
+    # load all markdown entries into a list 
+    # and build dictionaries of their HTML and LaTeX translations
     
     try:
         (latex_md_dict, html_md_dict) = get_dicts_from_yaml(yaml_data)
-#        html_md_dict = get_html_md_dict_from_yaml(yaml_data)
-#        latex_md_dict = get_latex_md_dict_from_yaml(yaml_data)
         yaml_latex = transcode_md_in_yaml(yaml_data, latex_md_dict)        
         yaml_html = transcode_md_in_yaml(yaml_data, html_md_dict)
-    except (LatexError, MarkdownError):
-        print("\nXXX compilation stopped because of errors !\n ")
+    except LatexEqError as err:
+        print(Panel(str(err), title="Latex Error", border_style="red"))
+        return
+    except MarkdownError as err:
+        print(Panel(str(err), title="Markdown Error", border_style="red"))
         return
 
-    print_stats(yaml_data)
+    # diplay stats about the questions
 
-    descr_list = []
-    descr_cmd_list = []
+    print_stats_table(get_stats(yaml_data))
    
+    # get target list from config file
+
     target_list = get_target_list(yaml_filename, config)
     
-    for target in target_list:
-        jinja_render_file(
-            target['out'],
-            target['template'],
-            yaml_latex if target["fmt"] == "latex" else yaml_html )
-        
-        descr_list.append(target['descr'])
-        descr_cmd_list.append(target['descr_cmd'])
+    # render each target
+    # success_list = [False] * len(target_list)
+    rows = []
+    
+    for i, target in enumerate(target_list):
+        try:
+            yaml_code = yaml_latex if target["fmt"] == "latex" else yaml_html
+            render = to_jinja.render(yaml_code, target['template'])
+            pathlib.Path(target['out']).write_text(render)
+            rows.append([ target["descr"], target["descr_cmd"], "" ])
+
+        except Jinja2SyntaxError as err:            
+            print(Panel(
+                f"\n did not generate {out_filename} because of template errors  ! \n "
+                + str(err), title='Jinja Template Error', border_style="red"))
+            rows.append([ target['descr'] , target["descr_cmd"], "[FAIL]" ])
+            
+    # print target outputs
+
+    table_outputs = Table(box=box.SIMPLE, collapse_padding=True, show_footer=False, show_header=False)
+    table_outputs.add_column("Descr", no_wrap=True, justify="left")
+    table_outputs.add_column("Cmd", no_wrap=True, justify="left")
+    table_outputs.add_column("Status", no_wrap=True, justify="left")
+
+    for r in rows:
+        if r[2]=="[FAIL]":
+            table_outputs.add_row(*r, style="red")
+        elif r[2]=="":
+            table_outputs.add_row(*r)
        
-    spacer = len(max(descr_list, key=len))
-    results_fmt = "\n".join([f"{d:{spacer+1}}: {c}"
-                             for d, c in zip(descr_list, descr_cmd_list)])
-      
-    print(Panel(results_fmt, title="Results",border_style="magenta"))
+    print(Panel(table_outputs, title="Target Ouputs", border_style="magenta"))
+    
     
 
 def compile_on_change(args):
+    """
+    compiles the targets if input bbyaml file has changed on disk
+    """
+    
     print("\n...waiting for a file change to re-compile the document...\n " )    
     full_yaml_path = os.path.abspath(args.yaml_filename)
     class Handler(FileSystemEventHandler):

@@ -24,7 +24,6 @@ class BBYamlLaTeXRenderer(LaTeXRenderer):
         return "$" + token.content.strip() + "$"
 
     def render_math_display(self, token):
-        print("token.content")
         return "\\begin{equation}\n" + token.content.strip() + "\n\\end{equation}"
 
     def render_image_with_width(self, token) -> str:
