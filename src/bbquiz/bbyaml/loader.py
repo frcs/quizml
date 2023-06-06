@@ -42,6 +42,9 @@ def load(bbyaml_filename):
                       Optional("marks"): Float(),
                       "question": Str(),
                       "answers": Seq(Map({"answer": Str()}))}),
+        'section': Map({"type": Str(),
+                      Optional("marks"): Float(),
+                      "title": Str()}),
         'header': Any()
     }
 
