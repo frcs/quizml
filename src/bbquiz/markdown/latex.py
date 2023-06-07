@@ -2,6 +2,7 @@ import logging
 
 import mistletoe
 from mistletoe.latex_renderer import LaTeXRenderer
+from mistletoe.block_token import HTMLBlock
 
 from .utils import get_hash
 from .extensions import MathInline, MathDisplay, ImageWithWidth
@@ -13,7 +14,7 @@ class BBYamlLaTeXRenderer(LaTeXRenderer):
     """
     
     def __init__(self):
-        super().__init__(MathInline,MathDisplay,ImageWithWidth)
+        super().__init__(MathInline,MathDisplay,ImageWithWidth,HTMLBlock)
 
     def render_document(self, token):
         # we need to redefine this to strip out
@@ -28,8 +29,29 @@ class BBYamlLaTeXRenderer(LaTeXRenderer):
 
     def render_image_with_width(self, token) -> str:
         return '\\includegraphics[width=' + token.width + ']{' + token.src + '}'  
+    def render_html_block(self, token):
+        return ''
 
+    # fixing some default behaviour
+    def render_table(self, token):
+        return '\n\medskip\n' + super().render_table(token) + '\n\medskip\n'
 
+    # fixing some default behaviour
+    def render_image(self, token):
+        s = super().render_image(token)
+        return s[1:-1]
+
+    # fixing some default behaviour
+    def render_figure(self, token):
+        s = self.render_inner(token)
+        
+        if self.caption:
+        return s[1:-1]
+
+    
+    # def render_paragraph(self, token):
+    #     s = super().render_paragraph(token.strip()) 
+        
 def get_latex(doc):
     """
     returns the rendered LaTeX source for mistletoe object

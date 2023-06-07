@@ -8,7 +8,60 @@ from mistletoe.span_token import Image
 from mistletoe.span_token import tokenize_inner
 from mistletoe.span_token import SpanToken
 
+# no nesting        
+class Environment(BlockToken):
+    repr_attributes = ("env")
 
+    pattern = re.compile(r"\\begin{(.*?)}")
+    envname = ''
+
+    def __init__(self, lines):
+        content = ''.join([line.lstrip() for line in lines]).strip()
+        print("--")
+        print(content)
+        print("--")
+
+        super().__init__(content, span_token.tokenize_inner)
+        
+    @classmethod
+    def start(cls, line):
+        print("here:'" + line.strip() + '\'')
+        print(cls.pattern)
+        match_obj = cls.pattern.match(line.strip())
+        print(match_obj)
+        if not match_obj:
+            return False
+        print("+++")
+        cls.envname = match_obj.group(1)        
+        return True
+
+    @classmethod
+    def read(cls, lines):
+        next(lines)
+        line_buffer = []
+        for line in lines:
+            if (line.startswith(r'\end{' + cls.envname + '}')):
+                break
+            line_buffer.append(line)
+        return line_buffer
+
+    @property
+    def content(self):
+        """Returns the code block content."""
+        return self.children[0].content
+
+# no nesting        
+class Command(SpanToken):
+    repr_attributes = ("cmdname", "cmd")
+    parse_group = 2
+    parse_inner = True
+    pattern = re.compile(r"""
+	\\([a-zA-Z]+?){\s*(.*?)\s*}""", re.MULTILINE | re.VERBOSE | re.DOTALL)
+    def __init__(self, match):
+        self.cmdname = match.group(1)
+        self.cmd = match.group(2)
+
+        
 class ImageWithWidth(SpanToken):
     content = ''
     src = ''
@@ -103,3 +156,5 @@ class MathDisplay(SpanToken):
             self.content = match.group(4)
         else:
             self.content = match.group(5)
+
+

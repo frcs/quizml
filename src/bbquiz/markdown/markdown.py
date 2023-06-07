@@ -6,11 +6,16 @@ import re
 import mistletoe
 from mistletoe import Document, HTMLRenderer
 from mistletoe.ast_renderer import ASTRenderer
+from mistletoe.block_token import HTMLBlock
+from mistletoe.span_token import HTMLSpan
+
 from mistletoe.latex_token import Math
 from mistletoe import span_token
 from mistletoe.span_token import Image
 from mistletoe.span_token import tokenize_inner
 from mistletoe.span_token import SpanToken
+from mistletoe.span_token import remove_token
+from mistletoe.block_token import BlockCode
 
 from .utils import md_combine_list
 from .latex import get_latex_dict
@@ -19,31 +24,23 @@ from bbquiz.bbyaml.utils import get_md_list_from_yaml
 
 from .extensions import MathInline, MathDisplay, ImageWithWidth
 
-def filter_remove_empty_blockcode(doc):
-    if isinstance(doc, mistletoe.block_token.BlockCode):
-        txt = doc.children[0].content
-        if txt.strip() == '':
-            doc = None
-    elif hasattr(doc, 'children'):
-        doc.children = list(filter(filter_remove_empty_blockcode, doc.children))
-    return doc
-
 
 def get_dicts_from_yaml(yaml_data):
     
     md_list     = get_md_list_from_yaml(yaml_data)
     md_combined = md_combine_list(md_list)
 
+    
     # with open("bbquiz-mdcombine.md", "w") as f:
     #     f.write(md_combined)        
 
     # converting the markdown text into a mistletoe obj
-    # not sure I understand, using AST Renderer here, but maybe we should use a different renderer?
-    with ASTRenderer(MathInline,MathDisplay,ImageWithWidth) as renderer:
+    # not sure I understand, using AST Renderer here,
+    # but maybe we should use a different renderer?
+    with ASTRenderer(MathInline,MathDisplay,ImageWithWidth,HTMLBlock) as renderer:
+        # we do not use BlocCode, as it is too easy to have issues with it
+        mistletoe.block_token.remove_token(mistletoe.block_token.BlockCode)
         doc_combined = Document(md_combined)
-
-    # trailing spaces can cause empty BlockCodes ... removing them
-    doc_combined = filter_remove_empty_blockcode(doc_combined)
 
     # convert markdown to HTML 
     html_dict = get_html_dict(doc_combined, md_list)
