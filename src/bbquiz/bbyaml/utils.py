@@ -47,43 +47,6 @@ def get_header_questions(yaml_data):
     return (header, questions)
 
 
-# def get_solutions(yaml_data):
-#     """
-#     returns a list of all the solutions 
-
-#     Parameters
-#     ----------
-#     yaml_data : list
-#         yaml file content, as decoded by bbyaml.load
-#     """
-
-#     solutions = []
-#     for entry in yaml_data:
-#         if entry['type'] == 'essay':
-#             solutions.append({'type': 'essay'})
-#         if entry['type'] == 'ma':
-#             solutions.append(
-#                 {'type': 'ma',
-#                  'solutions':  [a['correct'] for a in entry['answers']] })
-#             # for a in entry['answers']:
-#             #     s.append(a['correct'])
-#             # solutions.append({'type': 'ma', 'solutions': s})
-#         if entry['type'] == 'matching':
-#             solutions.append(
-#                 {'type': 'mc',
-#                  'solutions':  [a['correct'] for a in entry['answers']] })
-#         if entry['type'] == 'ordering':
-#             solutions.append(
-#                 {'type': 'ordering',
-#                  'solutions':  [a['answer'] for a in entry['answers']] })
-
-#             s = []
-#             for a in entry['answers']:
-#                 s.append(a['correct'])
-#             solutions.append({'type': 'ordering', 'solutions': s})
-
-#     return solutions
-
 
 def get_md_list_from_yaml(yaml_data, md_list=[]):
     """
@@ -106,15 +69,11 @@ def get_md_list_from_yaml(yaml_data, md_list=[]):
         for key, val in yaml_data.items():
             if key not in non_md_keys:
                 md_list = get_md_list_from_yaml(val, md_list)
-    # elif (isinstance(yaml_data, str) or
-    #       isinstance(yaml_data, int) or
-    #       isinstance(yaml_data, float) or
-    #       isinstance(yaml_data, complex)):
-    #     md_list.append(str(yaml_data))
     elif (isinstance(yaml_data, str)):
         md_list.append(str(yaml_data))
         
     return md_list
+
 
 
 def transcode_md_in_yaml(yaml_data, md_dict):
@@ -128,6 +87,8 @@ def transcode_md_in_yaml(yaml_data, md_dict):
     md_dict : dictionary 
         markdown entries with their transcriptions
     """
+
+    non_md_keys = ['type']
     
     if isinstance(yaml_data, list):
         out_data = [transcode_md_in_yaml(item, md_dict)
@@ -135,10 +96,16 @@ def transcode_md_in_yaml(yaml_data, md_dict):
     elif isinstance(yaml_data, dict):
         out_data = {}
         for key, val in yaml_data.items():
-            out_data[key] = transcode_md_in_yaml(val, md_dict)
+            if key not in non_md_keys:            
+                out_data[key] = transcode_md_in_yaml(val, md_dict)
+            else:
+                out_data[key] = val
     elif isinstance(yaml_data, str) and (yaml_data in md_dict):
         out_data = md_dict[yaml_data]
     else:
         out_data = yaml_data
 
     return out_data
+
+
+

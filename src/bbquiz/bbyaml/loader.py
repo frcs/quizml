@@ -12,6 +12,7 @@ class BBYamlSyntaxError(Exception):
     pass
 
 
+
 def load(bbyaml_filename):
 
     schema_overall = Seq(MapCombined({"type": Str()},
@@ -43,8 +44,9 @@ def load(bbyaml_filename):
                       "question": Str(),
                       "answers": Seq(Map({"answer": Str()}))}),
         'section': Map({"type": Str(),
-                      Optional("marks"): Float(),
-                      "title": Str()}),
+                        Optional("title"): Str(),
+                        Optional("marks"): Float(),
+                        Optional("question"): Str()}),
         'header': Any()
     }
 

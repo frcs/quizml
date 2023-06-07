@@ -37,7 +37,10 @@ def get_dicts_from_yaml(yaml_data):
     # converting the markdown text into a mistletoe obj
     # not sure I understand, using AST Renderer here,
     # but maybe we should use a different renderer?
-    with ASTRenderer(MathInline,MathDisplay,ImageWithWidth,HTMLBlock) as renderer:
+    with ASTRenderer(MathInline,
+                     MathDisplay,
+                     ImageWithWidth,
+                     HTMLBlock) as renderer:
         # we do not use BlocCode, as it is too easy to have issues with it
         mistletoe.block_token.remove_token(mistletoe.block_token.BlockCode)
         doc_combined = Document(md_combined)

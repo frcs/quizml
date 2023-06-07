@@ -67,7 +67,9 @@ def get_eq_dict(eq_list):
     """
     returns a dictionary of images from a list of LaTeX equations.
    
-    LaTeX equations are compiled into a PDF document using pdflatex, with one equation per page.
+    LaTeX equations are compiled into a PDF document using pdflatex,
+    with one equation per page.
+
     The PDF is then converted into PNG images using ghostscript (gs).
     
     """
@@ -211,7 +213,10 @@ class BBYamlHTMLRenderer(HTMLRenderer):
         else:
             title = ''
         [w, h, data64] = embed_base64(token.src)
-        return template.format(data64, self.render_to_plain(token), title, token.width)
+        return template.format(data64,
+                               self.render_to_plain(token),
+                               title,
+                               token.width)
     
 
 def get_html(doc):
