@@ -25,10 +25,15 @@ class BBYamlLaTeXRenderer(LaTeXRenderer):
         return "$" + token.content.strip() + "$"
 
     def render_math_display(self, token):
-        return "\\begin{equation}\n" + token.content.strip() + "\n\\end{equation}"
+#        return "\\begin{equation}\n" + token.content.strip() + "\n\\end{equation}"
+        return token.content.strip()
 
     def render_image_with_width(self, token) -> str:
         return '\\includegraphics[width=' + token.width + ']{' + token.src + '}'  
+
+    # def render_command(self, token) -> str:
+    #     return '\\' + token.cmdname + '{' + token.cmd + '}'  
+
     def render_html_block(self, token):
         return ''
 
@@ -46,7 +51,7 @@ class BBYamlLaTeXRenderer(LaTeXRenderer):
         s = self.render_inner(token)
         
         if self.caption:
-        return s[1:-1]
+            return s[1:-1]
 
     
     # def render_paragraph(self, token):

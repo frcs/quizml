@@ -81,10 +81,11 @@ def get_eq_dict(eq_list):
         return eq_list
     
     latex_preamble = \
-        "\\documentclass[multi={mymath1,mymath2},border=1pt]{standalone}\n" + \
+        "\\documentclass{article}\n" + \
         "\\usepackage{amsmath}\n"+ \
-        "\\newenvironment{mymath1}{$\displaystyle}{$}\n" +\
-        "\\newenvironment{mymath2}{$}{$}\n" +\
+        "\\newenvironment{standalone}{\\begin{preview}}{\\end{preview}}"+\
+        "\\PassOptionsToPackage{active,tightpage}{preview}"+\
+        "\\usepackage{preview}"+\
         "\\begin{document}\n"
 
     tmpdir = tempfile.mkdtemp()
@@ -99,14 +100,17 @@ def get_eq_dict(eq_list):
     f.write(latex_preamble)
 
     for eq in eq_list:
-        if isinstance(eq, MathInline):
-            f.write("\\begin{mymath2}" + eq.content + "\\end{mymath2}\n")
-        if isinstance(eq, MathDisplay):
-            f.write("\\begin{mymath1}" + eq.content + "\\end{mymath1}\n")
+        f.write("\\begin{standalone}" + eq.content + "\\end{standalone}\n")
+            
+        # if isinstance(eq, MathInline):
+        #     f.write("\\begin{standalone}" + eq.content + "\\end{standalone}\n")
+        # if isinstance(eq, MathDisplay):
+        #     f.write("\\begin{standalone}" + eq.content + "\\end{standalone}\n")
 
     f.write("\\end{document}\n")
+    
     f.close()
-
+    
     pdflatex = subprocess.Popen(
         ["pdflatex", "-interaction=nonstopmode",
          latex_filename],
