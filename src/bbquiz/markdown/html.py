@@ -100,12 +100,16 @@ def get_eq_dict(eq_list):
     f.write(latex_preamble)
 
     for eq in eq_list:
-        f.write("\\begin{standalone}" + eq.content + "\\end{standalone}\n")
+        # f.write("\\begin{standalone}" + eq.content + "\\end{standalone}\n")
             
-        # if isinstance(eq, MathInline):
-        #     f.write("\\begin{standalone}" + eq.content + "\\end{standalone}\n")
-        # if isinstance(eq, MathDisplay):
-        #     f.write("\\begin{standalone}" + eq.content + "\\end{standalone}\n")
+        if isinstance(eq, MathInline):
+            f.write("\\setbox0=\\hbox{" + eq.content + "}\n")
+            f.write("\\makeatletter\\typeout{::: \\strip@pt\\dimexpr 1pt * \\dp0 / \\wd0\\relax}\\makeatother")
+            f.write("\\begin{standalone}\\copy0\\end{standalone}\n")
+            # f.write("\\begin{standalone}" + eq.content + "\\end{standalone}\n")
+        if isinstance(eq, MathDisplay):
+            f.write("\\typeout{::: 0}")            
+            f.write("\\begin{standalone}" + eq.content + "\\end{standalone}\n")
 
     f.write("\\end{document}\n")
     
@@ -126,7 +130,10 @@ def get_eq_dict(eq_list):
             pdflatex_progress.update()
     
     err_msg = ''
+    depthratio = []
     for line in pdflatex.stdout:
+        if line.startswith(':::') and not found_pdflatex_errors:
+            depthratio.append(float(line[4:-1]))
         if line.startswith('!') and not found_pdflatex_errors:
             sys.stdout.write("\n")            
             found_pdflatex_errors = True
@@ -146,13 +153,13 @@ def get_eq_dict(eq_list):
     
     for it, eq in enumerate(eq_list,start=1):
         [w, h, data64] = embed_base64(png_base + "%05d.png" % it)
-
+        d = depthratio[it-1]
         if isinstance(eq,MathInline):
             key = "##Inline##" + eq.content
         else:
             key = "##Display##" + eq.content
 
-        eq_dict[key] = (w, h, data64)
+        eq_dict[key] = (w, h, d, data64)
 
     os.chdir(olddir)
     
@@ -194,11 +201,14 @@ class BBYamlHTMLRenderer(HTMLRenderer):
         self.eq_dict = eq_dict
         
     def render_math_inline(self, token):
-        [w, h, data64] = self.eq_dict['##Inline##' + token.content]
-        return f"<img src='{data64}' alt='{token.content}' width='{int(w/2):d}' height='{int(h/2):d}' style='vertical-align:middle;'>"
+        [w, h, dr, data64] = self.eq_dict['##Inline##' + token.content]
+        d_ = round(dr * w * 0.5 , 2)
+        w_ = round(w/2, 2)
+        h_ = round(h/2, 2)        
+        return f"<img src='{data64}' alt='{token.content}' width='{w_}' height='{h_}' style='top:{d_}px;position:relative;'>"
     
     def render_math_display(self, token):
-        [w, h, data64] = self.eq_dict['##Display##' + token.content]
+        [w, h, d, data64] = self.eq_dict['##Display##' + token.content]
         return f"<img src='{data64}' alt='{token.content}' width='{int(w/2):d}' height='{int(h/2):d}'>"
     
     def render_image(self, token: span_token.Image) -> str:       
