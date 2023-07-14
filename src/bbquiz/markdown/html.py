@@ -205,7 +205,7 @@ class BBYamlHTMLRenderer(HTMLRenderer):
         d_ = round(dr * w * 0.5 , 2)
         w_ = round(w/2, 2)
         h_ = round(h/2, 2)        
-        return f"<img src='{data64}' alt='{token.content}' width='{w_}' height='{h_}' style='top:{d_}px;position:relative;'>"
+        return f"<img src='{data64}' alt='{token.content}' width='{w_}' height='{h_}' style='vertical-align:{-d_}px;'>"
     
     def render_math_display(self, token):
         [w, h, d, data64] = self.eq_dict['##Display##' + token.content]
