@@ -24,7 +24,7 @@ Markdown syntax:
     - answer:  ${\tt 1}\times {\tt 1}$
       correct: true
 
-- type: ma
+- type: mc
   marks: 5         
   question: |
     Is this the image of a tree?
@@ -115,7 +115,7 @@ Below is an example of what an exam script would look like:
   desc: |
     This is a BlackBoard exam. 
 
-- type: ma
+- type: mc
   marks: 5           
   question: |
     If vector ${\bf w}$ is of dimension $3 \times 1$ and matrix ${\bf A}$ of
@@ -136,7 +136,7 @@ Below is an example of what an exam script would look like:
     - answer:  ${\tt 1}\times {\tt 3}$
       correct: false
 
-- type: ma
+- type: mc
   marks: 5         
   question: |
     Consider the binary class dataset below (with 2 features $(x_1, x_2)$ and
@@ -179,14 +179,14 @@ Below is an example of what an exam script would look like:
         ![](figures/psd-25-blur.png){width=30em}
       correct: |
         ![](figures/psd-25-psd-blur.png){width=30em}
-
       
 ```
 
-and this is what the HTML previw we look like:
+and this is what the HTML preview looks like:
 
 
 and this is what the BlackBoard output would look like:
+
 
 
 and this is what the pdf output would look like:
@@ -199,6 +199,9 @@ At the moment BBQuiz supports 5 types of questions.
 
 ### Essay
 
+The student is execpted to write down a few sentences. The `answer` field
+provides an indicative answer that can be used as guideline for marking.
+
 ```yaml
 - type: essay
   marks: 14
@@ -210,8 +213,10 @@ At the moment BBQuiz supports 5 types of questions.
 
 ### Multiple Choice
 
+In multiple choice questions, only one answer/statement should be selected.
+
 ```yaml
-- type: ma
+- type: mc
   marks: 4
   question: |
     question statement goes here...
@@ -229,7 +234,7 @@ At the moment BBQuiz supports 5 types of questions.
 ### Multiple Answers
 
 This is the same as for multiple choices, except that more than one answer can
-be true
+be true (potentially zero or all statements can be correct).
 
 ```yaml
 - type: ma
@@ -247,6 +252,11 @@ be true
       correct: false
 ```
 ### Matching
+
+In Matching questions, the student is asked to map each statement (`answer`)
+with its corresponding match (`correct`). For n statements, there are factorial
+n possibilities. The pairs of (`answer`,`correct`) statements are shuffled when
+generating the exam  (see how to set the random seed).
 
 ```yaml
 - type: matching
@@ -266,6 +276,10 @@ be true
 ```
 
 ### Ordering
+
+In Ordering questions, the student is asked to rank each statement (`answer`) in
+correct order. The statements need to be entered in correct order. Shuffling
+occurs when generating the exam (see how to set the random seed). 
 
 ```yaml
 - type: ordering
@@ -294,6 +308,12 @@ file.
   key4: val4
 ```
 
+### Random Generator
+
+You can set a random seed generator by assigning the key `srand` (eg. `srand:
+42`) in the header.
+
+
 ## Quick Guide to Markdown
 
 
@@ -305,7 +325,7 @@ Here is what a typical question would look like:
     compute the output $Y(z)$ for $X(z) = 1 + z^4 + z^{13} + z^{18}$.
 ```
 
-## Text tags
+## Text Tags
 
 https://commonmark.org/help/
 
@@ -322,7 +342,7 @@ quiz, HTML preview, LaTex).
 
 The default config file is called `bbquiz.cfg`. 
 
-BBQuiz will try first to read this file in 
+BBQuiz will first try to read this file in 
 1. the local directory from which BBQuiz is called 
 2. the default application config dir 
 3. the install package templates dir
@@ -339,7 +359,7 @@ You can otherwise directly specify the path with the `--config CONFIGFILE` optio
 
 
 The list of targets can be defined in the configuration file. For instance, the
-BlackBoard csv quiz file can be define as the following target:
+BlackBoard csv quiz file can be defined as the following target:
 ```yaml
 - out      : ${inputbasename}.txt  # template for output filename.
                                    #    ${inputbasename} refers to the basename of the quiz
@@ -352,14 +372,14 @@ BlackBoard csv quiz file can be define as the following target:
 
 As for the config file directory, if the templates are defined as a relative
 path, the template is searched in:
-1. the local directoryfrom which BBQuiz is called 
+1. the local directory from which BBQuiz is called 
 2. the default application config dir 
 3. the install package templates dir
 
 
 ## Writing Your Own Templates
 
-Templates are rendered with jinja2. The [Template Designer
+Templates are rendered with Jinja2. The [Jinja2 Template Designer
 Documentation](https://jinja.palletsprojects.com/en/3.1.x/templates/) provides
 complete information about how to write jinja2 templates.
 
