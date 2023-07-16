@@ -1,13 +1,13 @@
 # BBQuiz
 
-Tool for converting a list of questions in yaml/markdown to a BlackBoard test or to a Latex exam source file
+Tool for converting a list of questions in yaml/markdown to a BlackBoard test or
+to a Latex exam source file
 
-
-Here is a quick example. You write the questions in a YAML file, using a
-Markdown syntax:
+Here is a quick example of a `quiz.yaml` file. You write the questions in a YAML
+file, using a Markdown syntax:
 
 ```yaml
-- type: ma
+- type: mc
   marks: 5           
   question: |
     If vector ${\bf w}$ is of dimension $3 \times 1$ and matrix ${\bf A}$ of
@@ -35,21 +35,15 @@ Markdown syntax:
     - answer: "yes"
       correct: false
     - answer: "false"
-      correct: true     
+      correct: true
 ```
 
-
-
-
-
-
+Then you can generate the BlackBoard exam, LaTeX, and HTML preview using the
+following command in the terminal:
 
 ```
-Usage: bbquiz [-h] [-w] [--config CONFIGFILE] [--latextemplate TEMPLATEFILE] [--htmltemplate TEMPLATEFILE] [--zsh] [quiz.yaml]
-
+bbquiz quiz.yaml
 ```
-
-
 
 
 # Installation
@@ -62,7 +56,7 @@ pip install .
 
 
 ```
-Usage: bbquiz [-h] [-w] [--config CONFIGFILE] [--latextemplate TEMPLATEFILE] [--htmltemplate TEMPLATEFILE] [--zsh] [quiz.yaml]
+Usage: bbquiz [-h] [-w] [--config CONFIGFILE] [--template TEMPLATEFILE] [--zsh] [quiz.yaml]
 
 Converts a questions in a YAML/markdown format into a Blackboard test or a Latex script
 
@@ -73,8 +67,7 @@ Optional Arguments:
   -h, --help                    show this help message and exit
   -w, --watch                   continuously compiles the document on file change
   --config CONFIGFILE           path to user config file
-  --latextemplate TEMPLATEFILE  Latex jinja2 template
-  --htmltemplate TEMPLATEFILE   HTML jinja2 template
+  --template TEMPLATEFILE       jinja2 template
   --zsh                         A helper command used for exporting the command completion code in zsh
 ```
 
