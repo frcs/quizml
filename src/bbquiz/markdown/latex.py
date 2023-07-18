@@ -22,10 +22,9 @@ class BBYamlLaTeXRenderer(LaTeXRenderer):
         return self.render_inner(token)
 
     def render_math_inline(self, token):
-        return "$" + token.content.strip() + "$"
+        return token.content.strip()
 
     def render_math_display(self, token):
-#        return "\\begin{equation}\n" + token.content.strip() + "\n\\end{equation}"
         return token.content.strip()
 
     def render_image_with_width(self, token) -> str:
