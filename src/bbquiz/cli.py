@@ -149,7 +149,7 @@ def print_stats_table(stats):
     table.add_column("Exp", f"{stats['expected mark']:2.1f}" + "%", no_wrap=True, justify="right")
     table.add_column("Question Statement", no_wrap=False, justify="left")
     for i, q in enumerate(stats["questions"]):
-        table.add_row(f"{i}", q["type"], f"{q['marks']:2.1f}",
+        table.add_row(f"{i+1}", q["type"], f"{q['marks']:2.1f}",
                        f"{q['choices']}", f"{q['EM']:3.1f}", q["excerpt"] )
 
     console.print(table)
