@@ -45,6 +45,12 @@ following command in the terminal:
 bbquiz quiz.yaml
 ```
 
+and this is what the HTML preview looks like:
+
+and this is what the BlackBoard output would look like:
+
+and this is what the pdf output would look like:
+
 
 # Installation
 
@@ -175,20 +181,10 @@ Below is an example of what an exam script would look like:
       
 ```
 
-and this is what the HTML preview looks like:
-
-
-and this is what the BlackBoard output would look like:
-
-
-
-and this is what the pdf output would look like:
-
-
 
 ## Question Types Syntax
 
-At the moment BBQuiz supports 5 types of questions.
+BBQuiz currently supports 5 types of questions.
 
 ### Essay
 
@@ -201,12 +197,12 @@ provides an indicative answer that can be used as guideline for marking.
   question: |
     my question statement in Mardown
   answer: |
-    an suggestion for how to answer that essay question   
+    a suggestion for how to answer that essay question   
 ```
 
 ### Multiple Choice
 
-In multiple choice questions, only one answer/statement should be selected.
+In multiple choice questions, only one answer/statement is correct.
 
 ```yaml
 - type: mc
@@ -248,8 +244,8 @@ be true (potentially zero or all statements can be correct).
 
 In Matching questions, the student is asked to map each statement (`answer`)
 with its corresponding match (`correct`). For n statements, there are factorial
-n possibilities. The pairs of (`answer`,`correct`) statements are shuffled when
-generating the exam  (see how to set the random seed).
+n possibilities. The (`answer`,`correct`) statements are shuffled when
+generating the exam (see how to set the random seed here).
 
 ```yaml
 - type: matching
@@ -272,7 +268,7 @@ generating the exam  (see how to set the random seed).
 
 In Ordering questions, the student is asked to rank each statement (`answer`) in
 correct order. The statements need to be entered in correct order. Shuffling
-occurs when generating the exam (see how to set the random seed). 
+occurs when generating the exam (see how to set the random seed here). 
 
 ```yaml
 - type: ordering
@@ -288,10 +284,10 @@ occurs when generating the exam (see how to set the random seed).
 
 ### Header
 
-It is optional to use a header. All (key, val) pairs will be sent to the
-template renderer. For instance your LaTex template might require information
-about the exam date, venue, etc. The header must be the first item in the BBYaml
-file.
+An optional header section can be declared at the start of the yaml file.  All
+(key, val) pairs declared in this section will be sent to the template
+renderer. For instance your LaTex template might require information about the
+exam date, venue, etc. The header must be the first item in the BBYaml file.
 
 ```yaml
 - type: header
@@ -301,26 +297,34 @@ file.
   key4: val4
 ```
 
-### Random Generator
+#### Random Generator
 
 You can set a random seed generator by assigning the key `srand` (eg. `srand:
 42`) in the header.
 
+#### LaTeX preamble
 
-## Quick Guide to Markdown
+You can set the LaTeX preamble by assigning the key `latex-preamble` in the
+header.
 
 
-Here is what a typical question would look like:
 
-```
-    Consider the following system below:
-    ![](figures/diagram1.svg){ width=30em }
-    compute the output $Y(z)$ for $X(z) = 1 + z^4 + z^{13} + z^{18}$.
-```
+## Markdown Syntax
 
-## Text Tags
+All yaml entries, including the question statements and answers, need to be
+written in Markdown.
+
+## Basic Markdown Syntax 
+
+Text Tags can be found here:
 
 https://commonmark.org/help/
+
+
+
+
+## Extensions
+
 
 
 
