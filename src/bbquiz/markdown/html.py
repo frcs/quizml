@@ -100,13 +100,10 @@ def get_eq_dict(eq_list):
     f.write(latex_preamble)
 
     for eq in eq_list:
-        # f.write("\\begin{standalone}" + eq.content + "\\end{standalone}\n")
-            
         if isinstance(eq, MathInline):
             f.write("\\setbox0=\\hbox{" + eq.content + "}\n")
             f.write("\\makeatletter\\typeout{::: \\strip@pt\\dimexpr 1pt * \\dp0 / \\wd0\\relax}\\makeatother")
             f.write("\\begin{standalone}\\copy0\\end{standalone}\n")
-            # f.write("\\begin{standalone}" + eq.content + "\\end{standalone}\n")
         if isinstance(eq, MathDisplay):
             f.write("\\typeout{::: 0}")            
             f.write("\\begin{standalone}" + eq.content + "\\end{standalone}\n")
@@ -270,7 +267,7 @@ def get_html_dict(combined_doc, md_list):
             'class="math inline" style="vertical-align:middle"')
         html_content = html_content.replace(
             '<code>',
-            '<code style="font-family:\'Courier New\'">')
+            '<code style="font-family:\'Courier New\'; font-size:80%">')
         html_content = html_content.replace(
             '<pre>',
             '<pre style="background:#eee; padding: 1em; max-width: 80em;">')
