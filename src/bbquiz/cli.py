@@ -169,13 +169,16 @@ def compile(args):
     yaml_filename = args.yaml_filename
     
     if not os.path.exists(yaml_filename):
-        logging.error("No file {} found".format(yaml_filename))
+        print(Panel("File " + yaml_filename + " not found",
+                    title="Error", border_style="red"))
+        return
     try:
         yaml_data = load(yaml_filename)
     except BBYamlSyntaxError as err:
-        print(Panel(str(err), title="BByaml Syntax Error", border_style="red"))
-        return 
-    
+        print(Panel(str(err),
+                    title="BByaml Syntax Error", border_style="red"))
+        return
+        
     # load all markdown entries into a list 
     # and build dictionaries of their HTML and LaTeX translations
     

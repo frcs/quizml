@@ -17,6 +17,7 @@ def test_bbyaml_syntax():
                   "e": ["A", "B", "C"],
                   'inputbasename': basename},
                  {"type": "essay",
+                  "marks": 4.0,                  
                   "question": "another matching question",
                   "answer": "some very long answer" },
                  {"type": "ma",
