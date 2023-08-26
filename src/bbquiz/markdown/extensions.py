@@ -34,7 +34,6 @@ class MathDisplay(BlockToken):
     @classmethod
     def read(cls, lines):
         line_buffer = [next(lines)]
-        print(f"{cls.envname}")
         for line in lines:
             line_buffer.append(line)
             l = line.lstrip()
