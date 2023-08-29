@@ -260,6 +260,9 @@ def get_html_dict(combined_doc, md_list):
         html_h1 = "<h1>" + h + "</h1>"
         start = html_result.find(html_h1) + len(html_h1)
         end = html_result.find("<h1>", start + 1)
+        if end == -1:
+            end = len(html_result)
+            
         html_content = html_result[start:end]
         html_content = strip_newlines_and_tabs(html_content)
         html_content = html_content.replace(

@@ -1,13 +1,5 @@
 from setuptools import setup, find_packages
 
-print("fcs")
-print("fcs")
-print("fcs")
-print("fcs")
-print("fcs")
-
-print(find_packages())
-      
 
 setup(name='bbquiz',
       version='0.2',
@@ -20,8 +12,8 @@ setup(name='bbquiz',
       packages=['bbquiz', 'bbquiz.bbyaml', 'bbquiz.render', 'bbquiz.markdown'],
 
       install_requires=[
-          'markdown','bs4','strictyaml','rich', 'rich-argparse',
-          'jinja2', 'colorama', 'watchdog', 'mistletoe', 'appdirs'
+          'bs4','strictyaml','rich', 'rich-argparse',
+          'jinja2', 'colorama', 'watchdog', 'mistletoe==1.2', 'appdirs'
       ],      
       entry_points={
           "console_scripts": [

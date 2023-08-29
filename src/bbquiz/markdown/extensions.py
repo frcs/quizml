@@ -1,6 +1,7 @@
 import re
 import mistletoe
-from mistletoe import Document, HTMLRenderer
+from mistletoe import Document
+from mistletoe.html_renderer import HTMLRenderer
 from mistletoe.ast_renderer import ASTRenderer
 from mistletoe.latex_token import Math
 from mistletoe import span_token
@@ -8,17 +9,20 @@ from mistletoe.span_token import Image
 from mistletoe.span_token import tokenize_inner
 from mistletoe.span_token import SpanToken
 from mistletoe.block_token import BlockToken
+from mistletoe.block_token import ThematicBreak
 
-# no nesting        
+   
+
 class MathDisplay(BlockToken):
     pattern = re.compile(r"(\$\$|\\\[|\\begin\{(equation|split|alignat|multline|gather|align|flalign|)(\*?))")
     
     envname = ''
     envstart = ''
-    latexstr = ''
-
+    latex = ''
+    repr_attributes = ['latex']
+    
     def __init__(self, lines):
-        self.latexstr = ''.join([line.lstrip() for line in lines]).strip()
+        self.latex = ''.join([line.lstrip() for line in lines]).strip()
         
     @classmethod
     def start(cls, line):
@@ -46,13 +50,23 @@ class MathDisplay(BlockToken):
         
         return line_buffer
 
+    @classmethod
+    def check_interrupts_paragraph(cls, lines):
+        return cls.start(lines.peek())
+    
     @property
     def content(self):
         """Returns the code block content."""
-        return self.latexstr
+        return self.latex
 
+    # def __repr__(self):
+    #     output = "<{}.{}".format(
+    #         self.__class__.__module__,
+    #         self.__class__.__name__
+    #     )
+    #     output += " content=" + _short_repr(self.content)
 
-
+    #     return output
     
 # no nesting        
 class Command(SpanToken):

@@ -63,7 +63,7 @@ def get_latex(doc):
    
     with BBYamlLaTeXRenderer() as renderer:
         latex_content = renderer.render(doc)
-
+       
     # svg is a bit of a problem. replacing .svg extensions with .pdf   
     latex_content = latex_content.replace('.svg}', '.pdf}')
     latex_content = latex_content.replace('\includesvg', '\includegraphics')
@@ -85,7 +85,7 @@ def get_latex_dict(combined_doc, md_list):
     """
 
     latex_result = get_latex(combined_doc)
-    
+
     md_dict = {}
 
     for txt in md_list:
@@ -98,9 +98,12 @@ def get_latex_dict(combined_doc, md_list):
                 + "I'm quitting.\n")
             raise()
         else:
-            start = latex_result.find("}\n", start) + 1            
+            start = latex_result.find("}\n", start) + 1
         end = latex_result.find("\\section{", start + 1)
+        if end == -1:
+            end = len(latex_result)
         latex_content = latex_result[start:end].strip()
+
         md_dict[txt] = latex_content
 
     return md_dict
