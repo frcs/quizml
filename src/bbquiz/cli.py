@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+from importlib.metadata import version
+
 from rich.traceback import install
 install(show_locals=False)
 
@@ -41,23 +43,7 @@ import appdirs
 import pathlib
 
 
-def zsh_completion_script():
-    return ( 
-"""
-function _bbquiz(){
-  _arguments \\
-    "-h[Show help information]"\\
-    "--help[Show help information]"\\
-    "-w[continuously watch for file updates and recompile on change]"\\
-    "--watch[continuously watch for file updates and recompile on change]"\\
-    "--latex-template [filename of the jinja2 latex template]"\\
-    "--zsh[A helper command used for exporting the command completion code in zsh]"\\
-    '*:yaml file:_files -g \\*.\\(yml\|yaml\\)'
-}
-
-compdef _bbquiz bbquiz
-""")
-
+import bbquiz.shellcompletion 
 
 
 def jinja_render_file(out_filename, template_filename, yaml_code):
@@ -264,6 +250,7 @@ def compile_on_change(args):
 
 def main():
 
+    
     RichHelpFormatter.styles = {
         'argparse.args': 'cyan', 
         'argparse.groups': 'yellow',
@@ -287,6 +274,7 @@ def main():
     parser.add_argument("yaml_filename", nargs='?',
                         metavar="quiz.yaml", type=str, 
                         help = "path to the quiz in a yaml format")
+   
     parser.add_argument("-w", "--watch", 
                         help="continuously compiles the document on file change",
                         action="store_true")
@@ -297,22 +285,41 @@ def main():
                         metavar="CONFIGFILE",  
                         help=f"user config file. Default location is {default_config_dir}"
                         )
-    parser.add_argument("--latextemplate", 
-                        metavar="TEMPLATEFILE",  
-                        help="Latex jinja2 template")
-    parser.add_argument("--htmltemplate", 
-                        metavar="TEMPLATEFILE",  
-                        help="HTML jinja2 template")
+    # parser.add_argument("--latextemplate", 
+    #                     metavar="TEMPLATEFILE",  
+    #                     help="Latex jinja2 template")
+    # parser.add_argument("--htmltemplate", 
+    #                     metavar="TEMPLATEFILE",  
+    #                     help="HTML jinja2 template")
     parser.add_argument("--zsh",
                         help="A helper command used for exporting the "
                         "command completion code in zsh",
                         action="store_true")
+    parser.add_argument("--fish",
+                        help="A helper command used for exporting the "
+                        "command completion code in fish",
+                        action="store_true")
+    # parser.add_argument("--bash",
+    #                     help="A helper command used for exporting the "
+    #                     "command completion code in bash",
+    #                     action="store_true")
+    
+    parser.add_argument('-v', '--version', action='version', version=version("bbquiz"))    
     
     args = parser.parse_args()
     
     if args.zsh:
-        print(zsh_completion_script())
+        print(bbquiz.shellcompletion.zsh())
         return
+
+    if args.fish:
+        print(bbquiz.shellcompletion.fish())
+        return
+
+    # if args.bash:
+    #     print(bbquiz.shellcompletion.bash())
+    #     return
+
     
     if not args.yaml_filename:
         parser.error("quiz.yaml is required")
