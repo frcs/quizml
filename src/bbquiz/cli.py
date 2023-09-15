@@ -83,6 +83,9 @@ def cfg_template_render(target, key, substitutions_dict, default_template):
             
 
 def get_config(args):
+    """
+    compiles the targets of a bbyaml file
+    """
 
     if args.config:
         config_file = os.path.realpath(os.path.expanduser(args.config))
@@ -139,6 +142,16 @@ def get_target_list(yaml_filename, config):
     return target_list
 
 def print_stats_table(stats):
+    """
+    prints a table with information about each question, including:
+      * question id
+      * question type
+      * marks for the question
+      * nb of possible solutions
+      * expected mark if answering at random
+      * excerpt of the question statement
+    """
+    
     console = Console()
 
     table = Table(box=box.SIMPLE,collapse_padding=True, show_footer=True)
@@ -282,7 +295,7 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=formatter,
         description = "Converts a questions in a YAML/markdown format into"\
-        +  " a Blackboard test or a Latex script")
+        +  " a Blackboard test or a LaTeX script")
 
     parser.add_argument("yaml_filename", nargs='?',
                         metavar="quiz.yaml", type=str, 
