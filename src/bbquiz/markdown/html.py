@@ -155,10 +155,13 @@ def get_eq_dict(eq_list):
         d = depthratio[it-1]
         if isinstance(eq,MathInline):
             key = "##Inline##" + eq.content
+            logging.debug(f"[eq-inline] '{eq.content}'")            
         else:
             key = "##Display##" + eq.content
+            logging.debug(f"[eq-display] '{eq.content}'")            
 
         eq_dict[key] = (w, h, d, data64)
+
 
     os.chdir(olddir)
     
@@ -191,9 +194,10 @@ def strip_newlines_and_tabs(html_content):
 
 def escape_LaTeX(str_eq):
     """
-    * convert $ and $$ sign to \( and \[
+    * convert main $ and $$ sign to \( and \[
+    * convert other $ into &dollar;
     * escape HTML
-    * remove '\n'
+    * remove '\n' and '\t'
     """
 
     re_single_dollar = r"^\s*\$([^\$]*)\$\s*$"
@@ -238,9 +242,7 @@ class BBYamlHTMLRenderer(HTMLRenderer):
         super().__init__(MathInline,MathDisplay,ImageWithWidth)
         self.eq_dict = eq_dict
         
-    def render_math_inline(self, token):
-        logging.debug(f"[img-inline] '{escape_LaTeX(token.content)}'")
-        
+    def render_math_inline(self, token):       
         [w, h, dr, data64] = self.eq_dict['##Inline##' + token.content]
         d_ = round(dr * w * 0.5 , 2)
         w_ = round(w/2, 2)
@@ -248,8 +250,6 @@ class BBYamlHTMLRenderer(HTMLRenderer):
         return f"<img src='{data64}' alt='{escape_LaTeX(token.content)}' width='{w_}' height='{h_}' style='vertical-align:{-d_}px;'>"
     
     def render_math_display(self, token):
-        logging.debug(f"[img-display] '{escape_LaTeX(token.content)}'")
-
         [w, h, d, data64] = self.eq_dict['##Display##' + token.content]
         return f"<img src='{data64}' alt='{escape_LaTeX(token.content)}' width='{int(w/2):d}' height='{int(h/2):d}'>"
     
