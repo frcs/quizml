@@ -76,18 +76,20 @@ def get_config(args):
     if args.config:
         config_file = os.path.realpath(os.path.expanduser(args.config))
     else:    
-        pkg_dirname = os.path.dirname(__file__)
-        pkg_template_dir = os.path.join(pkg_dirname, 'templates')
+        pkg_template_dir = os.path.join(os.path.dirname(__file__), 'templates')       
+        user_config_dir = os.path.join(
+            appdirs.user_config_dir(appname="bbquiz", appauthor='frcs'), 'templates')
         
-        config_dir = appdirs.user_config_dir(appname="bbquiz", appauthor='frcs')
-        config_file = os.path.join(config_dir, 'bbquiz.cfg')
-        
-        for d in [os.getcwd(), config_dir, pkg_template_dir]:
+        for d in [os.getcwd(), user_config_dir, pkg_template_dir]:
             fname = os.path.join(d, 'bbquiz.cfg')
             config_file = os.path.realpath(os.path.expanduser(fname))
+            
             if os.path.exists(config_file):
                 break
-                    
+
+    if VERBOSE:
+        print(f"using config file:{config_file}")
+    
     try:
         with open(config_file) as f:            
             config = yaml.load(f, Loader=yaml.FullLoader)
@@ -102,9 +104,9 @@ def get_target_list(yaml_filename, config):
 
     (basename, _) = os.path.splitext(yaml_filename)
     pkg_dirname = os.path.dirname(__file__)
-    pkg_template_dir = os.path.join(pkg_dirname, 'templates')
-    
-    config_dir = appdirs.user_config_dir(appname="bbquiz", appauthor='frcs')
+    pkg_template_dir = os.path.join(pkg_dirname, 'templates')    
+    user_config_dir = os.path.join(
+        appdirs.user_config_dir(appname="bbquiz", appauthor='frcs'), 'templates')
         
     subs = {'inputbasename': basename}
 
@@ -117,12 +119,15 @@ def get_target_list(yaml_filename, config):
         target["descr"] = cfg_template_render(t, "descr", subs, '')
         target["descr_cmd"] = cfg_template_render(t, "descr_cmd", subs, t['out'])
 
-        for d in [os.getcwd(), config_dir, pkg_template_dir]:
+        for d in [os.getcwd(), user_config_dir, pkg_template_dir]:
             target["template"] = os.path.realpath(
                 os.path.expanduser(os.path.join(d, t["template"])))
             if os.path.exists(target["template"]):
                 break
 
+        if VERBOSE:
+            print(f"using template file:{target['template']}")
+            
         target_list.append(target)
     
     return target_list
@@ -317,9 +322,14 @@ def main():
     #                     "command completion code in bash",
     #                     action="store_true")
     
-    parser.add_argument('-v', '--version', action='version', version=version("bbquiz"))    
+    parser.add_argument('-v', '--version', action='version', version=version("bbquiz"))
+    parser.add_argument("--verbose", 
+                        help="set verbose on",
+                        action="store_true")
     
     args = parser.parse_args()
+    global VERBOSE
+    VERBOSE = args.verbose
     
     if args.zsh:
         print(bbquiz.shellcompletion.zsh())
