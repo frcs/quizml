@@ -32,6 +32,7 @@ from .exceptions import LatexEqError
 
 from mistletoe import span_token
 
+# logger = logging.getLogger(__name__)
 
 def embed_base64(path):
     """
@@ -210,14 +211,18 @@ def escape_LaTeX(str_eq):
         '<': '&lt;',
         '>': '&gt;',
         '&': '&amp;',
-        '"': '&quot;', # should be escaped in attributes
-        "'": '&#39'    # should be escaped in attributes
+        '"': '&quot;',
+        "'": '&#39;',
+        "$": '&dollar;'
     }
     quote_pattern = re.compile(
-        r"""([&<>"'])(?!(amp|lt|gt|quot|#39);)""")
+        r"""([&<>"'$])(?!(amp|lt|gt|quot|#39|dollar);)""")
 
-    str_eq = re.sub(quote_pattern, lambda x: replace_with[x.group(0)], str_eq)
+    str_eq = re.sub(quote_pattern,
+                    lambda x: replace_with[x.group(0)], str_eq)
     str_eq = re.sub('\n', ' ', str_eq)
+    str_eq = re.sub('\t', ' ', str_eq)
+
     return str_eq
     
     
@@ -234,6 +239,8 @@ class BBYamlHTMLRenderer(HTMLRenderer):
         self.eq_dict = eq_dict
         
     def render_math_inline(self, token):
+        logging.debug(f"[img-inline] '{escape_LaTeX(token.content)}'")
+        
         [w, h, dr, data64] = self.eq_dict['##Inline##' + token.content]
         d_ = round(dr * w * 0.5 , 2)
         w_ = round(w/2, 2)
@@ -241,6 +248,8 @@ class BBYamlHTMLRenderer(HTMLRenderer):
         return f"<img src='{data64}' alt='{escape_LaTeX(token.content)}' width='{w_}' height='{h_}' style='vertical-align:{-d_}px;'>"
     
     def render_math_display(self, token):
+        logging.debug(f"[img-display] '{escape_LaTeX(token.content)}'")
+
         [w, h, d, data64] = self.eq_dict['##Display##' + token.content]
         return f"<img src='{data64}' alt='{escape_LaTeX(token.content)}' width='{int(w/2):d}' height='{int(h/2):d}'>"
     
