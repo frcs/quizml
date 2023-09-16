@@ -3,6 +3,7 @@ import os
 import sys
 import yaml
 import html
+import re
 
 from bs4 import BeautifulSoup
 
@@ -168,7 +169,7 @@ def strip_newlines_and_tabs(html_content):
     from the string as it must be passed as a CSV entry
     for blackboard exams.
 
-    replace \n with <br> inside <code> </code> blocks so as
+    replace '\n' with <br> inside <code> </code> blocks so as
     preserve formatting inside these verbatim blocks
     """
     
@@ -186,6 +187,41 @@ def strip_newlines_and_tabs(html_content):
 
     return html_content   
 
+
+def escape_LaTeX(str_eq):
+    """
+    * convert $ and $$ sign to \( and \[
+    * escape HTML
+    * remove '\n'
+    """
+
+    re_single_dollar = r"^\s*\$([^\$]*)\$\s*$"
+    re_double_dollar = r"^\s*\$\$([^\$]*)\$\$\s*$"
+    
+    m = re.search(re_single_dollar, str_eq)
+    if m:
+        str_eq = r"\(" + m.group(1) + r"\)"
+        
+    m = re.search(re_double_dollar, str_eq)
+    if m:
+        str_eq = r"\[" + m.group(1) + r"\]"
+    
+    replace_with = {
+        '<': '&lt;',
+        '>': '&gt;',
+        '&': '&amp;',
+        '"': '&quot;', # should be escaped in attributes
+        "'": '&#39'    # should be escaped in attributes
+    }
+    quote_pattern = re.compile(
+        r"""([&<>"'])(?!(amp|lt|gt|quot|#39);)""")
+
+    str_eq = re.sub(quote_pattern, lambda x: replace_with[x.group(0)], str_eq)
+    str_eq = re.sub('\n', ' ', str_eq)
+    return str_eq
+    
+    
+
 class BBYamlHTMLRenderer(HTMLRenderer):
     """
     customised mistletoe renderer for HTML
@@ -202,11 +238,11 @@ class BBYamlHTMLRenderer(HTMLRenderer):
         d_ = round(dr * w * 0.5 , 2)
         w_ = round(w/2, 2)
         h_ = round(h/2, 2)        
-        return f"<img src='{data64}' alt='{token.content}' width='{w_}' height='{h_}' style='vertical-align:{-d_}px;'>"
+        return f"<img src='{data64}' alt='{escape_LaTeX(token.content)}' width='{w_}' height='{h_}' style='vertical-align:{-d_}px;'>"
     
     def render_math_display(self, token):
         [w, h, d, data64] = self.eq_dict['##Display##' + token.content]
-        return f"<img src='{data64}' alt='{token.content}' width='{int(w/2):d}' height='{int(h/2):d}'>"
+        return f"<img src='{data64}' alt='{escape_LaTeX(token.content)}' width='{int(w/2):d}' height='{int(h/2):d}'>"
     
     def render_image(self, token: span_token.Image) -> str:       
         template = '<img src="{}" alt="{}"{} />'
