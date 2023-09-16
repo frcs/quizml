@@ -13,11 +13,14 @@ from rich.console import Console
 
 from rich_argparse import *
 
+import logging
+from rich.logging import RichHandler
+
+
 import os
 import sys
 import yaml
 import argparse
-import logging
 from string import Template
 
 from .utils import *
@@ -42,8 +45,8 @@ from watchdog.events import FileSystemEventHandler
 import appdirs
 import pathlib
 
-
 import bbquiz.shellcompletion 
+
 
 
 def jinja_render_file(out_filename, template_filename, yaml_code):
@@ -87,8 +90,7 @@ def get_config(args):
             if os.path.exists(config_file):
                 break
 
-    if VERBOSE:
-        print(f"using config file:{config_file}")
+    logging.info(f"using config file:{config_file}")
     
     try:
         with open(config_file) as f:            
@@ -125,8 +127,7 @@ def get_target_list(yaml_filename, config):
             if os.path.exists(target["template"]):
                 break
 
-        if VERBOSE:
-            print(f"using template file:{target['template']}")
+        logging.info(f"using template file:{target['template']}")
             
         target_list.append(target)
     
@@ -267,7 +268,6 @@ def compile_on_change(args):
 
 
 def main():
-
     
     RichHelpFormatter.styles = {
         'argparse.args': 'cyan', 
@@ -289,47 +289,63 @@ def main():
         description = "Converts a questions in a YAML/markdown format into"\
         +  " a Blackboard test or a LaTeX script")
 
-    parser.add_argument("yaml_filename", nargs='?',
-                        metavar="quiz.yaml", type=str, 
-                        help = "path to the quiz in a yaml format")
+    parser.add_argument(
+        "yaml_filename", nargs='?',
+        metavar="quiz.yaml", type=str, 
+        help = "path to the quiz in a yaml format")
    
-    parser.add_argument("-w", "--watch", 
-                        help="continuously compiles the document on file change",
-                        action="store_true")
+    parser.add_argument(
+        "-w", "--watch", 
+        help="continuously compiles the document on file change",
+        action="store_true")
+    
+    default_config_dir = appdirs.user_config_dir(
+        appname="bbquiz", appauthor='frcs')
+    
+    parser.add_argument(
+        "--config", 
+        metavar="CONFIGFILE",  
+        help=f"user config file. Default location is {default_config_dir}")
 
-    default_config_dir = appdirs.user_config_dir(appname="bbquiz", appauthor='frcs')
+    parser.add_argument(
+        "--zsh",
+        help="A helper command used for exporting the "
+        "command completion code in zsh",
+        action="store_true")
+
+    parser.add_argument(
+        "--fish",
+        help="A helper command used for exporting the "
+        "command completion code in fish",
+        action="store_true")
     
-    parser.add_argument("--config", 
-                        metavar="CONFIGFILE",  
-                        help=f"user config file. Default location is {default_config_dir}"
-                        )
-    # parser.add_argument("--latextemplate", 
-    #                     metavar="TEMPLATEFILE",  
-    #                     help="Latex jinja2 template")
-    # parser.add_argument("--htmltemplate", 
-    #                     metavar="TEMPLATEFILE",  
-    #                     help="HTML jinja2 template")
-    parser.add_argument("--zsh",
-                        help="A helper command used for exporting the "
-                        "command completion code in zsh",
-                        action="store_true")
-    parser.add_argument("--fish",
-                        help="A helper command used for exporting the "
-                        "command completion code in fish",
-                        action="store_true")
-    # parser.add_argument("--bash",
-    #                     help="A helper command used for exporting the "
-    #                     "command completion code in bash",
-    #                     action="store_true")
+    parser.add_argument(
+        '-v', '--version', action='version', version=version("bbquiz"))
     
-    parser.add_argument('-v', '--version', action='version', version=version("bbquiz"))
-    parser.add_argument("--verbose", 
-                        help="set verbose on",
-                        action="store_true")
+    parser.add_argument(
+        '--debug',
+        help="Print lots of debugging statements",
+        action="store_const",
+        dest="loglevel",
+        const=logging.DEBUG,
+        default=logging.WARNING)
+
+    parser.add_argument(
+        '--verbose',
+        help="set verbose on",
+        action="store_const",
+        dest="loglevel",
+        const=logging.INFO)
     
     args = parser.parse_args()
-    global VERBOSE
-    VERBOSE = args.verbose
+    
+    FORMAT = "%(message)s"
+    logging.basicConfig(
+        level=args.loglevel,
+        format=FORMAT,
+        datefmt="[%X]",
+        handlers=[RichHandler()]
+    )
     
     if args.zsh:
         print(bbquiz.shellcompletion.zsh())
