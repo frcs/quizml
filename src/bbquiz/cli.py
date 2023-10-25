@@ -16,7 +16,6 @@ from rich_argparse import *
 import logging
 from rich.logging import RichHandler
 
-
 import os
 import sys
 import yaml
@@ -30,11 +29,8 @@ from bbquiz.bbyaml.utils import transcode_md_in_yaml
 from bbquiz.bbyaml.stats import get_stats
 from bbquiz.bbyaml.loader import BBYamlSyntaxError
 
-#from bbquiz.markdown.html_dict_from_md_list import get_html_md_dict_from_yaml
 from bbquiz.markdown.markdown import get_dicts_from_yaml
 from bbquiz.markdown.exceptions import MarkdownError, LatexEqError
-#from bbquiz.markdown.latex_dict_from_md_list import get_latex_md_dict_from_yaml
-
 from bbquiz.render import to_jinja
 from bbquiz.render.to_jinja import Jinja2SyntaxError
 
@@ -46,7 +42,8 @@ import appdirs
 import pathlib
 
 import bbquiz.shellcompletion 
-
+import subprocess
+import shlex
 
 
 def jinja_render_file(out_filename, template_filename, yaml_code):
@@ -120,6 +117,8 @@ def get_target_list(yaml_filename, config):
         target["fmt"] = cfg_template_render(t, "fmt", subs, 'html')
         target["descr"] = cfg_template_render(t, "descr", subs, '')
         target["descr_cmd"] = cfg_template_render(t, "descr_cmd", subs, t['out'])
+        if "post_cmd" in t:
+            target["post_cmd"] = cfg_template_render(t, "post_cmd", subs, '')
 
         for d in [os.getcwd(), user_config_dir, pkg_template_dir]:
             target["template"] = os.path.realpath(
@@ -209,13 +208,36 @@ def compile(args):
     # render each target
     # success_list = [False] * len(target_list)
     rows = []
+
+    if args.build:
+        print("building post commands")
     
     for i, target in enumerate(target_list):
         try:
             yaml_code = yaml_latex if target["fmt"] == "latex" else yaml_html
             render = to_jinja.render(yaml_code, target['template'])
-            pathlib.Path(target['out']).write_text(render)
+            pathlib.Path(target['out']).write_text(render)           
             rows.append([ target["descr"], target["descr_cmd"], "" ])
+            
+            if ("post_cmd" in target) and args.build:
+                print(target["post_cmd"])
+
+                command = shlex.split(target["post_cmd"])
+                try:
+                    output = subprocess.check_output(command)
+                except subprocess.CalledProcessError as e:
+                    print(Panel(e.output.decode(),
+                                title = f"\n failed to build command ",
+                                border_style="red"))
+                    raise
+                
+                # proc = subprocess.Popen(shlex.split(target["post_cmd"]), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                # outs, errs = proc.communicate()
+                # print('STDOUT: {}'.format(outs))
+                # print('STDERR: {}'.format(errs))
+
+                # subprocess.Popen(shlex.split('convert -quality 100 ___t*.png images/transient_heat.gif'))
+                # print (subprocess.Popen(shlex.split('rm ___t*.png')))
 
         except Jinja2SyntaxError as err:            
             print(Panel(
@@ -258,15 +280,14 @@ def compile_on_change(args):
     observer.start()
 
     try:
-        while True:
-            sleep(1)
+        while observer.is_alive():
+            observer.join(1)
     except KeyboardInterrupt:
         observer.stop()
-        quit()
 
     observer.join()
 
-
+    
 def main():
     
     RichHelpFormatter.styles = {
@@ -307,6 +328,11 @@ def main():
         metavar="CONFIGFILE",  
         help=f"user config file. Default location is {default_config_dir}")
 
+    parser.add_argument(
+        "--build",
+        help="compiles all targets and run all post-compilation commands",
+        action="store_true")
+    
     parser.add_argument(
         "--zsh",
         help="A helper command used for exporting the "
@@ -368,8 +394,6 @@ def main():
         compile_on_change(args)
     else:
         compile(args)
-
-
 
 
         
