@@ -22,8 +22,9 @@
     </style>
   </head>
   <body>
-    <ol>
+<br><p><b>Total Marks: << total_marks >> </b></p>
 
+    <ol>
 <| for q in questions |>
 <li class='question' style='vertical-align: top;'>
 <| if q.type == 'essay' |>
@@ -113,10 +114,7 @@
 <|- endif          |>
   </li>
 <| endfor |>
-	</ol>
-	
-<br><p><b>Total Marks: << total_marks >> </b></p>
-
+	</ol>	
 </body>
 </html>
 

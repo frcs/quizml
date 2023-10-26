@@ -1,5 +1,8 @@
 \documentclass{tcdexams}
 
+\usepackage{lmodern}
+\renewcommand*\familydefault{\ttdefault} %% Only if the base font of the document is to be typewriter style
+
 <# passing the header variables to template #>
 <| if header      -|>
 <|   for key, value in header.items()      -|>
