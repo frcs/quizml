@@ -1,7 +1,5 @@
 \documentclass{tcdexams}
 
-\usepackage{lmodern}
-\renewcommand*\familydefault{\ttdefault} %% Only if the base font of the document is to be typewriter style
 
 <# passing the header variables to template #>
 <| if header      -|>
@@ -51,15 +49,31 @@
 
 \usepackage[totalmarks]{examquestions}
 \usepackage{listings}
-\lstset{frame=l,
-  language=python,
-  basicstyle=\ttfamily\scriptsize,
-  numbers=left,
-  numberstyle=\tiny\color{gray},
+
+\usepackage{inconsolata}
+\usepackage{fontspec}
+\setmonofont[Scale=0.8]{inconsolata}
+
+\lstset{%
+  frame=l,
+  basicstyle=\ttfamily\linespread{1.1}\fontsize{12}{13}\selectfont,
+  commentstyle=\itshape,
+  columns=fullflexible,
+  breaklines=true,
+  numbersep=10pt,
+  numbers=left,  
+  framerule=0.5pt,
+  xleftmargin=-16pt,
+  language=Python,
+  xrightmargin=-24pt,
+  numberstyle=\fontsize{11}{13}\selectfont\color{gray},
   keywordstyle=\color{blue},
-  commentstyle=\color{green}\ttfamily,
+  rulecolor=\color{gray},
   stringstyle=\color{red},
-  texcl=false}
+  commentstyle=\color{green},
+  stringstyle=\color{red},
+  resetmargins=true
+}
 
 \newcounter{bbquestion}
 \newenvironment{bbquestion}[1][]{\sbox\qmarks{\bfseries #1 marks}

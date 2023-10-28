@@ -41,15 +41,75 @@ $info
 
 \usepackage[totalmarks]{examquestions}
 \usepackage{listings}
-\lstset{frame=l,
-  language=python,
-  basicstyle=\ttfamily\scriptsize,
-  numbers=left,
-  numberstyle=\tiny\color{gray},
+
+\usepackage{inconsolata}
+%\usepackage{lmodern}
+%% \usepackage[T1]{fontenc}
+
+%% %\renewcommand*\familydefault{\ttdefault} %% Only if the base font of the
+%% %% document is to be typewriter style
+%% %\fontseries{lc}\selectfont
+%% \usepackage{microtype}
+
+%% \usepackage{FiraMono}
+
+
+%% \usepackage{fontspec}
+
+%% \setmonofont[
+%%   Contextuals={Alternate}
+%% ]{Fira Code}
+\usepackage{fontspec}
+\setmonofont{inconsolata}
+
+%\newfontfamily\listingsfont[Scale=2]{Menlo}
+
+%\listingsfont \fontsize{11}{13}\selectfont
+
+%\fontseries{lc}
+%\lstset{basicstyle=\linespread{1}\ttfamily\selectfont\footnotesize,
+%% \lstset{frame=l,
+%%   language=python,
+%%   basicstyle=\ttfamily\scriptsize,
+%%   numbers=left,
+%%   numberstyle=\tiny\color{gray},
+%%   keywordstyle=\color{blue},
+%%   commentstyle=\color{green}\ttfamily,
+%%   stringstyle=\color{red},
+%%   texcl=false}
+
+\lstset{%
+  frame=l,
+  basicstyle=\linespread{1.1}\fontsize{11}{13}\selectfont,
+  commentstyle=\itshape,
+  columns=fullflexible,
+  breaklines=true,
+  numbersep=10pt,
+  numbers=left,  
+  framerule=0.5pt,
+  xleftmargin=-16pt,
+  language=Python,
+  xrightmargin=-24pt,
+  numberstyle=\fontsize{11}{13}\selectfont\color{gray},
   keywordstyle=\color{blue},
-  commentstyle=\color{green}\ttfamily,
+  rulecolor=\color{gray},
   stringstyle=\color{red},
-  texcl=false}
+  commentstyle=\color{green},
+  stringstyle=\color{red},
+  resetmargins=true
+}
+
+
+
+%% \lstset{frame=l,
+%%   language=python,
+%%   basicstyle=\ttfamily\scriptsize,
+%%   numbers=left,
+%%   numberstyle=\tiny\color{gray},
+%%   keywordstyle=\color{blue},
+%%   commentstyle=\color{green}\ttfamily,
+%%   stringstyle=\color{red},
+%%   texcl=false}
 
 \newcounter{bbquestion}
 \newenvironment{bbquestion}[1][]{\sbox\qmarks{\bfseries #1 marks}
