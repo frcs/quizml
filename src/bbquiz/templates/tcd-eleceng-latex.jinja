@@ -148,6 +148,22 @@
 
 \usepackage{fancyhdr}
 
+
+\ifdefined\infoversion
+
+\usepackage{eso-pic}
+\makeatletter
+\AddToShipoutPicture{%
+    \setlength{\@tempdimb}{.95\paperwidth}%
+    \setlength{\@tempdimc}{0\paperheight}%
+    \setlength{\unitlength}{1pt}%
+    \put(\strip@pt\@tempdimb,\strip@pt\@tempdimc){%
+        \makebox(0,0){ \textcolor{gray}{\infoversion} }%
+    }%
+}
+\makeatother
+\fi
+
 \usepackage{svg}
 
 \newcommand{\omrSIZE}{}
@@ -241,9 +257,35 @@
 
 
 \cleardoublepage
-
-
 \vspace*{-4em}
+
+\ifdefstring{\infomidterm}{true}
+{
+\begin{minipage}[t]{.6\linewidth}
+Student Name: \tabto{3cm} \underline{\hspace{6cm}}\vspace{0.3cm}
+Student Number: \tabto{3.5cm} \underline{\hspace{5.5cm}}
+\end{minipage}
+\begin{minipage}[t]{.4\linewidth}
+  Mark your student number below
+
+  \omrDIGITS
+
+  \omrDIGITS
+
+  \omrDIGITS
+
+  \omrDIGITS
+
+  \omrDIGITS
+      
+  \omrDIGITS
+      
+  \omrDIGITS
+      
+  \omrDIGITS
+      
+\end{minipage}
+}{
 \begin{minipage}[t]{.6\linewidth}
 Exam Number: \tabto{3cm} \underline{\hspace{6cm}}
 
@@ -263,6 +305,7 @@ Seat Number : \tabto{3.5cm} \underline{\hspace{5.5cm}}
   \omrDIGITS
       
 \end{minipage}
+}
 
 \vspace{1em}
 {\bf 
