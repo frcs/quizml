@@ -74,7 +74,7 @@ def get_stats(yaml_data):
             stats["questions"].append({"type":  entry['type'],
                                        "marks": question_marks,
                                        "choices": choices,
-                                       "EM": expected_mark, 
+                                       "EM": question_expected_mark, 
                                        "excerpt": excerpt})
 
     stats["total marks"] = total_marks
