@@ -14,6 +14,10 @@ class BBYamlSyntaxError(Exception):
 
 
 def load(bbyaml_filename):
+    """We use StrictYAML (https://pypi.org/project/strictyaml/)
+    because we can establish a schema and specify the expected types
+    (so that we can avoid the dreaded "Norway problem").
+    """
 
     schema_overall = Seq(MapCombined({"type": Str()},
                                      Str(), Any()))

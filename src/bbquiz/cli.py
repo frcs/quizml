@@ -45,19 +45,29 @@ import bbquiz.shellcompletion
 import subprocess
 import shlex
 
-
 class FileLocator:
     """
-    FileLocator sets up default directories to search
+    Config file and templates are defined as a relative path, and searched in:
+    1. the local directory from which BBQuiz is called 
+    2. the default application config dir 
+    3. the install package templates dir
     """
 
     def __init__(self):
+        """
+        sets up default directories to search
+        """
+        
         pkg_template_dir = os.path.join(os.path.dirname(__file__), 'templates')
         app_dir = appdirs.user_config_dir(appname="bbquiz", appauthor='frcs')
         user_config_dir = os.path.join(app_dir, 'templates')
         self.dirlist = [ os.getcwd(), user_config_dir, pkg_template_dir ]
 
-    def locate_in_default_dirs(self, path):        
+    def locate_in_default_dirs(self, path):
+        """
+        finds file in list of directories to search. returns None
+        """
+        
         if os.path.isabs(path):
             if os.path.exists(path):
                 return path
@@ -67,7 +77,7 @@ class FileLocator:
                     os.path.expanduser(os.path.join(d, path)))
                 if os.path.exists(abspath):
                     return abspath
-        return None
+        return FileNotFoundError(f"{path} was not found")
 
 locator = FileLocator()
 
@@ -88,7 +98,7 @@ def jinja_render_file(out_filename, template_filename, yaml_code):
 
 def get_config(args):
     """
-    compiles the targets of a bbyaml file
+    returns the yaml data of the config file
     """
 
     if args.config:
@@ -112,13 +122,8 @@ def get_config(args):
 def get_target_list(yaml_filename, config):
     """
     gets the list of target templates from config['targets'] and
-    resolves the absolute path of each template
-    also resolves $inputbasename 
-    
-    Templates are defined as a relative path, and searched in:
-    1. the local directory from which BBQuiz is called 
-    2. the default application config dir 
-    3. the install package templates dir
+      * resolves the absolute path of each template
+      * also resolves $inputbasename 
     """
     
     (basename, _) = os.path.splitext(yaml_filename)
@@ -203,28 +208,36 @@ def compile(args):
     except MarkdownError as err:
         print(Panel(str(err), title="Markdown Error", border_style="red"))
         return
-
+    except FileNotFoundError as err:
+        print(Panel(str(err), title="FileNotFoundError Error", border_style="red"))
+        return
+       
     # diplay stats about the questions
-
     print_stats_table(get_stats(yaml_data))
    
     # get target list from config file
-
     target_list = get_target_list(yaml_filename, config)
     
-    # render each target
-    # success_list = [False] * len(target_list)
-    rows = []
+    # sets up list of the output for each build
+    targets_output = []
 
     if args.build:
         print("building post commands")
     
     for i, target in enumerate(target_list):
         try:
-            yaml_code = yaml_latex if target["fmt"] == "latex" else yaml_html
-            rendered_doc = to_jinja.render(yaml_code, target['template'])
-            pathlib.Path(target['out']).write_text(rendered_doc)           
-            rows.append([ target["descr"], target["descr_cmd"], "" ])
+            if target["fmt"] == "latex":
+                rendered_doc = to_jinja.render(yaml_latex, target['template'])
+            if target["fmt"] == "html":
+                rendered_doc = to_jinja.render(yaml_html, target['template'])
+
+            # write rendered_doc to output file
+            pathlib.Path(target['out']).write_text(rendered_doc)
+
+            # target was built successfully
+            targets_output.append([ target["descr"], target["descr_cmd"], "" ])
+
+            # build post command (eg. build pdf from latex file)
             
             if ("post_cmd" in target) and args.build:
                 print(target["post_cmd"])
@@ -232,20 +245,31 @@ def compile(args):
                 command = shlex.split(target["post_cmd"])
                 try:
                     output = subprocess.check_output(command)
+                    targets_output.append(
+                        [ target["post-command"],
+                          target["post_cmd"],
+                          "" ])
+                    
                 except subprocess.CalledProcessError as e:
                     print(Panel(e.output.decode(),
                                 title = f"\n failed to build command ",
                                 border_style="red"))
-                    raise
+                    targets_output.append(
+                        [ target["post-command"],
+                          target["post_cmd"],
+                          "[FAIL]" ])
+
+                    
                 
         except Jinja2SyntaxError as err:            
             print(Panel(
                 f"\n did not generate {out_filename} because of template errors  ! \n "
                 + str(err), title='Jinja Template Error', border_style="red"))
-            rows.append([ target['descr'] , target["descr_cmd"], "[FAIL]" ])
-            
-    # print target outputs
 
+            # target build failed            
+            targets_output.append([ target['descr'] , target["descr_cmd"], "[FAIL]" ])
+            
+    # print to terminal a table of all targets outputs.
     table_outputs = Table(box=box.SIMPLE,
                           collapse_padding=True,
                           show_footer=False,
@@ -254,7 +278,7 @@ def compile(args):
     table_outputs.add_column("Cmd", no_wrap=True, justify="left")
     table_outputs.add_column("Status", no_wrap=True, justify="left")
 
-    for r in rows:
+    for r in targets_output:
         if r[2]=="[FAIL]":
             table_outputs.add_row(*r, style="red")
         elif r[2]=="":
