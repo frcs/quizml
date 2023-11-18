@@ -307,8 +307,6 @@ You can set a random seed generator by assigning the key `srand` (eg. `srand:
 You can set the LaTeX preamble by assigning the key `latex-preamble` in the
 header.
 
-
-
 ## Markdown Syntax
 
 All yaml entries, including the question statements and answers, need to be
@@ -321,11 +319,7 @@ Text Tags can be found here:
 https://commonmark.org/help/
 
 
-
-
 ## Extensions
-
-
 
 
 # Configuration File and Target Templates

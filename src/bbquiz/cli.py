@@ -46,7 +46,36 @@ import subprocess
 import shlex
 
 
+class FileLocator:
+    """
+    FileLocator sets up default directories to search
+    """
+
+    def __init__(self):
+        pkg_template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+        app_dir = appdirs.user_config_dir(appname="bbquiz", appauthor='frcs')
+        user_config_dir = os.path.join(app_dir, 'templates')
+        self.dirlist = [ os.getcwd(), user_config_dir, pkg_template_dir ]
+
+    def locate_in_default_dirs(self, path):        
+        if os.path.isabs(path):
+            if os.path.exists(path):
+                return path
+        else:
+            for d in self.dirlist:
+                abspath = os.path.realpath(
+                    os.path.expanduser(os.path.join(d, path)))
+                if os.path.exists(abspath):
+                    return abspath
+        return None
+
+locator = FileLocator()
+
 def jinja_render_file(out_filename, template_filename, yaml_code):
+    """
+    renders the jinja template
+    """
+
     with open(out_filename, "w") as f:
         try:
             content = to_jinja.render(yaml_code, template_filename)
@@ -55,18 +84,7 @@ def jinja_render_file(out_filename, template_filename, yaml_code):
             print(Panel(
                 f"\n did not generate {out_filename} because of template errors  ! \n "
                 + str(err), title='Jinja Template Error', border_style="red"))
-            
-
-
-def cfg_template_render(target, key, substitutions_dict, default_template):
-
-    if (key not in target) or target["descr"] is None:
-        val = default_template
-    else:
-        val = target[key]
-       
-    return Template(val).substitute(substitutions_dict)
-            
+           
 
 def get_config(args):
     """
@@ -75,18 +93,9 @@ def get_config(args):
 
     if args.config:
         config_file = os.path.realpath(os.path.expanduser(args.config))
-    else:    
-        pkg_template_dir = os.path.join(os.path.dirname(__file__), 'templates')       
-        user_config_dir = os.path.join(
-            appdirs.user_config_dir(appname="bbquiz", appauthor='frcs'), 'templates')
-        
-        for d in [os.getcwd(), user_config_dir, pkg_template_dir]:
-            fname = os.path.join(d, 'bbquiz.cfg')
-            config_file = os.path.realpath(os.path.expanduser(fname))
-            
-            if os.path.exists(config_file):
-                break
-
+    else:
+        config_file = locator.locate_in_default_dirs('bbquiz.cfg')
+   
     logging.info(f"using config file:{config_file}")
     
     try:
@@ -98,33 +107,31 @@ def get_config(args):
 
     return config
     
+    
 
 def get_target_list(yaml_filename, config):
-
-    (basename, _) = os.path.splitext(yaml_filename)
-    pkg_dirname = os.path.dirname(__file__)
-    pkg_template_dir = os.path.join(pkg_dirname, 'templates')    
-    user_config_dir = os.path.join(
-        appdirs.user_config_dir(appname="bbquiz", appauthor='frcs'), 'templates')
-        
-    subs = {'inputbasename': basename}
-
-    target_list = []
+    """
+    gets the list of target templates from config['targets'] and
+    resolves the absolute path of each template
+    also resolves $inputbasename 
     
+    Templates are defined as a relative path, and searched in:
+    1. the local directory from which BBQuiz is called 
+    2. the default application config dir 
+    3. the install package templates dir
+    """
+    
+    (basename, _) = os.path.splitext(yaml_filename)
+    
+    subs = {'inputbasename': basename}   
+    target_list = []
     for t in config['targets']:
         target = {}
-        target["out"] = cfg_template_render(t, "out", subs, '')
-        target["fmt"] = cfg_template_render(t, "fmt", subs, 'html')
-        target["descr"] = cfg_template_render(t, "descr", subs, '')
-        target["descr_cmd"] = cfg_template_render(t, "descr_cmd", subs, t['out'])
-        if "post_cmd" in t:
-            target["post_cmd"] = cfg_template_render(t, "post_cmd", subs, '')
-
-        for d in [os.getcwd(), user_config_dir, pkg_template_dir]:
-            target["template"] = os.path.realpath(
-                os.path.expanduser(os.path.join(d, t["template"])))
-            if os.path.exists(target["template"]):
-                break
+        # resolves $inputbasename
+        for key, val in t.items():
+            target[key] = Template(val).substitute(subs)
+        # resolves relative path for template
+        target['template'] = locator.locate_in_default_dirs(t['template'])
 
         logging.info(f"using template file:{target['template']}")
             
@@ -215,8 +222,8 @@ def compile(args):
     for i, target in enumerate(target_list):
         try:
             yaml_code = yaml_latex if target["fmt"] == "latex" else yaml_html
-            render = to_jinja.render(yaml_code, target['template'])
-            pathlib.Path(target['out']).write_text(render)           
+            rendered_doc = to_jinja.render(yaml_code, target['template'])
+            pathlib.Path(target['out']).write_text(rendered_doc)           
             rows.append([ target["descr"], target["descr_cmd"], "" ])
             
             if ("post_cmd" in target) and args.build:
@@ -231,14 +238,6 @@ def compile(args):
                                 border_style="red"))
                     raise
                 
-                # proc = subprocess.Popen(shlex.split(target["post_cmd"]), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                # outs, errs = proc.communicate()
-                # print('STDOUT: {}'.format(outs))
-                # print('STDERR: {}'.format(errs))
-
-                # subprocess.Popen(shlex.split('convert -quality 100 ___t*.png images/transient_heat.gif'))
-                # print (subprocess.Popen(shlex.split('rm ___t*.png')))
-
         except Jinja2SyntaxError as err:            
             print(Panel(
                 f"\n did not generate {out_filename} because of template errors  ! \n "
@@ -247,7 +246,10 @@ def compile(args):
             
     # print target outputs
 
-    table_outputs = Table(box=box.SIMPLE, collapse_padding=True, show_footer=False, show_header=False)
+    table_outputs = Table(box=box.SIMPLE,
+                          collapse_padding=True,
+                          show_footer=False,
+                          show_header=False)
     table_outputs.add_column("Descr", no_wrap=True, justify="left")
     table_outputs.add_column("Cmd", no_wrap=True, justify="left")
     table_outputs.add_column("Status", no_wrap=True, justify="left")
@@ -266,14 +268,16 @@ def compile_on_change(args):
     """
     compiles the targets if input bbyaml file has changed on disk
     """
-    
-    print("\n...waiting for a file change to re-compile the document...\n " )    
+
+    waitingtxt = ("\n...waiting for a file change"
+                  "to re-compile the document...\n ")
+    print(waitingtxt)
     full_yaml_path = os.path.abspath(args.yaml_filename)
     class Handler(FileSystemEventHandler):
         def on_modified(self, event):
             if event.src_path == full_yaml_path:
                 compile(args)
-                print("\n...waiting for a file change to re-compile the document...\n ")
+                print(waitingtxt)
                
     observer = Observer()
     observer.schedule(Handler(), ".") # watch the local directory

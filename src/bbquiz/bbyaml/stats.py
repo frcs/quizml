@@ -1,13 +1,4 @@
 import math
-
-from rich.table import box
-from rich.align import Align
-from rich.console import Console
-from rich.live import Live
-from rich.table import Table
-from rich.text import Text
-from rich.panel import Panel
-
 import os
 
 def is_bbquestion(yaml_entry):
@@ -41,6 +32,27 @@ def get_entry_marks(entry):
 
 
 def get_stats(yaml_data):
+    """
+    gets a dictionary of information about each question. Output structure looks
+    something like this:
+
+    stats = { "total marks": 15.0,
+              "nb questions": 2,
+              "expected mark": 0.5,
+              "questions": [ { "type": "ma",
+                               "marks": "10.0",
+                               "choices": "4",
+                               "EM": "0.1",
+                               "excerpt": "Choose all answers that..." },
+                             { "type": "mc",
+                               "marks": "5.0",
+                               "choices": "4",
+                               "EM": "0.4",
+                               "excerpt": "Choose the best solution for..." },
+                           ]
+            }
+    """
+
     total_marks = 0
     nb_questions = 0
     expected_mark = 0
