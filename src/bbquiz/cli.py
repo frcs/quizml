@@ -136,9 +136,9 @@ def get_target_list(yaml_filename, config):
         for key, val in t.items():
             target[key] = Template(val).substitute(subs)
         # resolves relative path for template
-        target['template'] = locator.locate_in_default_dirs(t['template'])
-
-        logging.info(f"using template file:{target['template']}")
+        if 'template' in target:
+            target['template'] = locator.locate_in_default_dirs(t['template'])
+            logging.info(f"using template file:{target['template']}")
             
         target_list.append(target)
     
@@ -171,6 +171,46 @@ def print_stats_table(stats):
     console.print(table)
 
 
+def compile_build_task(target):
+    command = shlex.split(target["build_cmd"])
+    try:
+        output = subprocess.check_output(command)
+        return True
+    
+    except subprocess.CalledProcessError as e:
+        print(Panel(e.output.decode(),
+                    title = f"\n failed to build command ",
+                    border_style="red"))
+        
+        return False
+    
+    
+def compile_template_task(target, yaml_dict):
+
+    if target["fmt"] not in yaml_dict:
+        print(Panel(
+            f"\n did not generate {out_filename} because {target['fmt']} is "
+            + "not a valid format for a template (only 'html' and 'latex' "
+            + "are valid). Check your target definition in your config file.",
+            title='Config Error', border_style="red"))
+        return False
+
+    try:
+        rendered_doc = to_jinja.render(yaml_dict[target["fmt"]],
+                                           target['template'])        
+        # write rendered_doc to output file
+        pathlib.Path(target['out']).write_text(rendered_doc)
+        
+        return True
+    
+    except Jinja2SyntaxError as err:
+        print(Panel(
+            f"\n did not generate {out_filename} because of template errors  ! \n "
+            + str(err), title='Jinja Template Error', border_style="red"))
+        return False
+
+    
+    
 def compile(args):
     """
     compiles the targets of a bbyaml file
@@ -199,9 +239,10 @@ def compile(args):
     # and build dictionaries of their HTML and LaTeX translations
     
     try:
+        yaml_dict = {}
         (latex_md_dict, html_md_dict) = get_dicts_from_yaml(yaml_data)
-        yaml_latex = transcode_md_in_yaml(yaml_data, latex_md_dict)        
-        yaml_html = transcode_md_in_yaml(yaml_data, html_md_dict)
+        yaml_dict['latex'] = transcode_md_in_yaml(yaml_data, latex_md_dict)        
+        yaml_dict['html'] = transcode_md_in_yaml(yaml_data, html_md_dict)
     except LatexEqError as err:
         print(Panel(str(err), title="Latex Error", border_style="red"))
         return
@@ -221,68 +262,52 @@ def compile(args):
     # sets up list of the output for each build
     targets_output = []
 
-    if args.build:
-        print("building post commands")
+    # if args.build:
+    #     print("building post commands")
+    success_list = {}
     
     for i, target in enumerate(target_list):
-        try:
-            if target["fmt"] == "latex":
-                rendered_doc = to_jinja.render(yaml_latex, target['template'])
-            if target["fmt"] == "html":
-                rendered_doc = to_jinja.render(yaml_html, target['template'])
 
-            # write rendered_doc to output file
-            pathlib.Path(target['out']).write_text(rendered_doc)
+        # skipping build target if build option is not on
+        if ("build_cmd" in target) and not args.build:
+            continue
 
-            # target was built successfully
-            targets_output.append([ target["descr"], target["descr_cmd"], "" ])
+        # a build target (eg. compile pdf of generated latex)
+        if ("build_cmd" in target) and args.build:
+            # need to check if there is a dependency,
+            # and if this dependency compiled fine
+            if (("dep" not in target) or
+                ("dep" in target and success_list[target['dep']])):
+                success = compile_build_task(target)
+            else:
+                success = False
 
-            # build post command (eg. build pdf from latex file)
-            
-            if ("post_cmd" in target) and args.build:
-                print(target["post_cmd"])
+        # a template task that needs to be rendered
+        if ("template" in target):
+            success = compile_template_task(target, yaml_dict)
 
-                command = shlex.split(target["post_cmd"])
-                try:
-                    output = subprocess.check_output(command)
-                    targets_output.append(
-                        [ target["post-command"],
-                          target["post_cmd"],
-                          "" ])
-                    
-                except subprocess.CalledProcessError as e:
-                    print(Panel(e.output.decode(),
-                                title = f"\n failed to build command ",
-                                border_style="red"))
-                    targets_output.append(
-                        [ target["post-command"],
-                          target["post_cmd"],
-                          "[FAIL]" ])
-
-                    
-                
-        except Jinja2SyntaxError as err:            
-            print(Panel(
-                f"\n did not generate {out_filename} because of template errors  ! \n "
-                + str(err), title='Jinja Template Error', border_style="red"))
-
-            # target build failed            
-            targets_output.append([ target['descr'] , target["descr_cmd"], "[FAIL]" ])
+        success_list[target['out']] = success
+        
+        targets_output.append(
+            [ target['descr'] ,
+              target["descr_cmd"],
+              "" if success else "[FAIL]" ])
             
     # print to terminal a table of all targets outputs.
     table_outputs = Table(box=box.SIMPLE,
                           collapse_padding=True,
                           show_footer=False,
                           show_header=False)
+    
     table_outputs.add_column("Descr", no_wrap=True, justify="left")
     table_outputs.add_column("Cmd", no_wrap=True, justify="left")
     table_outputs.add_column("Status", no_wrap=True, justify="left")
 
-    for r in targets_output:
-        if r[2]=="[FAIL]":
-            table_outputs.add_row(*r, style="red")
-        elif r[2]=="":
-            table_outputs.add_row(*r)
+    for row in targets_output:
+        if row[2]=="[FAIL]":
+            table_outputs.add_row(*row, style="red")
+        elif row[2]=="":
+            table_outputs.add_row(*row)
        
     print(Panel(table_outputs, title="Target Ouputs", border_style="magenta"))
     
