@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 
 setup(name='bbquiz',
-      version='0.2',
+      version='0.3',
       description="A commonand tool for generating quizzes for BlackBoard and Latex",
       author='Francois Pitie',
       author_email='pitief@tcd.ie',
@@ -12,8 +12,15 @@ setup(name='bbquiz',
       packages=['bbquiz', 'bbquiz.bbyaml', 'bbquiz.render', 'bbquiz.markdown'],
 
       install_requires=[
-          'bs4','strictyaml','rich', 'rich-argparse',
-          'jinja2', 'colorama', 'watchdog', 'mistletoe==1.2', 'appdirs'
+          'bs4',
+          'strictyaml==1.7.3',
+          'rich',
+          'rich-argparse',
+          'jinja2',
+          'colorama',
+          'watchdog',
+          'mistletoe==1.2',
+          'appdirs'
       ],      
       entry_points={
           "console_scripts": [

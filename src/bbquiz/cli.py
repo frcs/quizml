@@ -25,6 +25,7 @@ from string import Template
 from .utils import *
 
 from bbquiz.bbyaml.loader import load
+from bbquiz.bbyaml.loader import load_no_schema
 from bbquiz.bbyaml.utils import transcode_md_in_yaml
 from bbquiz.bbyaml.stats import get_stats
 from bbquiz.bbyaml.loader import BBYamlSyntaxError
@@ -209,6 +210,45 @@ def compile_template_task(target, yaml_dict):
             + str(err), title='Jinja Template Error', border_style="red"))
         return False
 
+# not used yet...
+def similarity_question(q1, q2):
+    return q1.question == q2.question
+
+
+
+def diff(args):
+    """
+    finds if questions can be found in other exams
+    called with --diff flag.
+    """
+    
+    # remove duplicate files from list
+    # this is useful when using something like exam*.yaml in arguments
+    files = [args.yaml_filename]
+    [files.append(item) for item in args.otherfiles if item not in files]
+
+    # we load all the files. For speed, We do not do any schema checking.
+    filedata = {}
+    for f in files:
+        if not os.path.exists(f):
+            print(Panel("File " + f + " not found",
+                        title="Error", border_style="red"))
+            return
+        try:
+            filedata[f] = load_no_schema(f)
+        except BBYamlSyntaxError as err:
+            print(Panel(str(err),
+                        title=f"BByaml Syntax Error in file {f}", border_style="red"))
+            return
+
+    # checking for duplicate questions        
+    ref = filedata[files[0]]
+    for i, qr in enumerate(ref):
+        for f in files[1:]:
+            dst = filedata[f]        
+            for j, qd in enumerate(dst):
+                if (qr == qd):
+                    print(f"found match: Q{i} matches Q{j} in {f}")
     
     
 def compile(args):
@@ -367,7 +407,18 @@ def main():
         "yaml_filename", nargs='?',
         metavar="quiz.yaml", type=str, 
         help = "path to the quiz in a yaml format")
-   
+
+    parser.add_argument(
+        "otherfiles", nargs='*',
+        type=str, #argparse.FileType('r'),
+        help = "other yaml files [when using diff]")
+    
+    # parser.add_argument(
+    #     'diff_files',
+    #     type=argparse.FileType('r'),
+    #     help = "path to the quiz in a yaml format",
+    #     nargs='*')
+    
     parser.add_argument(
         "-w", "--watch", 
         help="continuously compiles the document on file change",
@@ -385,6 +436,12 @@ def main():
         "--build",
         help="compiles all targets and run all post-compilation commands",
         action="store_true")
+
+    parser.add_argument(
+        "--diff",
+        help="compares questions from first yaml file to rest of files",
+        action="store_true")
+
     
     parser.add_argument(
         "--zsh",
@@ -434,14 +491,22 @@ def main():
         print(bbquiz.shellcompletion.fish())
         return
 
+    
     # if args.bash:
     #     print(bbquiz.shellcompletion.bash())
     #     return
 
     
     if not args.yaml_filename:
-        parser.error("quiz.yaml is required")
-        
+        parser.error("a yaml file is required")
+
+    if args.diff:
+        diff(args)
+        return
+    
+    if args.otherfiles:
+        parser.error("only one yaml file is required")
+    
     if args.watch:
         compile(args)
         compile_on_change(args)
