@@ -24,8 +24,8 @@ from string import Template
 
 from .utils import *
 
+
 from bbquiz.bbyaml.loader import load
-from bbquiz.bbyaml.loader import load_no_schema
 from bbquiz.bbyaml.utils import transcode_md_in_yaml
 from bbquiz.bbyaml.stats import get_stats
 from bbquiz.bbyaml.loader import BBYamlSyntaxError
@@ -42,6 +42,7 @@ from watchdog.events import FileSystemEventHandler
 import appdirs
 import pathlib
 
+import bbquiz.diff
 import bbquiz.shellcompletion 
 import subprocess
 import shlex
@@ -210,46 +211,6 @@ def compile_template_task(target, yaml_dict):
             + str(err), title='Jinja Template Error', border_style="red"))
         return False
 
-# not used yet...
-def similarity_question(q1, q2):
-    return q1.question == q2.question
-
-
-
-def diff(args):
-    """
-    finds if questions can be found in other exams
-    called with --diff flag.
-    """
-    
-    # remove duplicate files from list
-    # this is useful when using something like exam*.yaml in arguments
-    files = [args.yaml_filename]
-    [files.append(item) for item in args.otherfiles if item not in files]
-
-    # we load all the files. For speed, We do not do any schema checking.
-    filedata = {}
-    for f in files:
-        if not os.path.exists(f):
-            print(Panel("File " + f + " not found",
-                        title="Error", border_style="red"))
-            return
-        try:
-            filedata[f] = load_no_schema(f)
-        except BBYamlSyntaxError as err:
-            print(Panel(str(err),
-                        title=f"BByaml Syntax Error in file {f}", border_style="red"))
-            return
-
-    # checking for duplicate questions        
-    ref = filedata[files[0]]
-    for i, qr in enumerate(ref):
-        for f in files[1:]:
-            dst = filedata[f]        
-            for j, qd in enumerate(dst):
-                if (qr == qd):
-                    print(f"found match: Q{i} matches Q{j} in {f}")
-    
     
 def compile(args):
     """
@@ -501,7 +462,7 @@ def main():
         parser.error("a yaml file is required")
 
     if args.diff:
-        diff(args)
+        bbquiz.diff.diff(args)
         return
     
     if args.otherfiles:
