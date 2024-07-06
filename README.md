@@ -62,21 +62,23 @@ pip install .
 
 
 ```
-Usage: bbquiz [-h] [-w] [--config CONFIGFILE] [--template TEMPLATEFILE] [--zsh] [quiz.yaml]
+Usage: bbquiz [-h] [-w] [--config CONFIGFILE] [--template TEMPLATEFILE] [--zsh]
+              [--diff] [quiz.yaml]
 
 Converts a questions in a YAML/markdown format into a Blackboard test or a Latex script
 
 Positional Arguments:
-  quiz.yaml                     path to the quiz in a yaml format
+  quiz.yaml                   path to the quiz in a yaml format
 
 Optional Arguments:
-  -h, --help                    show this help message and exit
-  -w, --watch                   continuously compiles the document on file change
-  --config CONFIGFILE           path to user config file
-  --template TEMPLATEFILE       jinja2 template
-  --zsh                         A helper command used for exporting the command completion code in zsh
+  -h, --help                  show this help message and exit
+  -w, --watch                 continuously compiles the document on file change
+  --config CONFIGFILE         path to user config file
+  --template TEMPLATEFILE     jinja2 template
+  --zsh                       A helper command used for exporting the command
+                              completion code in zsh
+  --diff                      use as bbquiz --diff src.yaml test1.yaml test2.yaml ...
 ```
-
 
 # BBYaml Syntax
 
@@ -180,7 +182,6 @@ Below is an example of what an exam script would look like:
         ![](figures/psd-25-psd-blur.png){width=30em}
       
 ```
-
 
 ## Question Types Syntax
 
@@ -348,7 +349,6 @@ You can otherwise directly specify the path with the `--config CONFIGFILE` optio
 
 ## Defining Your Own Targets
 
-
 The list of targets can be defined in the configuration file. For instance, the
 BlackBoard csv quiz file can be defined as the following target:
 ```yaml
@@ -376,14 +376,33 @@ complete information about how to write jinja2 templates.
 
 The default templates used in BBQuiz can be found in the `templates` directory.
 
-Note that to be compatible with both LaTex and HTML, we use following delimiters:
+Note that to be compatible with both LaTex and HTML, we use the following
+delimiters:
 * `<| ... |>`  for Statements
 * `<< ... >>`  for Expressions
 * `<# ... #>`  for Comments
 
+# Utils
 
+## Diff
 
+The `--diff` flag allows you to check whether some questions can be found in
+other tests. For instance:
 
+```bash
+bbquiz --diff exam-2024.yaml exam-2023.yaml exam-2022.yaml ...
+```
+
+This will list all the questions in `exam-2024.yaml` that can be found in older
+exams. Duplicate files will be ignored.
+
+On my setup, I have all yaml files into a single directory (e.g.,
+`exam-2023.yaml`, `midterm-2021.yaml`, `tutorial-02.yaml`), so I would call it
+like this:
+
+```bash
+bbquiz --diff exam-2024.yaml exam-*.yaml midterm-*.yaml tutorial-*.yaml
+```
 
 # Requirements
 
