@@ -22,7 +22,9 @@ requires-python = ">=3.8"
 authors = [
   {name = "Francois Pitie", email = "francois.pitie@gmail.com"}
 ]
-description = "Tool for converting a list of questions in yaml/markdown to a BlackBoard test or to a Latex exam source file"
+description = """
+  Tool for converting a list of questions in yaml/markdown to a\
+  BlackBoard test or to a Latex exam source file"""
 readme = "README.md"
 license = {text = "GPLv3"}
 keywords = ["BlackBoard", "exam", "test", "quiz", "mcq", "Latex"]
