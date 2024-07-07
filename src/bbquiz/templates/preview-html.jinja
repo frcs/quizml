@@ -12,6 +12,16 @@
 		 page-break-before: avoid;
 		 margin: 0.5em 0;
 	 }	 
+	 .incorrect.hideanswers {
+		 color: black;
+		 background: none;
+		 border: none;				   		 
+	 }
+	 .correct.hideanswers {
+		 color: black;
+		 background: none;
+		 border: none;				   		 
+	 }
      .correct {
 		color: #3c763d;
 		background: #dff0d8;		 
@@ -50,9 +60,10 @@
 		 margin-bottom: 5px;
 	 }
 	 ol.question-list li.question:before {
-		 margin-right: 10px;
-		 content: "Q." counter(item);
-		 font-size: 125%;
+	     margin-right: 10px;
+	     margin-bottom: 0.5em;
+		 content: "QUESTION " counter(item);
+		 font-size: 100%;
 	     display: inline-block;}
 	 .question {
 	     border-left: 2px solid lightgray;
@@ -63,10 +74,10 @@
     </style>
   </head>
   <body>
-<p><i>Total Possible Marks: << total_marks >> </i></p>
+<p><i>Total Possible Marks: 10.0 </i>  <button onclick="toggleHideAnswers()" style="float:right">Hide Answers</button>
     <ol class='question-list'>
 <| for q in questions |>
-<li class='question' style='vertical-align: top;'>
+<li class='question' id='Q<< loop.index >>' style='vertical-align: top;'>
 <| if q.type == 'essay' |>
 <i> Essay [ << q.marks >> ]</i>
 <<q.question>>
@@ -153,7 +164,23 @@
   </li>
 <| endfor |>
 	</ol>	
-</body>
+
+<script>
+function toggleHideAnswers() {
+	 var elements = document.getElementsByClassName("correct");
+	 console.log(elements)
+	 for (let i=0; i<elements.length; i++){ 
+		 elements[i].classList.toggle("hideanswers");
+	 }
+	 var elements = document.getElementsByClassName("incorrect");
+	 console.log(elements)
+	 for (let i=0; i<elements.length; i++){ 
+		 elements[i].classList.toggle("hideanswers");
+	 }
+ }
+</script>
+
+  </body>
 </html>
 
 
