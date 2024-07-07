@@ -47,15 +47,14 @@ bbquiz quiz.yaml
 
 and this is what the HTML preview looks like:
 
-![](doc/html-screenshot.jpg = 250x)
+<img src="doc/html-screenshot.jpg" width="300" />
 
 and this is what the BlackBoard output would look like:
 
 
 and this is what the pdf output would look like:
 
-![](doc/pdf-screenshot.jpg = 250x)
-
+<img src="doc/pdf-screenshot.jpg" width="300" />
 
 
 # Installation
