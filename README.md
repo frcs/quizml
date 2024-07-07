@@ -47,14 +47,14 @@ bbquiz quiz.yaml
 
 and this is what the HTML preview looks like:
 
-![](doc/html-screenshot.jpg){ width=30em }
+![](doc/html-screenshot.jpg | width=256)
 
 and this is what the BlackBoard output would look like:
 
 
 and this is what the pdf output would look like:
 
-![](doc/pdf-screenshot.jpg){ width=30em }
+![](doc/pdf-screenshot.jpg | width=256)
 
 
 
