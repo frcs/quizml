@@ -3,7 +3,7 @@
 Tool for converting a list of questions in yaml/markdown to a BlackBoard test or
 to a Latex exam source file
 
-Here is a quick example of a `quiz.yaml` file. You write the questions in a YAML
+Here is a minimal example of a `quiz.yaml` file. You write the questions in a YAML
 file, using a Markdown syntax:
 
 ```yaml
@@ -45,14 +45,14 @@ following command in the terminal:
 bbquiz quiz.yaml
 ```
 
-and this is what the HTML preview looks like:
+and this is what the provided default HTML preview looks like:
 
 <img src="doc/html-screenshot.jpg" width="400" />
 
 and this is what the BlackBoard output would look like:
 
 
-and this is what the pdf output would look like:
+and this is what the provided LaTeX template pdf output would look like:
 
 <img src="doc/pdf-screenshot.jpg" width="500" />
 
@@ -92,12 +92,12 @@ generic human-readable data-serialization language, typically used for
 configuration files, and it is used here to define the questions' statements,
 marks, type, answers, etc.
 
-What is nice with YAML is that all text entries can be written in
+One motivation behind using YAML is that all text entries can be written in
 [Markdown](https://en.wikipedia.org/wiki/Markdown). This means that question
 statements, answers, etc. can be written in Markdown, and using a few basic
 Markdown extensions, we can also use LaTex equations and tables.
 
-Below is an example of what an exam script would look like:
+Below is an longer example of what an exam script would look like:
 
 ```yaml
 
@@ -117,9 +117,6 @@ Below is an example of what an exam script would look like:
   instructions: "" 
   materials: ""
   additionalinformation: ""
-
-  desc: |
-    This is a BlackBoard exam. 
 
 - type: mc
   marks: 5           
@@ -142,22 +139,22 @@ Below is an example of what an exam script would look like:
     - answer:  ${\tt 1}\times {\tt 3}$
       correct: false
 
-- type: mc
+- type: ma
   marks: 5         
   question: |
     Consider the binary class dataset below (with 2 features $(x_1, x_2)$ and
-    2 classes (cross and circle). What is the most suitable
-    classification technique for this dataset? (choose only one)
+    2 classes (cross and circle). Select all suitable
+    classification techniques for this dataset.
 
     ![](figures/dataset-4.png){ width=30em }
     
   answers:
     - answer: Decision Tree
-      correct: false
+      correct: true
     - answer: Logistic Regression
       correct: true
     - answer: Random Forest
-      correct: false
+      correct: true
     - answer: Least Squares
       correct: false
 
@@ -185,8 +182,17 @@ Below is an example of what an exam script would look like:
         ![](figures/psd-25-blur.png){width=30em}
       correct: |
         ![](figures/psd-25-psd-blur.png){width=30em}
-      
+
+- type: essay
+  marks: 10
+  question: |
+    Prove in a few lines only that the Riemann zeta function has its zeros only at the negative even integers and complex numbers with real part $\frac{1}{2}$
+  answer: |
+    See handouts for a detailed answer.
+        
 ```
+
+
 
 ## Question Types Syntax
 
