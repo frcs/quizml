@@ -85,6 +85,8 @@ def get_eq_dict(eq_list):
     latex_preamble = \
         "\\documentclass{article}\n" + \
         "\\usepackage{amsmath}\n"+ \
+        "\\usepackage{notomath}\n" + \
+        "\\usepackage[OT1]{fontenc}\n" + \
         "\\newenvironment{standalone}{\\begin{preview}}{\\end{preview}}"+\
         "\\PassOptionsToPackage{active,tightpage}{preview}"+\
         "\\usepackage{preview}"+\
