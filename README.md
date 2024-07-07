@@ -29,7 +29,7 @@ file, using a Markdown syntax:
   question: |
     Is this the image of a tree?
     
-    ![](figures/tree.png){ width=30em }
+    ![](figures/bee.jpg){ width=30em }
     
   answers:
     - answer: "yes"
@@ -47,9 +47,15 @@ bbquiz quiz.yaml
 
 and this is what the HTML preview looks like:
 
+![](doc/html-screenshot.jpg){ width=30em }
+
 and this is what the BlackBoard output would look like:
 
+
 and this is what the pdf output would look like:
+
+![](doc/pdf-screenshot.jpg){ width=30em }
+
 
 
 # Installation
@@ -189,7 +195,7 @@ BBQuiz currently supports 5 types of questions.
 
 ### Essay
 
-The student is execpted to write down a few sentences. The `answer` field
+The student is expected to write down a few sentences. The `answer` field
 provides an indicative answer that can be used as guideline for marking.
 
 ```yaml
@@ -346,6 +352,9 @@ For instance, on my mac, it will be:
 
 You can otherwise directly specify the path with the `--config CONFIGFILE` option.
 
+The `--verbose` flag will report which config file is actually being used. This
+can be useful for making sure that the correct config file is being edited.
+
 
 ## Defining Your Own Targets
 
@@ -368,13 +377,15 @@ path, the template is searched in:
 3. the install package templates dir
 
 
-## Writing Your Own Templates
+## Writing Your Own Rendering Templates
 
 Templates are rendered with Jinja2. The [Jinja2 Template Designer
 Documentation](https://jinja.palletsprojects.com/en/3.1.x/templates/) provides
 complete information about how to write jinja2 templates.
 
-The default templates used in BBQuiz can be found in the `templates` directory.
+The default templates used in BBQuiz can be found in the `templates`
+directory. (Again, use `--verbose` to know which template is actually being
+used)
 
 Note that to be compatible with both LaTex and HTML, we use the following
 delimiters:
