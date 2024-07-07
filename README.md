@@ -64,8 +64,7 @@ and this is what the provided LaTeX template pdf output would look like:
 pip install .
 ```
 
-You will also need a LaTex installation with `gs` and `pdflatex`. 
-
+You will also need a LaTeX installation with `gs` and `pdflatex`. 
 
 
 # Usage
@@ -156,7 +155,7 @@ marks, type, answers, etc.
 One motivation behind using YAML is that all text entries (e.g., question
 statements, answers, etc.) can be written in
 [Markdown](https://en.wikipedia.org/wiki/Markdown). With a few extensions, you
-can also use LaTex equations and tables too.
+can also use LaTeX equations and tables too.
 
 Below is an longer example of what an exam script would look like:
 
@@ -361,7 +360,7 @@ occurs when generating the exam (see how to set the random seed here).
 
 An optional header section can be declared at the start of the yaml file.  All
 (key, val) pairs declared in this section will be sent to the template
-renderer. For instance your LaTex template might require information about the
+renderer. For instance your LaTeX template might require information about the
 exam date, venue, etc. The header must be the first item in the BBYaml file.
 
 ```yaml
@@ -399,9 +398,9 @@ https://commonmark.org/help/
 
 # Configuration File and Target Templates
 
-After reading the BBYaml file and converting the markdown entries into LaTex or
+After reading the BBYaml file and converting the markdown entries into LaTeX or
 HTML, BBQuiz uses jinja2 templates to render the various targets (BlackBoard
-compatible quiz, HTML preview or LaTex).
+compatible quiz, HTML preview or LaTeX).
 
 
 ## Configuration Files Location
@@ -457,7 +456,7 @@ The default templates used in BBQuiz can be found in the `templates`
 directory. (Again, use `--verbose` to know which template is actually being
 used)
 
-Note that to be compatible with both LaTex and HTML, we use the following
+Note that to be compatible with both LaTeX and HTML, we use the following
 delimiters:
 * `<| ... |>`  for Statements
 * `<< ... >>`  for Expressions
