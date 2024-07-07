@@ -186,7 +186,9 @@ Below is an longer example of what an exam script would look like:
 - type: essay
   marks: 10
   question: |
-    Prove in a few lines only that the Riemann zeta function has its zeros only at the negative even integers and complex numbers with real part $\frac{1}{2}$
+    Prove, in no more than a page, that the Riemann zeta function has its zeros
+    only at the negative even integers and complex numbers with real part
+    $\frac{1}{2}$.
   answer: |
     See handouts for a detailed answer.
         
