@@ -51,6 +51,7 @@ and this is what the provided default HTML preview looks like:
 
 and this is what the BlackBoard output would look like:
 
+<img src="doc/bb-screenshot.jpg" width="500" />
 
 and this is what the provided LaTeX template pdf output would look like:
 
@@ -62,6 +63,9 @@ and this is what the provided LaTeX template pdf output would look like:
 ```bash
 pip install .
 ```
+
+You will also need a LaTex installation with `gs` and `pdflatex`. 
+
 
 # Usage
 
@@ -92,10 +96,10 @@ generic human-readable data-serialization language, typically used for
 configuration files, and it is used here to define the questions' statements,
 marks, type, answers, etc.
 
-One motivation behind using YAML is that all text entries can be written in
-[Markdown](https://en.wikipedia.org/wiki/Markdown). This means that question
-statements, answers, etc. can be written in Markdown, and using a few basic
-Markdown extensions, we can also use LaTex equations and tables.
+One motivation behind using YAML is that all text entries (e.g., question
+statements, answers, etc.) can be written in
+[Markdown](https://en.wikipedia.org/wiki/Markdown). We have added a few
+extensions, so that you can also use LaTex equations and tables too.
 
 Below is an longer example of what an exam script would look like:
 
@@ -340,12 +344,13 @@ https://commonmark.org/help/
 
 After reading the BBYaml file and converting the markdown entries into LaTex or
 HTML, BBQuiz uses jinja2 templates to render the various targets (BlackBoard
-quiz, HTML preview, LaTex). 
+compatible quiz, HTML preview or LaTex).
 
 
 ## Configuration Files Location
 
-The default config file is called `bbquiz.cfg`. 
+The list of targets can be defined in the configuration file. The default config
+file is called `bbquiz.cfg`.
 
 BBQuiz will first try to read this file in 
 1. the local directory from which BBQuiz is called 
@@ -365,8 +370,9 @@ can be useful for making sure that the correct config file is being edited.
 
 ## Defining Your Own Targets
 
-The list of targets can be defined in the configuration file. For instance, the
+The configuration file defines the list of all the targets. For instance, the
 BlackBoard csv quiz file can be defined as the following target:
+
 ```yaml
 - out      : ${inputbasename}.txt  # template for output filename.
                                    #    ${inputbasename} refers to the basename of the quiz
@@ -400,6 +406,46 @@ delimiters:
 * `<< ... >>`  for Expressions
 * `<# ... #>`  for Comments
 
+## LaTeX configuration
+
+To be able to compile the LaTeX targets, you will need to have the required
+LaTeX assets `.sty` `.cls` and other images.
+
+The best way is to copy these templates in the local TEXMF tree so that LaTeX
+can see them. To know where your local tree is, you can run this command in the
+terminal:
+
+```bash
+kpsewhich -var-value=TEXMFHOME
+```
+
+In my case it says that my local TEXMF tree is located at
+`~/Library/texmf/`. You can create a dedicated directory for your templates,
+e.g., 
+
+```bash
+mkdir -p  ~/Library/texmf/tex/latex/bbquiz-templates/
+```
+
+I can then copy the required templates to that location:
+
+```bash
+unzip bbquiz-latex-templates.zip ~/Library/texmf/tex/latex/bbquiz-templates/
+```
+
+and then update LaTeX:
+```bash
+texhash ~/Library/texmf/tex/latex/bbquiz-templates/
+```
+
+At that point you should be able to compile your LaTeX targets from anywhere.
+
+
+Alternatively,
+```bash
+set TEXINPUTS=/path/to/package/a/c/b/c/d
+```
+
 # Utils
 
 ## Diff
@@ -422,7 +468,4 @@ like this:
 bbquiz --diff exam-2024.yaml exam-*.yaml midterm-*.yaml tutorial-*.yaml
 ```
 
-# Requirements
-
-LaTex installation with `gs` and `pdflatex`.
 
