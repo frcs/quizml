@@ -4,36 +4,76 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 	<title>Quiz</title>
     <style type="text/css">
-    p {max-width: 40em;   page-break-before: avoid;}
-    .correct { background: #bfb; max-width: 34em }
-    .incorrect { background: #fbb; max-width: 34em }
-    .question {  }
-    ol.input input {
-      display: none;
-      float: left;
-      position: relative;
-      left: -2em;
-      top: 1ex;
-      page-break-before: avoid;
-    }
-    ol { max-width: 40em; page-break-before: avoid; }
-    li { max-width: 40em; page-break-before: avoid; }
-    div.block {}
+	 html * {
+		 font-family: sans-serif;
+	 }
+     p {
+		 max-width: 40em;
+		 page-break-before: avoid;
+		 margin: 0.5em 0;
+	 }	 
+     .correct {
+		color: #3c763d;
+		background: #dff0d8;		 
+		border-color: #d6e9c6;
+		max-width: 34em;
+		 /* border: 1px solid; */
+		border-radius: 4px;
+	}
+    .incorrect {
+		color: #a94442;
+		background: #f2dede;
+		border-color: #ebccd1;
+		max-width: 34em;
+		/* border: 1px solid; */
+		border-radius: 4px;				   
+	 }
+	 li p:first-child {
+		 margin-top: 0em;
+	 }
+	 li p:last-child {
+		 margin-bottom: 0em;
+	 }
+	 li {margin: 0.5em 0em}
+
+	 ol.question-list {
+		 list-style: none;
+		 counter-reset: item;
+	 }
+	 ol.answers {
+		 list-style: lower-latin;
+		 counter-reset: item;
+	 }
+	 ol.question-list li.question {
+		 margin: 2em 0em;
+		 counter-increment: item;
+		 margin-bottom: 5px;
+	 }
+	 ol.question-list li.question:before {
+		 margin-right: 10px;
+		 content: "Q." counter(item);
+		 font-size: 125%;
+	     display: inline-block;}
+	 .question {
+	     border-left: 2px solid lightgray;
+         padding-left: 1em;
+	 }
+	 ol { max-width: 40em; page-break-before: avoid; }
+     li { max-width: 40em; page-break-before: avoid; }
     </style>
   </head>
   <body>
-<br><p><b>Total Marks: << total_marks >> </b></p>
-
-    <ol>
+<p><i>Total Possible Marks: << total_marks >> </i></p>
+    <ol class='question-list'>
 <| for q in questions |>
 <li class='question' style='vertical-align: top;'>
 <| if q.type == 'essay' |>
-<b> Essay [ << q.marks >> ]</b>
+<i> Essay [ << q.marks >> ]</i>
 <<q.question>>
 <| if q.answer is defined |>
   <div style='background:#eee; max-width: 34.5em;
 			  padding: 1em; margin-bottom:1em; margin-top:1em'>
-  <p style='margin:0 0 1em 0'><b>indicative answer:</b></p>
+  <p style='margin:0 0 1em 0'><i>indicative answer:</i></p>
   <<q.answer>>
 </div>
   <| else |>
@@ -43,39 +83,37 @@
   </div>	
   <| endif |>
 <| elif q.type == 'mc'|>
-<b> Multiple Choice [ << q.marks >> ]</b>
+<i> Multiple Choice [ << q.marks >> ]</i>
 <<q.question>>
-<ol class='input' type='a'>
+<ol class='answers'>
 <|-   for a in q.answers |>
 <|        if a.correct   -|>
    <li class='correct'>
 <|-        else          -|>  
    <li class='incorrect'>
 <|-        endif          |>  
-<input name='yu' type='radio'>
 <<a.answer>>
 </li>
 <|-    endfor +|>
 </ol>
 <| elif q.type == 'ma'|>
-<b> Multiple Answers [ << q.marks >> ]</b>
+<i> Multiple Answers [ << q.marks >> ]</i>
 <<q.question>>
-<ol class='input' type='a'>
+<ol class='answers'>
 <|-   for a in q.answers |>
 <|        if a.correct   -|>
    <li class='correct'>
 <|-       else          -|>  
    <li class='incorrect'>
 <|-       endif          |>  
-<input name='yu' type='checkbox'>
 <<a.answer>>
 </li>
 <|-   endfor +|>
 </ol>
 <| elif q.type == 'matching' |>
-  <b> Matching [ << q.marks >> ]</b>
+  <i> Matching [ << q.marks >> ]</i>
 <<q.question>>
-<ol class='input' type='a'>
+<ol class='answers'>
 <|-   for a in q.answers |>
 	<li>
 	  <ol>
@@ -98,9 +136,9 @@
 <|-    endfor +|>
 </ol>
 <| elif q.type == 'ordering' |>
-  <b> Ordering [ << q.marks >> ]</b>
+  <i> Ordering [ << q.marks >> ]</i>
 <<q.question>>
-<ol class='input' type='a'>
+<ol class='answers'>
   <|-   for a in q.answers |>
   <li>
 	<div class='block'
