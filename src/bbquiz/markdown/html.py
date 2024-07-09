@@ -81,12 +81,15 @@ def get_eq_dict(eq_list):
     # if we don't have any equations, exit with empty dict
     if not eq_list:
         return eq_list
+
+    user_latex_preamble = \
+        "\\usepackage{amsmath}\n"+ \
+        "\\usepackage{notomath}\n" + \
+        "\\usepackage[OT1]{fontenc}\n"
     
     latex_preamble = \
         "\\documentclass{article}\n" + \
-        "\\usepackage{amsmath}\n"+ \
-        "\\usepackage{notomath}\n" + \
-        "\\usepackage[OT1]{fontenc}\n" + \
+        user_latex_preamble + \
         "\\newenvironment{standalone}{\\begin{preview}}{\\end{preview}}"+\
         "\\PassOptionsToPackage{active,tightpage}{preview}"+\
         "\\usepackage{preview}"+\
@@ -317,12 +320,11 @@ def get_html_dict(combined_doc, md_list):
             'class="math inline" style="vertical-align:middle"')
         html_content = html_content.replace(
             '<code>',
-            '<code style="font-family:\'Courier New\'; font-size:80%">')
+            '<code style="font-family:ui-monospace, ‘Cascadia Mono’, ‘Segoe UI Mono’, ‘Segoe UI Mono’, Menlo, Monaco, Consolas, monospace; font-size:80%; line-height:1em">')
         html_content = html_content.replace(
             '<pre>',
-            '<pre style="background:#eee; padding: 1em; max-width: 80em;">')
+            '<pre style="background:#eee; padding: 0.5em; max-width: 80em; line-height:1em">')
         md_dict[txt] = html_content
     return md_dict
     
 
-        
