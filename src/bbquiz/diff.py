@@ -1,17 +1,13 @@
-from bbquiz.bbyaml.loader import load_no_schema
-
-
 import os
 import sys
-
-# from rich.traceback import install
-# install(show_locals=False)
 
 from rich import print
 from rich.panel import Panel
 from rich.table import Table
 from rich.table import box
 from rich.console import Console
+
+from bbquiz.bbyaml.loader import load
 
 # from rich_argparse import *
 

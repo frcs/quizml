@@ -1,17 +1,42 @@
+"""BBYaml statistics
+
+
+
+"""
+
 import math
 import os
 
-def is_bbquestion(yaml_entry):
+def is_question(yaml_entry):
+    """tests if an entry is an actual question
+
+    """
+    
     return yaml_entry['type'] in ['mc', 'ma', 'essay', 'matching', 'ordering']
 
+def get_questions(yaml_data):
+    """returns a list of all the entries that are actual questions 
+
+    """
+    
+    return list(filter(lambda entry: is_question(entry), yaml_data))
+
 def get_total_marks(yaml_data):
+    """computes the maximum possible total marks for a test.
+
+    """
+
     total_marks = 0
-    for entry in yaml_data:
-        if is_bbquestion(entry):
-            total_marks = total_marks + get_entry_marks(entry)
+    questions = get_questions(yaml_data)
+    for entry in questions:
+        total_marks = total_marks + get_entry_marks(entry)
     return total_marks
 
 def get_entry_marks(entry):
+    """returns the marks of an entry. Applying default marks if the
+    'marks' key is missing.
+
+    """
 
     default_marks = {
         'mc': 2.5,
@@ -29,12 +54,28 @@ def get_entry_marks(entry):
     else:
         return 0
 
+def question_success_probability(entry):
+    """returns the probability of successfully answering a question at
+    random.
 
-
-def get_stats(yaml_data):
     """
-    gets a dictionary of information about each question. Output structure looks
-    something like this:
+    
+    if entry['type']=='mc':
+         return 1.0 / len(entry['answers'])                
+    elif entry['type']=='ma':
+        return 1.0 / (2 ** (len(entry['answers'])-1))
+    elif entry['type']=='matching':
+        return 1.0 / math.factorial(len(entry['answers']))
+    elif entry['type']=='essay':
+        return 0.0
+    else:
+        return 0.0
+
+    
+def get_stats(yaml_data):
+    """returns a dictionary of statistics about the questions in a BBYaml test.
+
+    Output structure looks something like this:
 
     stats = { "total marks": 15.0,
               "nb questions": 2,
@@ -51,47 +92,33 @@ def get_stats(yaml_data):
                                "excerpt": "Choose the best solution for..." },
                            ]
             }
+
     """
 
     total_marks = 0
-    nb_questions = 0
     expected_mark = 0
-
-    w, _ = os.get_terminal_size(0)
        
     stats = {"questions": []}
-    
-    for entry in yaml_data:
-        if is_bbquestion(entry):
-            nb_questions = nb_questions + 1
-            question_marks = get_entry_marks(entry)
-            total_marks = total_marks + question_marks
-            
-            if entry['type']=='mc':
-                question_expected_mark = question_marks / len(entry['answers'])                
-            elif entry['type']=='ma':
-                question_expected_mark = question_marks / (2 ** (len(entry['answers'])-1))
-            elif entry['type']=='matching':
-                question_expected_mark =  question_marks / math.factorial(len(entry['answers']))
-            elif entry['type']=='essay':
-                question_expected_mark = 0
-            else:
-                question_expected_mark = 0
 
-            expected_mark = expected_mark + question_expected_mark
-            choices = (str(len(entry['answers']) if 'answers' in entry else '-'))
-            lines = entry['question'].splitlines()
-            excerpt = f"{lines[0]}" + (" […]" if len(lines)>1 else "")
-            
-            stats["questions"].append({"type":  entry['type'],
-                                       "marks": question_marks,
-                                       "choices": choices,
-                                       "EM": question_expected_mark, 
-                                       "excerpt": excerpt})
+    questions = get_questions(yaml_data)
+    for entry in questions:
+        question_marks = get_entry_marks(entry)
+        total_marks = total_marks + question_marks        
+        question_expected_mark = question_marks*question_success_probability(entry)
+        expected_mark = expected_mark + question_expected_mark
+        choices = (str(len(entry['answers']) if 'answers' in entry else '-'))
+        lines = entry['question'].splitlines()
+        excerpt = f"{lines[0]}" + (" […]" if len(lines)>1 else "")
+        
+        stats["questions"].append({"type":  entry['type'],
+                                   "marks": question_marks,
+                                   "choices": choices,
+                                   "EM": question_expected_mark, 
+                                   "excerpt": excerpt})
 
     stats["total marks"] = total_marks
     stats["expected mark"] = expected_mark/total_marks*100
-    stats["nb questions"] = nb_questions
+    stats["nb questions"] = len(questions)
     return stats
 
     
