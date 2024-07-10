@@ -32,6 +32,8 @@ def load_no_schema(bbyaml_filename):
         
     yaml_data = yamldoc.data
 
+    # rest is same as in load function 
+    
     # trim all the text entries
     f = lambda a : a.strip() if isinstance(a, str) else a
     yaml_data = filter_yaml(yaml_data, f)
@@ -47,12 +49,18 @@ def load_no_schema(bbyaml_filename):
     return yaml_data
 
 
-def load(bbyaml_filename):
-    """We use StrictYAML (https://pypi.org/project/strictyaml/)
-    because we can establish a schema and specify the expected types
-    (so that we can avoid the dreaded "Norway problem").
-    """
+def load_schema(bbyaml_filename):
+    """The parsing of the StrictYaml file is done via a Schema.
 
+    We need to have a two-pass approach: the first pass checks that we
+    have a sequence with each element containing a 'type' key. Then,
+    in a sceond pass, we re-validate each item of the list with a
+    specialised secondary Schema.
+
+    This version is significantly slower than the no-schema version.
+
+    """
+    
     schema_overall = Seq(MapCombined({"type": Str()},
                                      Str(), Any()))
     
@@ -105,8 +113,50 @@ def load(bbyaml_filename):
     except YAMLError as err:
         raise BBYamlSyntaxError(str(err.problem) + '\n' + str(err.problem_mark) )
         
-    yaml_data = yamldoc.data
+    return yamldoc.data
     
+
+def load_noschema(bbyaml_filename):
+    """loading the StrictYAML file without any schema.
+
+    In this version, all keys/vals are, by default, interpreted as
+    Strings.
+
+    """
+    
+    schema_overall = Any()
+
+    yaml_txt = Path(bbyaml_filename).read_text()
+
+    try:
+        yamldoc = strictyaml.load(yaml_txt, schema_overall, label="myfilename")
+    
+    except YAMLError as err:
+        raise BBYamlSyntaxError(str(err.problem) + '\n' + str(err.problem_mark) )
+        
+    return yamldoc.data
+    
+
+
+def load(bbyaml_filename, schema=true):
+    """We use StrictYAML (https://pypi.org/project/strictyaml/)
+    because we can establish a schema and specify the expected types
+    (so that we can avoid the dreaded "Norway problem", where 'coutry:
+    no' is translated as 'coutry: False'). Here, we explicitely set
+    the types for each key. Hence all statements/answers, etc., are,
+    by default strings.
+
+    Note that StrictYAML's validation is a bit slow. Hence
+    load_no_schema is proposed for speed, but will not catch syntax
+    errors.
+
+    """
+
+    if (schema):
+        yaml_data = load_schema(bbyaml_filename)
+    else:
+        yaml_data = load_no_schema(bbyaml_filename)
+        
     # trim all the text entries
     f = lambda a : a.strip() if isinstance(a, str) else a
     yaml_data = filter_yaml(yaml_data, f)

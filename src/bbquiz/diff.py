@@ -19,15 +19,15 @@ from rich.console import Console
 # from rich.logging import RichHandler
 
 
-# not used yet...
-def similarity_question(q1, q2):
-    return q1.question == q2.question
+# at the moment this is pretty basic
+def questions_are_similar(q1, q2):
+    return q1 == q2
 
 
 def diff(args):
     """
     finds if questions can be found in other exams
-    called with --diff flag.
+    called with the --diff flag.
     """
     
     # remove duplicate files from list
@@ -43,10 +43,13 @@ def diff(args):
                         title="Error", border_style="red"))
             return
         try:
-            filedata[f] = load_no_schema(f)
+            # we need to turn off schema for speed this is OK because
+            # everything will be considered as Strings anyway
+            filedata[f] = load(f, schema=False) 
         except BBYamlSyntaxError as err:
             print(Panel(str(err),
-                        title=f"BByaml Syntax Error in file {f}", border_style="red"))
+                        title=f"BByaml Syntax Error in file {f}",
+                        border_style="red"))
             return
 
     # checking for duplicate questions        
@@ -55,7 +58,7 @@ def diff(args):
         for f in files[1:]:
             dst = filedata[f]        
             for j, qd in enumerate(dst):
-                if (qr == qd):
+                if questions_are_similar(qr, qd):
                     print(f"found match: Q{i : <2} matches Q{j : <2} in {f}:")
                     print(qr)
 
