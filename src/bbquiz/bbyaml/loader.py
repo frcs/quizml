@@ -138,7 +138,7 @@ def load_noschema(bbyaml_filename):
     
 
 
-def load(bbyaml_filename, schema=true):
+def load(bbyaml_filename, schema=True):
     """We use StrictYAML (https://pypi.org/project/strictyaml/)
     because we can establish a schema and specify the expected types
     (so that we can avoid the dreaded "Norway problem", where 'coutry:
