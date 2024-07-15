@@ -6,6 +6,8 @@ import html
 import re
 
 from bs4 import BeautifulSoup
+import css_inline
+
 
 from subprocess import call
 import tempfile
@@ -32,11 +34,12 @@ from .exceptions import LatexEqError
 
 from mistletoe import span_token
 
-# logger = logging.getLogger(__name__)
+
+
 
 def embed_base64(path):
-    """
-    returns a base64 string of an image file.
+    """returns a base64 string of an image file.
+
     """
     
     filename, ext = os.path.splitext(path)
@@ -52,8 +55,9 @@ def embed_base64(path):
 
 
 def get_eq_list_from_doc(doc):
-    """
-    returns a list of all the LaTeX equations (as mistletoe objects) in a mardown document (mistletoe object).    
+    """returns a list of all the LaTeX equations (as mistletoe
+    objects) in a mardown document (mistletoe object).
+
     """
 
     eq_list = []
@@ -65,30 +69,37 @@ def get_eq_list_from_doc(doc):
     return eq_list
    
 
-def get_eq_dict(eq_list):
-    """
-    returns a dictionary of images from a list of LaTeX equations.
+def build_eq_dict(eq_list, opts):
+    """returns a dictionary of images from a list of LaTeX equations.
    
     LaTeX equations are compiled into a PDF document using pdflatex,
     with one equation per page.
 
     The PDF is then converted into PNG images using ghostscript (gs).
-    
+
     """
-    
     eq_dict = {}
     
     # if we don't have any equations, exit with empty dict
     if not eq_list:
         return eq_list
 
-    user_latex_preamble = \
-        "\\usepackage{amsmath}\n"+ \
-        "\\usepackage{notomath}\n" + \
-        "\\usepackage[OT1]{fontenc}\n"
-    
+    if 'html_pre' in opts:
+        template_latex_preamble = opts['html_pre']
+    else:
+        template_latex_preamble = \
+            "\\usepackage{amsmath}\n"+ \
+            "\\usepackage{notomath}\n" + \
+            "\\usepackage[OT1]{fontenc}\n"
+
+    if 'user_pre' in opts:
+        user_latex_preamble = opts['user_pre']
+    else:
+        user_latex_preamble = ''
+        
     latex_preamble = \
         "\\documentclass{article}\n" + \
+        template_latex_preamble + \
         user_latex_preamble + \
         "\\newenvironment{standalone}{\\begin{preview}}{\\end{preview}}"+\
         "\\PassOptionsToPackage{active,tightpage}{preview}"+\
@@ -108,6 +119,7 @@ def get_eq_dict(eq_list):
 
     for eq in eq_list:
         if isinstance(eq, MathInline):
+            # we want to also save the depth (drop below baseline) of the inline equation.
             f.write("\\setbox0=\\hbox{" + eq.content + "}\n")
             f.write("\\makeatletter\\typeout{::: \\strip@pt\\dimexpr 1pt * \\dp0 / \\wd0\\relax}\\makeatother")
             f.write("\\begin{standalone}\\copy0\\end{standalone}\n")
@@ -125,7 +137,6 @@ def get_eq_dict(eq_list):
         stdout = subprocess.PIPE,
         universal_newlines = True)
     found_pdflatex_errors = False
-
 
     pdflatex_progress =  Spinner("simpleDotsScrolling", "pdflatex compilation")
 
@@ -149,9 +160,14 @@ def get_eq_dict(eq_list):
    
     # converting all pages in pdf doc into png files using gs
     
-    call(["gs", "-dBATCH", '-q', "-dNOPAUSE", "-sDEVICE=pngalpha", "-r250",
-          "-dTextAlphaBits=4", "-dGraphicsAlphaBits=4",
-          "-sOutputFile=" + png_base + "%05d.png", pdf_filename])
+    call(["gs",
+          "-dBATCH", '-q', "-dNOPAUSE",
+          "-sDEVICE=pngalpha",
+          "-r250",
+          "-dTextAlphaBits=4",
+          "-dGraphicsAlphaBits=4",
+          "-sOutputFile=" + png_base + "%05d.png",
+          pdf_filename])
 
     # converting all png files into base64 strings
     
@@ -173,13 +189,17 @@ def get_eq_dict(eq_list):
     return eq_dict
 
 def strip_newlines_and_tabs(html_content):
-    """
+    """removes all newline and tab characters from an HTML string.
+    
     Problem: we need to remove any tab or any newline 
     from the string as it must be passed as a CSV entry
     for blackboard exams.
 
-    replace '\n' with <br> inside <code> </code> blocks so as
-    preserve formatting inside these verbatim blocks
+    Solution: we remove these characters everywhere. We need, however,
+    to take care of <code> </code> blocks. There we need to replace
+    '\n' with <br> so as preserve formatting inside these verbatim
+    blocks.
+
     """
     
     htmlsrc = BeautifulSoup(html_content, "html.parser")
@@ -190,7 +210,7 @@ def strip_newlines_and_tabs(html_content):
         
     html_content = str(htmlsrc)
 
-    # now we can delete any spurious \n or \t
+    # now we can delete any spurious '\n' or '\t'
     
     html_content = html_content.replace('\n', ' ').replace('\t', '  ')
 
@@ -198,11 +218,15 @@ def strip_newlines_and_tabs(html_content):
 
 
 def escape_LaTeX(str_eq):
-    """
+    """HTML escape the LaTeX string defining an equation. This is to
+    be used in the `alt` tag of the corresponding rendered image
+
+    It applies the following transformations:    
     * convert main $ and $$ sign to \( and \[
     * convert other $ into &dollar;
     * escape HTML
     * remove '\n' and '\t'
+
     """
 
     re_single_dollar = r"^\s*\$([^\$]*)\$\s*$"
@@ -237,10 +261,12 @@ def escape_LaTeX(str_eq):
     
 
 class BBYamlHTMLRenderer(HTMLRenderer):
-    """
-    customised mistletoe renderer for HTML
-    implements render for custom spans MathInline, MathDisplay, ImageWithWidth
-    also reimplements Image to embbed the image as base64
+    """customised mistletoe renderer for HTML
+
+    implements render for custom spans MathInline, MathDisplay,
+    ImageWithWidth also reimplements Image to embbed the image as
+    base64
+
     """
     
     def __init__(self, eq_dict):
@@ -252,11 +278,17 @@ class BBYamlHTMLRenderer(HTMLRenderer):
         d_ = round(dr * w * 0.5 , 2)
         w_ = round(w/2, 2)
         h_ = round(h/2, 2)        
-        return f"<img src='{data64}' alt='{escape_LaTeX(token.content)}' width='{w_}' height='{h_}' style='vertical-align:{-d_}px;'>"
+        return (
+            f"<img src='{data64}' alt='{escape_LaTeX(token.content)}'"
+            f" width='{w_}' height='{h_}' style='vertical-align:{-d_}px;'>"
+        )
     
     def render_math_display(self, token):
         [w, h, d, data64] = self.eq_dict['##Display##' + token.content]
-        return f"<img src='{data64}' alt='{escape_LaTeX(token.content)}' width='{int(w/2):d}' height='{int(h/2):d}'>"
+        return (
+            f"<img src='{data64}' alt='{escape_LaTeX(token.content)}'"
+            f" width='{int(w/2):d}' height='{int(h/2):d}'>"
+        )
     
     def render_image(self, token: span_token.Image) -> str:       
         template = '<img src="{}" alt="{}"{} />'
@@ -280,20 +312,61 @@ class BBYamlHTMLRenderer(HTMLRenderer):
                                token.width)
     
 
-def get_html(doc):
+def get_html(doc, opts):
     """
     returns the rendered HTML source for mistletoe object
     """
 
+    
     eq_list = get_eq_list_from_doc(doc)
-    eq_dict = get_eq_dict(eq_list)
+    eq_dict = build_eq_dict(eq_list, opts)
 
     with BBYamlHTMLRenderer(eq_dict) as renderer:
         html_result = renderer.render(doc)
 
     return html_result
 
-def get_html_dict(combined_doc, md_list):
+def inline_css(html_content, opts):
+
+    if 'html_css' in opts:
+        css = opts['html_css']
+        # remove all comments (/*COMMENT */) from string
+        css = re.sub(re.compile("/\*.*?\*/",re.DOTALL ) ,"" , css)   
+    else:
+        css = """
+        .math.inline {vertical-align:middle}
+        pre {
+              background:#eee;
+              padding: 0.5em;
+              max-width: 80em;
+              line-height:1em;
+        }
+        code { 
+              font-family: ui-monospace, ‘Cascadia Mono’, ‘Segoe UI Mono’, 
+                           ‘Segoe UI Mono’, Menlo, Monaco, Consolas, monospace;
+              font-size:80%;
+              line-height:1em;
+        }
+        """
+
+    html_payload = "<html><head><style>" + css + "</style>" + html_content + "</html>"
+    out = css_inline.inline( html_payload )
+    out = out[26:-15]
+
+    return out
+
+    # html_content = html_content.replace(
+    #     'class="math inline"',
+    #     'class="math inline" style="vertical-align:middle"')
+    # html_content = html_content.replace(
+    #     '<code>',
+    #     '<code style="font-family:ui-monospace, ‘Cascadia Mono’, ‘Segoe UI Mono’, ‘Segoe UI Mono’, Menlo, Monaco, Consolas, monospace; font-size:80%; line-height:1em">')
+    # html_content = html_content.replace(
+    #     '<pre>',
+    #     '<pre style="background:#eee; padding: 0.5em; max-width: 80em; line-height:1em">')
+
+
+def get_html_dict(combined_doc, md_list, opts):
     """
     md_list: a list of markdown entries
     combined_doc: the mistletoe object for the collation of all these entries
@@ -301,8 +374,8 @@ def get_html_dict(combined_doc, md_list):
     renders the HTML source of a collation of mardown entries
     and build a dictionary of these renders.
     """
-   
-    html_result = get_html(combined_doc)
+    
+    html_result = get_html(combined_doc, opts)
     
     md_dict = {}
     for i, txt in enumerate(md_list, start=1):
@@ -315,15 +388,7 @@ def get_html_dict(combined_doc, md_list):
             
         html_content = html_result[start:end]
         html_content = strip_newlines_and_tabs(html_content)
-        html_content = html_content.replace(
-            'class="math inline"',
-            'class="math inline" style="vertical-align:middle"')
-        html_content = html_content.replace(
-            '<code>',
-            '<code style="font-family:ui-monospace, ‘Cascadia Mono’, ‘Segoe UI Mono’, ‘Segoe UI Mono’, Menlo, Monaco, Consolas, monospace; font-size:80%; line-height:1em">')
-        html_content = html_content.replace(
-            '<pre>',
-            '<pre style="background:#eee; padding: 0.5em; max-width: 80em; line-height:1em">')
+        html_content = inline_css(html_content, opts)
         md_dict[txt] = html_content
     return md_dict
     

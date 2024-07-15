@@ -30,7 +30,9 @@ from bbquiz.bbyaml.utils import transcode_md_in_yaml
 from bbquiz.bbyaml.stats import get_stats
 from bbquiz.bbyaml.loader import BBYamlSyntaxError
 
-from bbquiz.markdown.markdown import get_dicts_from_yaml
+#from bbquiz.markdown.markdown import get_dicts_from_yaml
+import bbquiz.markdown.markdown as md
+
 from bbquiz.markdown.exceptions import MarkdownError, LatexEqError
 from bbquiz.render import to_jinja
 from bbquiz.render.to_jinja import Jinja2SyntaxError
@@ -121,7 +123,7 @@ def get_config(args):
     
     
 
-def get_target_list(yaml_filename, config):
+def get_target_list(yaml_filename, config, yaml_data):
     """
     gets the list of target templates from config['targets'] and
       * resolves the absolute path of each template
@@ -130,18 +132,35 @@ def get_target_list(yaml_filename, config):
     
     (basename, _) = os.path.splitext(yaml_filename)
     
-    subs = {'inputbasename': basename}   
+    subs = {'inputbasename': basename}
+    filenames_to_resolve = ['template', 'html_css', 'html_pre', 'latex_pre']
+    files_to_read_now = ['html_css', 'html_pre', 'latex_pre']
+    
     target_list = []
     for t in config['targets']:
         target = {}
+
         # resolves $inputbasename
         for key, val in t.items():
             target[key] = Template(val).substitute(subs)
-        # resolves relative path for template
-        if 'template' in target:
-            target['template'] = locator.locate_in_default_dirs(t['template'])
-            logging.info(f"using template file:{target['template']}")
-            
+
+        # resolves relative path for all files
+        for key in filenames_to_resolve:        
+            if key in target:
+                target[key] = locator.locate_in_default_dirs(t[key])
+                logging.info(f"'{target['descr']}:{key}' expands as '{target[key]}'")
+
+        # replaces values with actual file content for some keys
+        for key in files_to_read_now:
+            if key in target:
+                file_path = target[key]
+                contents = pathlib.Path(file_path).read_text()
+                target[key] = contents
+
+        # add preamble key if defined in the bbyaml header
+        target['user_pre'] = yaml_data[0].get( 'pre_latexpreamble', '')
+        
+        # add target to list
         target_list.append(target)
     
     return target_list
@@ -160,11 +179,14 @@ def print_stats_table(stats):
     console = Console()
 
     table = Table(box=box.SIMPLE,collapse_padding=True, show_footer=True)
-    table.add_column("Q", f"{stats['nb questions']}", no_wrap=True, justify="right")
+    table.add_column("Q", f"{stats['nb questions']}", no_wrap=True,
+                     justify="right")
     table.add_column("Type", "--", no_wrap=True, justify="center")
-    table.add_column("Marks", f"{stats['total marks']:3.1f}",  no_wrap=True, justify="right")
+    table.add_column("Marks", f"{stats['total marks']:3.1f}",  no_wrap=True,
+                     justify="right")
     table.add_column("#", "-", no_wrap=True, justify="right")
-    table.add_column("Exp", f"{stats['expected mark']:2.1f}" + "%", no_wrap=True, justify="right")
+    table.add_column("Exp", f"{stats['expected mark']:2.1f}" + "%",
+                     no_wrap=True, justify="right")
     table.add_column("Question Statement", no_wrap=False, justify="left")
     for i, q in enumerate(stats["questions"]):
         table.add_row(f"{i+1}", q["type"], f"{q['marks']:2.1f}",
@@ -174,6 +196,7 @@ def print_stats_table(stats):
 
 
 def compile_build_task(target):
+    
     command = shlex.split(target["build_cmd"])
     try:
         output = subprocess.check_output(command)
@@ -184,31 +207,20 @@ def compile_build_task(target):
                     title = f"\n failed to build command ",
                     border_style="red"))
         
-        return False
+        return False    
     
-    
-def compile_template_task(target, yaml_dict):
+def render_template_target(target, yaml_transcoded):
 
-    if target["fmt"] not in yaml_dict:
-        print(Panel(
-            f"\n did not generate {out_filename} because {target['fmt']} is "
-            + "not a valid format for a template (only 'html' and 'latex' "
-            + "are valid). Check your target definition in your config file.",
-            title='Config Error', border_style="red"))
-        return False
-
-    try:
-        rendered_doc = to_jinja.render(yaml_dict[target["fmt"]],
-                                           target['template'])        
-        # write rendered_doc to output file
+    try:        
+        rendered_doc = to_jinja.render(yaml_transcoded, target['template'])
         pathlib.Path(target['out']).write_text(rendered_doc)
         
         return True
     
     except Jinja2SyntaxError as err:
-        print(Panel(
-            f"\n did not generate {out_filename} because of template errors  ! \n "
-            + str(err), title='Jinja Template Error', border_style="red"))
+        print(Panel( (f"\n did not generate {out_filename} " +
+                      "because of template errors ! \n " + str(err)),
+                     title='Jinja Template Error', border_style="red"))
         return False
 
     
@@ -227,38 +239,49 @@ def compile(args):
     
     if not os.path.exists(yaml_filename):
         print(Panel("File " + yaml_filename + " not found",
-                    title="Error", border_style="red"))
+                    title="Error",
+                    border_style="red"))
         return
     try:
         yaml_data = load(yaml_filename, schema=True)
     except BBYamlSyntaxError as err:
         print(Panel(str(err),
-                    title="BByaml Syntax Error", border_style="red"))
+                    title="BByaml Syntax Error",
+                    border_style="red"))
         return
         
     # load all markdown entries into a list 
     # and build dictionaries of their HTML and LaTeX translations
     
     try:
-        yaml_dict = {}
-        (latex_md_dict, html_md_dict) = get_dicts_from_yaml(yaml_data)
-        yaml_dict['latex'] = transcode_md_in_yaml(yaml_data, latex_md_dict)        
-        yaml_dict['html'] = transcode_md_in_yaml(yaml_data, html_md_dict)
+        bbyamltranscoder = md.BBYAMLMarkdownTranscoder(yaml_data)
     except LatexEqError as err:
-        print(Panel(str(err), title="Latex Error", border_style="red"))
+        print(Panel(str(err),
+                    title="Latex Error",
+                    border_style="red"))
         return
     except MarkdownError as err:
-        print(Panel(str(err), title="Markdown Error", border_style="red"))
+        print(Panel(str(err),
+                    title="Markdown Error",
+                    border_style="red"))
         return
     except FileNotFoundError as err:
-        print(Panel(str(err), title="FileNotFoundError Error", border_style="red"))
+        print(Panel(str(err),
+                    title="FileNotFoundError Error",
+                    border_style="red"))
         return
        
     # diplay stats about the questions
     print_stats_table(get_stats(yaml_data))
    
     # get target list from config file
-    target_list = get_target_list(yaml_filename, config)
+    try:
+        target_list = get_target_list(yaml_filename, config, yaml_data)
+    except FileNotFoundError as err:
+        print(Panel(str(err),
+                    title="FileNotFoundError Error",
+                    border_style="red"))
+        return
     
     # sets up list of the output for each build
     targets_output = []
@@ -273,10 +296,13 @@ def compile(args):
         if ("build_cmd" in target) and not args.build:
             continue
 
-        # a build target (eg. compile pdf of generated latex)
+        # a build target (eg. compile pdf of generated latex) a build
+        # target only requires the execution of an external command,
+        # ie. no python code required
+        #
         if ("build_cmd" in target) and args.build:
             # need to check if there is a dependency,
-            # and if this dependency compiled fine
+            # and if this dependency compiled successfully
             if (("dep" not in target) or
                 ("dep" in target and success_list[target['dep']])):
                 success = compile_build_task(target)
@@ -285,8 +311,26 @@ def compile(args):
 
         # a template task that needs to be rendered
         if ("template" in target):
-            success = compile_template_task(target, yaml_dict)
-
+            
+            try:
+                yaml_transcoded = bbyamltranscoder.transcode_target(target)
+                success = render_template_target(target, yaml_transcoded)
+            except LatexEqError as err:
+                print(Panel(str(err),
+                            title="Latex Error",
+                            border_style="red"))
+                return
+            except MarkdownError as err:
+                print(Panel(str(err),
+                            title="Markdown Error",
+                            border_style="red"))
+                return
+            except FileNotFoundError as err:
+                print(Panel(str(err),
+                            title="FileNotFoundError Error",
+                            border_style="red"))
+                return
+            
         success_list[target['out']] = success
         
         targets_output.append(
@@ -373,13 +417,7 @@ def main():
         "otherfiles", nargs='*',
         type=str, #argparse.FileType('r'),
         help = "other yaml files [when using diff]")
-    
-    # parser.add_argument(
-    #     'diff_files',
-    #     type=argparse.FileType('r'),
-    #     help = "path to the quiz in a yaml format",
-    #     nargs='*')
-    
+        
     parser.add_argument(
         "-w", "--watch", 
         help="continuously compiles the document on file change",
@@ -403,6 +441,11 @@ def main():
         help="compares questions from first yaml file to rest of files",
         action="store_true")
 
+    parser.add_argument(
+        "--bash",
+        help="A helper command used for exporting the "
+        "command completion code in bash",
+        action="store_true")
     
     parser.add_argument(
         "--zsh",
@@ -451,12 +494,10 @@ def main():
     if args.fish:
         print(bbquiz.shellcompletion.fish())
         return
-
     
-    # if args.bash:
-    #     print(bbquiz.shellcompletion.bash())
-    #     return
-
+    if args.bash:
+        print(bbquiz.shellcompletion.bash())
+        return
     
     if not args.yaml_filename:
         parser.error("a yaml file is required")
