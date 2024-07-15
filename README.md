@@ -60,11 +60,14 @@ and this is what the provided LaTeX template pdf output would look like:
 
 # Getting Started
 
+This is a command line application. Assuming that you have python and pip
+installed, you can simply install it with:
+
 ```bash
 pip install .
 ```
 
-You will also need a LaTeX installation with `gs` and `pdflatex`. 
+You will also need a LaTeX installation with `gs` and `pdflatex`.
 
 
 # Usage
@@ -93,7 +96,7 @@ Optional Arguments:
   --verbose            set verbose on
 ```
 
-For instance, running BBQuiz on the simple example gives us:
+Running BBQuiz on the simple example gives us:
 
 ```
 $ bbquiz quiz1.yaml
@@ -124,24 +127,23 @@ of possible options per question, the expected mark if it is answered randomly.
 
 The rendered target outputs are shown at the end. It will also indicate how to
 further compile the output if it is required. For instance, to compile the
-genereated LaTeX into a pdf, you can do it with 
+generated LaTeX into a pdf, you can do it with:
 
-```
+```bash
 latexmk -xelatex -pvc quiz1.tex
 ```
 
-This can be done automatically by asking BBQuiz to also build the output
-targets:
+You can automate these additional compilations by setting the `--build` flag:
 
-```
-$ bbquiz --build quiz1.yaml
+```bash
+bbquiz --build quiz1.yaml
 ```
 
-When working on a test, you can also use the `-w` flag to continuously watch for
-any file change and recompile the target on changes:
+When editing a test, you can continuously watch for any file change and
+recompile the target by setting the flag `-w`:
 
-```
-$ bbquiz -w quiz1.yaml
+```bash
+bbquiz -w quiz1.yaml
 ```
 
 
@@ -154,8 +156,9 @@ marks, type, answers, etc.
 
 One motivation behind using YAML is that all text entries (e.g., question
 statements, answers, etc.) can be written in
-[Markdown](https://en.wikipedia.org/wiki/Markdown). With a few extensions, you
-can also use LaTeX equations and tables too.
+[Markdown](https://en.wikipedia.org/wiki/Markdown), and with a few extensions,
+it is possible write LaTeX equations, and it will be very similar, in feel and
+capabilities to LaTeX.
 
 Below is an longer example of what an exam script would look like:
 
@@ -378,7 +381,7 @@ exam date, venue, etc. The header must be the first item in the BBYaml file.
 Note that it is recommended for the key names should contain only uppercase and
 lowercase alphabetical characters: a-z and A-Z, without any numeral or other
 non-letter character.  This is because, in the LaTeX template, it is expected
-that the keys will be copied accross as follows:
+that the keys will be copied accross as macros:
 
 ```tex
 \def\descr{
@@ -390,10 +393,11 @@ that the keys will be copied accross as follows:
 \def\date{13/05/2024}
 ```
 
-Hence each key will be turned into a LaTeX macro.
+Hence, as each key will be turned into a LaTeX macro, it must also follow LaTeX
+syntax macro naming rules.
 
-If you your key starts with the prefix `pre_`, as in `pre_latexpreamble`, the
-key should not be turned into a macro by the LaTeX template.
+Note that if your key starts with the prefix `pre_`, as in `pre_latexpreamble`,
+the key should not be turned into a macro by the LaTeX template.
 
 #### Random Generator
 
