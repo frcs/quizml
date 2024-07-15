@@ -6,14 +6,15 @@
 %%
 \documentclass{tcdexams}
 
-<# passing the header variables to template #>
-<| if header      -|>
-<|   for key, value in header.items()      -|>
-<|     if key != 'type'                     |>
+<# passing the header variables to template  #>
+<# we do not include 'type' and 'pre_' keys  #>
+<| if header                                               -|>
+<|   for key, value in header.items()                      -|>
+<|     if (key != 'type') and (not key.startswith('pre_'))  |>
 \def \info<<key>> {<<value>>}
-<|     endif           |>  
-<|-  endfor                                |>
-<|-endif      |>  
+<|     endif                                                |>  
+<|-  endfor                                                 |>
+<|-endif                                                    |>  
 
 \providecommand{\infoprogrammeyearname}{}
 \providecommand{\infoexamsemester}{}
@@ -200,12 +201,21 @@
   \if@twocolumn\hbox{}\newpage\fi\fi\fi}
 \makeatother
 
+%%
+%% start of user-defined preamble
+%%
 
+<| if 'pre_latexpreamble' in header  |>
+<< header['pre_latexpreamble']  >>
+<| endif |>
+
+%%
+%% end of user-defined preamble
+%%
 
 \begin{document}
 \pagestyle{plain}
 \maketitle
-
 
 \cleardoublepage
 \vspace*{-4em}

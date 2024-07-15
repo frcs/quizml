@@ -36,7 +36,6 @@ from mistletoe import span_token
 
 
 
-
 def embed_base64(path):
     """returns a base64 string of an image file.
 
@@ -87,24 +86,21 @@ def build_eq_dict(eq_list, opts):
     if 'html_pre' in opts:
         template_latex_preamble = opts['html_pre']
     else:
-        template_latex_preamble = \
-            "\\usepackage{amsmath}\n"+ \
-            "\\usepackage{notomath}\n" + \
-            "\\usepackage[OT1]{fontenc}\n"
+        template_latex_preamble = (
+            "\\usepackage{amsmath}\n" +
+            "\\usepackage{notomath}\n" +
+            "\\usepackage[OT1]{fontenc}\n")
 
-    if 'user_pre' in opts:
-        user_latex_preamble = opts['user_pre']
-    else:
-        user_latex_preamble = ''
+    user_latex_preamble = opts.get('user_pre','')
         
-    latex_preamble = \
-        "\\documentclass{article}\n" + \
-        template_latex_preamble + \
-        user_latex_preamble + \
-        "\\newenvironment{standalone}{\\begin{preview}}{\\end{preview}}"+\
-        "\\PassOptionsToPackage{active,tightpage}{preview}"+\
-        "\\usepackage{preview}"+\
-        "\\begin{document}\n"
+    latex_preamble = (
+        "\\documentclass{article}\n" + 
+        template_latex_preamble + 
+        user_latex_preamble + 
+        "\\newenvironment{standalone}{\\begin{preview}}{\\end{preview}}" +
+        "\\PassOptionsToPackage{active,tightpage}{preview}" +
+        "\\usepackage{preview}" +
+        "\\begin{document}\n")
 
     tmpdir = tempfile.mkdtemp()
     olddir = os.getcwd()
@@ -119,9 +115,12 @@ def build_eq_dict(eq_list, opts):
 
     for eq in eq_list:
         if isinstance(eq, MathInline):
-            # we want to also save the depth (drop below baseline) of the inline equation.
+            # we want to also save the depth (drop below baseline)
+            # of the inline equation.
             f.write("\\setbox0=\\hbox{" + eq.content + "}\n")
-            f.write("\\makeatletter\\typeout{::: \\strip@pt\\dimexpr 1pt * \\dp0 / \\wd0\\relax}\\makeatother")
+            f.write("\\makeatletter\\typeout{" +
+                    "::: \\strip@pt\\dimexpr 1pt * \\dp0 / \\wd0\\relax}" +
+                    "\\makeatother")
             f.write("\\begin{standalone}\\copy0\\end{standalone}\n")
         if isinstance(eq, MathDisplay):
             f.write("\\typeout{::: 0}")            

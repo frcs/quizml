@@ -177,6 +177,8 @@ Below is an longer example of what an exam script would look like:
   instructions: "" 
   materials: ""
   additionalinformation: ""
+  pre_latexpreamble: |
+    \newcommand{\R}{\mathbb{R}}
 
 - type: mc
   marks: 5           
@@ -202,9 +204,9 @@ Below is an longer example of what an exam script would look like:
 - type: ma
   marks: 5         
   question: |
-    Consider the binary class dataset below (with 2 features $(x_1, x_2)$ and
-    2 classes (cross and circle). Select all suitable
-    classification techniques for this dataset.
+    Consider the binary class dataset below (with 2 features $(x_1, x_2)\in\R^2$
+    and 2 classes (cross and circle). Select all suitable classification
+    techniques for this dataset.
 
     ![](figures/dataset-4.png){ width=30em }
     
@@ -365,35 +367,65 @@ exam date, venue, etc. The header must be the first item in the BBYaml file.
 
 ```yaml
 - type: header
-  key1: val1
-  key2: val2
-  key3: val3
-  key4: val4
+  descr: |
+    A very long exam
+    
+    You are all going to suffer.
+  venue: Maxwell Theatre
+  date: 13/05/2024
 ```
 
+Note that it is recommended for the key names should contain only uppercase and
+lowercase alphabetical characters: a-z and A-Z, without any numeral or other
+non-letter character.  This is because, in the LaTeX template, it is expected
+that the keys will be copied accross as follows:
+
+```tex
+\def\descr{
+    A very long exam
+    
+    You are all going to suffer.
+}
+\def\venue{Maxwell Theatre}
+\def\date{13/05/2024}
+```
+
+Hence each key will be turned into a LaTeX macro.
+
+If you your key starts with the prefix `pre_`, as in `pre_latexpreamble`, the
+key should not be turned into a macro by the LaTeX template.
+
 #### Random Generator
+
+__not yet implemented__
 
 You can set a random seed generator by assigning the key `srand` (eg. `srand:
 42`) in the header.
 
 #### LaTeX preamble
 
-You can set the LaTeX preamble by assigning the key `latex-preamble` in the
-header.
+You can set a LaTeX preamble by assigning the key `pre_latexpreamble` in the
+header. The value for this key will not be interpretrated as a raw string and
+not as Mardown.
 
 ## Markdown Syntax
 
-All yaml entries, including the question statements and answers, need to be
-written in Markdown.
+All yaml entries, including the question statements and answers, will be
+interprated as Markdown. 
 
-## Basic Markdown Syntax 
+To avoid the Markdown conversion, a key must be prefixed with `pre_`.
+
+### Markdown Syntax 
 
 Text Tags can be found here:
 
 https://commonmark.org/help/
 
+### Markdown Extensions
 
-## Extensions
+We propose a few Markdown extensions. 
+
+__needs to be documented__
 
 
 # Configuration File and Target Templates
@@ -401,7 +433,6 @@ https://commonmark.org/help/
 After reading the BBYaml file and converting the markdown entries into LaTeX or
 HTML, BBQuiz uses jinja2 templates to render the various targets (BlackBoard
 compatible quiz, HTML preview or LaTeX).
-
 
 ## Configuration Files Location
 
@@ -430,17 +461,20 @@ The configuration file defines the list of all the targets. For instance, the
 BlackBoard csv quiz file can be defined as the following target:
 
 ```yaml
-- out      : ${inputbasename}.txt  # template for output filename.
-                                   #    ${inputbasename} refers to the basename of the quiz
-                                   #    (eg. mcq-01.yaml => mcq-01)
-  descr    : BlackBoard CSV        # description for the target. 
-  descr_cmd: ${inputbasename}.txt  # command to use (here we have no suggestion, so just print output path)
-  fmt      : html                  # latex or html: format that markdown gets converted to
-  template : bb.jinja              # filename for the jinja template used
+  - out       : ${inputbasename}.txt     # template for outputfilename.
+                                         # ${inputbasename} refers to the basename of the quiz
+                                         # (eg. mcq-01.yaml => mcq-01)
+    descr     : BlackBoard CSV           # description for the target. 
+    descr_cmd : ${inputbasename}.txt     # command to use (here we have no suggestion, so just print output path)
+    fmt       : html                     # latex or html: format that markdown gets converted to
+    html_pre  : html-latex-preamble.tex  # latex preamble for generating the equations in the markdown > html conversion
+    html_css  : html-inline-style.css    # CSS used for inline styling the HTML render.
+                                         # e.g. it can be used to stye <code></code>, tables, line separation, etc.
+    template  : bb.jinja                 # filename for the jinja template used
 ```
 
-As for the config file directory, if the templates are defined as a relative
-path, the template is searched in:
+As for the config file directory, any resource file or template file is defined
+as a relative path, the template is searched in:
 1. the local directory from which BBQuiz is called 
 2. the default application config dir 
 3. the install package templates dir
@@ -462,7 +496,7 @@ delimiters:
 * `<< ... >>`  for Expressions
 * `<# ... #>`  for Comments
 
-## LaTeX configuration
+## Setting up your local LaTeX
 
 To be able to compile the LaTeX targets, you will need to have the required
 LaTeX assets `.sty` `.cls` and other images.
