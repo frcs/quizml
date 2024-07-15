@@ -1,0 +1,73 @@
+/* This CSS is to be embedded with the HTML output of the Markdown to
+   HTML conversion in BBQUIZ.
+
+   DO NOT USE FANCY PSEUDO-CLASSES (e.g. :is(), etc.)
+
+   We use the css_inline python package (see
+   https://pypi.org/project/css-inline/). css_inline is a python
+   library for inlining CSS into HTML 'style' attributes.
+
+   For instance, the css_inline library transforms HTML like this:
+
+   <html> <head> <style>h1 { color:blue; }</style> </head> <body>
+     <h1>Big Text</h1> </body> </html>
+
+   into:
+
+   <html> <head></head> <body> <h1 style="color:blue;">Big Text</h1>
+     </body> </html>
+
+   Some complex CSS features, such as some pseudo-classes are not
+   supported.
+   
+ */
+
+.math.inline {
+	vertical-align:middle
+}
+pre {
+    background:#eee;
+    padding: 0.5em;
+    max-width: 80em;
+    line-height:1em;
+}
+code { 
+    font-family: ui-monospace, ‘Cascadia Mono’, ‘Segoe UI Mono’, 
+	‘Segoe UI Mono’, Menlo, Monaco, Consolas, monospace;
+    font-size:80%;
+    line-height:1em;
+}
+
+/* this is the default booktabs style */ 
+
+table {
+    border-collapse: collapse;
+}
+table {
+    padding: 0.25em;
+    text-align: left;
+}
+table td {
+    padding: 0.25em;
+    text-align: left;
+}
+table > thead th  {
+    padding: 3px;
+    text-align: left;
+}
+table > thead > tr > td {
+    border-top: 2px solid;
+    border-bottom: 1px solid;
+}
+table > thead > tr > th {
+    border-top: 2px solid;
+    border-bottom: 1px solid;
+}
+table > tbody > tr:last-child > th {
+    border-bottom: 2px solid;
+}
+table > tbody > tr:last-child > td {
+    border-bottom: 2px solid;
+}
+
+
