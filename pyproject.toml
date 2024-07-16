@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bbquiz"
-version = "0.3"
+version = "0.4"
 dependencies = [
   "bs4",
   "strictyaml>=1.7",
