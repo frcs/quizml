@@ -22,7 +22,8 @@ def msg_context_line(lines, lineo, charno=None, highlight=False):
     if (lineo < 1 or lineo > len(lines)):
         return ""    
     if highlight:
-        s = f"[red]❱[/][bright_white]{lineo:>4} [/]│  [bright_white]{lines[lineo-1]}[/]\n"
+        s = (f"[red]❱[/][bright_white]{lineo:>4} [/]│" +
+             "  [bright_white]{lines[lineo-1]}[/]\n")
     else:
         s = f" {lineo:>4} │ {lines[lineo-1]}\n"
     return s
@@ -47,8 +48,6 @@ def render(yaml_data, template_filename):
         "total_marks" : get_total_marks(yaml_data)
     }
    
-                
-    # with open(template_filename, 'r') as template_file:
     try:
         template_src = pathlib.Path(template_filename).read_text()        
         template = jinja2.Environment(
@@ -90,8 +89,5 @@ def render(yaml_data, template_filename):
         raise Jinja2SyntaxError(msg)
                
     return latex_content
-    
-        
+            
     return ''
-
-

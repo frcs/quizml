@@ -34,6 +34,6 @@ Repository = "https://github.com/frcs/bbquiz.git"
 Homepage = "https://github.com/frcs/bbquiz"
 
 [project.scripts]
-bbquiz="bbquiz.cli:main"
+bbquiz="bbquiz.cli.cli:main"
 
 
