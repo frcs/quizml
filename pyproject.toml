@@ -1,5 +1,4 @@
 
-
 [build-system]
 requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
@@ -16,6 +15,7 @@ dependencies = [
   "colorama",
   "watchdog",
   "mistletoe>=1.2",
+  "css_inline",
   "appdirs"
 ]
 requires-python = ">=3.8"
