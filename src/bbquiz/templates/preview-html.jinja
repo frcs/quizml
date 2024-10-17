@@ -75,7 +75,7 @@
 	 ol.question-list li.question:before {
 	     margin-right: 10px;
 	     margin-bottom: 1em;
-		 content: "QUESTION " attr(questionid);
+		 content: "QUESTION " attr(data-questionid);
 		 font-size: 100%;
 		 font-weight: 600;
 	     display: inline-block;}
@@ -116,7 +116,7 @@
 			  title= "Shortcut: l">Slide Show</button>
     <ol class='question-list'>
 <| for q in questions |>
-<li class='question' id='Q<< loop.index >>' questionid='<< loop.index >>' style='vertical-align: top;'>
+<li class='question' id='Q<< loop.index >>' data-questionid='<< loop.index >>' style='vertical-align: top;'>
 <| if q.type == 'essay' |>
 <div class='question-type'>Essay</div><div class='marks'><< q.marks >></div>
 <<q.question>>
@@ -247,7 +247,7 @@
 	  if (slideShow){
 		  var elements = document.getElementsByClassName("question");
 		  for (let i=0; i<elements.length; i++){
-			  if (elements[i].getAttribute('questionid') === currentQuestion.toString()) {
+			  if (elements[i].getAttribute('data-questionid') === currentQuestion.toString()) {
 				  elements[i].style.display = 'block';
 			  }
 			  else {

@@ -34,6 +34,9 @@ from .exceptions import LatexEqError
 
 from mistletoe import span_token
 
+import latex2mathml
+import shutil
+from pathlib import Path
 
 
 def embed_base64(path):
@@ -68,7 +71,9 @@ def get_eq_list_from_doc(doc):
     return eq_list
    
 
-def build_eq_dict(eq_list, opts):
+
+
+def build_eq_dict_PNG(eq_list, opts):
     """returns a dictionary of images from a list of LaTeX equations.
    
     LaTeX equations are compiled into a PDF document using pdflatex,
@@ -168,24 +173,148 @@ def build_eq_dict(eq_list, opts):
           "-sOutputFile=" + png_base + "%05d.png",
           pdf_filename])
 
+    shutil.copyfile(latex_filename, "/Users/fpitie/ttt.tex")   
     # converting all png files into base64 strings
     
     for it, eq in enumerate(eq_list,start=1):
         [w, h, data64] = embed_base64(png_base + "%05d.png" % it)
         d = depthratio[it-1]
+        d_ = round(d * w * 0.5 , 2)
+        w_ = round(w/2)
+        h_ = round(h/2)        
+        # w_ = round(w/2, 2)
+        # h_ = round(h/2, 2)        
+        
         if isinstance(eq,MathInline):
-            key = "##Inline##" + eq.content
-            logging.debug(f"[eq-inline] '{eq.content}'")            
+            key = "##Inline##" + eq.content           
+            html = (
+                f"<img src='{data64}'" +
+                f" alt='{escape_LaTeX(eq.content)}'" +
+                f" width='{w_}' height='{h_}'" +
+                f" style='vertical-align:{-d_}px;'>")            
+            logging.debug(f"[eq-inline] '{html}'")
+            eq_dict[key] = html
         else:
             key = "##Display##" + eq.content
-            logging.debug(f"[eq-display] '{eq.content}'")            
-
-        eq_dict[key] = (w, h, d, data64)
-
+            html = (
+                f"<img src='{data64}'" +
+                f" alt='{escape_LaTeX(eq.content)}'" +
+                f" width='{w_}' height='{h_}'>")            
+            logging.debug(f"[eq-display] '{html}'")
+            eq_dict[key] = html
 
     os.chdir(olddir)
-    
+            
     return eq_dict
+
+
+def build_eq_dict_MathML(eq_list, opts):
+    """returns a dictionary of MATHML eqs from a list of LaTeX equations.
+   
+    LaTeX equations are compiled into MATHML using make4ht.
+
+    """
+    eq_dict = {}
+    
+    # if we don't have any equations, exit with empty dict
+    if not eq_list:
+        return eq_list
+
+    if 'html_pre' in opts:
+        template_latex_preamble = opts['html_pre']
+    else:
+        template_latex_preamble = (
+            "\\usepackage{amsmath}\n")
+
+    user_latex_preamble = opts.get('user_pre','')
+        
+    latex_preamble = (
+        "\\documentclass{article}\n" + 
+        template_latex_preamble + 
+        user_latex_preamble + 
+        "\\begin{document}\n")
+
+    tmpdir = "." #tempfile.mkdtemp()
+    olddir = os.getcwd()
+    os.chdir(tmpdir)
+
+    latex_filename = "eq_list.tex"
+    out_filename = "eq_list.html"
+
+    f = open(latex_filename, 'w')
+    f.write(latex_preamble)
+
+    for eq in eq_list:
+        f.write("" + eq.content + "\n")
+
+    f.write("\\end{document}\n")
+    
+    f.close()
+    
+    make4ht = subprocess.Popen(
+        ["make4ht", "-x",
+         latex_filename, "xhtml,html5,mathml"],
+        stdout = subprocess.PIPE,
+        universal_newlines = True)
+    found_make4ht_errors = False
+
+    make4ht_progress =  Spinner("simpleDotsScrolling", "make4ht compilation")
+
+    with Live(make4ht_progress) as live:
+        while make4ht.poll()==None:
+            make4ht_progress.update()
+           
+    err_msg = ''
+    for line in make4ht.stdout:
+        sys.stdout.write(line)            
+        
+        if line.startswith('[ERROR]') and not found_make4ht_errors:
+            sys.stdout.write("\n")            
+            found_make4ht_errors = True
+        if found_make4ht_errors:
+            err_msg = err_msg + line
+
+    if found_make4ht_errors:
+        raise LatexEqError(err_msg)
+
+    make4ht_out = Path(out_filename).read_text()
+
+    regex = r"(<math .+?>.*?<\/math>)"
+    eq_list_str = re.findall(regex, make4ht_out, re.DOTALL)
+    
+    # converting all pages in pdf doc into png files using gs
+    
+    # call(["gs",
+    #       "-dBATCH", '-q', "-dNOPAUSE",
+    #       "-sDEVICE=pngalpha",
+    #       "-r250",
+    #       "-dTextAlphaBits=4",
+    #       "-dGraphicsAlphaBits=4",
+    #       "-sOutputFile=" + png_base + "%05d.png",
+    #       pdf_filename])
+
+    # shutil.copyfile(latex_filename, "/Users/fpitie/ttt.tex")   
+    # # converting all png files into base64 strings
+    
+    for it, eq in enumerate(eq_list,start=0):
+        
+        eq_list_str
+        if isinstance(eq,MathInline):
+            key = "##Inline##" + eq.content           
+            mathml = eq_list_str[it]
+            logging.debug(f"[eq-inline] '{mathml}'")
+            eq_dict[key] = mathml
+        else:
+            key = "##Display##" + eq.content
+            mathml = eq_list_str[it]
+            logging.debug(f"[eq-display] '{mathml}'")
+            eq_dict[key] = mathml
+
+    os.chdir(olddir)
+            
+    return eq_dict
+
+
 
 def strip_newlines_and_tabs(html_content):
     """removes all newline and tab characters from an HTML string.
@@ -272,25 +401,14 @@ class BBYamlHTMLRenderer(HTMLRenderer):
         super().__init__(MathInline,MathDisplay,ImageWithWidth)
         self.eq_dict = eq_dict
         
-    def render_math_inline(self, token):       
-        [w, h, dr, data64] = self.eq_dict['##Inline##' + token.content]
-        d_ = round(dr * w * 0.5 , 2)
-        w_ = round(w/2, 2)
-        h_ = round(h/2, 2)        
-        return (
-            f"<img src='{data64}' alt='{escape_LaTeX(token.content)}'"
-            f" width='{w_}' height='{h_}' style='vertical-align:{-d_}px;'>"
-        )
+    def render_math_inline(self, token):
+        return self.eq_dict['##Inline##' + token.content]
     
     def render_math_display(self, token):
-        [w, h, d, data64] = self.eq_dict['##Display##' + token.content]
-        return (
-            f"<img src='{data64}' alt='{escape_LaTeX(token.content)}'"
-            f" width='{int(w/2):d}' height='{int(h/2):d}'>"
-        )
+        return self.eq_dict['##Display##' + token.content]
     
     def render_image(self, token: span_token.Image) -> str:       
-        template = '<img src="{}" alt="{}"{} />'
+        template = '<img src="{}" alt="{}"{} >'
         if token.title:
             title = ' title="{}"'.format(html.escape(token.title))
         else:
@@ -299,7 +417,7 @@ class BBYamlHTMLRenderer(HTMLRenderer):
         return template.format(data64, self.render_to_plain(token), title)
     
     def render_image_with_width(self, token) -> str:
-        template = '<img src="{}" alt="{}"{} style="width:{}"/>'
+        template = '<img src="{}" alt="{}"{} style="width:{}">'
         if token.title:
             title = ' title="{}"'.format(html.escape(token.title))
         else:
@@ -318,7 +436,8 @@ def get_html(doc, opts):
 
     
     eq_list = get_eq_list_from_doc(doc)
-    eq_dict = build_eq_dict(eq_list, opts)
+    eq_dict = build_eq_dict_PNG(eq_list, opts)
+#    eq_dict = build_eq_dict_MathML(eq_list, opts)
 
     with BBYamlHTMLRenderer(eq_dict) as renderer:
         html_result = renderer.render(doc)
@@ -330,7 +449,7 @@ def inline_css(html_content, opts):
     if 'html_css' in opts:
         css = opts['html_css']
         # remove all comments (/*COMMENT */) from string
-        css = re.sub(re.compile("/\*.*?\*/",re.DOTALL ) ,"" , css)   
+        css = re.sub(re.compile("/\*.*?\*/",re.DOTALL ) ,"" , css)        
     else:
         css = """
         .math.inline {vertical-align:middle}
@@ -341,13 +460,15 @@ def inline_css(html_content, opts):
               line-height:1em;
         }
         code { 
-              font-family: ui-monospace, ‘Cascadia Mono’, ‘Segoe UI Mono’, 
+              font-family: ui-monospace,‘Cascadia Mono’,‘Segoe UI Mono’,
                            ‘Segoe UI Mono’, Menlo, Monaco, Consolas, monospace;
               font-size:80%;
-              line-height:1em;
+              line-height:1.5em;
         }
         """
 
+    css = css.replace('\n', ' ').replace('\t', '  ')
+        
     html_payload = "<html><head><style>" + css + "</style>" + html_content + "</html>"
     out = css_inline.inline( html_payload )
     out = out[26:-15]
@@ -386,8 +507,8 @@ def get_html_dict(combined_doc, md_list, opts):
             end = len(html_result)
             
         html_content = html_result[start:end]
-        html_content = strip_newlines_and_tabs(html_content)
         html_content = inline_css(html_content, opts)
+        html_content = strip_newlines_and_tabs(html_content)
         md_dict[txt] = html_content
     return md_dict
     

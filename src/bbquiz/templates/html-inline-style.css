@@ -32,10 +32,10 @@ pre {
     line-height:1em;
 }
 code { 
-    font-family: ui-monospace, ‘Cascadia Mono’, ‘Segoe UI Mono’, 
-	‘Segoe UI Mono’, Menlo, Monaco, Consolas, monospace;
+    font-family: ui-monospace, ‘Cascadia Mono’, ‘Segoe UI Mono’,
+	             ‘Segoe UI Mono’, Menlo, Monaco, Consolas, monospace;
     font-size:80%;
-    line-height:1em;
+    line-height:1.5em;
 }
 
 /* this is the default booktabs style */ 
