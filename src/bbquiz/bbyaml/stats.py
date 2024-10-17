@@ -1,4 +1,4 @@
-"""BBYaml statistics
+"""helper functions for gathering statistics about the test
 
 
 

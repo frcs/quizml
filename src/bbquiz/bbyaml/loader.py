@@ -8,12 +8,12 @@ issues. One is the dreaded "Norway problem", where 'country: No' is
 translated as 'country: False' because YAML specification assumes
 automatic type conversion.
 
-To remidy this, we use a subset of YAML called StrictYAML
+To remidy this, we use StrictYAML, a subset of YAML
 (https://pypi.org/project/strictyaml/).
 
-StrictYAML uses schemas to specify the allowed structure and expected
-types. This allows us to validate BBYaml files and parse syntax
-errors (throwing BBYamlSyntaxError).
+StrictYAML also uses schemas to specify the allowed structure and
+expected types. This enables us to validate BBYaml files and parse
+syntax errors (throwing BBYamlSyntaxError).
 
 This also avoids any unwanted type conversion and avoids us having to
 put values into quotes. For instance,
@@ -28,10 +28,17 @@ Typical usage example:
     yaml_data = load("quiz.yaml", schema=True)
 
 Note that StrictYAML's validation is a bit slow. Hence schema=False is
-proposed for speed, but will not catch syntax errors and all key/val
-will be strings:
+also proposed for speed, but will not catch syntax errors and all
+key/val will be strings:
 
     yaml_data_str = load("quiz.yaml", schema=False) # quick
+
+but 
+    - answer: yes
+      correct: false
+
+will then be understood as answer="yes" and correct="False".
+
 
 """
 
@@ -53,7 +60,7 @@ def load_with_schema(bbyaml_filename):
 
     We need to have a two-pass approach: the first pass checks that we
     have a sequence with each element containing a 'type' key. Then,
-    in a sceond pass, we re-validate each item of the list with a
+    in a second pass, we re-validate each item of the list with a
     specialised secondary Schema.
 
     This version is significantly slower than the no-schema version
@@ -106,7 +113,7 @@ def load_with_schema(bbyaml_filename):
                 a.revalidate(schema_item[a['type']])
             else:            
                 # entered 'type' is not valid 
-                # tricking the validation system to trigger an error
+                # we trick the validation system to trigger an error
                 # by choosing Map({}) as schema. so any key will fail 
                 a.revalidate(Map({})) 
                 

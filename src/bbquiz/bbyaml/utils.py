@@ -1,5 +1,4 @@
-"""
-a few utility functions to deal with BBYaml objects.
+"""a few utility functions to deal with BBYaml objects.
 
 
 
