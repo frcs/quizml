@@ -8,6 +8,8 @@ from rich.table import box
 from rich.console import Console
 
 from bbquiz.bbyaml.loader import load
+from bbquiz.bbyaml.stats import get_questions
+from bbquiz.bbyaml.stats import get_stats
 
 # from rich_argparse import *
 
@@ -48,14 +50,63 @@ def diff(args):
                         border_style="red"))
             return
 
-    # checking for duplicate questions        
-    ref = filedata[files[0]]
-    for i, qr in enumerate(ref):
-        for f in files[1:]:
-            dst = filedata[f]        
-            for j, qd in enumerate(dst):
+    # checking for duplicate questions
+    ref_yaml = filedata[files[0]]
+    ref_questions = get_questions(ref_yaml)
+    
+    other_files = files[1:]
+
+    qstats = []
+    
+    for i, qr in enumerate(ref_questions):
+
+        lines = qr['question'].splitlines()
+        long_excerpt = f"{lines[0]}" + (" […]" if len(lines)>1 else "")
+        if 'answers' in qr:
+            for ans in qr['answers']:
+                if 'answer' in ans:
+                    lines = ans['answer'].splitlines()
+                    long_excerpt += f"\n  * {lines[0]}" + (" […]" if len(lines)>1 else "")
+        
+        qstats.append({"type": qr['type'],
+                       "excerpt": long_excerpt})
+                
+        for f in other_files:
+            dst_questions = get_questions(filedata[f])
+            for j, qd in enumerate(dst_questions):
                 if questions_are_similar(qr, qd):
-                    print(f"found match: Q{i : <2} matches Q{j : <2} in {f}:")
-                    print(qr)
+                    qstats[i].setdefault('dups',[]).append(f)
 
+    print_dups_table(qstats)
 
+def print_dups_table(qstats):
+    """
+    prints a table with information about each question, including:
+      * question id
+      * question type
+      * excerpt of the question statement
+      * other files that match that question
+    """
+
+    has_dups = False
+    
+    console = Console()
+  
+    table = Table(box=box.SIMPLE,collapse_padding=True, show_footer=True)
+
+    table.add_column("Q", no_wrap=True, justify="right")
+    table.add_column("Type", no_wrap=True, justify="center")
+    table.add_column("Question Statement", no_wrap=False, justify="left")
+    table.add_column("Dups", no_wrap=False, justify="left")
+    
+    for i, q in enumerate(qstats):
+        if 'dups' in q :
+            has_dups = True
+            table.add_row(f"{i+1}", q["type"], q["excerpt"], ', '.join(q.get('dups','')))
+
+    if has_dups:
+        console.print(table)
+    else:
+        print("no dups found")
+        
+                    
