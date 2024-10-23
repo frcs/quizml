@@ -313,7 +313,10 @@ essay question
 \begin{bbquestion}[<<q.marks>>]
 <<q.question>>
   \vspace{1em}
-  \begin{enumerate}\setcounter{enumii}{0}\setlength\itemsep{0em}
+<|   if q['cols'] > 1  |>
+\begin{multicols}{<<q['cols']>>}
+<|   endif           |>  
+  \begin{enumerate}\setcounter{enumii}{0}\setlength\itemsep{0.25em}
 <|-   for a in q.answers |>
   
 <|        if a.correct   -|>
@@ -323,6 +326,9 @@ essay question
 <|-        endif          |>  
 <|-    endfor +|>
   \end{enumerate}
+<|   if q['cols'] > 1  |>
+\end{multicols}
+<|   endif           |>  
 \end{bbquestion}
 <| elif q.type == 'matching' |>
 \begin{bbquestion}[<<q.marks>>]

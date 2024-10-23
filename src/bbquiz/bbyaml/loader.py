@@ -74,12 +74,14 @@ def load_with_schema(bbyaml_filename):
     schema_item = {
         'ma': Map({"type": Str(),
                    Optional("marks", default=2.5): Float(),
+                   Optional("cols", default=1): Int(),
                    "question": Str(),
                    "answers": Seq(
                        Map({ "answer": Str(),
                              "correct": Bool()}))}),
         'mc': Map({"type": Str(),
                    Optional("marks", default=2.5): Float(),
+                   Optional("cols", default=1): Int(),                   
                    "question": Str(),
                    "answers": Seq(
                        Map({ "answer": Str(),
@@ -94,6 +96,7 @@ def load_with_schema(bbyaml_filename):
                       "answers": Seq(Map({"answer": Str(), "correct": Str()}))}),
         'ordering': Map({"type": Str(),
                       Optional("marks", default=2.5): Float(),
+                      Optional("cols", default=1): Int(),                          
                       "question": Str(),
                       "answers": Seq(Map({"answer": Str()}))}),
         'section': Map({"type": Str(),
@@ -112,8 +115,8 @@ def load_with_schema(bbyaml_filename):
             if a['type'] in schema_item.keys():
                 a.revalidate(schema_item[a['type']])
             else:            
-                # entered 'type' is not valid 
-                # we trick the validation system to trigger an error
+                # the entered 'type' is not valid 
+                # we need to trick the validation system to trigger an error
                 # by choosing Map({}) as schema. so any key will fail 
                 a.revalidate(Map({})) 
                 
