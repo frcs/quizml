@@ -315,15 +315,19 @@ essay question
   \vspace{1em}
 <|   if q['cols'] > 1  |>
 \begin{multicols}{<<q['cols']>>}
-<|   endif           |>  
-  \begin{enumerate}\setcounter{enumii}{0}\setlength\itemsep{0.25em}
+<|   endif           |>
+\begin{enumerate}\ifsolutions\else\renewcommand{\theenumi}{(\alph{enumi})}\fi\setcounter{enumii}{0}\setlength\itemsep{0.25em}
 <|-   for a in q.answers |>
-  
+\ifsolutions  
 <|        if a.correct   -|>
     \item[\iX] <<a.answer>>
 <|-        else          -|>  
     \item[\iO] <<a.answer>>
-<|-        endif          |>  
+<|-        endif          |>
+\else
+    \item <<a.answer>>
+\fi
+
 <|-    endfor +|>
   \end{enumerate}
 <|   if q['cols'] > 1  |>
