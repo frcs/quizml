@@ -300,6 +300,10 @@ essay question
 \end{multicols}
 
 \cleardoublepage
+\ifsolutions\else
+\renewcommand{\labelenumii}{(\alph{enumii})}
+\renewcommand{\labelenumi}{(\alph{enumi})}
+\fi
 
 <| for q in questions |>
 <| if q.type == 'essay' |>
