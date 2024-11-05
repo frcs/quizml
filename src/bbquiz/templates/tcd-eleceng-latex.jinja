@@ -300,6 +300,10 @@ essay question
 \end{multicols}
 
 \cleardoublepage
+\ifsolutions\else
+\renewcommand{\labelenumii}{(\alph{enumii})}
+\renewcommand{\labelenumi}{(\alph{enumi})}
+\fi
 
 <| for q in questions |>
 <| if q.type == 'essay' |>
@@ -313,16 +317,26 @@ essay question
 \begin{bbquestion}[<<q.marks>>]
 <<q.question>>
   \vspace{1em}
-  \begin{enumerate}\setcounter{enumii}{0}\setlength\itemsep{0em}
+<|   if q['cols'] > 1  |>
+\begin{multicols}{<<q['cols']>>}
+<|   endif           |>
+\begin{enumerate}\ifsolutions\else\renewcommand{\theenumi}{(\alph{enumi})}\fi\setcounter{enumii}{0}\setlength\itemsep{0.25em}
 <|-   for a in q.answers |>
-  
+\ifsolutions  
 <|        if a.correct   -|>
     \item[\iX] <<a.answer>>
 <|-        else          -|>  
     \item[\iO] <<a.answer>>
-<|-        endif          |>  
+<|-        endif          |>
+\else
+    \item <<a.answer>>
+\fi
+
 <|-    endfor +|>
   \end{enumerate}
+<|   if q['cols'] > 1  |>
+\end{multicols}
+<|   endif           |>  
 \end{bbquestion}
 <| elif q.type == 'matching' |>
 \begin{bbquestion}[<<q.marks>>]
