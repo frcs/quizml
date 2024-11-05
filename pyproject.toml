@@ -16,6 +16,7 @@ dependencies = [
   "watchdog",
   "mistletoe>=1.2",
   "css_inline",
+  "latex2mathml",
   "appdirs"
 ]
 requires-python = ">=3.8"
