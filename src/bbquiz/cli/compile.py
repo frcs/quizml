@@ -32,6 +32,10 @@ import bbquiz.cli.filelocator as filelocator
 
 import pathlib
 
+class BBQuizConfigError(Exception):
+    pass
+
+
 
 def get_config(args):
     """
@@ -48,16 +52,36 @@ def get_config(args):
     try:
         with open(config_file) as f:            
             config = yaml.load(f, Loader=yaml.FullLoader)
-    except yaml.YAMLError as exc:
-        print ("Something went wrong while parsing the config file " + config_file)
-        raise exception
+    except yaml.YAMLError as err:
+        s = f"Something went wrong while parsing the config file at:\n {config_file}\n\n {str(err)}"
+        raise BBQuizConfigError(s)
 
     config['yaml_filename'] = args.yaml_filename
     
     return config
     
+
+def get_required_target_names_set(name, targets):
+    """resolves the set of the names of the required targets
+    """
+    if not name:
+        return {}
     
-def get_target_list(config, yaml_data):
+    if isinstance(name, list):
+        input_set = set(name)
+    else:
+        input_set = {name}
+    required_set = input_set
+    for target in targets:
+        if (target.get('name', '') in input_set) and ('dep' in target):
+            dep_set = get_required_target_names_set(
+                target['dep'], targets)
+            required_set = required_set.union(dep_set)
+            
+    return required_set
+
+
+def get_target_list(args, config, yaml_data):
     """
     gets the list of target templates from config['targets'] and
       * resolves the absolute path of each template
@@ -69,9 +93,25 @@ def get_target_list(config, yaml_data):
     subs = {'inputbasename': basename}
     filenames_to_resolve = ['template', 'html_css', 'html_pre', 'latex_pre']
     files_to_read_now = ['html_css', 'html_pre', 'latex_pre']
-    
+
+    # if CLI provided specific list of required target names
+    # we compile a list of all the required target names
+    required_target_names_set = get_required_target_names_set(
+        args.target, config['targets'])
+   
+    if args.target:
+        logging.info(f"requested target list:{args.target}")
+        logging.info(f"required target list:{required_target_names_set}")
+
     target_list = []
+    
     for t in config['targets']:
+        t_name = t.get('name', '')
+        dep_name = t.get('dep', '')
+        
+        if (required_target_names_set and t_name not in required_target_names_set):
+            continue
+
         target = {}
 
         # resolves $inputbasename
@@ -83,7 +123,7 @@ def get_target_list(config, yaml_data):
             if key in target:
                 target[key] = filelocator.locate.path(t[key])
                 logging.info(f"'{target['descr']}:{key}'"
-                             " expands as '{target[key]}'")
+                             f" expands as '{target[key]}'")
 
         # replaces values with actual file content for some keys
         for key in files_to_read_now:
@@ -131,12 +171,35 @@ def print_stats_table(stats):
     console.print(table)
 
 
+def print_table_ouputs(targets_output):
+    # print to terminal a table of all targets outputs.
+    table = Table(box=box.SIMPLE,
+                  collapse_padding=True,
+                  show_footer=False,
+                  show_header=False)
+    
+    table.add_column("Descr", no_wrap=True, justify="left")
+    table.add_column("Cmd", no_wrap=True, justify="left")
+    table.add_column("Status", no_wrap=True, justify="left")
+
+    for row in targets_output:
+        if row[2]=="[FAIL]":
+            table.add_row(*row, style="red")
+        elif row[2]=="":
+            table.add_row(*row)
+       
+    print(Panel(table,
+                title="Target Ouputs",
+                border_style="magenta"))
+   
+
+    
 def compile_cmd_target(target):
     """execute command line scripts of the post compilation targets.
 
     """
-    
     command = shlex.split(target["build_cmd"])
+    
     try:
         output = subprocess.check_output(command)
         return True
@@ -155,8 +218,14 @@ def compile(args):
     """
 
     # read config file
-
-    config = get_config(args)
+    try:
+        config = get_config(args)
+    except BBQuizConfigError as err:
+        print(Panel(str(err),
+                    title="BBQuiz Config Error",
+                    border_style="red"))
+        return
+        
 
     # load BBYaml file
 
@@ -197,13 +266,13 @@ def compile(args):
         return
        
     # diplay stats about the questions
-    print_stats_table(get_stats(yaml_data))
+    if not args.quiet:
+        print_stats_table(get_stats(yaml_data))
    
     # get target list from config file
     try:
-        target_list = get_target_list(config, yaml_data)
+        target_list = get_target_list(args, config, yaml_data)
 
-        
         
     except FileNotFoundError as err:
         print(Panel(str(err),
@@ -221,16 +290,17 @@ def compile(args):
     for i, target in enumerate(target_list):
 
         # skipping build target if build option is not on
-        if ("build_cmd" in target) and not args.build:
+        if ("build_cmd" in target) and not (args.build or args.target):
             continue
 
         # a build target (eg. compile pdf of generated latex) a build
         # target only requires the execution of an external command,
         # ie. no python code required
         #
-        if ("build_cmd" in target) and args.build:
+        if ("build_cmd" in target) and (args.build or args.target):
             # need to check if there is a dependency,
             # and if this dependency compiled successfully
+            
             if (("dep" not in target) or
                 ("dep" in target and success_list[target['dep']])):
                 success = compile_cmd_target(target)
@@ -269,32 +339,16 @@ def compile(args):
                             border_style="red"))
                 success = False
             
-        success_list[target['out']] = success
+        success_list[target['name']] = success
         
         targets_output.append(
             [ target['descr'] ,
               target["descr_cmd"],
               "" if success else "[FAIL]" ])
             
-    # print to terminal a table of all targets outputs.
-    table_outputs = Table(box=box.SIMPLE,
-                          collapse_padding=True,
-                          show_footer=False,
-                          show_header=False)
-    
-    table_outputs.add_column("Descr", no_wrap=True, justify="left")
-    table_outputs.add_column("Cmd", no_wrap=True, justify="left")
-    table_outputs.add_column("Status", no_wrap=True, justify="left")
-
-    for row in targets_output:
-        if row[2]=="[FAIL]":
-            table_outputs.add_row(*row, style="red")
-        elif row[2]=="":
-            table_outputs.add_row(*row)
-       
-    print(Panel(table_outputs,
-                title="Target Ouputs",
-                border_style="magenta"))
+    # diplay stats about the outputs
+    if not args.quiet:
+        print_table_ouputs(targets_output)
     
 
 def compile_on_change(args):

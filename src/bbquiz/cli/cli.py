@@ -42,12 +42,12 @@ def main():
         "yaml_filename", nargs='?',
         metavar="quiz.yaml", type=str, 
         help = "path to the quiz in a yaml format")
-
+   
     parser.add_argument(
         "otherfiles", nargs='*',
         type=str, #argparse.FileType('r'),
         help = "other yaml files [when using diff]")
-        
+    
     parser.add_argument(
         "-w", "--watch", 
         help="continuously compiles the document on file change",
@@ -55,12 +55,18 @@ def main():
     
     default_config_dir = appdirs.user_config_dir(
         appname="bbquiz", appauthor='frcs')
+
+    parser.add_argument(
+        "--target",
+        action='append',
+        type=str, #argparse.FileType('r'),
+        help = "target names (e.g. 'pdf', 'html-preview')")
     
     parser.add_argument(
         "--config", 
         metavar="CONFIGFILE",  
         help=f"user config file. Default location is {default_config_dir}")
-
+   
     parser.add_argument(
         "--build",
         help="compiles all targets and run all post-compilation commands",
@@ -87,7 +93,7 @@ def main():
         "--fish",
         help="A helper command used for exporting the "
         "command completion code in fish",
-        action="store_true")
+        action="store_true")    
     
     parser.add_argument(
         '-v', '--version', action='version', version=version("bbquiz"))
@@ -106,6 +112,16 @@ def main():
         action="store_const",
         dest="loglevel",
         const=logging.INFO)
+
+    parser.add_argument(
+        '--quiet',
+        help="turn off info statements",
+        action="store_true")
+
+    parser.add_argument(
+        '--list-targets',
+        help="turn off info statements",
+        action="store_true")
     
     args = parser.parse_args()
 
