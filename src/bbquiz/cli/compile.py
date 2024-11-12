@@ -61,6 +61,31 @@ def get_config(args):
     return config
     
 
+def print_target_list(args):
+    try:
+        config = get_config(args)
+    except BBQuizConfigError as err:
+        print(Panel(str(err),
+                    title="BBQuiz Config Error",
+                    border_style="red"))
+        return
+
+    table = Table(box=box.SIMPLE,
+                  collapse_padding=True,
+                  show_footer=False,
+                  show_header=False)
+    
+    table.add_column("Name", no_wrap=True, justify="left")
+    table.add_column("Descr", no_wrap=True, justify="left")
+   
+    for t in config['targets']:
+        table.add_row(t['name'], t['descr'])
+       
+    print(table)
+    
+    
+
+
 def get_required_target_names_set(name, targets):
     """resolves the set of the names of the required targets
     """

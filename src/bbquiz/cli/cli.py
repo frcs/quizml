@@ -119,8 +119,8 @@ def main():
         action="store_true")
 
     parser.add_argument(
-        '--list-targets',
-        help="turn off info statements",
+        '--target-list',
+        help="list all targets in config file",
         action="store_true")
     
     args = parser.parse_args()
@@ -132,7 +132,11 @@ def main():
         datefmt="[%X]",
         handlers=[RichHandler()]
     )
-        
+
+    if args.target_list:
+        bbquiz.cli.compile.print_target_list(args)
+        return
+    
     if args.zsh:
         print(bbquiz.cli.shellcompletion.zsh())
         return
