@@ -1,4 +1,4 @@
-# BBQuiz
+# BBQuiz   <!-- {docsify-ignore} -->
 
 Tool for converting a list of questions in yaml/markdown to a BlackBoard test or
 to a Latex exam source file
@@ -47,26 +47,14 @@ bbquiz quiz.yaml
 
 and this is what the provided default HTML preview looks like:
 
-<img src="docs/figures/html-screenshot.jpg" width="260" />
+<img src="figures/html-screenshot.jpg" width="260" />
 
 and this is what the BlackBoard output would look like:
 
-<img src="docs/figures/bb-screenshot.jpg" width="500" />
+<img src="figures/bb-screenshot.jpg" width="500" />
 
 and this is what the provided LaTeX template pdf output would look like:
 
-<img src="docs/figures/pdf-screenshot.jpg" width="500" />
-
-
-# Getting Started
-
-This is a command line application. Assuming that you have python and pip
-installed, you can simply install it with:
-
-```bash
-pip install .
-```
-
-You will also need a LaTeX installation with `gs` and `pdflatex`.
+<img src="figures/pdf-screenshot.jpg" width="500" />
 
 
