@@ -4,6 +4,7 @@ import logging
 import argparse
 import appdirs
 import pathlib
+import os
 
 from rich.traceback import install
 install(show_locals=False)
@@ -78,6 +79,11 @@ def main():
         action="store_true")
 
     parser.add_argument(
+        "--package-templates-path",
+        help="path for bbquiz's package templates directory",
+        action="store_true")
+    
+    parser.add_argument(
         "--bash",
         help="A helper command used for exporting the "
         "command completion code in bash",
@@ -136,6 +142,13 @@ def main():
     if args.target_list:
         bbquiz.cli.compile.print_target_list(args)
         return
+
+    if args.package_templates_path:
+        templates_path = os.path.abspath(
+            os.path.join(__file__, "..", "..", "templates"))
+        print(f'{templates_path}')
+        return
+
     
     if args.zsh:
         print(bbquiz.cli.shellcompletion.zsh())
