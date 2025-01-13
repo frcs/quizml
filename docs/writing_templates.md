@@ -5,8 +5,13 @@ Documentation](https://jinja.palletsprojects.com/en/3.1.x/templates/) provides
 complete information about how to write jinja2 templates.
 
 The default templates used in BBQuiz can be found in the `templates`
-directory. (Again, use `--verbose` to know which template is actually being
-used)
+directory. 
+
+?> Because they are multiple possible locations for the templates, it can
+sometimes be confusing to know which file is being edited. Use `--verbose` to
+know which template is actually being used.
+
+
 
 ### Minimal Example
 

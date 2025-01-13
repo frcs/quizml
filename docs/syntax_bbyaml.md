@@ -111,3 +111,12 @@ Below is an longer example of what an exam script would look like:
 ```
 
 
+?> BBQuiz uses a particular flavour of YAML called
+[StrictYAML](https://github.com/crdoconnor/strictyaml). This is a type-safe YAML
+parser that parses and validates a restricted subset of the YAML
+specification. StrictYAML avoids some of the YAML oddities such as the [Norway
+Problem](https://hitchdev.com/strictyaml/why/implicit-typing-removed).
+
+
+
+

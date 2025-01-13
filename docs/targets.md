@@ -7,13 +7,14 @@ The configuration file defines the list of all the targets. For instance, the
 BlackBoard csv quiz file can be defined as the following target:
 
 ```yaml
-  - out       : ${inputbasename}.txt    
-    descr     : BlackBoard CSV          
-    descr_cmd : ${inputbasename}.txt    
-    fmt       : html                    
-    html_pre  : html-latex-preamble.tex 
-    html_css  : html-inline-style.css   
-    template  : bb.jinja  
+- name      : bb
+  out       : ${inputbasename}.txt    
+  descr     : BlackBoard CSV          
+  descr_cmd : ${inputbasename}.txt    
+  fmt       : html                    
+  html_pre  : html-latex-preamble.tex 
+  html_css  : html-inline-style.css   
+  template  : bb.jinja  
 ```
 
 
@@ -29,7 +30,7 @@ as a relative path, the template is searched in:
 
 #### `name`
 
-unique name of that target.
+unique identifier for that target.
 
 #### `out`
 
@@ -47,22 +48,34 @@ Description for the target.
 
 #### `descr_cmd` 
 
-This is the command to use (here we have no suggestion, so just print output
-path)
+Suggestion for the command to use after the BBQuiz build.
+
+In the example above, there is no post-build require, so we simply output the
+path of the generated rendered BlackBoard test.
+
 
 #### `fmt` 
 This can be set to `latex` or `html`. It is the format that markdown gets
 converted to.
 
+In the example above BlackBoard format requires HTML code. 
+
 #### `html_pre`
 
-latex preamble for generating the equations in the markdown to html conversion.
+Path to latex preamble file used when generating the equations in the markdown
+to html conversion. 
+
+In the example above we use BBQuiz's default which is `html-latex-preamble.tex`.
 
 #### `html_css` 
 
-CSS file used for inline styling the HTML render.
+Path to the CSS file used for inline styling the HTML render. E.g. it can be
+used to style code, tables, line separation, etc.
 
-e.g. it can be used to style code, tables, line separation, etc.
+In the example above we default to BBQuiz's default which is
+`html-inline-style.css`.
+
+!> Note that the new version of BlackBoard tests strip out any CSS information.
 
 #### `template` 
 
