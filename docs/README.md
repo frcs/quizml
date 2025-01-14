@@ -3,8 +3,8 @@
 > Tool for converting a list of questions in yaml/markdown to a BlackBoard test or
 > to a Latex exam source file
 
-Here is a minimal example of a `quiz.yaml` file. You write the questions in a YAML
-file, using a Markdown syntax:
+Questions are written in a YAML file, using a Markdown syntax. Here is a minimal
+`quiz.yaml` example:
 
 ```yaml
 - type: mc

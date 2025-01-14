@@ -2,9 +2,8 @@
 ## Markdown Syntax <!-- {docsify-ignore} -->
 
 All yaml entries, including the question statements and answers, will be
-interprated as Markdown. 
-
-To avoid the Markdown conversion, a key must be prefixed with `pre_`.
+interpreted as Markdown (expect if key is prefixed with `pre_` as discussed in 
+[header section](header)).
 
 ### Markdown Syntax 
 

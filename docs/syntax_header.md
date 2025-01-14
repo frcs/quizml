@@ -15,10 +15,11 @@ exam date, venue, etc. The header must be the first item in the BBYaml file.
   date: 13/05/2024
 ```
 
-Note that it is recommended for the key names should contain only uppercase and
+
+!> Note that it is recommended for the key names to only contain uppercase and
 lowercase alphabetical characters: a-z and A-Z, without any numeral or other
-non-letter character.  This is because, in the LaTeX template, it is expected
-that the keys will be copied accross as macros:
+non-letter character.  This is because the LaTeX template copies the keys
+accross as TeX macros:
 
 ```tex
 \def\descr{
@@ -33,8 +34,13 @@ that the keys will be copied accross as macros:
 Hence, as each key will be turned into a LaTeX macro, it must also follow LaTeX
 syntax macro naming rules.
 
-Note that if your key starts with the prefix `pre_`, as in `pre_latexpreamble`,
-the key should not be turned into a macro by the LaTeX template.
+
+!> All keys' values will be interpreted as Markdown. 
+
+!> If your key starts with the prefix `pre_` (eg. `pre_latexpreamble`), the
+value will not be interprated as markdown and it will not be turned into a macro
+by the LaTeX template. 
+
 
 
 
