@@ -19,7 +19,7 @@ def get_questions(yaml_data):
 
     """
     
-    return list(filter(lambda entry: is_question(entry), yaml_data))
+    return list(filter(lambda entry: is_question(entry), yaml_data['questions']))
 
 def get_total_marks(yaml_data):
     """computes the maximum possible total marks for a test.

@@ -44,6 +44,7 @@ will then be understood as answer="yes" and correct="False".
 
 import os
 import sys
+import re
 from pathlib import Path
 import strictyaml
 from strictyaml import Any, Map, Float, Seq, Bool, Int, Str, Optional, MapCombined
@@ -55,7 +56,14 @@ class BBYamlSyntaxError(Exception):
     pass
 
 
-def load_with_schema(bbyaml_filename):
+def load_yaml(bbyaml_txt, schema=True):
+    if schema:
+        return load_with_schema(bbyaml_txt)
+    else:
+        return load_without_schema(bbyaml_txt)
+       
+
+def load_with_schema(bbyaml_txt):
     """load a BBYaml file as a StrictYaml with Schema.
 
     We need to have a two-pass approach: the first pass checks that we
@@ -110,11 +118,10 @@ def load_with_schema(bbyaml_filename):
                         Optional("question"): Str()}),
         'header': Any()
     }
-
-    yaml_txt = Path(bbyaml_filename).read_text()
     
     try:
-        yamldoc = strictyaml.load(yaml_txt, schema_overall, label="myfilename")
+        yamldoc = strictyaml.load(bbyaml_txt, schema_overall,
+                                  label="myfilename")
         
         for a in yamldoc:
             if a['type'] in schema_item.keys():
@@ -131,7 +138,7 @@ def load_with_schema(bbyaml_filename):
     return yamldoc.data
     
 
-def load_without_schema(bbyaml_filename):
+def load_without_schema(bbyaml_txt):
     """fast loading of BBYaml file as a StrictYaml without Schema.
 
     In this version we do not check the schema. This is for speed
@@ -142,10 +149,8 @@ def load_without_schema(bbyaml_filename):
     
     schema_overall = Any()
 
-    yaml_txt = Path(bbyaml_filename).read_text()
-
     try:
-        yamldoc = strictyaml.load(yaml_txt, schema_overall, label="myfilename")
+        yamldoc = strictyaml.load(bbyaml_txt, schema_overall, label="myfilename")
     
     except YAMLError as err:
         raise BBYamlSyntaxError(str(err.problem) + '\n' + str(err.problem_mark) )
@@ -172,22 +177,47 @@ def load(bbyaml_filename, schema=True):
 
     """
 
-    if (schema):
-        yaml_data = load_with_schema(bbyaml_filename)
-    else:
-        yaml_data = load_without_schema(bbyaml_filename)
+    bbyaml_txt = Path(bbyaml_filename).read_text()
+
+    yamldoc_pattern = re.compile(r"^---\s*$", re.MULTILINE) 
+    yamldocs = yamldoc_pattern.split(bbyaml_txt)    
+    yamldocs = list(filter(None, yamldocs))
+
+    if len(yamldocs) > 2:
+        raise BBYamlSyntaxError("Yaml file cannot have more than 2 documents: the header section and the questions sections")
+
+    doc = {'header': {}, 'questions': []}
+
+    if len(yamldocs) == 1:
+        yamldoc_txt = yamldocs[0]
+        # if we find line starting with "- " then it's a list
+        # thus this would be the questions
+        list_pattern = re.compile(r"^- ", re.MULTILINE)        
+        if list_pattern.search(yamldoc):
+            doc['questions'] = load_yaml(yamldoc_txt, schema)
+        else:
+            doc['header'] = load_yaml(yamldoc_txt, schema=False)       
+
+    elif len(yamldocs) == 2:
+        doc['header'] = load_yaml(yamldocs[0], schema=False)
+        doc['questions'] = load_yaml(yamldocs[1], schema=schema)
     
     # trim all the text entries
     f = lambda a : a.strip() if isinstance(a, str) else a
-    yaml_data = filter_yaml(yaml_data, f)
+    doc = filter_yaml(doc, f)
     
-    # add header if it doesn't already exist
-    if (not yaml_data) or (yaml_data[0]['type'] != 'header'):
-        yaml_data.insert(0, {'type': 'header'})
+    # some backwards compatibility step
+    # if header defined as first question then it is merged to header
+    if ((len(doc['questions'])>0) and
+        ('type' in doc['questions'][0]) and 
+        (doc['questions'][0]['type'] == 'header')):
+        h = doc['questions'][0]
+        del h['type']
+        doc['header'].update(h)
 
     # add basename metadata to header 
     (basename, _) = os.path.splitext(bbyaml_filename)
-    yaml_data[0]['inputbasename'] = basename
+    doc['header']['inputbasename'] = basename
     
-    return yaml_data
+    return doc
 

@@ -4,7 +4,6 @@
 
 """
 
-
 def filter_yaml(yaml_data, f):
     """
     apply a function to all values in BByaml obj
@@ -23,26 +22,6 @@ def filter_yaml(yaml_data, f):
             [filter_yaml(a, f) for a in yaml_data.values()]))
     else:
         return f(yaml_data)
-
-def get_header_questions(yaml_data):
-    """
-    returns a header dict and a list containing all the questions
-
-    Parameters
-    ----------
-    yaml_data : list
-        yaml file content, as decoded by bbyaml.load
-    """
-
-    header = None
-    questions = []
-    for entry in yaml_data:
-        if entry['type'] == 'header':
-            header = entry
-        else:
-            questions.append(entry)
-    return (header, questions)
-
 
 
 def get_md_list_from_yaml(yaml_data, md_list=[]):

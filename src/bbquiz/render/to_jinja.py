@@ -8,8 +8,6 @@ import textwrap
 import pathlib
 
 from bbquiz.bbyaml.stats import get_total_marks
-from bbquiz.bbyaml.utils import get_header_questions
-from bbquiz.bbyaml.stats import get_total_marks
 
 class Jinja2SyntaxError(Exception):
     pass
@@ -39,12 +37,10 @@ def render(yaml_data, template_filename):
     if not template_filename:
         msg = "Template filename is missing, can't render jinja."
         raise Exception(msg)
-
-    (header, questions) = get_header_questions(yaml_data)
-    
+       
     context = {
-        "header"      : header,
-        "questions"   : questions,
+        "header"      : yaml_data['header'],
+        "questions"   : yaml_data['questions'],
         "total_marks" : get_total_marks(yaml_data)
     }
    
@@ -57,7 +53,7 @@ def render(yaml_data, template_filename):
             block_end_string      ='|>',
             variable_start_string ='<<',
             variable_end_string   ='>>').from_string(template_src)
-        latex_content = template.render(context, debug=True)
+        render_content = template.render(context, debug=True)
 
     except jinja2.TemplateSyntaxError as exc:
         l = exc.lineno
@@ -88,6 +84,6 @@ def render(yaml_data, template_filename):
         msg = msg + "%s" % exc + "\n\n"
         raise Jinja2SyntaxError(msg)
                
-    return latex_content
+    return render_content
             
     return ''
