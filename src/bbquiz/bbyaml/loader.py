@@ -193,7 +193,7 @@ def load(bbyaml_filename, schema=True):
         # if we find line starting with "- " then it's a list
         # thus this would be the questions
         list_pattern = re.compile(r"^- ", re.MULTILINE)        
-        if list_pattern.search(yamldoc):
+        if list_pattern.search(yamldoc_txt):
             doc['questions'] = load_yaml(yamldoc_txt, schema)
         else:
             doc['header'] = load_yaml(yamldoc_txt, schema=False)       

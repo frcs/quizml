@@ -166,6 +166,12 @@ def get_target_list(args, config, yaml_data):
 
     return target_list
 
+def add_hyperlinks(descr_str, filename):
+    path = os.path.abspath(f"./{filename}")
+    uri = f"[link=file://{path}]{filename}[/link]"
+    return  descr_str.replace(filename, uri)
+
+
 def print_stats_table(stats):
     """
     prints a table with information about each question, including:
@@ -368,7 +374,7 @@ def compile(args):
         
         targets_output.append(
             [ target['descr'] ,
-              target["descr_cmd"],
+              add_hyperlinks(target["descr_cmd"], target["out"]),
               "" if success else "[FAIL]" ])
             
     # diplay stats about the outputs
