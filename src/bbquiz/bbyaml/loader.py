@@ -47,7 +47,8 @@ import sys
 import re
 from pathlib import Path
 import strictyaml
-from strictyaml import Any, Map, Float, Seq, Bool, Int, Str, Optional, MapCombined
+from strictyaml import Any, Map, Float, Seq, Bool, Int, Str, Regex
+from strictyaml import Optional, MapCombined, ScalarValidator
 from strictyaml import YAMLError
 
 from bbquiz.bbyaml.utils import filter_yaml
@@ -80,42 +81,57 @@ def load_with_schema(bbyaml_txt):
                                      Str(), Any()))
     
     schema_item = {
-        'ma': Map({"type": Str(),
-                   Optional("marks", default=2.5): Float(),
-                   Optional("comments"): Str(),                   
-                   Optional("cols", default=1): Int(),
-                   "question": Str(),
-                   "answers": Seq(
-                       Map({ "answer": Str(),
-                             "correct": Bool()}))}),
-        'mc': Map({"type": Str(),
-                   Optional("marks", default=2.5): Float(),
-                   Optional("comments"): Str(),                                      
-                   Optional("cols", default=1): Int(),                   
-                   "question": Str(),
-                   "answers": Seq(
-                       Map({ "answer": Str(),
-                             "correct": Bool()}))}),
-        'essay': Map({"type": Str(),
-                      Optional("comments"): Str(),                                         
-                      Optional("marks", default=4): Float(),
-                      "question": Str(),
-                      Optional("answer"): Str()}),
-        'matching': Map({"type": Str(),
-                      Optional("comments"): Str(),                                            
-                      Optional("marks", default=2.5): Float(),
-                      "question": Str(),
-                      "answers": Seq(Map({"answer": Str(), "correct": Str()}))}),
-        'ordering': Map({"type": Str(),
-                      Optional("comments"): Str(),                                           
-                      Optional("marks", default=2.5): Float(),
-                      Optional("cols", default=1): Int(),                          
-                      "question": Str(),
-                      "answers": Seq(Map({"answer": Str()}))}),
-        'section': Map({"type": Str(),
-                        Optional("title"): Str(),
-                        Optional("marks"): Float(),
-                        Optional("question"): Str()}),
+        'ma': Map({
+            "type": Str(),
+            Optional("marks", default=2.5): Float(),
+            Optional("comments"): Str(),                   
+            Optional("cols", default=1): Int(),
+            "question": Str(),
+           # "choices": Seq(Map({ Bool(): Str() }, key_validator=Bool())),
+           # "choices": Seq(Map({ "": Str() })),
+            "choices": Seq(
+                Map({ Optional("true"): Str(),
+                      Optional("false"): Str()}))
+
+        }),
+        'mc': Map({
+            "type": Str(),
+            Optional("marks", default=2.5): Float(),
+            Optional("comments"): Str(),                                      
+            Optional("cols", default=1): Int(),                   
+            "question": Str(),
+            "choices": Seq(
+                Map({ Optional("true"): Str(),
+                      Optional("false"): Str()}))
+        }),
+        'essay': Map({
+            "type": Str(),
+            Optional("comments"): Str(),                                         
+            Optional("marks", default=4): Float(),
+            "question": Str(),
+            Optional("answer"): Str(),
+        }),
+        'matching': Map({
+            "type": Str(),
+            Optional("comments"): Str(),                                            
+            Optional("marks", default=2.5): Float(),
+            "question": Str(),
+            "choices": Seq(Map({"A": Str(), "B": Str()})),
+        }),        
+        'ordering': Map({
+            "type": Str(),
+            Optional("comments"): Str(),                                           
+            Optional("marks", default=2.5): Float(),
+            Optional("cols", default=1): Int(),                          
+            "question": Str(),
+            Optional("choices"): Seq(Str()),
+        }),         
+        'section': Map({
+            "type": Str(),
+            Optional("title"): Str(),
+            Optional("marks"): Float(),
+            Optional("question"): Str(),
+        }),
         'header': Any()
     }
     
@@ -133,7 +149,7 @@ def load_with_schema(bbyaml_txt):
                 a.revalidate(Map({})) 
                 
     except YAMLError as err:
-        raise BBYamlSyntaxError(str(err.problem) + '\n' + str(err.problem_mark) )
+        raise BBYamlSyntaxError(str(err.problem) + '\n' + str(err.problem_mark))
         
     return yamldoc.data
     
@@ -149,6 +165,8 @@ def load_without_schema(bbyaml_txt):
     
     schema_overall = Any()
 
+    # strictyaml.load("!!python/name:__main__.someval", Loader=yaml.BaseLoader)
+    
     try:
         yamldoc = strictyaml.load(bbyaml_txt, schema_overall, label="myfilename")
     
@@ -184,7 +202,9 @@ def load(bbyaml_filename, schema=True):
     yamldocs = list(filter(None, yamldocs))
 
     if len(yamldocs) > 2:
-        raise BBYamlSyntaxError("Yaml file cannot have more than 2 documents: the header section and the questions sections")
+        raise BBYamlSyntaxError(
+            ("Yaml file cannot have more than 2 documents: "
+             "the header section and the questions sections"))
 
     doc = {'header': {}, 'questions': []}
 

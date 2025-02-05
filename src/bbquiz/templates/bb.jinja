@@ -2,13 +2,13 @@
 <|- if q.type == 'essay' -|>
 ESS<< "\t" >><< q.question >><< "\t" >><< q.answer >>
 <|- elif q.type == 'ma' -|>
-MA<< "\t" >><< q.question >><|-   for a in q.answers -|><< "\t" >><< a.answer >><< "\t" >><|- if a.correct -|>correct<|-else-|>incorrect<|-endif-|><|-   endfor -|>
+MA<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><|- if a.true is defined -|><< a.true >><|-else-|><< a.false >><|-endif-|><< "\t" >><|- if a.true is defined -|>correct<|-else-|>incorrect<|-endif-|><|-   endfor -|>
 <|- elif q.type == 'mc' -|>
-MC<< "\t" >><< q.question >><|-   for a in q.answers -|><< "\t" >><< a.answer >><< "\t" >><|- if a.correct -|>correct<|-else-|>incorrect<|-endif-|><|-   endfor -|>
+MC<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><|- if a.true is defined -|><< a.true >><|-else-|><< a.false >><|-endif-|><< "\t" >><|- if a.true is defined -|>correct<|-else-|>incorrect<|-endif-|><|-   endfor -|>
 <|- elif q.type == 'matching' -|>
-MAT<< "\t" >><< q.question >><|-   for a in q.answers -|><< "\t" >><< a.answer >><< "\t" >><< a.correct >><|-   endfor -|>
+MAT<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><< a.a >><< "\t" >><< a.b >><|-   endfor -|>
 <|- elif q.type == 'ordering' -|>
-ORD<< "\t" >><< q.question >><|-   for a in q.answers -|><< "\t" >><< a.answer >><|-   endfor -|>
+ORD<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><< a >><|-   endfor -|>
 <|- endif -|>
 << "\n" >>
 <|-endfor -|>

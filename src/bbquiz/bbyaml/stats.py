@@ -61,11 +61,11 @@ def question_success_probability(entry):
     """
     
     if entry['type']=='mc':
-         return 1.0 / len(entry['answers'])                
+         return 1.0 / len(entry['choices'])                
     elif entry['type']=='ma':
-        return 1.0 / (2 ** (len(entry['answers'])-1))
+        return 1.0 / (2 ** (len(entry['choices'])-1))
     elif entry['type']=='matching':
-        return 1.0 / math.factorial(len(entry['answers']))
+        return 1.0 / math.factorial(len(entry['choices']))
     elif entry['type']=='essay':
         return 0.0
     else:
@@ -106,7 +106,7 @@ def get_stats(yaml_data):
         total_marks = total_marks + question_marks        
         question_expected_mark = question_marks*question_success_probability(entry)
         expected_mark = expected_mark + question_expected_mark
-        choices = (str(len(entry['answers']) if 'answers' in entry else '-'))
+        choices = (str(len(entry['choices']) if 'choices' in entry else '-'))
         lines = entry['question'].splitlines()
         excerpt = f"{lines[0]}" + (" […]" if len(lines)>1 else "")
         

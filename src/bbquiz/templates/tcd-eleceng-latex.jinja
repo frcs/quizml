@@ -287,8 +287,8 @@ questions with multiple choices, mark all solutions that are correct
 <|- if q.type == 'essay' |>
 essay question
 <|- elif q.type == 'mc' or q.type == 'ma' |>
-<|-   for a in q.answers -|>
-<|-     if a.correct  -|>
+<|-   for a in q.choices -|>
+<|-     if a.true is defined  -|>
 \ifsolutions\x<<letter[loop.index0]>>\else\o<<letter[loop.index0]>>\fi
 <|-     else  -|>
 \o<<letter[loop.index0]>>
@@ -321,15 +321,19 @@ essay question
 \begin{multicols}{<<q['cols']>>}
 <|   endif           |>
 \begin{enumerate}\ifsolutions\else\renewcommand{\theenumi}{(\alph{enumi})}\fi\setcounter{enumii}{0}\setlength\itemsep{0.25em}
-<|-   for a in q.answers |>
+<|-   for a in q.choices |>
 \ifsolutions  
-<|        if a.correct   -|>
-    \item[\iX] <<a.answer>>
+<|        if a.true is defined   -|>
+    \item[\iX] <<a.true>>
 <|-        else          -|>  
-    \item[\iO] <<a.answer>>
+    \item[\iO] <<a.false>>
 <|-        endif          |>
 \else
-    \item <<a.answer>>
+<|        if a.true is defined   -|>
+    \item <<a.true>>
+<|-        else          -|>  
+    \item <<a.false>>
+<|-        endif          |>
 \fi
 
 <|-    endfor +|>
@@ -343,9 +347,9 @@ essay question
 <<q.question>>
 
 \begin{tabular}{cc}
-<|-   for a in q.answers |>
-    \adjustbox{max width=0.45\linewidth}{\vbox{<<a.answer>>}} &
-	\adjustbox{max width=0.45\linewidth}{\vbox{<<a.correct>>}} \\
+<|-   for a in q.choices |>
+    \adjustbox{max width=0.45\linewidth}{\vbox{<<a.A>>}} &
+	\adjustbox{max width=0.45\linewidth}{\vbox{<<a.B>>}} \\
 	  (a) & (1) \\	  
 <|-    endfor +|>
   \end{tabular}

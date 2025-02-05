@@ -62,12 +62,15 @@ def diff(args):
 
         lines = qr['question'].splitlines()
         long_excerpt = f"{lines[0]}" + (" […]" if len(lines)>1 else "")
-        if 'answers' in qr:
-            for ans in qr['answers']:
-                if 'answer' in ans:
-                    lines = ans['answer'].splitlines()
+        if 'choices' in qr:
+            for ans in qr['choices']:
+                if ('true' in ans):
+                    lines = ans['true'].splitlines()
                     long_excerpt += f"\n  * {lines[0]}" + (" […]" if len(lines)>1 else "")
-        
+                if ('false' in ans):
+                    lines = ans['false'].splitlines()
+                    long_excerpt += f"\n  * {lines[0]}" + (" […]" if len(lines)>1 else "")
+                       
         qstats.append({"type": qr['type'],
                        "excerpt": long_excerpt})
                 

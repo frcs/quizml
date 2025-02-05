@@ -136,49 +136,53 @@
 <div class='question-type'>Multiple Choice</div><div class='marks'><< q.marks >></div>
 <<q.question>>
 <ol class='answers'>
-<|-   for a in q.answers |>
-<|        if a.correct   -|>
-   <li class='correct'>
+<|-   for a in q.choices |>
+<|        if a.true is defined   -|>
+  <li class='correct'>
+	<<a.true>>
+  </li>	  
 <|-        else          -|>  
-   <li class='incorrect'>
+  <li class='incorrect'>
+	<<a.false>>
+  </li>	  
 <|-        endif          |>  
-<<a.answer>>
-</li>
 <|-    endfor +|>
 </ol>
 <| elif q.type == 'ma'|>
 <div class='question-type'>Multiple Answers</div><div class='marks'><< q.marks >></div>
 <<q.question>>
 <ol class='answers'>
-<|-   for a in q.answers |>
-<|        if a.correct   -|>
-   <li class='correct'>
-<|-       else          -|>  
-   <li class='incorrect'>
-<|-       endif          |>  
-<<a.answer>>
-</li>
-<|-   endfor +|>
+<|-   for a in q.choices |>
+<|        if a.true is defined   -|>
+  <li class='correct'>
+	<<a.true>>
+  </li>	  
+<|-        else          -|>  
+  <li class='incorrect'>
+	<<a.false>>
+  </li>	  
+<|-        endif          |>  
+<|-    endfor +|>
 </ol>
 <| elif q.type == 'matching' |>
 <div class='question-type'>Matching</div><div class='marks'><< q.marks >></div>
 <<q.question>>
 <ol class='answers'>
-<|-   for a in q.answers |>
+<|-   for choice in q.choices |>
 	<li>
 	  <ol>
 		<li>
 		  <div class='block'
 			   style='border-left:2px solid; padding-left:1em;
 					  border-color: #f2f;max-width: 30.25em;'>
-			<< a.answer >>
+			<< choice.A >>
 		  </div>
 		</li>
 		<li>
 		  <div class='block'
 			   style='border-left:2px solid; border-color: #2ff;
 					  padding-left:1em; max-width: 30.25em;'>
-            << a.correct >> 
+            << choice.B >> 
           </div>
 	    </li>
 	  </ol>
@@ -189,12 +193,12 @@
 <div class='question-type'>Ordering</div><div class='marks'><< q.marks >></div>
 <<q.question>>
 <ol class='answers'>
-  <|-   for a in q.answers |>
+  <|-   for choice in q.choices |>
   <li>
 	<div class='block'
 		 style='border-left:2px solid; padding-left:1em;
 				border-color: #f2f;max-width: 30.25em;'>
-	  << a.answer >>
+	  << choice >>
 	</div>
   </li>
   <|-    endfor +|>
