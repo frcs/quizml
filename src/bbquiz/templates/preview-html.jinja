@@ -137,29 +137,49 @@
 <<q.question>>
 <ol class='answers'>
 <|-   for a in q.choices |>
-<|        if a.true is defined   -|>
+<|        if a.x is defined   -|>
   <li class='correct'>
-	<<a.true>>
+	<<a.x>>
   </li>	  
 <|-        else          -|>  
   <li class='incorrect'>
-	<<a.false>>
+	<<a.o>>
   </li>	  
 <|-        endif          |>  
 <|-    endfor +|>
+</ol>
+<| elif q.type == 'tf'|>
+<div class='question-type'>True/False</div><div class='marks'><< q.marks >></div>
+<<q.question>>
+<ol class='answers'>
+<|   if q.answer == 'true'  -|>
+  <li class='correct'>
+	True
+  </li>	  
+  <li class='incorrect'>
+	False
+  </li>	  
+<|-        else          -|>  
+  <li class='incorrect'>
+	True
+  </li>	  
+  <li class='correct'>
+	False
+  </li>	  
+<|-   endif          |>  
 </ol>
 <| elif q.type == 'ma'|>
 <div class='question-type'>Multiple Answers</div><div class='marks'><< q.marks >></div>
 <<q.question>>
 <ol class='answers'>
 <|-   for a in q.choices |>
-<|        if a.true is defined   -|>
+<|        if a.x is defined   -|>
   <li class='correct'>
-	<<a.true>>
+	<<a.x>>
   </li>	  
 <|-        else          -|>  
   <li class='incorrect'>
-	<<a.false>>
+	<<a.o>>
   </li>	  
 <|-        endif          |>  
 <|-    endfor +|>

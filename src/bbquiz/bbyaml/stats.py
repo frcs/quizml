@@ -41,6 +41,7 @@ def get_entry_marks(entry):
     default_marks = {
         'mc': 2.5,
         'ma': 2.5,
+        'tf': 2.5,
         'essay': 5,
         'header': 0,
         'matching': 2.5,
@@ -64,6 +65,8 @@ def question_success_probability(entry):
          return 1.0 / len(entry['choices'])                
     elif entry['type']=='ma':
         return 1.0 / (2 ** (len(entry['choices'])-1))
+    elif entry['type']=='tf':
+        return 1.0 / 2
     elif entry['type']=='matching':
         return 1.0 / math.factorial(len(entry['choices']))
     elif entry['type']=='essay':

@@ -16,12 +16,7 @@ expected types. This enables us to validate BBYaml files and parse
 syntax errors (throwing BBYamlSyntaxError).
 
 This also avoids any unwanted type conversion and avoids us having to
-put values into quotes. For instance,
-
-    - answer: yes
-      correct: false
-
-will be correctly understood as answer="yes" and correct=False.
+put values into quotes.
 
 Typical usage example:
 
@@ -32,12 +27,6 @@ also proposed for speed, but will not catch syntax errors and all
 key/val will be strings:
 
     yaml_data_str = load("quiz.yaml", schema=False) # quick
-
-but 
-    - answer: yes
-      correct: false
-
-will then be understood as answer="yes" and correct="False".
 
 
 """
@@ -90,8 +79,8 @@ def load_with_schema(bbyaml_txt):
            # "choices": Seq(Map({ Bool(): Str() }, key_validator=Bool())),
            # "choices": Seq(Map({ "": Str() })),
             "choices": Seq(
-                Map({ Optional("true"): Str(),
-                      Optional("false"): Str()}))
+                Map({ Optional("x"): Str(),
+                      Optional("o"): Str()}))
 
         }),
         'mc': Map({
@@ -101,9 +90,16 @@ def load_with_schema(bbyaml_txt):
             Optional("cols", default=1): Int(),                   
             "question": Str(),
             "choices": Seq(
-                Map({ Optional("true"): Str(),
-                      Optional("false"): Str()}))
+                Map({ Optional("x"): Str(),
+                      Optional("o"): Str()}))
         }),
+        'tf': Map({
+            "type": Str(),
+            Optional("marks", default=2.5): Float(),
+            Optional("comments"): Str(),                   
+            "question": Str(),
+            "answer": Bool(),
+        }),        
         'essay': Map({
             "type": Str(),
             Optional("comments"): Str(),                                         

@@ -286,13 +286,19 @@ questions with multiple choices, mark all solutions that are correct
 \item[{\bf Q.<<loop.index>>}]
 <|- if q.type == 'essay' |>
 essay question
+<|- elif q.type == 'tf' |>
+<|-     if q.answer    -|>
+\ifsolutions\xT\oF\else\oT\oF\fi
+<|-     else  -|>
+\ifsolutions\oT\xF\else\oT\oF\fi
+<|-     endif -|>
 <|- elif q.type == 'mc' or q.type == 'ma' |>
 <|-   for a in q.choices -|>
-<|-     if a.true is defined  -|>
+<|-     if a.x is defined  -|>
 \ifsolutions\x<<letter[loop.index0]>>\else\o<<letter[loop.index0]>>\fi
 <|-     else  -|>
 \o<<letter[loop.index0]>>
-<|- endif -|>
+<|-     endif -|>
 <|-   endfor |>
 <| endif |>
 <| endfor |>
@@ -313,6 +319,26 @@ essay question
 \begin{answer}
 <<q.answer>>
 \end{answer}
+<| elif q.type == 'tf' |>
+\begin{bbquestion}[<<q.marks>>]
+<<q.question>>
+  \vspace{1em}
+\begin{enumerate}\setlength\itemsep{0.25em}
+\ifsolutions  
+<|        if q.answer    -|>
+    \item[\xT] True
+    \item[\oF] False
+<|-       else          -|>  
+    \item[\oT] True
+    \item[\xF] False
+<|-       endif          |>
+\else
+    \item[(t)] True
+    \item[(f)] False
+\fi
+\end{enumerate}
+\end{bbquestion}
+
 <| elif q.type == 'mc' or q.type == 'ma' |>
 \begin{bbquestion}[<<q.marks>>]
 <<q.question>>
@@ -323,16 +349,16 @@ essay question
 \begin{enumerate}\ifsolutions\else\renewcommand{\theenumi}{(\alph{enumi})}\fi\setcounter{enumii}{0}\setlength\itemsep{0.25em}
 <|-   for a in q.choices |>
 \ifsolutions  
-<|        if a.true is defined   -|>
-    \item[\iX] <<a.true>>
+<|        if a.x is defined   -|>
+    \item[\iX] <<a.x>>
 <|-        else          -|>  
-    \item[\iO] <<a.false>>
+    \item[\iO] <<a.o>>
 <|-        endif          |>
 \else
-<|        if a.true is defined   -|>
-    \item <<a.true>>
+<|        if a.x is defined   -|>
+    \item <<a.x>>
 <|-        else          -|>  
-    \item <<a.false>>
+    \item <<a.o>>
 <|-        endif          |>
 \fi
 

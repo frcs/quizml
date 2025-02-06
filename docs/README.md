@@ -67,7 +67,7 @@ $ bbquiz quiz1.yaml
 
 and this is what the rendered outputs look like:
 
-<img src="figures/demo-output-carousel.gif" width="100%" />
+<img src="figures/demo-output-carousel.gif" width="800px" />
 
 
 

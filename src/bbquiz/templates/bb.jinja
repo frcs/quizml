@@ -1,12 +1,14 @@
 <|- for q in questions -|>
 <|- if q.type == 'essay' -|>
 ESS<< "\t" >><< q.question >><< "\t" >><< q.answer >>
+<|- elif q.type == 'tf' -|>
+TF<< "\t" >><< q.question >><< "\t" >><< q.answer >>
 <|- elif q.type == 'ma' -|>
-MA<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><|- if a.true is defined -|><< a.true >><|-else-|><< a.false >><|-endif-|><< "\t" >><|- if a.true is defined -|>correct<|-else-|>incorrect<|-endif-|><|-   endfor -|>
+MA<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><|- if a.x is defined -|><< a.x >><|-else-|><< a.o >><|-endif-|><< "\t" >><|- if a.x is defined -|>correct<|-else-|>incorrect<|-endif-|><|-   endfor -|>
 <|- elif q.type == 'mc' -|>
-MC<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><|- if a.true is defined -|><< a.true >><|-else-|><< a.false >><|-endif-|><< "\t" >><|- if a.true is defined -|>correct<|-else-|>incorrect<|-endif-|><|-   endfor -|>
+MC<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><|- if a.x is defined -|><< a.x >><|-else-|><< a.o >><|-endif-|><< "\t" >><|- if a.x is defined -|>correct<|-else-|>incorrect<|-endif-|><|-   endfor -|>
 <|- elif q.type == 'matching' -|>
-MAT<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><< a.a >><< "\t" >><< a.b >><|-   endfor -|>
+MAT<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><< a.A >><< "\t" >><< a.B >><|-   endfor -|>
 <|- elif q.type == 'ordering' -|>
 ORD<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><< a >><|-   endfor -|>
 <|- endif -|>
