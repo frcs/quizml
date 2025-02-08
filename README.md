@@ -13,29 +13,20 @@ file, using a Markdown syntax:
     If vector ${\bf w}$ is of dimension $3 \times 1$ and matrix ${\bf A}$ of
     dimension $5 \times 3$, then what is the dimension of $\left({\bf w}^{\top}{\bf
     A}^{\top}{\bf A}{\bf w}\right)^{\top}$?
+  choices:
+    - o:  $5\times 5$
+    - o:  $3\times 3$
+    - o:  $3\times 1$
+    - x:  $1\times 1$
 
-  answers:
-    - answer:  ${\tt 5}\times {\tt 5}$
-      correct: false
-    - answer:  ${\tt 3}\times {\tt 3}$
-      correct: false
-    - answer:  ${\tt 3}\times {\tt 1}$
-      correct: false
-    - answer:  ${\tt 1}\times {\tt 1}$
-      correct: true
-
-- type: mc
+- type: tf
   marks: 5         
   question: |
     Is this the image of a tree?
     
     ![](figures/bee.jpg){ width=30em }
     
-  answers:
-    - answer: "yes"
-      correct: false
-    - answer: "false"
-      correct: true
+  answer: false
 ```
 
 Then you can generate the BlackBoard exam, LaTeX, and HTML preview using the

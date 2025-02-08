@@ -29,8 +29,8 @@ bbquiz --build quiz.yaml
 
 
 ```bash
-Usage: bbquiz [-h] [-w] [--config CONFIGFILE] [--build] [--diff] [--zsh] [--fish] [-v] [--debug] [--verbose] 
-[quiz.yaml] [otherfiles [otherfiles ...]]
+Usage: bbquiz [-h] [-w] [--config CONFIGFILE] [--build] [--diff] [--zsh]
+[--fish] [-v] [--debug] [--verbose] [quiz.yaml] [otherfiles [otherfiles ...]]
 
 ```
 
@@ -54,31 +54,6 @@ Usage: bbquiz [-h] [-w] [--config CONFIGFILE] [--build] [--diff] [--zsh] [--fish
 * `-v`, `--version`: Show program's version number and exit.
 * `--debug`: Print lots of debugging statements.
 * `--verbose`: Set verbose on.
-
-
-
-<!-- ``` -->
-<!-- Usage: bbquiz [-h] [-w] [--config CONFIGFILE] [--build] [--diff] [--zsh] [--fish] [-v] [--debug] [--verbose] -->
-<!--               [quiz.yaml] [otherfiles [otherfiles ...]] -->
-
-<!-- Converts a questions in a YAML/markdown format into a Blackboard test or a LaTeX script -->
-
-<!-- Positional Arguments: -->
-<!--   quiz.yaml            path to the quiz in a yaml format -->
-<!--   otherfiles           other yaml files -->
-
-<!-- Optional Arguments: -->
-<!--   -h, --help           show this help message and exit -->
-<!--   -w, --watch          continuously compiles the document on file change -->
-<!--   --config CONFIGFILE  user config file. Default location is /Users/fpitie/Library/Application Support/bbquiz -->
-<!--   --build              compiles all targets and run all post-compilation commands -->
-<!--   --diff               compares questions from first yaml file to rest of files -->
-<!--   --zsh                A helper command used for exporting the command completion code in zsh -->
-<!--   --fish               A helper command used for exporting the command completion code in fish -->
-<!--   -v, --version        show program's version number and exit -->
-<!--   --debug              Print lots of debugging statements -->
-<!--   --verbose            set verbose on -->
-<!-- ``` -->
 
 
 ### Examples

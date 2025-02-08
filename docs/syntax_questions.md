@@ -16,24 +16,31 @@ provides an indicative answer that can be used as guideline for marking.
     a suggestion for how to answer that essay question   
 ```
 
+### True/False
+
+```yaml
+- type: tf
+  marks: 4
+  question: |
+    question statement goes here...
+  answer: true
+```
+
 ### Multiple Choice
 
-In multiple choice questions, only one answer/statement is correct.
+In multiple choice questions, only one answer/statement is correct. The correct
+statements are indicated with `- x:` and the incorrectd ones with `- o:`.
 
 ```yaml
 - type: mc
   marks: 4
   question: |
     question statement goes here...
-  answers:
-    - answer:  text for answer 1
-      correct: true
-    - answer:  text for answer 2
-      correct: false
-    - answer:  text for answer 3
-      correct: false
-    - answer:  text for answer 4
-      correct: false
+  choices:
+    - x:  text for answer 1
+    - o:  text for answer 2
+    - o:  text for answer 3
+    - o:  text for answer 4
 ```
 
 ### Multiple Answers
@@ -46,38 +53,33 @@ be true (potentially zero or all statements can be correct).
   marks: 4
   question: |
     question statement goes here...
-  answers:
-    - answer:  text for answer 1
-      correct: true
-    - answer:  text for answer 2
-      correct: false
-    - answer:  text for answer 3
-      correct: true
-    - answer:  text for answer 4
-      correct: false
+  choices:
+    - x:  text for answer 1
+    - x:  text for answer 2
+    - o:  text for answer 3
+    - x:  text for answer 4
 ```
 ### Matching
 
-In Matching questions, the student is asked to map each statement (`answer`)
-with its corresponding match (`correct`). For n statements, there are factorial
-n possibilities. The (`answer`,`correct`) statements are shuffled when
-generating the exam (see how to set the random seed here).
+In Matching questions, the student is asked to map each statement (`A`) with its
+corresponding match (`B`). For n statements, there are factorial n
+possibilities. The (`A`,`B`) statements are shuffled when generating the exam
+(see how to set the random seed here).
 
 ```yaml
 - type: matching
   marks: 5
   question: |
-    question statement goes here...
-      
-  answers:
-    - answer: text 1
-      correct: text for correct match for text 1
-    - answer: text 2
-      correct: text for correct match for text 2
-    - answer: text 3
-      correct: text for correct match for text 3
-    - answer: text 4
-      correct: text for correct match for text 4 
+    question statement goes here...      
+  choices:
+    - A: text 1
+      B: text for correct match for text 1
+    - A: text 2
+      B: text for correct match for text 2
+    - A: text 3
+      B: text for correct match for text 3
+    - A: text 4
+      B: text for correct match for text 4 
 ```
 
 ### Ordering
@@ -90,11 +92,12 @@ occurs when generating the exam (see how to set the random seed here).
 - type: ordering
   marks: 5
   question: |
-    Order the following trees in **decreasing** order of height.
-  
-  answers:
-    - answer: tree 1
-    - answer: tree 2
-    - answer: tree 3
+    Order the following trees in **decreasing** order of height.  
+  choices:
+    - tree 1
+    - tree 2
+    - tree 3
+    - tree 4
+
 ```
 

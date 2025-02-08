@@ -14,28 +14,20 @@ Questions are written in a YAML file, using a Markdown syntax. Here is a minimal
     dimension $5 \times 3$, then what is the dimension of $\left({\bf w}^{\top}{\bf
     A}^{\top}{\bf A}{\bf w}\right)^{\top}$?
 
-  answers:
-    - answer:  $5 \times 5$
-      correct: false
-    - answer:  $3 \times 3$
-      correct: false
-    - answer:  $3 \times 1$
-      correct: false
-    - answer:  $1 \times 1$
-      correct: true
+  choices:
+    - o:  $5\times 5$
+    - o:  $3\times 3$
+    - o:  $3\times 1$
+    - x:  $1\times 1$
 
-- type: mc
+- type: tf
   marks: 5         
   question: |
     Is this the image of a tree?
     
     ![](figures/bee.jpg){ width=30em }
     
-  answers:
-    - answer: "yes"
-      correct: false
-    - answer: "false"
-      correct: true
+  answer: false
 ```
 
 Then you can generate multiple render targets, including BlackBoard test, LaTeX,

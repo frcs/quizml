@@ -14,46 +14,37 @@ capabilities to LaTeX.
 Below is an longer example of what an exam script would look like:
 
 ```yaml
-
-- type: header
-  author: François Pitié
-  date: Semester 2 - 2020/2021
-  title: EEU44C08/EE5M08 Exam
-  examtime: 14:00--16:00
-  examdate: 23/04/2021
-  examyear: 2021
-  examvenue: online
-  examsemester: Semester 2
-  programmeyear: Senior Sophister
-  modulename: Image and Video Processing
-  modulecode: EEU44C08-1 
-  examiner: Dr. F. Pitié
-  instructions: "" 
-  materials: ""
-  additionalinformation: ""
-  pre_latexpreamble: |
-    \newcommand{\R}{\mathbb{R}}
-
+author: François Pitié
+date: Semester 2 - 2020/2021
+title: EEU44C08/EE5M08 Exam
+examtime: 14:00--16:00
+examdate: 23/04/2021
+examyear: 2021
+examvenue: online
+examsemester: Semester 2
+programmeyear: Senior Sophister
+modulename: Image and Video Processing
+modulecode: EEU44C08-1 
+examiner: Dr. F. Pitié
+instructions: "" 
+materials: ""
+additionalinformation: ""
+pre_latexpreamble: |
+  \newcommand{\R}{\mathbb{R}}
+---
 - type: mc
   marks: 5           
   question: |
     If vector ${\bf w}$ is of dimension $3 \times 1$ and matrix ${\bf A}$ of
     dimension $5 \times 3$, then what is the dimension of $\left({\bf w}^{\top}{\bf
     A}^{\top}{\bf A}{\bf w}\right)^{\top}$?
-
-  answers:
-    - answer:  ${\tt 5}\times {\tt 5}$
-      correct: false
-    - answer:  ${\tt 3}\times {\tt 3}$
-      correct: false
-    - answer:  ${\tt 3}\times {\tt 1}$
-      correct: false
-    - answer:  ${\tt 1}\times {\tt 1}$
-      correct: true
-    - answer:  ${\tt 1}\times {\tt 5}$
-      correct: false
-    - answer:  ${\tt 1}\times {\tt 3}$
-      correct: false
+  choices:
+    - o:  $5 \times 5$
+    - o:  $3 \times 3$
+    - o:  $3 \times 1$
+    - x:  $1 \times 1$
+    - o:  $1 \times 5$
+    - o:  $1 \times 3$
 
 - type: ma
   marks: 5         
@@ -62,17 +53,12 @@ Below is an longer example of what an exam script would look like:
     and 2 classes (cross and circle). Select all suitable classification
     techniques for this dataset.
 
-    ![](figures/dataset-4.png){ width=30em }
-    
-  answers:
-    - answer: Decision Tree
-      correct: true
-    - answer: Logistic Regression
-      correct: true
-    - answer: Random Forest
-      correct: true
-    - answer: Least Squares
-      correct: false
+    ![](figures/dataset-4.png){ width=30em }    
+  choices:
+    - x: Decision Tree
+    - x: Logistic Regression
+    - x: Random Forest
+    - o: Least Squares
 
 - type: matching
   marks: 2.5
@@ -81,22 +67,22 @@ Below is an longer example of what an exam script would look like:
     center of the PSD image).
 
     Explain your choices.     
-  answers:
-    - answer: |
+  choices:
+    - A: |
         ![](figures/psd-16-ori.png){width=30em}
-      correct: |
+      B: |
         ![](figures/psd-16-psd.png){width=30em}
-    - answer: |
+    - A: |
         ![](figures/psd-13-ori.png){width=30em}
-      correct: |
+      B: |
         ![](figures/psd-13-psd.png){width=30em}
-    - answer: |
+    - A: |
         ![](figures/psd-01-ori.png){width=30em}
-      correct: |
+      B: |
         ![](figures/psd-01-psd.png){width=30em}
-    - answer: |
+    - A: |
         ![](figures/psd-25-blur.png){width=30em}
-      correct: |
+      B: |
         ![](figures/psd-25-psd-blur.png){width=30em}
 
 - type: essay

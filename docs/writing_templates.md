@@ -12,7 +12,6 @@ sometimes be confusing to know which file is being edited. Use `--verbose` to
 know which template is actually being used.
 
 
-
 ### Minimal Example
 
 A template can contain variables and expressions, which get replaced when the
@@ -41,7 +40,6 @@ The output would look like something like this:
 ```
 
 
-
 ### Jinja Delimiters
 
 Note that to be compatible with both LaTeX and HTML, we use the following
@@ -49,7 +47,6 @@ delimiters:
 * `<| ... |>`  for Statements
 * `<< ... >>`  for Expressions
 * `<# ... #>`  for Comments
-
 
 
 ### Questions Information
@@ -69,13 +66,12 @@ Short Essay
 Multiple Choice
 <|- elif q.type == 'ma'  -|>
 Multiple Answers
-<|- else -|>  
+<|- else -|>
 Other type
 <|- endif |>
 </li>
 </ol>
 ```
-
 
 
 ### Header Information
@@ -93,18 +89,7 @@ start with `pre_` as LaTeX macros:
 <|   for key, value in header.items()                      -|>
 <|     if (key != 'type') and (not key.startswith('pre_'))  |>
 \def \info<<key>> {<<value>>}
-<|     endif                                                |>  
+<|     endif                                                |>
 <|-  endfor                                                 |>
-<|-endif                                                    |>  
+<|-endif                                                    |>
 ```
-
-
-
-
-
-
-
-
-
-
-
