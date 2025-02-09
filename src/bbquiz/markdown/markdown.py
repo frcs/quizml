@@ -118,7 +118,7 @@ class BBYAMLMarkdownTranscoder:
             and its value is the corresponding rendered HTML or LaTeX
         """
 
-        if opts['fmt'] == 'html':
+        if opts['fmt'].startswith('html'):
             return self.html_dict(opts)
         elif opts['fmt'] == 'latex':
             return self.latex_dict(opts)

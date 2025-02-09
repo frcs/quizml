@@ -173,7 +173,9 @@ def build_eq_dict_PNG(eq_list, opts):
           "-sOutputFile=" + png_base + "%05d.png",
           pdf_filename])
 
-    shutil.copyfile(latex_filename, "/Users/fpitie/ttt.tex")   
+    ##   edit and uncomment this line if we need to look at the generated files
+    #    shutil.copyfile(latex_filename, "/path/to/debug/temp.tex")
+    
     # converting all png files into base64 strings
     
     for it, eq in enumerate(eq_list,start=1):
@@ -429,20 +431,30 @@ class BBYamlHTMLRenderer(HTMLRenderer):
                                token.width)
     
 
+
+    
+    
 def get_html(doc, opts):
     """
     returns the rendered HTML source for mistletoe object
     """
-
-    
+   
     eq_list = get_eq_list_from_doc(doc)
-    eq_dict = build_eq_dict_PNG(eq_list, opts)
-#    eq_dict = build_eq_dict_MathML(eq_list, opts)
+
+    if opts.get('fmt', '') == 'html-svg':
+        raise NotImplementedError
+#        eq_dict = build_eq_dict_SVG(eq_list, opts)
+    elif opts.get('fmt', '') == 'html-mathml':
+        eq_dict = build_eq_dict_MathML(eq_list, opts)
+    else:
+        eq_dict = build_eq_dict_PNG(eq_list, opts)
+        
 
     with BBYamlHTMLRenderer(eq_dict) as renderer:
         html_result = renderer.render(doc)
 
     return html_result
+
 
 def inline_css(html_content, opts):
 
