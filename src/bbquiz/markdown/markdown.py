@@ -81,7 +81,7 @@ class BBYAMLMarkdownTranscoder:
         """
         html_pre = opts.get('html_pre', '')
         html_css = opts.get('html_css', '')
-        key = 'HTML:PRE:' + html_pre + 'CSS:' + html_css
+        key = opts['fmt'] + ':PRE:' + html_pre + 'CSS:' + html_css
         if key in self.cache_dict:
             return self.cache_dict[key]
         d = get_html_dict(self.doc_combined, self.md_list, opts)
@@ -100,7 +100,7 @@ class BBYAMLMarkdownTranscoder:
             a dictionary where each key corresponds to the MD string
             and the value is the rendered LaTeX
         """
-        key = 'LATEX'
+        key = opts['fmt']
         if key in self.cache_dict:
             return self.cache_dict[key]            
         d = get_latex_dict(self.doc_combined, self.md_list)

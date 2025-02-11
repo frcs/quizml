@@ -8,10 +8,8 @@ import re
 from bs4 import BeautifulSoup
 import css_inline
 
-
 from subprocess import call
 import tempfile
-import base64
 from collections import defaultdict
 import logging
 
@@ -28,7 +26,9 @@ from rich.spinner import Spinner
 
 from mistletoe.html_renderer import HTMLRenderer
 
-from .utils import append_unique, get_image_info, get_hash
+from .utils import append_unique, get_hash
+from .image_embedding import embed_base64
+
 from .extensions import MathInline, MathDisplay, ImageWithWidth
 from .exceptions import LatexEqError
 
@@ -38,22 +38,8 @@ import latex2mathml
 import shutil
 from pathlib import Path
 
+import base64
 
-def embed_base64(path):
-    """returns a base64 string of an image file.
-
-    """
-    
-    filename, ext = os.path.splitext(path)
-    ext = ext[1:]
-    if ext=='svg':
-        ext = 'svg+xml'
-    with open(path, "rb") as image_file:
-        data = image_file.read()
-        [w, h] = get_image_info(data)
-        data64 = f"data:image/{ext};base64," + \
-            base64.b64encode(data).decode('ascii')
-    return (w, h, data64)
 
 
 def get_eq_list_from_doc(doc):
@@ -142,7 +128,7 @@ def build_eq_dict_PNG(eq_list, opts):
         universal_newlines = True)
     found_pdflatex_errors = False
 
-    pdflatex_progress =  Spinner("simpleDotsScrolling", "pdflatex compilation")
+    pdflatex_progress =  Spinner("simpleDotsScrolling", "latex compilation")
 
     with Live(pdflatex_progress) as live:
         while pdflatex.poll()==None:
@@ -208,6 +194,158 @@ def build_eq_dict_PNG(eq_list, opts):
     os.chdir(olddir)
             
     return eq_dict
+
+
+def build_eq_dict_SVG(eq_list, opts):
+    """returns a dictionary of images from a list of LaTeX equations.
+   
+    LaTeX equations are compiled into a DVI document using latex,
+    with one equation per page.
+
+    The DVI is then converted into SVG images using dvisvgm.
+
+    """
+    eq_dict = {}
+    
+    # if we don't have any equations, exit with empty dict
+    if not eq_list:
+        return eq_list
+
+    if 'html_pre' in opts:
+        template_latex_preamble = opts['html_pre']
+    else:
+        template_latex_preamble = (
+            "\\usepackage{amsmath}\n" +
+            "\\usepackage{notomath}\n" +
+            "\\usepackage[OT1]{fontenc}\n")
+
+    user_latex_preamble = opts.get('user_pre','')
+        
+    latex_preamble = (
+        "\\documentclass{article}\n" + 
+        template_latex_preamble + 
+        user_latex_preamble + 
+        "\\newenvironment{standalone}{\\begin{preview}}{\\end{preview}}" +
+        "\\PassOptionsToPackage{active,tightpage}{preview}" +
+        "\\usepackage{preview}" +
+        "\\begin{document}\n")
+
+    tmpdir = tempfile.mkdtemp()
+    olddir = os.getcwd()
+    os.chdir(tmpdir)
+
+    latex_filename = "eq_list.tex"
+    dvi_filename = "eq_list.dvi"
+    svg_base = "eq_list"
+
+    f = open(latex_filename, 'w')
+    f.write(latex_preamble)
+
+    for eq in eq_list:
+        if isinstance(eq, MathInline):
+            # this code is for the poor's man version with vertical-align: middle 
+            f.write("\\typeout{::: 0}")
+            f.write("\\sbox{0}{" + eq.content + "}\n")
+            f.write("\\ifdim\\dimexpr\\ht0-\\dp0>4.8pt\n")
+            f.write("\\dp0\\dimexpr\\ht0-4.8pt\n")
+            f.write("\\else\\ht0\\dimexpr\\dp0+4.8pt\\fi\n")
+            f.write("\\begin{standalone}\\setlength\\fboxrule{0.00001pt}")
+            f.write("\\setlength\\fboxsep{0pt}\\fbox{\\usebox{0}}\\end{standalone}\n")
+
+            
+        if isinstance(eq, MathDisplay):
+            f.write("\\typeout{::: 0}")            
+            f.write("\\begin{standalone}" + eq.content + "\\end{standalone}\n")
+
+    f.write("\\end{document}\n")
+    
+    f.close()
+    
+    latexprocess = subprocess.Popen(
+        ["latex", "-interaction=nonstopmode",
+         latex_filename],
+        stdout = subprocess.PIPE,
+        universal_newlines = True)
+    found_latex_errors = False
+
+    latex_progress =  Spinner("simpleDotsScrolling", "latex compilation")
+
+    with Live(latex_progress) as live:
+        while latexprocess.poll()==None:
+            latex_progress.update()
+    
+    err_msg = ''
+    depthratio = []
+    for line in latexprocess.stdout:
+        if line.startswith(':::') and not found_latex_errors:
+            depthratio.append(float(line[4:-1]))
+        if line.startswith('!') and not found_latex_errors:
+            sys.stdout.write("\n")            
+            found_latex_errors = True
+        if found_latex_errors:
+            err_msg = err_msg + line
+
+    if found_latex_errors:
+        raise LatexEqError(err_msg)
+   
+    # converting all pages in pdf doc into png files using gs
+
+    # dvisvgm -n -p 1- -c 1.2,1.2 eq_list.dvi
+    call(["dvisvgm",
+          "-n",
+          '-v', '1',
+          '-p', "1-",
+          "-c", "1.2,1.2",
+          "-o", f"{svg_base}-%5p.svg",          
+          dvi_filename])
+
+    ##   edit and uncomment this line if we need to look at the generated files
+    #    shutil.copyfile(latex_filename, "/path/to/debug/temp.tex")
+    
+    # converting all png files into base64 strings
+
+    #####################################################
+    # IMPORTANT:
+    #
+    # In this version we use the dirty depth approach
+    # so depth is not recorded but baked in the svg image
+    #####################################################
+    
+    for it, eq in enumerate(eq_list,start=1):
+        [w, h, data64] = embed_base64(svg_base + "-%05d.svg" % it)
+        #        d = depthratio[it-1]
+        # d_ = round(d * w * 0.5 , 2)
+        # w_ = round(w/2)
+        # h_ = round(h/2)
+        # d_ = d * w
+        # w_ = w
+        # h_ = h
+        
+        # w_ = round(w/2, 2)
+        # h_ = round(h/2, 2)        
+        
+        if isinstance(eq,MathInline):
+            key = "##Inline##" + eq.content           
+            html = (
+                f"<img src='{data64}'" +
+                f" alt='{escape_LaTeX(eq.content)}'" +
+                f" style='vertical-align:middle;'>")            
+            logging.debug(f"[eq-inline] '{html}'")
+            eq_dict[key] = html
+        else:
+            key = "##Display##" + eq.content
+            html = (
+                f"<img src='{data64}'" +
+                f" alt='{escape_LaTeX(eq.content)}'" +
+                f" style='vertical-align:middle;'>")            
+            logging.debug(f"[eq-display] '{html}'")
+            eq_dict[key] = html
+
+    os.chdir(olddir)
+            
+    return eq_dict
+
+
 
 
 def build_eq_dict_MathML(eq_list, opts):
@@ -419,16 +557,53 @@ class BBYamlHTMLRenderer(HTMLRenderer):
         return template.format(data64, self.render_to_plain(token), title)
     
     def render_image_with_width(self, token) -> str:
-        template = '<img src="{}" alt="{}"{} style="width:{}">'
-        if token.title:
-            title = ' title="{}"'.format(html.escape(token.title))
+
+        [w, h, data64_img] = embed_base64(token.src)
+
+        width_attr_str = token.width.strip()
+
+        width_attr_pattern = r"(\d+\.?\d+)\s*([a-zA-Z]+)"
+        match = re.match(width_attr_pattern, width_attr_str)
+        if match:
+            width_attr_val = match.group(1)
+            width_attr_ext = match.group(2)
         else:
-            title = ''
-        [w, h, data64] = embed_base64(token.src)
-        return template.format(data64,
-                               self.render_to_plain(token),
-                               title,
-                               token.width)
+            raise Exception("Sorry, bad width attr")
+
+        if width_attr_ext=='em':
+            width_attr = float(width_attr_val) * 16
+        else:
+            width_attr = float(width_attr_val)
+        
+        height_attr = width_attr/w * h
+        
+        template = (f'<svg width="{width_attr}" height="{height_attr}" '
+                    f'xmlns="http://www.w3.org/2000/svg">'
+                    f'<image href="{data64_img}" x="0" y="0" '
+                    f'width="{width_attr}" height="{height_attr}" /></svg>')
+
+        data64_svg = f"data:image/svg+xml;base64," + \
+                      base64.b64encode(str.encode(template)).decode('ascii')
+
+        template = (f'<img src="{data64_svg}" '
+                    f'width={width_attr} height="{height_attr}">')
+        
+        return template
+
+        ## don't delete as yet, this is SVG free code
+        ## but not playing great with BB2, maybe it's just a matter
+        ## of inserting height and width to image tag
+        #
+        # template = '<img src="{}" alt="{}"{} style="width:{}">'
+        # if token.title:
+        #     title = ' title="{}"'.format(html.escape(token.title))
+        # else:
+        #     title = ''
+        # [w, h, data64] = embed_base64(token.src)
+        # return template.format(data64,
+        #                        self.render_to_plain(token),
+        #                        title,
+        #                        token.width)
     
 
 
@@ -442,8 +617,7 @@ def get_html(doc, opts):
     eq_list = get_eq_list_from_doc(doc)
 
     if opts.get('fmt', '') == 'html-svg':
-        raise NotImplementedError
-#        eq_dict = build_eq_dict_SVG(eq_list, opts)
+        eq_dict = build_eq_dict_SVG(eq_list, opts)
     elif opts.get('fmt', '') == 'html-mathml':
         eq_dict = build_eq_dict_MathML(eq_list, opts)
     else:
@@ -486,16 +660,6 @@ def inline_css(html_content, opts):
     out = out[26:-15]
 
     return out
-
-    # html_content = html_content.replace(
-    #     'class="math inline"',
-    #     'class="math inline" style="vertical-align:middle"')
-    # html_content = html_content.replace(
-    #     '<code>',
-    #     '<code style="font-family:ui-monospace, ‘Cascadia Mono’, ‘Segoe UI Mono’, ‘Segoe UI Mono’, Menlo, Monaco, Consolas, monospace; font-size:80%; line-height:1em">')
-    # html_content = html_content.replace(
-    #     '<pre>',
-    #     '<pre style="background:#eee; padding: 0.5em; max-width: 80em; line-height:1em">')
 
 
 def get_html_dict(combined_doc, md_list, opts):

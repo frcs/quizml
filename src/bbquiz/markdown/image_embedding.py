@@ -1,51 +1,44 @@
-import hashlib
-import struct
+
+import base64
+from PIL import Image
+from io import BytesIO
+from pathlib import Path
 import re
 
-
-def get_hash(txt):
-    """
-    returns a hash from a string
-
-    Parameters
-    ----------
-    txt : str
-        string to be hashed
+def embed_base64(pathname):
+    """returns a base64 string of an image file.
     """
 
-    return hashlib.md5(txt.encode('utf-8')).hexdigest()
- 
-def md_combine_list(md_list):
-    """
-    Collate all Markdown entries into a single Markdown document.
+    path = Path(pathname)
+    suffix = path.suffix.lower()
 
-    Parameters
-    ----------
-    md_list : list  
-        list of markdown entries
-    """
+    if suffix=='.svg':
+        ext = 'svg+xml'
+    elif suffix=='.png':
+        ext = 'png'
+    elif suffix=='.jpeg' or suffix=='.jpg':
+        ext = 'jpeg'
+    else:
+        raise NotImplementedError(
+            "image formats other than png and svg are not supported")
+            
+    try:
+        data = path.read_bytes()
+    except FileNotFoundError:
+        raise Exception(f"cannot read image {pathname}")
+          
+    if ext=='svg+xml':
+        [w, h] = get_SVG_info(data.decode())
+    else:
+        im = Image.open(BytesIO(data))
+        w, h = im.size
+                        
+    data64 = (
+        f"data:image/{ext};base64,"
+        f"{base64.b64encode(data).decode('ascii')}")
     
-    txt = ""
-    for md_entry in md_list:
-        txt = txt + "\n\n# " + get_hash(md_entry) + "\n\n" + md_entry
-    return txt
+    return (w, h, data64)
 
-def append_unique(alist, blist):
-    """
-    append all elements of blist to alist that are not already in alist.
-
-    Parameters
-    ----------
-    alist : list
-        input list
-    blist : list
-        list to be added
-    """
-
-    for b in blist:
-        if b not in alist:
-            alist.append(b)
-    return alist
 
 def get_PNG_info(data):
     """
@@ -136,5 +129,6 @@ def get_SVG_info(data):
     width = w
     height = h
     return width, height
+
 
 
