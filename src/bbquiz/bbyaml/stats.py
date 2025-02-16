@@ -110,8 +110,8 @@ def get_stats(yaml_data):
         question_expected_mark = question_marks*question_success_probability(entry)
         expected_mark = expected_mark + question_expected_mark
         choices = (str(len(entry['choices']) if 'choices' in entry else '-'))
-        lines = entry['question'].splitlines()
-        excerpt = f"{lines[0]}" + (" […]" if len(lines)>1 else "")
+        lines = entry['question'].strip().splitlines()
+        excerpt = f"{lines[0]}" + ("…" if len(lines)>1 else "")
         
         stats["questions"].append({"type":  entry['type'],
                                    "marks": question_marks,

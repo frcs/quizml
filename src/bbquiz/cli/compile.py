@@ -185,19 +185,47 @@ def print_stats_table(stats):
     
     console = Console()
 
-    table = Table(box=box.SIMPLE,collapse_padding=True, show_footer=True)
-    table.add_column("Q", f"{stats['nb questions']}", no_wrap=True,
-                     justify="right")
-    table.add_column("Type", "--", no_wrap=True, justify="center")
-    table.add_column("Marks", f"{stats['total marks']:3.1f}",  no_wrap=True,
-                     justify="right")
-    table.add_column("#", "-", no_wrap=True, justify="right")
-    table.add_column("Exp", f"{stats['expected mark']:2.1f}" + "%",
-                     no_wrap=True, justify="right")
-    table.add_column("Question Statement", no_wrap=False, justify="left")
+    table = Table(box=box.SIMPLE,
+                  collapse_padding=True,
+                  show_footer=True)
+    
+    table.add_column(
+        "Q", f"{stats['nb questions']}",
+        min_width=3,
+        no_wrap=True,
+        justify="right")
+    table.add_column(
+        "Type", "--",
+        min_width=2,        
+        no_wrap=True,
+        justify="center")
+    table.add_column(
+        "Marks", f"{stats['total marks']:3.1f}",
+        min_width=3,                
+        no_wrap=True,
+        justify="right")
+    table.add_column(
+        "#", "-",
+        no_wrap=True,
+        justify="right")
+    table.add_column(
+        "Exp", f"{stats['expected mark']:2.1f}" + "%",
+        no_wrap=True,
+        justify="right")
+    table.add_column(
+        "Question Statement",
+        max_width=60,
+        no_wrap=True,
+        justify="left",
+        overflow="ellipsis")
+    
     for i, q in enumerate(stats["questions"]):
-        table.add_row(f"{i+1}", q["type"], f"{q['marks']:2.1f}",
-                       f"{q['choices']}", f"{q['EM']:3.1f}", q["excerpt"])
+        table.add_row(f"{i+1}",
+                      q["type"],
+                      f"{q['marks']:2.1f}",
+                      f"{q['choices']}",
+                      f"{q['EM']:3.1f}",
+                      q["excerpt"])
 
     console.print(table)
 
@@ -242,7 +270,43 @@ def compile_cmd_target(target):
         
         return False    
     
+
     
+def compile_target(target, bbyamltranscoder):
+
+    try:
+        yaml_transcoded = bbyamltranscoder.transcode_target(target)
+        rendered_doc = to_jinja.render(yaml_transcoded,
+                                       target['template'])
+        pathlib.Path(target['out']).write_text(rendered_doc)
+        success = True
+
+    except LatexEqError as err:
+        print(Panel(str(err),
+                    title="Latex Error",
+                    border_style="red"))
+        success = False
+    except MarkdownError as err:
+        print(Panel(str(err),
+                    title="Markdown Error",
+                    border_style="red"))
+        success = False
+    except FileNotFoundError as err:
+        print(Panel(str(err),
+                    title="FileNotFoundError Error",
+                    border_style="red"))
+        success = False
+    except Jinja2SyntaxError as err:
+        print(Panel((f"\n did not generate {out_filename} " +
+                     "because of template errors ! \n " + str(err)),
+                    title='Jinja Template Error',
+                    border_style="red"))
+        success = False
+
+    return success
+        
+  
+
 def compile(args):
     """compiles the targets of a bbyaml file
 
@@ -302,9 +366,7 @@ def compile(args):
    
     # get target list from config file
     try:
-        target_list = get_target_list(args, config, yaml_data)
-
-        
+        target_list = get_target_list(args, config, yaml_data)        
     except FileNotFoundError as err:
         print(Panel(str(err),
                     title="FileNotFoundError Error",
@@ -340,35 +402,7 @@ def compile(args):
 
         # a template task that needs to be rendered
         if ("template" in target):
-            
-            try:
-                yaml_transcoded = bbyamltranscoder.transcode_target(target)
-                rendered_doc = to_jinja.render(yaml_transcoded,
-                                               target['template'])
-                pathlib.Path(target['out']).write_text(rendered_doc)
-                success = True
-                
-            except LatexEqError as err:
-                print(Panel(str(err),
-                            title="Latex Error",
-                            border_style="red"))
-                success = False
-            except MarkdownError as err:
-                print(Panel(str(err),
-                            title="Markdown Error",
-                            border_style="red"))
-                success = False
-            except FileNotFoundError as err:
-                print(Panel(str(err),
-                            title="FileNotFoundError Error",
-                            border_style="red"))
-                success = False
-            except Jinja2SyntaxError as err:
-                print(Panel((f"\n did not generate {out_filename} " +
-                             "because of template errors ! \n " + str(err)),
-                            title='Jinja Template Error',
-                            border_style="red"))
-                success = False
+            success = compile_target(target, bbyamltranscoder)
             
         success_list[target['name']] = success
         
