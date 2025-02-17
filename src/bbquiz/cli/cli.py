@@ -46,8 +46,8 @@ def main():
    
     parser.add_argument(
         "otherfiles", nargs='*',
-        type=str, #argparse.FileType('r'),
-        help = "other yaml files [when using diff]")
+        type=str, 
+        help = "other yaml files (only used with diff command)")
     
     parser.add_argument(
         "-w", "--watch", 
@@ -83,11 +83,11 @@ def main():
         help="path for bbquiz's package templates directory",
         action="store_true")
     
-    parser.add_argument(
-        "--bash",
-        help="A helper command used for exporting the "
-        "command completion code in bash",
-        action="store_true")
+    # parser.add_argument(
+    #     "--bash",
+    #     help="A helper command used for exporting the "
+    #     "command completion code in bash",
+    #     action="store_true")
     
     parser.add_argument(
         "--zsh",
@@ -97,8 +97,8 @@ def main():
 
     parser.add_argument(
         "--fish",
-        help="A helper command used for exporting the "
-        "command completion code in fish",
+        help=("helper for fish completion: "
+              "bbquiz --fish > ~/.config/fish/completions/bbquiz.fish"),
         action="store_true")    
     
     parser.add_argument(
@@ -151,16 +151,16 @@ def main():
 
     
     if args.zsh:
-        print(bbquiz.cli.shellcompletion.zsh())
+        print(bbquiz.cli.shellcompletion.zsh(parser))
         return
 
     if args.fish:
-        print(bbquiz.cli.shellcompletion.fish())
+        print(bbquiz.cli.shellcompletion.fish(parser))
         return
     
-    if args.bash:
-        print(bbquiz.cli.shellcompletion.bash())
-        return
+    # if args.bash:
+    #     print(bbquiz.cli.shellcompletion.bash(parser))
+    #     return
     
     if not args.yaml_filename:
         parser.error("a yaml file is required")
