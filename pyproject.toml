@@ -14,7 +14,7 @@ dependencies = [
   "jinja2",
   "colorama",
   "watchdog",
-  "mistletoe>=1.2",
+  "mistletoe==1.3.0",
   "css_inline",
   "latex2mathml",
   "appdirs"
