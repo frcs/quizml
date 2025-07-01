@@ -7,6 +7,8 @@ build-backend = "setuptools.build_meta"
 name = "bbquiz"
 version = "0.6"
 dependencies = [
+  "pillow",
+  "pyyaml",  
   "bs4",
   "strictyaml>=1.7",
   "rich",
