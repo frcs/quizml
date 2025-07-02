@@ -5,6 +5,38 @@ from io import BytesIO
 from pathlib import Path
 import re
 
+from subprocess import call
+import tempfile
+import subprocess
+import os
+
+
+def embed_pdf(pdf_filename):
+    """returns a base64 string of a PDF file. The PDF is first converted to
+    a PNG file using ghostscript (gs).
+    """
+
+    pdf_abspath = os.path.abspath(pdf_filename)
+    tmpdir = tempfile.mkdtemp()
+    olddir = os.getcwd()
+    os.chdir(tmpdir)
+    
+    call(["gs",
+          "-dBATCH", '-q', "-dNOPAUSE",
+          "-sDEVICE=pngalpha",
+          "-r250",
+          "-dTextAlphaBits=4",
+          "-dGraphicsAlphaBits=4",
+          "-sOutputFile=pngfile.png",
+          pdf_abspath])
+
+    # converting into base64 strings
+    [w, h, data64] = embed_base64("pngfile.png")
+    os.chdir(olddir)
+    return (w, h, data64)
+
+
+
 def embed_base64(pathname):
     """returns a base64 string of an image file.
     """
@@ -18,6 +50,8 @@ def embed_base64(pathname):
         ext = 'png'
     elif suffix=='.jpeg' or suffix=='.jpg':
         ext = 'jpeg'
+    elif suffix=='.pdf':
+        return embed_pdf(pathname)
     else:
         raise NotImplementedError(
             "image formats other than png and svg are not supported")
