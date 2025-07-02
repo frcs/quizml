@@ -120,7 +120,7 @@ def load_with_schema(bbyaml_txt):
             Optional("marks", default=2.5): Float(),
             Optional("cols", default=1): Int(),                          
             "question": Str(),
-            Optional("choices"): Seq(Str()),
+            "choices": Seq(Str()),
         }),         
         'section': Map({
             "type": Str(),
