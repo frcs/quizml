@@ -229,9 +229,9 @@
 	</ol>	
 
 <script>
-	var slideShow = localStorage.getItem("autosave-slideShow")  === "true";
-	var showAnswers = localStorage.getItem("autosave-showAnswers")  === "true";
-	var currentQuestion	= parseInt(localStorage.getItem("autosave-currentQuestion")) || 1;	
+	var slideShow = sessionStorage.getItem("autosave-slideShow")  === "true";
+	var showAnswers = sessionStorage.getItem("autosave-showAnswers")  === "true";
+	var currentQuestion	= parseInt(sessionStorage.getItem("autosave-currentQuestion")) || 1;	
 
 	var toggleShowAnswersBtn = document.getElementById("toggleShowAnswersBtn");
 	var toggleSlideShowBtn = document.getElementById("toggleSlideShowBtn");
@@ -243,25 +243,25 @@
 	
 	function toggleShowAnswers() {
 		showAnswers = !showAnswers;
-		localStorage.setItem("autosave-showAnswers", showAnswers);
+		sessionStorage.setItem("autosave-showAnswers", showAnswers);
 		refresh();		
 	}
 
 	function toggleSlideShow() {		  
 		slideShow = !slideShow;
-		localStorage.setItem("autosave-slideShow", slideShow);
+		sessionStorage.setItem("autosave-slideShow", slideShow);
 		refresh();
 	}
 
 	function incrCurrentQuestion() {
 		currentQuestion = Math.min(currentQuestion + 1, nQuestions);
-		localStorage.setItem("autosave-currentQuestion", currentQuestion);			
+		sessionStorage.setItem("autosave-currentQuestion", currentQuestion);			
 		refresh();		  
 	}
 
 	function decrCurrentQuestion() {
 		currentQuestion = Math.max(currentQuestion - 1, 1);
-		localStorage.setItem("autosave-currentQuestion", currentQuestion);			
+		sessionStorage.setItem("autosave-currentQuestion", currentQuestion);			
 		refresh();		  
 	}
 		
