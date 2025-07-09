@@ -251,7 +251,14 @@ def print_table_ouputs(targets_output):
                 title="Target Ouputs",
                 border_style="magenta"))
    
+def print_quiet_ouputs(targets_quiet_output):
 
+    for row in targets_quiet_output:
+        if row[1]=="[FAIL]":
+            print("[bold red]x " + row[0] + "[/bold red]")
+        elif row[1]=="":
+            print("[bold green]o[/bold green] " + row[0])
+       
     
 def compile_cmd_target(target):
     """execute command line scripts of the post compilation targets.
@@ -297,12 +304,20 @@ def compile_target(target, bbyamltranscoder):
                     border_style="red"))
         success = False
     except Jinja2SyntaxError as err:
-        print(Panel((f"\n did not generate {out_filename} " +
+        print(Panel((f"\n did not generate target " +
                      "because of template errors ! \n " + str(err)),
                     title='Jinja Template Error',
                     border_style="red"))
         success = False
-
+    except Exception as err:
+        print(Panel((str(err)),
+                    title='Exception',
+                    border_style="red"))
+        success = False
+    except KeyboardInterrupt:
+        print("[bold red] KeyboardInterrupt [/bold red]")
+        success = False        
+        
     return success
         
   
@@ -375,7 +390,7 @@ def compile(args):
     
     # sets up list of the output for each build
     targets_output = []
-
+    targets_quiet_output = []
     # if args.build:
     #     print("building post commands")
     success_list = {}
@@ -410,11 +425,18 @@ def compile(args):
             [ target['descr'] ,
               add_hyperlinks(target["descr_cmd"], target["out"]),
               "" if success else "[FAIL]" ])
-            
+
+        targets_quiet_output.append(
+            [ add_hyperlinks(target["out"], target["out"]),
+              "" if success else "[FAIL]" ])
+        
     # diplay stats about the outputs
     if not args.quiet:
         print_table_ouputs(targets_output)
-    
+
+    if args.quiet:
+        print_quiet_ouputs(targets_quiet_output)
+        
 
 def compile_on_change(args):
     """compiles the targets if input bbyaml file has changed on disk

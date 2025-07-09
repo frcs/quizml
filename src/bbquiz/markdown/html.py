@@ -41,6 +41,7 @@ from pathlib import Path
 import base64
 
 
+import time
 
 def get_eq_list_from_doc(doc):
     """returns a list of all the LaTeX equations (as mistletoe
@@ -56,7 +57,6 @@ def get_eq_list_from_doc(doc):
         eq_list.append(doc)
     return eq_list
    
-
 
 
 def build_eq_dict_PNG(eq_list, opts):
@@ -187,7 +187,7 @@ def build_eq_dict_PNG(eq_list, opts):
             html = (
                 f"<img src='{data64}'" +
                 f" alt='{escape_LaTeX(eq.content)}'" +
-                f" width='{w_}' height='{h_}'>")            
+                f" width='{w_}' height='{h_}'>")
             logging.debug(f"[eq-display] '{html}'")
             eq_dict[key] = html
 
@@ -260,23 +260,29 @@ def build_eq_dict_SVG(eq_list, opts):
     f.write("\\end{document}\n")
     
     f.close()
-    
-    latexprocess = subprocess.Popen(
-        ["latex", "-interaction=nonstopmode",
-         latex_filename],
-        stdout = subprocess.PIPE,
-        universal_newlines = True)
-    found_latex_errors = False
 
-    latex_progress =  Spinner("simpleDotsScrolling", "latex compilation")
+    console = Console()
 
-    with Live(latex_progress) as live:
-        while latexprocess.poll()==None:
-            latex_progress.update()
+    with console.status(f"latex..", spinner="dots") as status:
+        command =  ["latex", "-interaction=nonstopmode", latex_filename]
+        latexprocess = subprocess.Popen(
+            command,
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE,                
+            universal_newlines = True)
+        found_latex_errors = False
+
+        # Loop while the subprocess is still running
+        while latexprocess.poll() is None:
+            status.update(f"...pdflatex")
+                
+    # Subprocess has finished, get output
+    stdout, stderr = latexprocess.communicate()
+    return_code = latexprocess.returncode
     
     err_msg = ''
     depthratio = []
-    for line in latexprocess.stdout:
+    for line in stdout:
         if line.startswith(':::') and not found_latex_errors:
             depthratio.append(float(line[4:-1]))
         if line.startswith('!') and not found_latex_errors:
@@ -286,7 +292,7 @@ def build_eq_dict_SVG(eq_list, opts):
             err_msg = err_msg + line
 
     if found_latex_errors:
-        raise LatexEqError(err_msg)
+        raise LatexEqError(err_msg)                
    
     # converting all pages in pdf doc into png files using gs
 
@@ -309,20 +315,12 @@ def build_eq_dict_SVG(eq_list, opts):
     #
     # In this version we use the dirty depth approach
     # so depth is not recorded but baked in the svg image
+    # this is to be able to cope with the limited CSS
+    # capabilities of BlackBoard
     #####################################################
     
     for it, eq in enumerate(eq_list,start=1):
         [w, h, data64] = embed_base64(svg_base + "-%05d.svg" % it)
-        #        d = depthratio[it-1]
-        # d_ = round(d * w * 0.5 , 2)
-        # w_ = round(w/2)
-        # h_ = round(h/2)
-        # d_ = d * w
-        # w_ = w
-        # h_ = h
-        
-        # w_ = round(w/2, 2)
-        # h_ = round(h/2, 2)        
         
         if isinstance(eq,MathInline):
             key = "##Inline##" + eq.content           
@@ -613,7 +611,7 @@ def get_html(doc, opts):
     """
     returns the rendered HTML source for mistletoe object
     """
-   
+
     eq_list = get_eq_list_from_doc(doc)
 
     if opts.get('fmt', '') == 'html-svg':
@@ -672,6 +670,7 @@ def get_html_dict(combined_doc, md_list, opts):
     """
     
     html_result = get_html(combined_doc, opts)
+
     
     md_dict = {}
     for i, txt in enumerate(md_list, start=1):
