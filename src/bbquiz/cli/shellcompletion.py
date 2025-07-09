@@ -29,9 +29,9 @@ def zsh(parser):
     txt = "function _bbquiz(){\n  _arguments\n"
     for a in parser._action_groups[1]._group_actions:
         for b in a.option_strings:
-            txt = txt + f'    "{b}[{a.help}]"\n'
+            txt = txt + f"    '{b}[{a.help}]' \\\n"
 
-    txt = txt + "'*:yaml file:_files -g \\*.\\(yml\|yaml\\)'\n}"
+    txt = txt + "    '*:yaml file:_files -g \\*.\\(yml\|yaml\\)'\n}"
     return txt
 
 
