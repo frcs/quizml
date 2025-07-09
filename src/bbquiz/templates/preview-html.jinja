@@ -229,90 +229,106 @@
 	</ol>	
 
 <script>
-  var slideShow = false;
-  var showAnswers = false;
+	var slideShow = localStorage.getItem("autosave-slideShow")  === "true";
+	var showAnswers = localStorage.getItem("autosave-showAnswers")  === "true";
+	var currentQuestion	= parseInt(localStorage.getItem("autosave-currentQuestion")) || 1;	
+
+	var toggleShowAnswersBtn = document.getElementById("toggleShowAnswersBtn");
+	var toggleSlideShowBtn = document.getElementById("toggleSlideShowBtn");
+	
+  	var nQuestions = document.getElementsByClassName("question").length;
+	currentQuestion = Math.min(currentQuestion, nQuestions);
+
+	refresh();
+	
+	function toggleShowAnswers() {
+		showAnswers = !showAnswers;
+		localStorage.setItem("autosave-showAnswers", showAnswers);
+		refresh();		
+	}
+
+	function toggleSlideShow() {		  
+		slideShow = !slideShow;
+		localStorage.setItem("autosave-slideShow", slideShow);
+		refresh();
+	}
+
+	function incrCurrentQuestion() {
+		currentQuestion = Math.min(currentQuestion + 1, nQuestions);
+		localStorage.setItem("autosave-currentQuestion", currentQuestion);			
+		refresh();		  
+	}
+
+	function decrCurrentQuestion() {
+		currentQuestion = Math.max(currentQuestion - 1, 1);
+		localStorage.setItem("autosave-currentQuestion", currentQuestion);			
+		refresh();		  
+	}
+		
+	function refresh() {
+		if (slideShow){
+			var elements = document.getElementsByClassName("question");
+			for (let i=0; i<elements.length; i++){
+				if (elements[i].getAttribute('data-questionid') === currentQuestion.toString()) {
+					elements[i].style.display = 'block';
+				}
+				else {
+					elements[i].style.display = 'none';
+				}
+			}
+		}
+		else {
+			var elements = document.getElementsByClassName("question");
+			for (let i=0; i<elements.length; i++){		  
+				elements[i].style.display = 'block';
+			}
+		}
+
+		if (showAnswers) {
+			toggleShowAnswersBtn.textContent = "Hide Answers";
+		} else {
+			toggleShowAnswersBtn.textContent = "Show Answers";
+		}
+
+		if (slideShow) {
+			toggleSlideShowBtn.textContent = "Show All";
+		} else {
+			toggleSlideShowBtn.textContent = "Slide Show";
+		}
+		
+		for (const className of ["correct", "incorrect", "essay-answer"]) { 
+			const elements = document.getElementsByClassName(className);
+
+			for (let i = 0; i < elements.length; i++) {
+				if (showAnswers) {
+					elements[i].classList.add("showanswers");
+				} else {
+					elements[i].classList.remove("showanswers");
+				}
+			}
+		}			
+	}  
+
   
-  var currentQuestion = 1;
-  var nQuestions = document.getElementsByClassName("question").length;
- 
-  function toggleShowAnswers() {
-	  showAnswers = !showAnswers;
-
-	  nameList = ["correct", "incorrect", "essay-answer"]
-	  for (j in nameList){
-		  var elements = document.getElementsByClassName(nameList[j]);
-		  for (let i=0; i<elements.length; i++){ 
-			  elements[i].classList.toggle("showanswers");
-		  }
-	  }
-	  
-	  var button = document.getElementById("toggleShowAnswersBtn");
-
-	  if (showAnswers) {
-		  button.textContent = "Hide Answers";
-	  } else {
-		  button.textContent = "Show Answers";
-	  }
-  }
-
- function toggleSlideShow() {
-     slideShow = !(slideShow);
-	 refreshShow();
-	 var button = document.getElementById("toggleSlideShowBtn");
-	  if (slideShow) {
-		  button.textContent = "Display All";
-	  } else {
-		  button.textContent = "Slide Show";
-	  }
-	 
- }
-
- function refreshShow() {
-	  if (slideShow){
-		  var elements = document.getElementsByClassName("question");
-		  for (let i=0; i<elements.length; i++){
-			  if (elements[i].getAttribute('data-questionid') === currentQuestion.toString()) {
-				  elements[i].style.display = 'block';
-			  }
-			  else {
-				  elements[i].style.display = 'none';			  
-			  }
-		  }
-	  }
-	  else {
-		  var elements = document.getElementsByClassName("question");
-		  for (let i=0; i<elements.length; i++){		  
-			  elements[i].style.display = 'block';
-		  }
-	  }
-	  var button = document.getElementById("toggleShowAnswersBtn");
-      if (showAnswers) {
-		  button.textContent = "Show Answers";
-	  } else {
-		  button.textContent = "Hide Answers";
-	  }	 
-  }  
-
-  
-  document.addEventListener("keydown", function onEvent(event) {
-      if (event.key === "m") {
-		  toggleShowAnswers()
-      }
-      if (event.key === "l") {
-		  toggleSlideShow()
-      }
-      if (event.key === "ArrowLeft"  ) {
-		  currentQuestion = Math.max(currentQuestion - 1, 1);
-		  refreshShow();		  
-      }
-      if (event.key === "ArrowRight" ) {
-		  currentQuestion = Math.min(currentQuestion + 1, nQuestions);
-		  refreshShow();		  
-      }
-	  
-  });
+	document.addEventListener("keydown", function onEvent(event) {
+		if (event.key === "m") {			
+			toggleShowAnswers();
+		}
+		if (event.key === "l") {
+			toggleSlideShow();
+		}
+		if (event.key === "ArrowLeft"  ) {
+			decrCurrentQuestion();
+		}
+		if (event.key === "ArrowRight" || event.key === " " ) {
+			incrCurrentQuestion();
+		}
+		
+	});
 	    
 </script>
+
+
 
   </body>
 </html>
