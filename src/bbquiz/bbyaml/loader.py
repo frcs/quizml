@@ -70,64 +70,67 @@ def load_with_schema(bbyaml_txt):
                                      Str(), Any()))
     
     schema_item = {
-        'ma': Map({
-            "type": Str(),
-            Optional("marks", default=2.5): Float(),
-            Optional("comments"): Str(),                   
-            Optional("cols", default=1): Int(),
-            "question": Str(),
-           # "choices": Seq(Map({ Bool(): Str() }, key_validator=Bool())),
-           # "choices": Seq(Map({ "": Str() })),
-            "choices": Seq(
-                Map({ Optional("x"): Str(),
-                      Optional("o"): Str()}))
-
-        }),
-        'mc': Map({
-            "type": Str(),
-            Optional("marks", default=2.5): Float(),
-            Optional("comments"): Str(),                                      
-            Optional("cols", default=1): Int(),                   
-            "question": Str(),
-            "choices": Seq(
-                Map({ Optional("x"): Str(),
-                      Optional("o"): Str()}))
-        }),
-        'tf': Map({
-            "type": Str(),
-            Optional("marks", default=2.5): Float(),
-            Optional("comments"): Str(),                   
-            "question": Str(),
-            "answer": Bool(),
-        }),        
-        'essay': Map({
+        'ma': MapCombined(
+            {
+                "type": Str(),
+                Optional("marks", default=2.5): Float(),
+                Optional("comments"): Str(),                   
+                Optional("cols", default=1): Int(),
+                "question": Str(),
+                "choices": Seq(
+                    Map({ Optional("x"): Str(),
+                          Optional("o"): Str()}))
+            },
+            Str(),Any(),
+        ),
+        'mc': MapCombined(
+            {
+                "type": Str(),
+                Optional("marks", default=2.5): Float(),
+                Optional("comments"): Str(),                                      
+                Optional("cols", default=1): Int(),                   
+                "question": Str(),
+                "choices": Seq(
+                    Map({ Optional("x"): Str(),
+                          Optional("o"): Str()}))
+            },
+            Str(), Any()),
+        'tf': MapCombined(
+            {
+                "type": Str(),
+                Optional("marks", default=2.5): Float(),
+                Optional("comments"): Str(),                   
+                "question": Str(),
+                "answer": Bool(),
+            }, Str(), Any()),        
+        'essay': MapCombined({
             "type": Str(),
             Optional("comments"): Str(),                                         
             Optional("marks", default=4): Float(),
             "question": Str(),
             Optional("answer"): Str(),
-        }),
-        'matching': Map({
+        }, Str(), Any()),        
+        'matching': MapCombined({
             "type": Str(),
             Optional("comments"): Str(),                                            
             Optional("marks", default=2.5): Float(),
             "question": Str(),
             "choices": Seq(Map({"A": Str(), "B": Str()})),
-        }),        
-        'ordering': Map({
+        }, Str(), Any()),        
+        'ordering': MapCombined({
             "type": Str(),
             Optional("comments"): Str(),                                           
             Optional("marks", default=2.5): Float(),
             Optional("cols", default=1): Int(),                          
             "question": Str(),
             "choices": Seq(Str()),
-        }),         
-        'section': Map({
+        }, Str(), Any()),        
+        'section': MapCombined({
             "type": Str(),
             Optional("title"): Str(),
             Optional("marks"): Float(),
             Optional("question"): Str(),
-        }),
+        }, Str(), Any()),
         'header': Any()
     }
     
