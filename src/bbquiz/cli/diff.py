@@ -10,6 +10,7 @@ from rich.console import Console
 from bbquiz.bbyaml.loader import load
 from bbquiz.bbyaml.stats import get_questions
 from bbquiz.bbyaml.stats import get_stats
+from bbquiz.exceptions import BBYamlSyntaxError
 
 # from rich_argparse import *
 

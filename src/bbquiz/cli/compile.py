@@ -24,16 +24,19 @@ from bbquiz.bbyaml.loader import load
 from bbquiz.bbyaml.stats import get_stats
 from bbquiz.bbyaml.loader import BBYamlSyntaxError
 import bbquiz.markdown.markdown as md
-from bbquiz.markdown.exceptions import MarkdownError, LatexEqError
 from bbquiz.render import to_jinja
-from bbquiz.render.to_jinja import Jinja2SyntaxError
+from bbquiz.exceptions import (
+    BBQuizError,
+    BBQuizConfigError,
+    MarkdownError,
+    LatexEqError,
+    Jinja2SyntaxError,
+)
 
 import bbquiz.cli.filelocator as filelocator
 
 import pathlib
 
-class BBQuizConfigError(Exception):
-    pass
 
 
 
@@ -309,9 +312,9 @@ def compile_target(target, bbyamltranscoder):
                     title='Jinja Template Error',
                     border_style="red"))
         success = False
-    except Exception as err:
+    except BBQuizError as err:
         print(Panel((str(err)),
-                    title='Exception',
+                    title='BBQuiz Error',
                     border_style="red"))
         success = False
     except KeyboardInterrupt:

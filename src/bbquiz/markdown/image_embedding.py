@@ -10,6 +10,8 @@ import tempfile
 import subprocess
 import os
 
+from ..exceptions import MarkdownImageError
+
 
 def embed_pdf(pdf_filename):
     """returns a base64 string of a PDF file. The PDF is first converted to
@@ -53,13 +55,13 @@ def embed_base64(pathname):
     elif suffix=='.pdf':
         return embed_pdf(pathname)
     else:
-        raise NotImplementedError(
+        raise MarkdownImageError(
             "image formats other than png and svg are not supported")
             
     try:
         data = path.read_bytes()
     except FileNotFoundError:
-        raise Exception(f"cannot read image {pathname}")
+        raise MarkdownImageError(f"cannot read image {pathname}")
           
     if ext=='svg+xml':
         [w, h] = get_SVG_info(data.decode())
@@ -120,7 +122,7 @@ def convert_css_values_to_pixels(value):
         val = float(m.group(1))
         unit = m.group(2)
     else:
-        raise Exception("Sorry, bad size value when reading CSS dimensions")
+        raise MarkdownImageError("Sorry, bad size value when reading CSS dimensions")
 
     if unit == 'pt':
         val = val * 1.333
@@ -149,20 +151,15 @@ def get_SVG_info(data):
     data : image
         input image
     """
-   
     pattern = r"<svg.*width\s*=[\"\'](.*?)[\"\'].*height\s*=\s*[\"\'](.*?)[\"\'].*>"
     m = re.search(pattern, data, re.MULTILINE)
     
-    if m:        
-        w = convert_css_values_to_pixels(m.group(1))       
-        h = convert_css_values_to_pixels(m.group(2))
-    else:
-        raise Exception("can't read SVG dimensions")
+    if not m:
+        raise MarkdownImageError("can't read SVG dimensions")
+        
+    w = convert_css_values_to_pixels(m.group(1))       
+    h = convert_css_values_to_pixels(m.group(2))
 
-    
-    width = w
-    height = h
-    return width, height
-
+    return w, h
 
 

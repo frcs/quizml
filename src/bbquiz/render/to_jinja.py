@@ -8,10 +8,9 @@ import textwrap
 import pathlib
 
 from bbquiz.bbyaml.stats import get_total_marks
+from ..exceptions import Jinja2SyntaxError
 
-class Jinja2SyntaxError(Exception):
-    pass
-    
+
 def text_wrap(msg):
     w, _ = os.get_terminal_size(0)
     return textwrap.fill(msg, w-5)
@@ -36,7 +35,7 @@ def render(yaml_data, template_filename):
 
     if not template_filename:
         msg = "Template filename is missing, can't render jinja."
-        raise Exception(msg)
+        raise Jinja2SyntaxError(msg)
        
     context = {
         "header"      : yaml_data['header'],
@@ -79,7 +78,7 @@ def render(yaml_data, template_filename):
         msg = msg + exc.message + "\n\n"
         raise Jinja2SyntaxError(msg)
             
-    except Exception as exc:
+    except Jinja2SyntaxError as exc:
         msg = f"in [yellow]{template_filename}[/]\n\n"
         msg = msg + "%s" % exc + "\n\n"
         raise Jinja2SyntaxError(msg)

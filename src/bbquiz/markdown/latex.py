@@ -6,6 +6,8 @@ from mistletoe.block_token import HTMLBlock
 
 from .utils import get_hash
 from .extensions import MathInline, MathDisplay, ImageWithWidth
+from ..exceptions import MarkdownError
+
 
 class BBYamlLaTeXRenderer(LaTeXRenderer):
     """
@@ -38,7 +40,7 @@ class BBYamlLaTeXRenderer(LaTeXRenderer):
 
     # fixing some default behaviour
     def render_table(self, token):
-        return '\n\medskip\n' + super().render_table(token) + '\n\medskip\n'
+        return '\n\\medskip\n' + super().render_table(token) + '\n\\medskip\n'
 
     # fixing some default behaviour
     def render_image(self, token):
@@ -66,7 +68,7 @@ def get_latex(doc):
        
     # svg is a bit of a problem. replacing .svg extensions with .pdf   
     latex_content = latex_content.replace('.svg}', '.pdf}')
-    latex_content = latex_content.replace('\includesvg', '\includegraphics')
+    latex_content = latex_content.replace('\\includesvg', '\\includegraphics')
 
     # I should check if this is still relevant... (pandoc legacy?)
     latex_content = latex_content.replace(',height=\\textheight', '')
@@ -96,7 +98,7 @@ def get_latex_dict(combined_doc, md_list):
             logging.error(
                 "couldn't find hash in md_list. This shouldn't happen."
                 + "I'm quitting.\n")
-            raise()
+            raise MarkdownError("couldn't find hash in md_list")
         else:
             start = latex_result.find("}\n", start) + 1
         end = latex_result.find("\\section{", start + 1)

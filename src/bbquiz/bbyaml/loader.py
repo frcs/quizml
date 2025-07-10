@@ -41,9 +41,7 @@ from strictyaml import Optional, MapCombined, ScalarValidator
 from strictyaml import YAMLError
 
 from bbquiz.bbyaml.utils import filter_yaml
-
-class BBYamlSyntaxError(Exception):
-    pass
+from bbquiz.exceptions import BBYamlSyntaxError
 
 
 def load_yaml(bbyaml_txt, schema=True):
@@ -194,7 +192,10 @@ def load(bbyaml_filename, schema=True):
 
     """
 
-    bbyaml_txt = Path(bbyaml_filename).read_text()
+    try:
+        bbyaml_txt = Path(bbyaml_filename).read_text()
+    except FileNotFoundError:
+        raise BBYamlSyntaxError(f"File not found: {bbyaml_filename}")
 
     yamldoc_pattern = re.compile(r"^---\s*$", re.MULTILINE) 
     yamldocs = yamldoc_pattern.split(bbyaml_txt)    

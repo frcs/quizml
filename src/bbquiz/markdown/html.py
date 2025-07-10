@@ -30,7 +30,7 @@ from .utils import append_unique, get_hash
 from .image_embedding import embed_base64
 
 from .extensions import MathInline, MathDisplay, ImageWithWidth
-from .exceptions import LatexEqError
+from ..exceptions import LatexEqError, MarkdownAttributeError
 
 from mistletoe import span_token
 
@@ -566,7 +566,7 @@ class BBYamlHTMLRenderer(HTMLRenderer):
             width_attr_val = match.group(1)
             width_attr_ext = match.group(2)
         else:
-            raise Exception("Sorry, bad width attr")
+            raise MarkdownAttributeError("Sorry, bad width attr")
 
         if width_attr_ext=='em':
             width_attr = float(width_attr_val) * 16
