@@ -8,7 +8,7 @@ import os
 
 from rich.traceback import install
 install(show_locals=False)
-from rich import print
+#from rich import print          
 from rich_argparse import *
 from rich.logging import RichHandler
 
