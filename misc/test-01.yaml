@@ -1,0 +1,86 @@
+
+subquestion:
+  marks: 20
+
+
+  question: |
+    somthing somthin something
+  subquestions:
+    - type: ma
+      question: |
+         some question
+      choices:
+        -x: True
+        -o: False
+
+    - type: ma
+      question: |
+         some other question
+      choices:
+        -x: True
+        -o: False
+       
+
+
+---
+
+# Some other comment
+
+# <Q8>
+# <Q1>
+- type: ma
+  question: |
+    If vectors ${\bf w}$ and ${\bf x}$ are of dimensions $3 \times 1$, which of the following statements are correct (mark all correct statements)
+
+  choices:
+  - x: ${\bf w}^{\top}{\bf x} = {\bf x}^{\top}{\bf w}$
+  - o: ${\bf w}{\bf x}^{\top} = {\bf x}{\bf w}^{\top}$
+  - o: size of ${\bf w}^{\top}{\bf x}$ is $3 \times 3$
+
+
+# <Q3>
+
+# More comment
+
+# <Q2>
+- type: ma
+  question: |
+    If vector ${\bf w}$ is of dimension $3 \times 1$ and matrix ${\bf A}$ of
+    dimension $5 \times 3$, then what is the dimension of $\left({\bf w}^{\top}{\bf
+    A}^{\top}{\bf A}{\bf w}\right)^{\top}$?
+
+  # somthing 1
+  choices:
+  - o: |
+      ${\tt 5}\times {\tt 5}$   # somthing 2
+  - o: |
+      ${\tt 3}\times {\tt 3}$
+  - o: ${\tt 3}\times {\tt 1}$
+  - x: ${\tt 1}\times {\tt 1}$
+  - o: ${\tt 1}\times {\tt 5}$
+  - o: ${\tt 1}\times {\tt 3}$
+  - o: |
+      incorrect dimensions for matrix multiplication
+
+
+# somthing 3
+      
+# <Q10>
+
+- type: ma
+  question: |
+    If vector ${\bf w}$ is of dimension $3 \times 1$ and matrix ${\bf A}$ of
+    dimension $5 \times 3$, then what is the dimension of ${\bf  A}{\bf w}{\bf w}^{\top}{\bf A}^{\top}$?
+
+
+
+    
+  choices:
+  - x: ${\tt 5}\times {\tt 5}$
+  - o: ${\tt 3}\times {\tt 3}$
+  - o: ${\tt 3}\times {\tt 1}$
+  - o: ${\tt 1}\times {\tt 1}$
+  - o: ${\tt 1}\times {\tt 5}$
+  - o: ${\tt 1}\times {\tt 3}$
+  - o: incorrect dimensions for matrix multiplication
+

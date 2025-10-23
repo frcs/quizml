@@ -1,123 +1,124 @@
+# python3.8 bbquiz-format.py test-01.yaml | bat -l yaml
 
-import strictyaml as styml
+
+
+# import strictyaml as styml
 import rich
+
 
 import sys
 from pathlib import Path
 import re
-
-from strictyaml import YAML
-from strictyaml.ruamel.comments import CommentedSeq
-from strictyaml.ruamel.comments import CommentedMap
-from strictyaml.ruamel.comments import Comment
-from strictyaml.ruamel.tokens import CommentToken
-from strictyaml.ruamel.error import CommentMark
-
-from strictyaml.yamllocation import YAMLChunk
-
-from strictyaml.ruamel.compat import ordereddict
-
+from ruamel.yaml import YAML
+from ruamel.yaml.tokens import CommentToken
+from ruamel.yaml.error import CommentMark
 import textwrap
 
+def wrap80(value):
+    return value;   
 
-yaml_txt = """
-# something
-# This should stay 1
+def format_questions(data, indent=0):
+    output = ""
+    if isinstance(data, dict):
+        first = True
+        for key, value in data.items():
+            if not first:
+                output += '  ' * indent
+            first = False
+            if isinstance(value, str) and '\n' in value:
+                output += f"{key}: |\n"
+                content = value.rstrip()
+                if not key.startswith(('pre_', '_')):
+                    lines = content.split('\n')
+                    wrapped_lines = []
+                    for line in lines:
+                        if '\\' in line:
+                            wrapped_lines.append(line)
+                        else:
+                            wrapped_lines.extend(textwrap.wrap(line, width=80))
+                    content = '\n'.join(wrapped_lines)
+                for line in content.split('\n'):
+                    output += '  ' * (indent + 1) + line + '\n'
+            elif isinstance(value, str):
+                output += f"{key}: {value}\n"
+            elif isinstance(value, int):
+                output += f"{key}: {str(value)}\n"
+            elif isinstance(value, float):
+                output += f"{key}: {str(value)}\n"
+            else:
+                output += f"{key}: \n{format_questions(value, indent)}"
+                
+    elif isinstance(data, list):
+        for item in data:
+            output += '  ' * indent + "- "
+            output += format_questions(item, indent + 1)
+    else:
+        print(str(data))
+        output += str(data)
+        
+    return output
 
-# This should stay 2
-- type: "MC"
-  marks: 3.2
-  # This should stay 2
-  question: |
-    Which of the following statements are correct? (mark all correct answers)
-  cols: 1
-  answers: # comment 0
-    - answer: |       # comment 1a
-        foo is big                # comment 1b
-      correct: true               # comment 2
-    - answer: foo is small        # comment 3
-      correct: true
-    - answer: foo is just right   # comment 4
-      correct: false 
 
-# out of question comment 1
-# out of question comment 2
-# out of question comment 3
+ 
+def format_yaml_file(filepath):
+    yaml_txt = Path(filepath).read_text()
 
-- type: "MA"
-  marks: 3.2
-  # This should stay
-  question: |
-    Which of the following statements are correct? (mark all correct answers)
-  cols: 1
-  answers:
-    - answer: foo is big
-      correct: true
-    - answer: foo is small
-      correct: true
-    - answer: foo is just right # comment 5
-      correct: false
+    # Remove spurious Q tags
+    # yaml_txt = re.sub(r'# <Q\d+>', '', yaml_txt)
 
-"""
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    yaml.indent(mapping=2, sequence=2, offset=0)
+    data = list(yaml.load_all(yaml_txt))
+
+    if not data:
+        return
+
+    header = None
+    if len(data) > 1:
+        header = data[0]
+        questions = data[1]
+    else:
+        questions = data[0]
+
+    print(questions.ca)
+    print(questions)
+        
+    for i, question in enumerate(questions):
+        
+        if not hasattr(question, 'ca'):
+            continue
+
+        print(question.ca)
+        
+        if question.ca.comment is None:
+            question.ca.comment = [None, []]
+        
+        if question.ca.comment[1]:
+            print("AAAAA\nAAAAA")
+            
+            question.ca.comment[1] = [c for c in question.ca.comment[1] if not re.match(r'\s*# <Q\d+>', c.value)]
+
+        question.ca.comment[1].insert(0, CommentToken(f'\n# <Q{i+1}>\n', CommentMark(0), None))
 
 
-
-yaml_txt = Path(sys.argv[1]).read_text()
-
-yamldoc_pattern = re.compile(r"^---\s*$", re.MULTILINE) 
-yamldocs = yamldoc_pattern.split(yaml_txt)    
-yamldocs = list(filter(None, yamldocs))
-
-if len(yamldocs) == 0:
-    exit()    
-elif len(yamldocs) == 1:
-    yaml_txt = yamldocs[0]
+    yaml.dump(questions, sys.stdout)
+    return
+        
+    from io import StringIO
+    string_stream = StringIO()
+    if header:
+        yaml.dump(header, string_stream)
+        string_stream.write('---\n')
     
-else:
-    print(yamldocs[0])
-    yaml_txt = yamldocs[1]
+    output = string_stream.getvalue()
+    output += format_questions(questions)
 
+    # Limit consecutive newlines
+    output = re.sub(r'\n{3,}', '\n\n', output)
 
-yml = styml.load(yaml_txt, schema=styml.Any())
+    print(output)
 
-ryml = yml._chunk._ruamelparsed
-
-
-def wrap80(data):
-    if isinstance(data, CommentedSeq):
-        for a in data:
-            a = wrap80(a)
-    elif isinstance(data, CommentedMap):
-        for key, val in data.items():
-            data[key] = wrap80(val)
-    elif isinstance(data, str):
-        data = textwrap.fill(data, width=50)
-    else:
-        print(type(data))
-    return data
-
-
-# if header:
-#     del ryml[header_index]    
-#     print(styml.YAML(header).as_yaml())  
-#     print("---")
-
-# ryml.ca.comment = [None, [CommentToken('\n\n\n# <Q1>\n', CommentMark(0), None)]]
-
-print(ryml.ca)
-print(ryml.items)
-
-for i, a in enumerate(ryml):
-    print(a)
-    print(a.ca)
-    if a.ca.comment is None:
-        a.ca.comment = [None, [CommentToken(f'\n\n\n# <Q{i+1}>\n', CommentMark(0), None)]]
-    else:
-        print("XXXXXXXXXXXXXXXXXXXX")
-
-outtext = str(styml.YAML(ryml).as_yaml())
-import re
-outtext = re.sub(r'(\s*\n){4,}', '\n\n\n', outtext)
-outtext = outtext.strip()
-
-#print(outtext)
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        format_yaml_file(sys.argv[1])

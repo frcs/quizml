@@ -44,8 +44,8 @@ void main(int argc, char* argv[])
 
 ### Markdown Extensions
 
-We propose a few Markdown extensions. 
-
+BBQuiz implements the following Markdown extensions for integrating LaTeX
+equations and images.
 
 #### Images
 
@@ -82,7 +82,15 @@ Note that for display equations, these must treated as blocks, with delimiters
 instance, this wouldn't work:
 
 ```
-We can't have this \begin{equation} A = B + C \end{equation} 
+We can't have this inline \begin{equation} A = B + C \end{equation} 
+```
+Instead you will need to do this:
+
+```
+We can have this:
+\begin{equation} 
+A = B + C 
+\end{equation} 
 ```
 
 
