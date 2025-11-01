@@ -40,7 +40,7 @@ syntax macro naming rules.
 
 !> All keys' values will be interpreted as Markdown. 
 
-!> If your key starts with the prefix `pre_` (eg. `pre_latexpreamble`), the
+!> If your key starts with the prefix `_` (eg. `_latexpreamble`), the
 value will not be interprated as markdown and it will not be turned into a macro
 by the LaTeX template. 
 

@@ -7,10 +7,10 @@
 \documentclass{tcdexams}
 
 <# passing the header variables to template  #>
-<# we do not include 'type' and 'pre_' keys  #>
+<# we do not include 'type' and keys starting with '_'      #>
 <| if header                                               -|>
 <|   for key, value in header.items()                      -|>
-<|     if (key != 'type') and (not key.startswith('pre_'))  |>
+<|     if (key != 'type') and (not key.startswith('_'))     |>
 \def \info<<key>> {<<value>>}
 <|     endif                                                |>  
 <|-  endfor                                                 |>
@@ -205,8 +205,8 @@
 %% start of user-defined preamble
 %%
 
-<| if 'pre_latexpreamble' in header  |>
-<< header['pre_latexpreamble']  >>
+<| if '_latexpreamble' in header  |>
+<< header['_latexpreamble']  >>
 <| endif |>
 
 %%

@@ -29,7 +29,7 @@ examiner: Dr. F. Pitié
 instructions: "" 
 materials: ""
 additionalinformation: ""
-pre_latexpreamble: |
+_latexpreamble: |
   \newcommand{\R}{\mathbb{R}}
 ---
 - type: mc

@@ -43,7 +43,7 @@ def get_md_list_from_yaml(yaml_data, md_list=[]):
             md_list = get_md_list_from_yaml(item, md_list)
     elif isinstance(yaml_data, dict):
         for key, val in yaml_data.items():
-            if (key not in non_md_keys) and not key.startswith("pre_"):
+            if (key not in non_md_keys) and not key.startswith("_"):
                 md_list = get_md_list_from_yaml(val, md_list)
     elif (isinstance(yaml_data, str)):
         md_list.append(str(yaml_data))

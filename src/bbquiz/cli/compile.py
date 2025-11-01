@@ -165,7 +165,7 @@ def get_target_list(args, config, yaml_data):
 
         # add preamble key if defined in the bbyaml header
         if 'fmt' in target:
-            target['user_pre'] = yaml_data['header'].get('pre_latexpreamble', '')
+            target['user_pre'] = yaml_data['header'].get('_latexpreamble', '')
 
     return target_list
 
