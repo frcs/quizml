@@ -26,7 +26,7 @@ Note that StrictYAML's validation is a bit slow. Hence schema=False is
 also proposed for speed, but will not catch syntax errors and all
 key/val will be strings:
 
-    yaml_data_str = load("quiz.yaml", schema=False) # quick
+    yaml_data_str = load("quiz.yaml", schema=False) # quick but no check
 
 
 """

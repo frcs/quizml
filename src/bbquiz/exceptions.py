@@ -20,8 +20,40 @@ class MarkdownError(BBQuizError):
     pass
 
 class LatexEqError(MarkdownError):
-    """Raised for errors related to LaTeX equation processing."""
+    """DEPRECATED: Use LatexCompilationError.
+    Raised for errors related to LaTeX equation processing."""
     pass
+
+
+class LatexToolError(BBQuizError):
+    """Base class for errors related to external LaTeX tools."""
+    pass
+
+
+class LatexNotFoundError(LatexToolError):
+    """Raised when the latex or pdflatex executable is not found."""
+    pass
+
+
+class GhostscriptNotFoundError(LatexToolError):
+    """Raised when the gs (Ghostscript) executable is not found."""
+    pass
+
+
+class DvisvgmNotFoundError(LatexToolError):
+    """Raised when the dvisvgm executable is not found."""
+    pass
+
+
+class Make4htNotFoundError(LatexToolError):
+    """Raised when the make4ht executable is not found."""
+    pass
+
+
+class LatexCompilationError(LatexToolError):
+    """Raised when the LaTeX compilation fails."""
+    pass
+
 
 class MarkdownAttributeError(MarkdownError):
     """Raised for errors related to Markdown attributes."""
