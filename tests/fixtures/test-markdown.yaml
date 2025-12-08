@@ -5,23 +5,19 @@
       $$
       \arg\max_t J(t)
       $$
-  answers:
-    - answer: |
-        ![pic](figures/dogcat.jpg)
-      correct: true
-    - answer: |
-        ![pic](figures/dogcat.jpg){ width = 30em }
-      correct: true
-    - answer: |
+  choices:
+    - x: |
+        ![pic](tests/fixtures/figures/dogcat.jpg)
+    - x: |
+        ![pic](tests/fixtures/figures/dogcat.jpg){ width = 30em }
+    - x: |
         \[
         \cos(2x) + \pi^2
         \]
-      correct: true
-    - answer: |
+    - x: |
         we start with an equation:
         \begin{equation}
         \cos(2x) + \pi^2
         \end{equation}
 
         Then we use inline $x,t(x)$.
-      correct: true

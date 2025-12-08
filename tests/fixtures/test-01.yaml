@@ -81,7 +81,7 @@
   question: |
     Consider the dataset below:
 
-    ![](figures/dogcat.jpg){width=30em }
+    ![](tests/fixtures/figures/dogcat.jpg){width=30em }
 
     Explain how you could design a classification system for this dataset.
 

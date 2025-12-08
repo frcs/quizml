@@ -8,30 +8,32 @@ from strictyaml import YAMLError
 
 from bbquiz.bbyaml.loader import load
 
-from bbquiz.markdown.markdown import get_dicts_from_yaml
+from bbquiz.markdown.markdown import BBYAMLMarkdownTranscoder
 
 
 def test_bbyaml_syntax(capsys):
     
     pkg_dirname = os.path.dirname(__file__)
-    yaml_file = os.path.join(pkg_dirname, "test-markdown.yaml")
+    yaml_file = os.path.join(pkg_dirname, "fixtures", "test-markdown.yaml")
     basename = os.path.join(pkg_dirname, "test-markdown")
 
     
     #    yaml_txt = Path(.read_text()
    
     yamldoc = load(yaml_file)
-    with capsys.disabled():
-        print(yamldoc)
+    # with capsys.disabled():
+    #     print(yamldoc)
         
-    (latex_md_dict, html_md_dict) = get_dicts_from_yaml(yamldoc)
+    bbyamltranscoder = BBYAMLMarkdownTranscoder(yamldoc)
+    html_md_dict = bbyamltranscoder.get_dict(opts={'fmt': 'html'})
+    latex_md_dict = bbyamltranscoder.get_dict(opts={'fmt': 'latex'})
     
     # md_list = get_md_list_from_yaml(yamldoc)
     # with capsys.disabled():
     #     print(md_list)    
     # md_combined = md_combine_list(md_list)
-    with capsys.disabled():
-        print(html_md_dict)
+    # with capsys.disabled():
+    #     print(html_md_dict)
 
   
     assert(True)

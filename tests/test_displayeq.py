@@ -2,7 +2,8 @@ import sys
 from pathlib import Path
 import os
 
-from bbquiz.markdown.markdown import get_dicts_from_yaml
+from bbquiz.markdown.markdown import BBYAMLMarkdownTranscoder
+from bbquiz.bbyaml import loader
 
 import re
 import mistletoe
@@ -36,7 +37,7 @@ def print_doc(doc, lead=''):
 def test_displayeq(capsys):
     
     pkg_dirname = os.path.dirname(__file__)
-    yaml_file = os.path.join(pkg_dirname, "test-markdown.yaml")
+    yaml_file = os.path.join(pkg_dirname, "fixtures", "test-markdown.yaml")
     basename = os.path.join(pkg_dirname, "test-markdown")
 
     
@@ -66,18 +67,18 @@ def test_displayeq(capsys):
     matches = re.finditer(regex, md_text, re.MULTILINE | re.DOTALL | re.VERBOSE)
 
     with capsys.disabled():
-        print ("MATCHING\n\n\n")
+        # print ("MATCHING\n\n\n")
         for matchNum, match in enumerate(matches, start=1):
     
-            print ("Match {matchNum} was found at {start}-{end}: {match}".format(matchNum = matchNum, start = match.start(), end = match.end(), match = match.group()))
+ #           print ("Match {matchNum} was found at {start}-{end}: {match}".format(matchNum = matchNum, start = match.start(), end = match.end(), match = match.group()))
     
             for groupNum in range(0, len(match.groups())):
                 groupNum = groupNum + 1
         
-                print ("Group {groupNum} found at {start}-{end}: {group}".format(groupNum = groupNum, start = match.start(groupNum), end = match.end(groupNum), group = match.group(groupNum)))
-        print ("GROUP 0<<\n")
-        print (match.group(0))
-        print ("\n>>GROUP 0\n")
+  #              print ("Group {groupNum} found at {start}-{end}: {group}".format(groupNum = groupNum, start = match.start(groupNum), end = match.end(groupNum), group = match.group(groupNum)))
+        # print ("GROUP 0<<\n")
+        # print (match.group(0))
+        # print ("\n>>GROUP 0\n")
     
     
     with ASTRenderer(MathInline,
@@ -89,10 +90,16 @@ def test_displayeq(capsys):
         doc_combined = Document(md_text)
 
     
-    # (latex_md_dict, html_md_dict) = get_dicts_from_yaml(yaml_data)
+    yaml_data = loader.load(yaml_file, schema=False) # schema=False because it's a test file
+
+    bbyamltranscoder = BBYAMLMarkdownTranscoder(yaml_data)
+
+    target = {'fmt': 'html'} # Dummy target for now, just to test transcode_target
+
+    yaml_transcoded = bbyamltranscoder.transcode_target(target)
     
-    with capsys.disabled():
-        print_doc(doc_combined)
+    # with capsys.disabled():
+    #     print_doc(doc_combined)
        
     # with capsys.disabled():
     #     print(html)

@@ -1,0 +1,46 @@
+# testing basic syntax of all question types
+   
+- type: essay
+  question: another matching question
+      
+  answer:  some very long answer
+
+- type: ma
+  marks: 2.5
+  question: some multiple answer question
+  choices:
+    - x: A
+    - o: B
+    - x: C
+    - o: D
+
+
+- type: mc
+  marks: 2.5
+  question: some multiple choice question
+  choices:
+    - o: A
+    - o: B
+    - x: C
+    - o: D
+
+- type: matching
+  marks: 2.5
+  question: some matching question
+  choices:
+    - A: "1"
+      B: "2"
+    - A: "3"
+      B: "4"
+
+- type: ordering
+  marks: 2.5
+  question: |
+    some ordering question
+  choices:
+    - A
+    - B
+    - C
+    - D
+
+
