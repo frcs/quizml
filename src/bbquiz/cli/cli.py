@@ -58,10 +58,15 @@ def main():
         appname="bbquiz", appauthor='frcs')
 
     parser.add_argument(
-        "--target",
+        "-t", "--target",
         action='append',
         type=str, #argparse.FileType('r'),
         help = "target names (e.g. 'pdf', 'html-preview')")
+
+    parser.add_argument(
+        '--target-list',
+        help="list all targets in config file",
+        action="store_true")
     
     parser.add_argument(
         "--config", 
@@ -124,10 +129,6 @@ def main():
         help="turn off info statements",
         action="store_true")
 
-    parser.add_argument(
-        '--target-list',
-        help="list all targets in config file",
-        action="store_true")
     
     args = parser.parse_args()
 
