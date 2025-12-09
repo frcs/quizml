@@ -5,18 +5,24 @@ import argparse
 import appdirs
 import pathlib
 import os
+import sys
 
 from rich.traceback import install
 install(show_locals=False)
 #from rich import print          
 from rich_argparse import *
 from rich.logging import RichHandler
+from rich import print
 
 from importlib.metadata import version
 
+import bbquiz.cli.compile
+import bbquiz.cli.cleanup
 import bbquiz.cli.diff
 import bbquiz.cli.shellcompletion
-import bbquiz.cli.compile
+
+from ..exceptions import BBQuizError
+
 
 def main():
     
@@ -84,6 +90,12 @@ def main():
         action="store_true")
 
     parser.add_argument(
+        "-C", "--cleanup"
+        help="Looks at all .yaml files in a directory and deletes any other files that share the same base name (name without extension).",
+        action="store_true")
+
+    
+    parser.add_argument(
         "--package-templates-path",
         help="path for bbquiz's package templates directory",
         action="store_true")
@@ -132,49 +144,57 @@ def main():
     
     args = parser.parse_args()
 
+    try:
+        logging.basicConfig(
+            level=args.loglevel,
+            format="%(message)s",
+            datefmt="[%X]",
+            handlers=[RichHandler(rich_tracebacks=True, show_path=False)]
+        )
 
-    logging.basicConfig(
-        level=args.loglevel,
-        format="%(message)s",
-        datefmt="[%X]",
-        handlers=[RichHandler()]
-    )
+        if args.target_list:
+            bbquiz.cli.compile.print_target_list(args)
+            return
 
-    if args.target_list:
-        bbquiz.cli.compile.print_target_list(args)
-        return
+        if args.package_templates_path:
+            templates_path = os.path.abspath(
+                os.path.join(__file__, "..", "..", "templates"))
+            print(f'{templates_path}')
+            return
 
-    if args.package_templates_path:
-        templates_path = os.path.abspath(
-            os.path.join(__file__, "..", "..", "templates"))
-        print(f'{templates_path}')
-        return
+        
+        if args.zsh:
+            print(bbquiz.cli.shellcompletion.zsh(parser))
+            return
 
-    
-    if args.zsh:
-        print(bbquiz.cli.shellcompletion.zsh(parser))
-        return
+        if args.fish:
+            print(bbquiz.cli.shellcompletion.fish(parser))
+            return
+        
+        # if args.bash:
+        #     print(bbquiz.cli.shellcompletion.bash(parser))
+        #     return
+        
+        if not args.yaml_filename:
+            parser.error("a yaml file is required")
 
-    if args.fish:
-        print(bbquiz.cli.shellcompletion.fish(parser))
-        return
-    
-    # if args.bash:
-    #     print(bbquiz.cli.shellcompletion.bash(parser))
-    #     return
-    
-    if not args.yaml_filename:
-        parser.error("a yaml file is required")
+        if args.diff:
+            bbquiz.cli.diff.diff(args)
+            return
 
-    if args.diff:
-        bbquiz.cli.diff.diff(args)
-        return
-    
-    if args.otherfiles:
-        parser.error("only one yaml file is required")
-    
-    if args.watch:
-        bbquiz.cli.compile.compile(args)
-        bbquiz.cli.compile.compile_on_change(args)
-    else:
-        bbquiz.cli.compile.compile(args)
+        if args.cleanup:
+            bbquiz.cli.cleanup.cleanup_yaml_files()
+            return
+        
+        if args.otherfiles:
+            parser.error("only one yaml file is required")
+        
+        if args.watch:
+            bbquiz.cli.compile.compile(args)
+            bbquiz.cli.compile.compile_on_change(args)
+        else:
+            bbquiz.cli.compile.compile(args)
+
+    except BBQuizError as e:
+        print(f"[bold red]Error:[/bold red] {e}")
+        sys.exit(1)

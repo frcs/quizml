@@ -9,27 +9,8 @@ import pathlib
 
 from bbquiz.bbyaml.stats import get_total_marks
 from ..exceptions import Jinja2SyntaxError
+from ..cli.errorhandler import text_wrap, msg_context
 
-
-def text_wrap(msg):
-    w, _ = os.get_terminal_size(0)
-    return textwrap.fill(msg, w-5)
-
-def msg_context_line(lines, lineo, charno=None, highlight=False):
-    if (lineo < 1 or lineo > len(lines)):
-        return ""    
-    if highlight:
-        s = (f"[red]❱[/][bright_white]{lineo:>4} [/]│" +
-             "  [bright_white]{lines[lineo-1]}[/]\n")
-    else:
-        s = f" {lineo:>4} │ {lines[lineo-1]}\n"
-    return s
-
-def msg_context(lines, lineo, charno=None):
-    msg = msg_context_line(lines, lineo-1, charno, highlight=False);
-    msg = msg + msg_context_line(lines, lineo, charno, highlight=True);
-    msg = msg + msg_context_line(lines, lineo+1, charno, highlight=False);
-    return msg
 
 def render(yaml_data, template_filename):
 
@@ -59,14 +40,14 @@ def render(yaml_data, template_filename):
         name = exc.name
         filename = exc.filename           
         lines = template_src.split("\n")
-        msg = f"in [yellow]{template_filename}[/], line {l}\n\n"
+        msg = f"in {template_filename}, line {l}\n\n"
         msg = msg + msg_context(lines, l) + "\n"
         msg = msg + text_wrap(exc.message)
         raise Jinja2SyntaxError(msg)
             
     except jinja2.UndefinedError as exc:
         l = exc.lineno
-        msg = f"in [yellow]{template_filename}[/], line {l}\n\n"
+        msg = f"in {template_filename}, line {l}\n\n"
         msg = msg + exc.message + "\n\n"
         msg = msg + "The template tries to access an undefined variable. "
         msg = msg + "Have you checked if the header exits? \n\n"
@@ -74,12 +55,12 @@ def render(yaml_data, template_filename):
 
     except jinja2.TemplateError as exc:
         l = exc.lineno
-        msg = f"in [yellow]{template_filename}[/], line {l}\n\n"
+        msg = f"in {template_filename}, line {l}\n\n"
         msg = msg + exc.message + "\n\n"
         raise Jinja2SyntaxError(msg)
             
     except Jinja2SyntaxError as exc:
-        msg = f"in [yellow]{template_filename}[/]\n\n"
+        msg = f"in {template_filename}\n\n"
         msg = msg + "%s" % exc + "\n\n"
         raise Jinja2SyntaxError(msg)
                

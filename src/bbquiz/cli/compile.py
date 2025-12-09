@@ -349,13 +349,13 @@ def compile(args):
                     title="Error",
                     border_style="red"))
         return
-    try:
-        yaml_data = load(yaml_filename, schema=True)
-    except BBYamlSyntaxError as err:
-        print(Panel(str(err),
-                    title="BByaml Syntax Error",
-                    border_style="red"))
-        return
+    # try:
+    yaml_data = load(yaml_filename, schema=True)
+    # except BBYamlSyntaxError as err:
+    #     print(Panel(str(err),
+    #                 title="BByaml Syntax Error",
+    #                 border_style="red"))
+    #     return
         
     # load all markdown entries into a list 
     # and build dictionaries of their HTML and LaTeX translations

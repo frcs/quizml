@@ -42,16 +42,17 @@ from strictyaml import YAMLError
 
 from bbquiz.bbyaml.utils import filter_yaml
 from bbquiz.exceptions import BBYamlSyntaxError
+from ..cli.errorhandler import text_wrap, msg_context
 
 
-def load_yaml(bbyaml_txt, schema=True):
+def load_yaml(bbyaml_txt, schema=True, filename="<YAML string>"):
     if schema:
-        return load_with_schema(bbyaml_txt)
+        return load_with_schema(bbyaml_txt, filename)
     else:
-        return load_without_schema(bbyaml_txt)
+        return load_without_schema(bbyaml_txt, filename)
        
 
-def load_with_schema(bbyaml_txt):
+def load_with_schema(bbyaml_txt, filename):
     """load a BBYaml file as a StrictYaml with Schema.
 
     We need to have a two-pass approach: the first pass checks that we
@@ -134,7 +135,7 @@ def load_with_schema(bbyaml_txt):
     
     try:
         yamldoc = strictyaml.load(bbyaml_txt, schema_overall,
-                                  label="myfilename")
+                                  label=filename)
         
         for a in yamldoc:
             if a['type'] in schema_item.keys():
@@ -146,12 +147,23 @@ def load_with_schema(bbyaml_txt):
                 a.revalidate(Map({})) 
                 
     except YAMLError as err:
-        raise BBYamlSyntaxError(str(err.problem) + '\n' + str(err.problem_mark))
+        lines = bbyaml_txt.split('\n')
+        problem = str(err.problem)
+
+        if hasattr(err, 'problem_mark') and err.problem_mark is not None:
+            line_num = err.problem_mark.line
+            msg = f"in {filename}, line {line_num}\n\n"
+            msg += msg_context(lines, line_num) + "\n"
+            msg += text_wrap(problem)
+        else:
+            msg = f"in {filename}\n\n{problem}"
+
+        raise BBYamlSyntaxError(msg)
         
     return yamldoc.data
     
 
-def load_without_schema(bbyaml_txt):
+def load_without_schema(bbyaml_txt, filename):
     """fast loading of BBYaml file as a StrictYaml without Schema.
 
     In this version we do not check the schema. This is for speed
@@ -165,10 +177,21 @@ def load_without_schema(bbyaml_txt):
     # strictyaml.load("!!python/name:__main__.someval", Loader=yaml.BaseLoader)
     
     try:
-        yamldoc = strictyaml.load(bbyaml_txt, schema_overall, label="myfilename")
+        yamldoc = strictyaml.load(bbyaml_txt, schema_overall, label=filename)
     
     except YAMLError as err:
-        raise BBYamlSyntaxError(str(err.problem) + '\n' + str(err.problem_mark) )
+        lines = bbyaml_txt.split('\n')
+        problem = str(err.problem)
+
+        if hasattr(err, 'problem_mark') and err.problem_mark is not None:
+            line_num = err.problem_mark.line
+            msg = f"in {filename}, line {line_num}\n\n"
+            msg += msg_context(lines, line_num) + "\n"
+            msg += text_wrap(problem)
+        else:
+            msg = f"in {filename}\n\n{problem}"
+
+        raise BBYamlSyntaxError(msg)
         
     return yamldoc.data
     
@@ -214,13 +237,13 @@ def load(bbyaml_filename, schema=True):
         # thus this would be the questions
         list_pattern = re.compile(r"^- ", re.MULTILINE)        
         if list_pattern.search(yamldoc_txt):
-            doc['questions'] = load_yaml(yamldoc_txt, schema)
+            doc['questions'] = load_yaml(yamldoc_txt, schema, filename=bbyaml_filename)
         else:
-            doc['header'] = load_yaml(yamldoc_txt, schema=False)       
+            doc['header'] = load_yaml(yamldoc_txt, schema=False, filename=bbyaml_filename)       
 
     elif len(yamldocs) == 2:
-        doc['header'] = load_yaml(yamldocs[0], schema=False)
-        doc['questions'] = load_yaml(yamldocs[1], schema=schema)
+        doc['header'] = load_yaml(yamldocs[0], schema=False, filename=bbyaml_filename)
+        doc['questions'] = load_yaml(yamldocs[1], schema=schema, filename=bbyaml_filename)
     
     # trim all the text entries
     f = lambda a : a.strip() if isinstance(a, str) else a
