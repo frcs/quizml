@@ -90,8 +90,8 @@ def main():
         action="store_true")
 
     parser.add_argument(
-        "-C", "--cleanup"
-        help="Looks at all .yaml files in a directory and deletes any other files that share the same base name (name without extension).",
+        "-C", "--cleanup",
+        help="deletes build artefacts from all yaml files in dir",
         action="store_true")
 
     
@@ -170,6 +170,11 @@ def main():
         if args.fish:
             print(bbquiz.cli.shellcompletion.fish(parser))
             return
+
+        if args.cleanup:
+            bbquiz.cli.cleanup.cleanup_yaml_files()
+            return
+
         
         # if args.bash:
         #     print(bbquiz.cli.shellcompletion.bash(parser))
@@ -182,9 +187,6 @@ def main():
             bbquiz.cli.diff.diff(args)
             return
 
-        if args.cleanup:
-            bbquiz.cli.cleanup.cleanup_yaml_files()
-            return
         
         if args.otherfiles:
             parser.error("only one yaml file is required")
