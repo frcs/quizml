@@ -1,0 +1,147 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BBYaml Quiz Schema",
+  "description": "Schema for bbquiz YAML files.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "type": {
+        "type": "string",
+        "description": "The type of the question or section."
+      }
+    },
+    "required": ["type"],
+    "allOf": [
+      {
+        "if": { "properties": { "type": { "const": "ma" } } },
+        "then": {
+          "properties": {
+            "type": { "type": "string" },
+            "marks": { "type": ["number", "string"], "default": "2.5" },
+            "comments": { "type": "string" },
+            "cols": { "type": ["integer", "string"], "default": "1" },
+            "question": { "type": "string" },
+            "choices": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "x": { "type": "string" },
+                  "o": { "type": "string" }
+                }
+              }
+            }
+          },
+          "required": ["question", "choices"]
+        }
+      },
+      {
+        "if": { "properties": { "type": { "const": "mc" } } },
+        "then": {
+          "properties": {
+            "type": { "type": "string" },
+            "marks": { "type": ["number", "string"], "default": "2.5" },
+            "comments": { "type": "string" },
+            "cols": { "type": ["integer", "string"], "default": "1" },
+            "question": { "type": "string" },
+            "choices": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "x": { "type": "string" },
+                  "o": { "type": "string" }
+                }
+              }
+            }
+          },
+          "required": ["question", "choices"]
+        }
+      },
+      {
+        "if": { "properties": { "type": { "const": "tf" } } },
+        "then": {
+          "properties": {
+            "type": { "type": "string" },
+            "marks": { "type": ["number", "string"], "default": "2.5" },
+            "comments": { "type": "string" },
+            "question": { "type": "string" },
+            "answer": { "type": ["boolean", "string"] }
+          },
+          "required": ["question", "answer"]
+        }
+      },
+      {
+        "if": { "properties": { "type": { "const": "essay" } } },
+        "then": {
+          "properties": {
+            "type": { "type": "string" },
+            "marks": { "type": ["number", "string"], "default": "4" },
+            "comments": { "type": "string" },
+            "question": { "type": "string" },
+            "answer": { "type": "string" }
+          },
+          "required": ["question"]
+        }
+      },
+      {
+        "if": { "properties": { "type": { "const": "matching" } } },
+        "then": {
+          "properties": {
+            "type": { "type": "string" },
+            "marks": { "type": ["number", "string"], "default": "2.5" },
+            "comments": { "type": "string" },
+            "question": { "type": "string" },
+            "choices": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "A": { "type": "string" },
+                  "B": { "type": "string" }
+                },
+                "required": ["A", "B"]
+              }
+            }
+          },
+          "required": ["question", "choices"]
+        }
+      },
+      {
+        "if": { "properties": { "type": { "const": "ordering" } } },
+        "then": {
+          "properties": {
+            "type": { "type": "string" },
+            "marks": { "type": ["number", "string"], "default": "2.5" },
+            "comments": { "type": "string" },
+            "cols": { "type": ["integer", "string"], "default": "1" },
+            "question": { "type": "string" },
+            "choices": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "required": ["question", "choices"]
+        }
+      },
+      {
+        "if": { "properties": { "type": { "const": "section" } } },
+        "then": {
+          "properties": {
+            "type": { "type": "string" },
+            "title": { "type": "string" },
+            "marks": { "type": ["number", "string"] },
+            "question": { "type": "string" }
+          }
+        }
+      },
+      {
+        "if": { "properties": { "type": { "const": "header" } } },
+        "then": {
+          "type": "object"
+        }
+      }
+    ]
+  }
+}

@@ -8,9 +8,9 @@ name = "bbquiz"
 version = "0.6"
 dependencies = [
   "pillow",
-  "pyyaml",  
+  "ruamel.yaml>=0.17",
+  "jsonschema>=4.0",
   "bs4",
-  "strictyaml>=1.7",
   "rich",
   "rich-argparse",
   "jinja2",

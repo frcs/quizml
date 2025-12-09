@@ -17,9 +17,10 @@ def filter_yaml(yaml_data, f):
     if isinstance(yaml_data, list):
         return [filter_yaml(a,f) for a in yaml_data]
     elif isinstance(yaml_data, dict):
-        return dict(zip(
-            yaml_data.keys(),
-            [filter_yaml(a, f) for a in yaml_data.values()]))
+        new_dict = type(yaml_data)()
+        for k, v in yaml_data.items():
+            new_dict[k] = filter_yaml(v, f)
+        return new_dict
     else:
         return f(yaml_data)
 

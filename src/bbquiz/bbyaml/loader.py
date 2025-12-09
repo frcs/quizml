@@ -3,264 +3,239 @@
 This module provides the function for loading BBYaml files as a
 list/dict structure.
 
-BBYaml files are simply a form of YAML file. YAML has well known
-issues. One is the dreaded "Norway problem", where 'country: No' is
-translated as 'country: False' because YAML specification assumes
-automatic type conversion.
+BBYaml files are a form of YAML. To avoid issues like the "Norway
+problem" (where `country: No` is read as `country: False`), this loader
+ensures that all values are loaded as strings by default, unless the
+schema specifies a different type.
 
-To remidy this, we use StrictYAML, a subset of YAML
-(https://pypi.org/project/strictyaml/).
-
-StrictYAML also uses schemas to specify the allowed structure and
-expected types. This enables us to validate BBYaml files and parse
-syntax errors (throwing BBYamlSyntaxError).
-
-This also avoids any unwanted type conversion and avoids us having to
-put values into quotes.
+Validation is performed by `jsonschema` against a user-definable
+schema, allowing for flexible and robust parsing. Line numbers are
+preserved for accurate error reporting.
 
 Typical usage example:
 
-    yaml_data = load("quiz.yaml", schema=True)
-
-Note that StrictYAML's validation is a bit slow. Hence schema=False is
-also proposed for speed, but will not catch syntax errors and all
-key/val will be strings:
-
-    yaml_data_str = load("quiz.yaml", schema=False) # quick but no check
-
+    yaml_data = load("quiz.yaml")
 
 """
 
 import os
-import sys
 import re
+import json
 from pathlib import Path
-import strictyaml
-from strictyaml import Any, Map, Float, Seq, Bool, Int, Str, Regex
-from strictyaml import Optional, MapCombined, ScalarValidator
-from strictyaml import YAMLError
+
+from ruamel.yaml import YAML
+from ruamel.yaml.constructor import RoundTripConstructor
+from ruamel.yaml.nodes import ScalarNode
+from ruamel.yaml.scalarstring import PlainScalarString
+from jsonschema import Draft7Validator, validators
+from jsonschema.exceptions import ValidationError
 
 from bbquiz.bbyaml.utils import filter_yaml
 from bbquiz.exceptions import BBYamlSyntaxError
 from ..cli.errorhandler import text_wrap, msg_context
 
+# --- Custom ruamel.yaml Constructor ---
 
-def load_yaml(bbyaml_txt, schema=True, filename="<YAML string>"):
-    if schema:
-        return load_with_schema(bbyaml_txt, filename)
-    else:
-        return load_without_schema(bbyaml_txt, filename)
-       
-
-def load_with_schema(bbyaml_txt, filename):
-    """load a BBYaml file as a StrictYaml with Schema.
-
-    We need to have a two-pass approach: the first pass checks that we
-    have a sequence with each element containing a 'type' key. Then,
-    in a second pass, we re-validate each item of the list with a
-    specialised secondary Schema.
-
-    This version is significantly slower than the no-schema version
-    but does catch syntax errors.
-
+class StringConstructor(RoundTripConstructor):
     """
-    
-    schema_overall = Seq(MapCombined({"type": Str()},
-                                     Str(), Any()))
-    
-    schema_item = {
-        'ma': MapCombined(
-            {
-                "type": Str(),
-                Optional("marks", default=2.5): Float(),
-                Optional("comments"): Str(),                   
-                Optional("cols", default=1): Int(),
-                "question": Str(),
-                "choices": Seq(
-                    Map({ Optional("x"): Str(),
-                          Optional("o"): Str()}))
-            },
-            Str(),Any(),
-        ),
-        'mc': MapCombined(
-            {
-                "type": Str(),
-                Optional("marks", default=2.5): Float(),
-                Optional("comments"): Str(),                                      
-                Optional("cols", default=1): Int(),                   
-                "question": Str(),
-                "choices": Seq(
-                    Map({ Optional("x"): Str(),
-                          Optional("o"): Str()}))
-            },
-            Str(), Any()),
-        'tf': MapCombined(
-            {
-                "type": Str(),
-                Optional("marks", default=2.5): Float(),
-                Optional("comments"): Str(),                   
-                "question": Str(),
-                "answer": Bool(),
-            }, Str(), Any()),        
-        'essay': MapCombined({
-            "type": Str(),
-            Optional("comments"): Str(),                                         
-            Optional("marks", default=4): Float(),
-            "question": Str(),
-            Optional("answer"): Str(),
-        }, Str(), Any()),        
-        'matching': MapCombined({
-            "type": Str(),
-            Optional("comments"): Str(),                                            
-            Optional("marks", default=2.5): Float(),
-            "question": Str(),
-            "choices": Seq(Map({"A": Str(), "B": Str()})),
-        }, Str(), Any()),        
-        'ordering': MapCombined({
-            "type": Str(),
-            Optional("comments"): Str(),                                           
-            Optional("marks", default=2.5): Float(),
-            Optional("cols", default=1): Int(),                          
-            "question": Str(),
-            "choices": Seq(Str()),
-        }, Str(), Any()),        
-        'section': MapCombined({
-            "type": Str(),
-            Optional("title"): Str(),
-            Optional("marks"): Float(),
-            Optional("question"): Str(),
-        }, Str(), Any()),
-        'header': Any()
-    }
-    
+    A custom constructor for ruamel.yaml that treats all scalar values
+    as strings, preserving the original text and line/column info.
+    """
+    def construct_scalar(self, node: ScalarNode):
+        s = PlainScalarString(node.value, anchor=node.anchor)
+        return s
+
+StringConstructor.add_constructor(
+    'tag:yaml.org,2002:bool', StringConstructor.construct_scalar)
+StringConstructor.add_constructor(
+    'tag:yaml.org,2002:int', StringConstructor.construct_scalar)
+StringConstructor.add_constructor(
+    'tag:yaml.org,2002:float', StringConstructor.construct_scalar)
+StringConstructor.add_constructor(
+    'tag:yaml.org,2002:null', StringConstructor.construct_scalar)
+
+
+# --- Custom jsonschema Validator and Type Conversion ---
+
+def is_string(checker, instance):
+    return isinstance(instance, str)
+
+def is_number(checker, instance):
+    if not is_string(checker, instance): return False
     try:
-        yamldoc = strictyaml.load(bbyaml_txt, schema_overall,
-                                  label=filename)
-        
-        for a in yamldoc:
-            if a['type'] in schema_item.keys():
-                a.revalidate(schema_item[a['type']])
-            else:            
-                # the entered 'type' is not valid 
-                # we need to trick the validation system to trigger an error
-                # by choosing Map({}) as schema. so any key will fail 
-                a.revalidate(Map({})) 
-                
-    except YAMLError as err:
-        lines = bbyaml_txt.split('\n')
-        problem = str(err.problem)
+        float(instance)
+        return True
+    except (ValueError, TypeError):
+        return False
 
-        if hasattr(err, 'problem_mark') and err.problem_mark is not None:
-            line_num = err.problem_mark.line
-            msg = f"in {filename}, line {line_num}\n\n"
-            msg += msg_context(lines, line_num) + "\n"
-            msg += text_wrap(problem)
-        else:
-            msg = f"in {filename}\n\n{problem}"
-
-        raise BBYamlSyntaxError(msg)
-        
-    return yamldoc.data
-    
-
-def load_without_schema(bbyaml_txt, filename):
-    """fast loading of BBYaml file as a StrictYaml without Schema.
-
-    In this version we do not check the schema. This is for speed
-    only. All key/val are interpreted as Strings. This version does
-    not catch syntax errors.
-
-    """
-    
-    schema_overall = Any()
-
-    # strictyaml.load("!!python/name:__main__.someval", Loader=yaml.BaseLoader)
-    
+def is_integer(checker, instance):
+    if not is_string(checker, instance): return False
     try:
-        yamldoc = strictyaml.load(bbyaml_txt, schema_overall, label=filename)
-    
-    except YAMLError as err:
-        lines = bbyaml_txt.split('\n')
-        problem = str(err.problem)
+        return str(int(instance)) == instance
+    except (ValueError, TypeError):
+        return False
 
-        if hasattr(err, 'problem_mark') and err.problem_mark is not None:
-            line_num = err.problem_mark.line
-            msg = f"in {filename}, line {line_num}\n\n"
-            msg += msg_context(lines, line_num) + "\n"
-            msg += text_wrap(problem)
-        else:
-            msg = f"in {filename}\n\n{problem}"
+def is_boolean(checker, instance):
+    if not is_string(checker, instance): return False
+    return instance.lower() in ['true', 'false', 'yes', 'no', 'on', 'off']
 
-        raise BBYamlSyntaxError(msg)
+CustomTypeChecker = Draft7Validator.TYPE_CHECKER.redefine_many({
+    "number": is_number, "integer": is_integer, "boolean": is_boolean})
+
+def extend_with_default(validator_class):
+    validate_properties = validator_class.VALIDATORS["properties"]
+    def set_defaults(validator, properties, instance, schema):
+        if isinstance(instance, dict):
+            for prop, subschema in properties.items():
+                if "default" in subschema:
+                    instance.setdefault(prop, subschema["default"])
+        yield from validate_properties(validator, properties, instance, schema)
+    return validators.extend(validator_class, {"properties": set_defaults})
+
+DefaultFillingValidator = extend_with_default(
+    validators.extend(Draft7Validator, type_checker=CustomTypeChecker))
+
+
+# --- Main Loader Functions ---
+
+def load_yaml(bbyaml_txt, validate=True, filename="<YAML string>", schema_path=None):
+    yaml = YAML()
+    yaml.Constructor = StringConstructor
+    try:
+        data = yaml.load(bbyaml_txt)
+    except Exception as err:
+        line = -1
+        if hasattr(err, 'problem_mark'): line = err.problem_mark.line
+        raise BBYamlSyntaxError(f"YAML parsing error in {filename} near line {line}:\n{err}")
+
+    if validate:
+        if schema_path is None:
+            schema_dir = Path(__file__).parent
+            schema_path = schema_dir / "schema.json"
+        try:
+            with open(schema_path, 'r') as f:
+                schema = json.load(f)
+        except FileNotFoundError:
+            raise BBYamlSyntaxError(f"Schema file not found: {schema_path}")
+        except json.JSONDecodeError as e:
+            raise BBYamlSyntaxError(f"Invalid JSON in schema file {schema_path}: {e}")
+
+        validator = DefaultFillingValidator(schema)
+        errors = sorted(validator.iter_errors(data), key=lambda e: e.path)
+        if errors:
+            err = errors[0]
+            path = " -> ".join(map(str, err.path))
+            try:
+                item = data
+                for key in err.path: item = item[key]
+                line_num = item.lc.line + 1
+            except (KeyError, IndexError, AttributeError):
+                line_num = "unknown"
+            lines = bbyaml_txt.splitlines()
+            msg = f"Schema validation error in {filename} at '{path}' (line ~{line_num})\n"
+            if line_num != "unknown":
+                msg += msg_context(lines, line_num) + "\n"
+            msg += text_wrap(err.message)
+            raise BBYamlSyntaxError(msg)
         
-    return yamldoc.data
-    
+    return data
 
+def _to_plain_python(data):
+    if isinstance(data, dict):
+        return {k: _to_plain_python(v) for k, v in data.items()}
+    if isinstance(data, list):
+        return [_to_plain_python(v) for v in data]
+    return data
 
-def load(bbyaml_filename, schema=True):
-    """load a BBYaml file as a StrictYaml file. 
-
-    We use StrictYAML (https://pypi.org/project/strictyaml/) because
-    we can establish a schema and specify the expected types (so that
-    we can avoid the dreaded "Norway problem", where 'country: No' is
-    translated as 'country: False').
-
-    If schema=True, we explicitely set the possible keys and their
-    types. Hence all statements/answers, etc., are, by default
-    strings, marks are floats, etc.
-
-    Note that StrictYAML's validation is a bit slow. Hence
-    schema=False is proposed for speed, but will not catch syntax
-    errors.
-
-    """
-
+def load(bbyaml_filename, validate=True, schema_path=None):
     try:
         bbyaml_txt = Path(bbyaml_filename).read_text()
     except FileNotFoundError:
         raise BBYamlSyntaxError(f"File not found: {bbyaml_filename}")
 
-    yamldoc_pattern = re.compile(r"^---\s*$", re.MULTILINE) 
-    yamldocs = yamldoc_pattern.split(bbyaml_txt)    
+    yamldoc_pattern = re.compile(r"^---\s*$", re.MULTILINE)
+    yamldocs = yamldoc_pattern.split(bbyaml_txt)
     yamldocs = list(filter(None, yamldocs))
 
     if len(yamldocs) > 2:
         raise BBYamlSyntaxError(
-            ("Yaml file cannot have more than 2 documents: "
-             "the header section and the questions sections"))
+            ("YAML file cannot have more than 2 documents: "
+             "one for the header and one for the questions."))
 
     doc = {'header': {}, 'questions': []}
 
-    if len(yamldocs) == 1:
-        yamldoc_txt = yamldocs[0]
-        # if we find line starting with "- " then it's a list
-        # thus this would be the questions
-        list_pattern = re.compile(r"^- ", re.MULTILINE)        
-        if list_pattern.search(yamldoc_txt):
-            doc['questions'] = load_yaml(yamldoc_txt, schema, filename=bbyaml_filename)
-        else:
-            doc['header'] = load_yaml(yamldoc_txt, schema=False, filename=bbyaml_filename)       
-
+    doc_starts_with_list = re.search(r"^\s*-", yamldocs[0], re.MULTILINE)
+    # logic is that if 
+    if doc_starts_with_list:
+        questions_doc = yamldocs[0]
+        header_doc = ""        
     elif len(yamldocs) == 2:
-        doc['header'] = load_yaml(yamldocs[0], schema=False, filename=bbyaml_filename)
-        doc['questions'] = load_yaml(yamldocs[1], schema=schema, filename=bbyaml_filename)
-    
-    # trim all the text entries
-    f = lambda a : a.strip() if isinstance(a, str) else a
+        questions_doc = yamldocs[1]
+        header_doc = yamldocs[0]    
+    else:
+        header_doc = yamldocs[0]
+        questions_doc = ""
+
+    doc['header'] = load_yaml(
+        header_doc,
+        validate=False,
+        filename=bbyaml_filename)
+
+    doc['questions'] = load_yaml(
+        questions_doc,
+        validate,
+        filename=bbyaml_filename,
+        schema_path=schema_path)
+       
+
+    # if len(yamldocs) == 1:
+    #     yamldoc_txt = yamldocs[0]
+    #     if re.search(r"^\s*-", yamldoc_txt, re.MULTILINE):
+    #         doc['questions'] = load_yaml(
+    #             yamldoc_txt,
+    #             validate,
+    #             filename=bbyaml_filename,
+    #             schema_path=schema_path)
+    #     else:
+    #         doc['header'] = load_yaml(
+    #             yamldoc_txt,
+    #             validate=False,
+    #             filename=bbyaml_filename)
+    # else:
+    #     doc['header'] = load_yaml(
+    #         yamldocs[0],
+    #         validate=False,
+    #         filename=bbyaml_filename)
+    #     doc['questions'] = load_yaml(
+    #         yamldocs[1], validate,
+    #         filename=bbyaml_filename,
+    #         schema_path=schema_path)
+
+        
+    f = lambda a: a.strip() if isinstance(a, str) else a
     doc = filter_yaml(doc, f)
-    
-    # some backwards compatibility step
-    # if header defined as first question then it is merged to header
-    if ((len(doc['questions'])>0) and
-        ('type' in doc['questions'][0]) and 
-        (doc['questions'][0]['type'] == 'header')):
-        h = doc['questions'][0]
-        del h['type']
-        doc['header'].update(h)
 
-    # add basename metadata to header 
-    (basename, _) = os.path.splitext(bbyaml_filename)
+    # I am commenting this out
+    # no more hearder type
+    
+    # if doc['questions'] and doc['questions'][0].get('type') == 'header':
+    #     h = doc['questions'].pop(0)
+    #     del h['type']
+    #     doc['header'].update(h)
+
+    basename, _ = os.path.splitext(bbyaml_filename)
     doc['header']['inputbasename'] = basename
-    
-    return doc
 
+    # BRUTE FORCE CONVERSION
+    for q in doc.get('questions', []):
+        if 'marks' in q and isinstance(q['marks'], str):
+            try: q['marks'] = float(q['marks'])
+            except (ValueError, TypeError): pass
+        if 'cols' in q and isinstance(q['cols'], str):
+            try: q['cols'] = int(q['cols'])
+            except (ValueError, TypeError): pass
+        if 'answer' in q and isinstance(q['answer'], str):
+            if q['answer'].lower() == 'true': q['answer'] = True
+            elif q['answer'].lower() == 'false': q['answer'] = False
+
+    return _to_plain_python(doc)

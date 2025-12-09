@@ -350,7 +350,7 @@ def compile(args):
                     border_style="red"))
         return
     # try:
-    yaml_data = load(yaml_filename, schema=True)
+    yaml_data = load(yaml_filename, validate=True)
     # except BBYamlSyntaxError as err:
     #     print(Panel(str(err),
     #                 title="BByaml Syntax Error",
@@ -432,6 +432,9 @@ def compile(args):
         targets_quiet_output.append(
             [ add_hyperlinks(target["out"], target["out"]),
               "" if success else "[FAIL]" ])
+
+        if not success:
+            break
         
     # diplay stats about the outputs
     if not args.quiet:

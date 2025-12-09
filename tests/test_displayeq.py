@@ -90,7 +90,7 @@ def test_displayeq(capsys):
         doc_combined = Document(md_text)
 
     
-    yaml_data = loader.load(yaml_file, schema=False) # schema=False because it's a test file
+    yaml_data = loader.load(yaml_file, validate=False) # schema=False because it's a test file
 
     bbyamltranscoder = BBYAMLMarkdownTranscoder(yaml_data)
 
