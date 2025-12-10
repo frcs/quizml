@@ -49,7 +49,11 @@ def get_entry_marks(entry):
     }
 
     if 'marks' in entry:
-        return entry['marks']
+        try:
+            return float(entry['marks'])
+        except (ValueError, TypeError):
+            # If 'marks' cannot be converted to float, treat it as 0
+            return 0.0
     elif entry['type'] in default_marks:
         return default_marks[entry['type']]
     else:

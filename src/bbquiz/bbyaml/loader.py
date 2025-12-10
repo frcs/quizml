@@ -97,7 +97,6 @@ DefaultFillingValidator = extend_with_default(
 
 
 # --- Main Loader Functions ---
-
 def load_yaml(bbyaml_txt, validate=True, filename="<YAML string>", schema_path=None):
     yaml = YAML()
     yaml.Constructor = StringConstructor
@@ -138,6 +137,7 @@ def load_yaml(bbyaml_txt, validate=True, filename="<YAML string>", schema_path=N
             msg += text_wrap(err.message)
             raise BBYamlSyntaxError(msg)
         
+        
     return data
 
 def _to_plain_python(data):
@@ -153,6 +153,8 @@ def load(bbyaml_filename, validate=True, schema_path=None):
     except FileNotFoundError:
         raise BBYamlSyntaxError(f"File not found: {bbyaml_filename}")
 
+    # Extracting the header and questions
+    
     yamldoc_pattern = re.compile(r"^---\s*$", re.MULTILINE)
     yamldocs = yamldoc_pattern.split(bbyaml_txt)
     yamldocs = list(filter(None, yamldocs))
@@ -164,65 +166,39 @@ def load(bbyaml_filename, validate=True, schema_path=None):
 
     doc = {'header': {}, 'questions': []}
 
+    # Check if the first document starts with a list item indicator ('-')
     doc_starts_with_list = re.search(r"^\s*-", yamldocs[0], re.MULTILINE)
-    # logic is that if 
+    
+    # Assign header_doc and questions_doc simultaneously based on the conditions.
     if doc_starts_with_list:
-        questions_doc = yamldocs[0]
-        header_doc = ""        
+        # this is a bit of a hack: if we only have one document and that
+        # it contains a list, then we assume that it is a list of questions
+        header_doc, questions_doc = None, yamldocs[0]
     elif len(yamldocs) == 2:
-        questions_doc = yamldocs[1]
-        header_doc = yamldocs[0]    
+        # contains both a header and a list of questions
+        header_doc, questions_doc = yamldocs[0], yamldocs[1]
     else:
-        header_doc = yamldocs[0]
-        questions_doc = ""
+        # just a header, no questions
+        header_doc, questions_doc = yamldocs[0], None
 
     doc['header'] = load_yaml(
         header_doc,
         validate=False,
-        filename=bbyaml_filename)
+        filename=bbyaml_filename
+    )  if header_doc else {}
 
     doc['questions'] = load_yaml(
         questions_doc,
         validate,
         filename=bbyaml_filename,
-        schema_path=schema_path)
-       
+        schema_path=schema_path
+    ) if questions_doc else []
 
-    # if len(yamldocs) == 1:
-    #     yamldoc_txt = yamldocs[0]
-    #     if re.search(r"^\s*-", yamldoc_txt, re.MULTILINE):
-    #         doc['questions'] = load_yaml(
-    #             yamldoc_txt,
-    #             validate,
-    #             filename=bbyaml_filename,
-    #             schema_path=schema_path)
-    #     else:
-    #         doc['header'] = load_yaml(
-    #             yamldoc_txt,
-    #             validate=False,
-    #             filename=bbyaml_filename)
-    # else:
-    #     doc['header'] = load_yaml(
-    #         yamldocs[0],
-    #         validate=False,
-    #         filename=bbyaml_filename)
-    #     doc['questions'] = load_yaml(
-    #         yamldocs[1], validate,
-    #         filename=bbyaml_filename,
-    #         schema_path=schema_path)
-
-        
+    # removing trailing white spaces in all string values
     f = lambda a: a.strip() if isinstance(a, str) else a
     doc = filter_yaml(doc, f)
 
-    # I am commenting this out
-    # no more hearder type
-    
-    # if doc['questions'] and doc['questions'][0].get('type') == 'header':
-    #     h = doc['questions'].pop(0)
-    #     del h['type']
-    #     doc['header'].update(h)
-
+    # passing the input quiz file's basename to header
     basename, _ = os.path.splitext(bbyaml_filename)
     doc['header']['inputbasename'] = basename
 

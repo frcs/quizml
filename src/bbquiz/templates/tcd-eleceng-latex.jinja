@@ -343,7 +343,7 @@ essay question
 \begin{bbquestion}[<<q.marks>>]
 <<q.question>>
   \vspace{1em}
-<|   if q['cols'] > 1  |>
+<|   if q['cols']|int > 1  |>
 \begin{multicols}{<<q['cols']>>}
 <|   endif           |>
 \begin{enumerate}\ifsolutions\else\renewcommand{\theenumi}{(\alph{enumi})}\fi\setcounter{enumii}{0}\setlength\itemsep{0.25em}
@@ -364,7 +364,7 @@ essay question
 
 <|-    endfor +|>
   \end{enumerate}
-<|   if q['cols'] > 1  |>
+<|   if q['cols']|int > 1  |>
 \end{multicols}
 <|   endif           |>  
 \end{bbquestion}
