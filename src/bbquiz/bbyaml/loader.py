@@ -23,6 +23,8 @@ import re
 import json
 from pathlib import Path
 
+import logging
+
 from ruamel.yaml import YAML
 from ruamel.yaml.constructor import RoundTripConstructor
 from ruamel.yaml.nodes import ScalarNode
@@ -112,6 +114,8 @@ def load_yaml(bbyaml_txt, validate=True, filename="<YAML string>", schema_path=N
             schema_dir = Path(__file__).parent
             schema_path = schema_dir / "schema.json"
         try:
+            logging.info(f"using schema file:{schema_path}")
+
             with open(schema_path, 'r') as f:
                 schema = json.load(f)
         except FileNotFoundError:
