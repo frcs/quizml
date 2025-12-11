@@ -7,7 +7,8 @@ augment the system with their own templates and user-defined YAML structure.
 
 * propose shell completion helper functions for bash
 * Latex install. I should really have a handy function to add Latex path at install
-* Documentation. Python command to serve could be exposed? 
+* Documentation. Python command to serve could be exposed? ... and at least have
+  on github.io
 
 # Backend
 
@@ -51,9 +52,7 @@ is not just me in TCD.
 
 So, as far as I can see, I would need to consider the following points:
 * sort/matching done
-* better Latex resource installer
 * robust error handling
 * better feedback on compile error
-* *probably* a JSON Schema implemented
-
-
+* *probably* a JSON Schema implemented [in progress with 0.7]
+* better Latex resource installer with `bbquiz --init-local` and `bbquiz --init-user`
