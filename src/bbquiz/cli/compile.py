@@ -70,7 +70,7 @@ def print_target_list(args):
     try:
         config = get_config(args)
     except BBQuizConfigError as err:
-        print_error_panel(str(err), title="BBQuiz Config Error")
+        print_error(str(err), title="BBQuiz Config Error")
         return
 
     table = Table(box=box.SIMPLE,
@@ -274,7 +274,7 @@ def compile_cmd_target(target):
         return True
     
     except subprocess.CalledProcessError as e:
-        print_error_panel(e.output.decode(), title="Failed to build command")
+        print_error(e.output.decode(), title="Failed to build command")
         
         return False    
     
@@ -290,20 +290,20 @@ def compile_target(target, bbyamltranscoder):
         success = True
 
     except LatexEqError as err:
-        print_error_panel(str(err), title="Latex Error")
+        print_error(str(err), title="Latex Error")
         success = False
     except MarkdownError as err:
-        print_error_panel(str(err), title="Markdown Error")
+        print_error(str(err), title="Markdown Error")
         success = False
     except FileNotFoundError as err:
-        print_error_panel(str(err), title="FileNotFoundError Error")
+        print_error(str(err), title="FileNotFoundError Error")
         success = False
     except Jinja2SyntaxError as err:
-        print_error_panel(f"\n did not generate target because of template errors ! \n {err}",
+        print_error(f"\n did not generate target because of template errors ! \n {err}",
                           title='Jinja Template Error')
         success = False
     except BBQuizError as err:
-        print_error_panel(str(err), title='BBQuiz Error')
+        print_error(str(err), title='BBQuiz Error')
         success = False
     except KeyboardInterrupt:
         print("[bold red] KeyboardInterrupt [/bold red]")
@@ -321,14 +321,14 @@ def compile(args):
     try:
         config = get_config(args)
     except BBQuizConfigError as err:
-        print_error_panel(str(err), title="BBQuiz Config Error")
+        print_error(str(err), title="BBQuiz Config Error")
         return
 
     # load Schema file
     try:
         schema_path = filelocator.locate.path(config["schema_path"])
     except FileNotFoundError as err:
-        print_error_panel("Schema file " + config["schema_path"] +
+        print_error("Schema file " + config["schema_path"] +
                           " not found, check the config file.",
                           title="Schema Error")
         return
@@ -337,7 +337,7 @@ def compile(args):
     try:
         yaml_data = load(args.yaml_filename, validate=True, schema_path=schema_path)
     except (BBYamlSyntaxError, FileNotFoundError) as err:
-        print_error_panel(str(err), title="BByaml Syntax Error")
+        print_error(str(err), title="BByaml Syntax Error")
         return
 
     # load all markdown entries into a list
@@ -345,7 +345,7 @@ def compile(args):
     try:
         bbyamltranscoder = md.BBYAMLMarkdownTranscoder(yaml_data)
     except (LatexEqError, MarkdownError, FileNotFoundError) as err:
-        print_error_panel(str(err), title="Error")
+        print_error(str(err), title="Error")
         return
 
     # diplay stats about the questions
@@ -356,7 +356,7 @@ def compile(args):
     try:
         target_list = get_target_list(args, config, yaml_data)
     except FileNotFoundError as err:
-        print_error_panel(str(err), title="Template NotFoundError")
+        print_error(str(err), title="Template NotFoundError")
         return
 
     # sets up list of the output for each build
