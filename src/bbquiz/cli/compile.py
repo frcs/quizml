@@ -9,10 +9,12 @@ import logging
 
 from rich import print
 from rich_argparse import *
-from rich.panel import Panel
 from rich.table import Table
 from rich.table import box
 from rich.console import Console
+from rich.panel import Panel
+
+from bbquiz.cli.errorhandler import print_error
 
 from time import sleep
 from watchdog.observers import Observer
@@ -68,9 +70,7 @@ def print_target_list(args):
     try:
         config = get_config(args)
     except BBQuizConfigError as err:
-        print(Panel(str(err),
-                    title="BBQuiz Config Error",
-                    border_style="red"))
+        print_error_panel(str(err), title="BBQuiz Config Error")
         return
 
     table = Table(box=box.SIMPLE,
@@ -274,9 +274,7 @@ def compile_cmd_target(target):
         return True
     
     except subprocess.CalledProcessError as e:
-        print(Panel(e.output.decode(),
-                    title = f"\n failed to build command ",
-                    border_style="red"))
+        print_error_panel(e.output.decode(), title="Failed to build command")
         
         return False    
     
@@ -292,38 +290,27 @@ def compile_target(target, bbyamltranscoder):
         success = True
 
     except LatexEqError as err:
-        print(Panel(str(err),
-                    title="Latex Error",
-                    border_style="red"))
+        print_error_panel(str(err), title="Latex Error")
         success = False
     except MarkdownError as err:
-        print(Panel(str(err),
-                    title="Markdown Error",
-                    border_style="red"))
+        print_error_panel(str(err), title="Markdown Error")
         success = False
     except FileNotFoundError as err:
-        print(Panel(str(err),
-                    title="FileNotFoundError Error",
-                    border_style="red"))
+        print_error_panel(str(err), title="FileNotFoundError Error")
         success = False
     except Jinja2SyntaxError as err:
-        print(Panel((f"\n did not generate target " +
-                     "because of template errors ! \n " + str(err)),
-                    title='Jinja Template Error',
-                    border_style="red"))
+        print_error_panel(f"\n did not generate target because of template errors ! \n {err}",
+                          title='Jinja Template Error')
         success = False
     except BBQuizError as err:
-        print(Panel((str(err)),
-                    title='BBQuiz Error',
-                    border_style="red"))
+        print_error_panel(str(err), title='BBQuiz Error')
         success = False
     except KeyboardInterrupt:
         print("[bold red] KeyboardInterrupt [/bold red]")
         success = False        
         
     return success
-        
-  
+
 
 def compile(args):
     """compiles the targets of a bbyaml file
@@ -334,78 +321,47 @@ def compile(args):
     try:
         config = get_config(args)
     except BBQuizConfigError as err:
-        print(Panel(str(err),
-                    title="BBQuiz Config Error",
-                    border_style="red"))
+        print_error_panel(str(err), title="BBQuiz Config Error")
         return
-        
 
+    # load Schema file
+    try:
+        schema_path = filelocator.locate.path(config["schema_path"])
+    except FileNotFoundError as err:
+        print_error_panel("Schema file " + config["schema_path"] +
+                          " not found, check the config file.",
+                          title="Schema Error")
+        return
+    
     # load BBYaml file
-
-    yaml_filename = args.yaml_filename
-    
-    if not os.path.exists(yaml_filename):
-        print(Panel("File " + yaml_filename + " not found",
-                    title="Error",
-                    border_style="red"))
+    try:
+        yaml_data = load(args.yaml_filename, validate=True, schema_path=schema_path)
+    except (BBYamlSyntaxError, FileNotFoundError) as err:
+        print_error_panel(str(err), title="BByaml Syntax Error")
         return
-    # try:
 
-    schema_path = filelocator.locate.path(config["schema_path"])
-    
-    if not os.path.exists(schema_path):
-        print(Panel("Schema not found at " + schema_path + " ",
-                    title="Error",
-                    border_style="red"))
-        return   
-    
-    schema_str = pathlib.Path(schema_path).read_text()
-    yaml_data = load(yaml_filename, validate=True, schema_str=schema_str)
-    # except BBYamlSyntaxError as err:
-    #     print(Panel(str(err),
-    #                 title="BByaml Syntax Error",
-    #                 border_style="red"))
-    #     return
-        
-    # load all markdown entries into a list 
+    # load all markdown entries into a list
     # and build dictionaries of their HTML and LaTeX translations
-    
     try:
         bbyamltranscoder = md.BBYAMLMarkdownTranscoder(yaml_data)
-    except LatexEqError as err:
-        print(Panel(str(err),
-                    title="Latex Error",
-                    border_style="red"))
+    except (LatexEqError, MarkdownError, FileNotFoundError) as err:
+        print_error_panel(str(err), title="Error")
         return
-    except MarkdownError as err:
-        print(Panel(str(err),
-                    title="Markdown Error",
-                    border_style="red"))
-        return
-    except FileNotFoundError as err:
-        print(Panel(str(err),
-                    title="FileNotFoundError Error",
-                    border_style="red"))
-        return
-       
+
     # diplay stats about the questions
     if not args.quiet:
         print_stats_table(get_stats(yaml_data))
-   
+
     # get target list from config file
     try:
-        target_list = get_target_list(args, config, yaml_data)        
+        target_list = get_target_list(args, config, yaml_data)
     except FileNotFoundError as err:
-        print(Panel(str(err),
-                    title="FileNotFoundError Error",
-                    border_style="red"))
+        print_error_panel(str(err), title="Template NotFoundError")
         return
-    
+
     # sets up list of the output for each build
     targets_output = []
     targets_quiet_output = []
-    # if args.build:
-    #     print("building post commands")
     success_list = {}
     
     for i, target in enumerate(target_list):
@@ -423,7 +379,7 @@ def compile(args):
             # and if this dependency compiled successfully
             
             if (("dep" not in target) or
-                ("dep" in target and success_list[target['dep']])):
+                ("dep" in target and success_list.get(target['dep'], False))):
                 success = compile_cmd_target(target)
             else:
                 success = False

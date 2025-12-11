@@ -34,6 +34,6 @@ class FileLocator:
                     os.path.expanduser(os.path.join(d, refpath)))
                 if os.path.exists(abspath):
                     return abspath
-        return FileNotFoundError(f"{refpath} was not found")
+        raise FileNotFoundError
     
 locate = FileLocator()

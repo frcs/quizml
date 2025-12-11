@@ -145,12 +145,17 @@ def _to_plain_python(data):
         return [_to_plain_python(v) for v in data]
     return data
 
-def load(bbyaml_filename, validate=True, schema_str=None):
+def load(bbyaml_path, validate=True, schema_path=None):
     try:
-        bbyaml_txt = Path(bbyaml_filename).read_text()
+        bbyaml_txt = Path(bbyaml_path).read_text()
     except FileNotFoundError:
-        raise BBYamlSyntaxError(f"File not found: {bbyaml_filename}")
+        raise BBYamlSyntaxError(f"Yaml file not found: {bbyaml_path}")
 
+    try:
+        schema_str = Path(schema_path).read_text()
+    except FileNotFoundError:
+        raise BBYamlSyntaxError(f"Schema file not found: {schema_path}")
+    
     # Extracting the header and questions
     
     yamldoc_pattern = re.compile(r"^---\s*$", re.MULTILINE)
@@ -182,13 +187,13 @@ def load(bbyaml_filename, validate=True, schema_str=None):
     doc['header'] = load_yaml(
         header_doc,
         validate=False,
-        filename=bbyaml_filename
+        filename=bbyaml_path
     )  if header_doc else {}
 
     doc['questions'] = load_yaml(
         questions_doc,
         validate,
-        filename=bbyaml_filename,
+        filename=bbyaml_path,
         schema_str=schema_str
     ) if questions_doc else []
 
@@ -197,7 +202,7 @@ def load(bbyaml_filename, validate=True, schema_str=None):
     doc = filter_yaml(doc, f)
 
     # passing the input quiz file's basename to header
-    basename, _ = os.path.splitext(bbyaml_filename)
+    basename, _ = os.path.splitext(bbyaml_path)
     doc['header']['inputbasename'] = basename
 
     # BRUTE FORCE CONVERSION
