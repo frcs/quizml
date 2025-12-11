@@ -99,7 +99,7 @@ DefaultFillingValidator = extend_with_default(
 
 
 # --- Main Loader Functions ---
-def load_yaml(bbyaml_txt, validate=True, filename="<YAML string>", schema_path=None):
+def load_yaml(bbyaml_txt, validate=True, filename="<YAML string>", schema_str=None):
     yaml = YAML()
     yaml.Constructor = StringConstructor
     try:
@@ -110,18 +110,12 @@ def load_yaml(bbyaml_txt, validate=True, filename="<YAML string>", schema_path=N
         raise BBYamlSyntaxError(f"YAML parsing error in {filename} near line {line}:\n{err}")
 
     if validate:
-        if schema_path is None:
-            schema_dir = Path(__file__).parent
-            schema_path = schema_dir / "schema.json"
+        if schema_str is None:
+            raise BBYamlSyntaxError("Schema must be provided for validation when validate=True.")
         try:
-            logging.info(f"using schema file:{schema_path}")
-
-            with open(schema_path, 'r') as f:
-                schema = json.load(f)
-        except FileNotFoundError:
-            raise BBYamlSyntaxError(f"Schema file not found: {schema_path}")
+            schema = json.loads(schema_str)
         except json.JSONDecodeError as e:
-            raise BBYamlSyntaxError(f"Invalid JSON in schema file {schema_path}: {e}")
+            raise BBYamlSyntaxError(f"Invalid JSON in schema: {e}")
 
         validator = DefaultFillingValidator(schema)
         errors = sorted(validator.iter_errors(data), key=lambda e: e.path)
@@ -140,8 +134,8 @@ def load_yaml(bbyaml_txt, validate=True, filename="<YAML string>", schema_path=N
                 msg += msg_context(lines, line_num) + "\n"
             msg += text_wrap(err.message)
             raise BBYamlSyntaxError(msg)
-        
-        
+
+
     return data
 
 def _to_plain_python(data):
@@ -151,7 +145,7 @@ def _to_plain_python(data):
         return [_to_plain_python(v) for v in data]
     return data
 
-def load(bbyaml_filename, validate=True, schema_path=None):
+def load(bbyaml_filename, validate=True, schema_str=None):
     try:
         bbyaml_txt = Path(bbyaml_filename).read_text()
     except FileNotFoundError:
@@ -195,7 +189,7 @@ def load(bbyaml_filename, validate=True, schema_path=None):
         questions_doc,
         validate,
         filename=bbyaml_filename,
-        schema_path=schema_path
+        schema_str=schema_str
     ) if questions_doc else []
 
     # removing trailing white spaces in all string values

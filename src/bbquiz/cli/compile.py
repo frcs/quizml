@@ -350,7 +350,17 @@ def compile(args):
                     border_style="red"))
         return
     # try:
-    yaml_data = load(yaml_filename, validate=True)
+
+    schema_path = filelocator.locate.path(config["schema_path"])
+    
+    if not os.path.exists(schema_path):
+        print(Panel("Schema not found at " + schema_path + " ",
+                    title="Error",
+                    border_style="red"))
+        return   
+    
+    schema_str = pathlib.Path(schema_path).read_text()
+    yaml_data = load(yaml_filename, validate=True, schema_str=schema_str)
     # except BBYamlSyntaxError as err:
     #     print(Panel(str(err),
     #                 title="BByaml Syntax Error",
