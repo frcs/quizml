@@ -20,6 +20,7 @@ import bbquiz.cli.compile
 import bbquiz.cli.cleanup
 import bbquiz.cli.diff
 import bbquiz.cli.shellcompletion
+import bbquiz.cli.init
 
 from ..exceptions import BBQuizError
 
@@ -72,6 +73,17 @@ def main():
     parser.add_argument(
         '--target-list',
         help="list all targets in config file",
+        action="store_true")
+
+
+    parser.add_argument(
+        '--init-local',
+        help="create a local directory 'bbquiz_conf' with all config files",
+        action="store_true")
+
+    parser.add_argument(
+        '--init-user',
+        help="create the user app directory with all its config files",
         action="store_true")
     
     parser.add_argument(
@@ -161,7 +173,6 @@ def main():
                 os.path.join(__file__, "..", "..", "templates"))
             print(f'{templates_path}')
             return
-
         
         if args.zsh:
             print(bbquiz.cli.shellcompletion.zsh(parser))
@@ -175,6 +186,17 @@ def main():
             bbquiz.cli.cleanup.cleanup_yaml_files()
             return
 
+        if args.init_user:
+            bbquiz.cli.init.init_user()
+            return
+
+        if args.init_local:
+            bbquiz.cli.init.init_local()
+            return
+
+        if args.zsh:
+            print(bbquiz.cli.shellcompletion.zsh(parser))
+            return
         
         # if args.bash:
         #     print(bbquiz.cli.shellcompletion.bash(parser))
