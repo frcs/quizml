@@ -5,8 +5,8 @@ import pathlib
 class FileLocator:
     """
     Config file and templates are defined as a relative path, and searched in:
-    1. the local directory from which BBQuiz is called 
-    2. a `bbquiz_conf` subdirectory of the local directory
+    1. the local directory from which QuizML is called 
+    2. a `quizml_conf` subdirectory of the local directory
     2. the default application config dir 
     3. the install package templates dir
     """
@@ -17,10 +17,10 @@ class FileLocator:
         """
         
         pkg_template_dir = os.path.join(os.path.dirname(__file__), '../templates')
-        app_dir = appdirs.user_config_dir(appname="bbquiz", appauthor='frcs')
+        app_dir = appdirs.user_config_dir(appname="quizml", appauthor='frcs')
         user_config_dir = os.path.join(app_dir, 'templates')
         cw_dir = os.getcwd()
-        local_confdir =  os.path.join(cw_dir, 'bbquiz_conf')
+        local_confdir =  os.path.join(cw_dir, 'quizml_conf')
         self.dirlist = [ cw_dir, local_confdir, user_config_dir, pkg_template_dir ]
 
     def path(self, refpath):
@@ -30,7 +30,7 @@ class FileLocator:
         
         if os.path.isabs(refpath):
             if os.path.exists(refpath):
-                return path
+                return refpath
         else:
             for d in self.dirlist:
                 abspath = os.path.realpath(

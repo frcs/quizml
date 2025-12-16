@@ -7,7 +7,7 @@ def init_local():
 
     pkg_template_dir = os.path.join(os.path.dirname(__file__), '../templates')
     cw_dir = os.getcwd()
-    local_confdir =  os.path.join(cw_dir, 'bbquiz_conf')
+    local_confdir =  os.path.join(cw_dir, 'quizml_conf')
     
     # Check if the source directory exists
     if not os.path.isdir(pkg_template_dir):
@@ -29,7 +29,7 @@ def init_local():
             
 def init_user():
     pkg_template_dir = os.path.join(os.path.dirname(__file__), '../templates')
-    app_dir = appdirs.user_config_dir(appname="bbquiz", appauthor='frcs')
+    app_dir = appdirs.user_config_dir(appname="quizml", appauthor='frcs')
     user_config_dir = os.path.join(app_dir, 'templates')
     
     # Check if the source directory exists

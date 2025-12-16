@@ -4,7 +4,7 @@ Templates are rendered with Jinja2. The [Jinja2 Template Designer
 Documentation](https://jinja.palletsprojects.com/en/3.1.x/templates/) provides
 complete information about how to write jinja2 templates.
 
-The default templates used in BBQuiz can be found in the `templates`
+The default templates used in QuizML can be found in the `templates`
 directory. 
 
 ?> Because they are multiple possible locations for the templates, it can

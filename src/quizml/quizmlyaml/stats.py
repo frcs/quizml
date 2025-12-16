@@ -80,7 +80,7 @@ def question_success_probability(entry):
 
     
 def get_stats(yaml_data):
-    """returns a dictionary of statistics about the questions in a BBYaml test.
+    """returns a dictionary of statistics about the questions in a QuizMLYaml test.
 
     Output structure looks something like this:
 

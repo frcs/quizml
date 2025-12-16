@@ -2,9 +2,9 @@ import pytest
 from unittest.mock import patch, MagicMock
 from pathlib import Path
 
-from bbquiz.markdown.html import build_eq_dict_PNG
-from bbquiz.markdown.extensions import MathInline, MathDisplay
-from bbquiz.exceptions import LatexCompilationError
+from quizml.markdown.html import build_eq_dict_PNG
+from quizml.markdown.extensions import MathInline, MathDisplay
+from quizml.exceptions import LatexCompilationError
 
 # Helper functions to create correctly-structured mock tokens
 def create_mock_inline(content):
@@ -20,8 +20,7 @@ def create_mock_display(content):
     return MathDisplay([content])
 
 
-@patch('bbquiz.markdown.html.embed_base64')
-@patch('bbquiz.markdown.html.LatexRunner')
+@patch('quizml.markdown.html.LatexRunner')
 def test_build_eq_dict_png_success(MockLatexRunner, mock_embed_base64):
     """
     Tests that build_eq_dict_PNG successfully generates an image dictionary
@@ -77,7 +76,7 @@ def test_build_eq_dict_png_success(MockLatexRunner, mock_embed_base64):
     assert "height='40'" in display_html
 
 
-@patch('bbquiz.markdown.html.LatexRunner')
+@patch('quizml.markdown.html.LatexRunner')
 def test_build_eq_dict_png_latex_error(MockLatexRunner):
     """
     Tests that build_eq_dict_PNG properly propagates a LatexCompilationError

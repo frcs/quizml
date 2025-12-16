@@ -1,9 +1,9 @@
 from pathlib import Path
 import os
 import strictyaml
-from bbquiz.bbyaml.loader import load
+from quizml.quizmlyaml.loader import load
 
-def test_bbyaml_syntax():
+def test_quizmlyaml_syntax():
     
     pkg_dirname = os.path.dirname(__file__)
     yaml_file = os.path.join(pkg_dirname, "fixtures", "test-basic-syntax.yaml")

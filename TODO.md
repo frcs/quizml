@@ -18,7 +18,7 @@ augment the system with their own templates and user-defined YAML structure.
 * move from `pdflatex` to `dvipdfmx`, this could save 1 `latex` call
 * triple check MATHML, SVG and PNG backends...
 
-# BBYAML
+# QuizMLYaml
 
 * Move away from not allowing unknown keys in Schema... [done]
 * decide over the Figure and side-by-side with choices. 
@@ -55,4 +55,4 @@ So, as far as I can see, I would need to consider the following points:
 * robust error handling
 * better feedback on compile error
 * *probably* a JSON Schema implemented [in progress with 0.7]
-* better Latex resource installer with `bbquiz --init-local` and `bbquiz --init-user`
+* better Latex resource installer with quizml and `quizml --init-user`

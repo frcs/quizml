@@ -1,4 +1,4 @@
-# BBQuiz   <!-- {docsify-ignore} -->
+# QuizML   <!-- {docsify-ignore} -->
 
 > Tool for converting a list of questions in yaml/markdown to a BlackBoard test or
 > to a Latex exam source file
@@ -34,7 +34,7 @@ Then you can generate multiple render targets, including BlackBoard test, LaTeX,
 and an HTML preview. 
 
 ```shell-session
-$ bbquiz quiz1.yaml
+$ quizml quiz1.yaml
 
 ..  pdflatex compilation
 

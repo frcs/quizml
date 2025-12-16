@@ -13,7 +13,7 @@ from ..exceptions import (
 
 
 class LatexRunner:
-    def __init__(self, working_dir_prefix="bbquiz_latex_"):
+    def __init__(self, working_dir_prefix="quizml_latex_"):
         self._check_executables()
         self.temp_dir = Path(tempfile.mkdtemp(prefix=working_dir_prefix))
 

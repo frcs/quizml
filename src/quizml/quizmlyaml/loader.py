@@ -1,9 +1,9 @@
-"""BBYaml load file
+"""QuizMLYaml load file
 
-This module provides the function for loading BBYaml files as a
+This module provides the function for loading QuizMLYaml files as a
 list/dict structure.
 
-BBYaml files are a form of YAML. To avoid issues like the "Norway
+QuizMLYaml files are a form of YAML. To avoid issues like the "Norway
 problem" (where `country: No` is read as `country: False`), this loader
 ensures that all values are loaded as strings by default, unless the
 schema specifies a different type.
@@ -32,8 +32,8 @@ from ruamel.yaml.scalarstring import PlainScalarString
 from jsonschema import Draft7Validator, validators
 from jsonschema.exceptions import ValidationError
 
-from bbquiz.bbyaml.utils import filter_yaml
-from bbquiz.exceptions import BBYamlSyntaxError
+from quizml.quizmlyaml.utils import filter_yaml
+from quizml.exceptions import QuizMLYamlSyntaxError
 from ..cli.errorhandler import text_wrap, msg_context
 
 # --- Custom ruamel.yaml Constructor ---
@@ -99,23 +99,23 @@ DefaultFillingValidator = extend_with_default(
 
 
 # --- Main Loader Functions ---
-def load_yaml(bbyaml_txt, validate=True, filename="<YAML string>", schema_str=None):
+def load_quizmlyaml(quizmlyaml_txt, validate=True, filename="<YAML string>", schema_str=None):
     yaml = YAML()
     yaml.Constructor = StringConstructor
     try:
-        data = yaml.load(bbyaml_txt)
+        data = yaml.load(quizmlyaml_txt)
     except Exception as err:
         line = -1
         if hasattr(err, 'problem_mark'): line = err.problem_mark.line
-        raise BBYamlSyntaxError(f"YAML parsing error in {filename} near line {line}:\n{err}")
+        raise QuizMLYamlSyntaxError(f"YAML parsing error in {filename} near line {line}:\n{err}")
 
     if validate:
         if schema_str is None:
-            raise BBYamlSyntaxError("Schema must be provided for validation when validate=True.")
+            raise QuizMLYamlSyntaxError("Schema must be provided for validation when validate=True.")
         try:
             schema = json.loads(schema_str)
         except json.JSONDecodeError as e:
-            raise BBYamlSyntaxError(f"Invalid JSON in schema: {e}")
+            raise QuizMLYamlSyntaxError(f"Invalid JSON in schema: {e}")
 
         validator = DefaultFillingValidator(schema)
         errors = sorted(validator.iter_errors(data), key=lambda e: e.path)
@@ -128,12 +128,12 @@ def load_yaml(bbyaml_txt, validate=True, filename="<YAML string>", schema_str=No
                 line_num = item.lc.line + 1
             except (KeyError, IndexError, AttributeError):
                 line_num = "unknown"
-            lines = bbyaml_txt.splitlines()
+            lines = quizmlyaml_txt.splitlines()
             msg = f"Schema validation error in {filename} at '{path}' (line ~{line_num})\n"
             if line_num != "unknown":
                 msg += msg_context(lines, line_num) + "\n"
             msg += text_wrap(err.message)
-            raise BBYamlSyntaxError(msg)
+            raise QuizMLYamlSyntaxError(msg)
 
 
     return data
@@ -145,32 +145,32 @@ def _to_plain_python(data):
         return [_to_plain_python(v) for v in data]
     return data
 
-def load(bbyaml_path, validate=True, schema_path=None):
+def load(quizmlyaml_path, validate=True, schema_path=None):
     try:
-        bbyaml_txt = Path(bbyaml_path).read_text()
+        quizmlyaml_txt = Path(quizmlyaml_path).read_text()
     except FileNotFoundError:
-        raise BBYamlSyntaxError(f"Yaml file not found: {bbyaml_path}")
+        raise QuizMLYamlSyntaxError(f"Yaml file not found: {quizmlyaml_path}")
 
     schema_str = None
     if validate:
         if schema_path is None:
-            from bbquiz.cli.filelocator import locate
+            from quizml.cli.filelocator import locate
             schema_path = locate.path("schema.json")
         try:
             schema_str = Path(schema_path).read_text()
         except FileNotFoundError:
-            raise BBYamlSyntaxError(f"Schema file not found: {schema_path}")
+            raise QuizMLYamlSyntaxError(f"Schema file not found: {schema_path}")
         except TypeError:
-            raise BBYamlSyntaxError("Schema must be provided for validation when validate=True.")
+            raise QuizMLYamlSyntaxError("Schema must be provided for validation when validate=True.")
     
     # Extracting the header and questions
     
     yamldoc_pattern = re.compile(r"^---\s*$", re.MULTILINE)
-    yamldocs = yamldoc_pattern.split(bbyaml_txt)
+    yamldocs = yamldoc_pattern.split(quizmlyaml_txt)
     yamldocs = list(filter(None, yamldocs))
 
     if len(yamldocs) > 2:
-        raise BBYamlSyntaxError(
+        raise QuizMLYamlSyntaxError(
             ("YAML file cannot have more than 2 documents: "
              "one for the header and one for the questions."))
 
@@ -191,16 +191,16 @@ def load(bbyaml_path, validate=True, schema_path=None):
         # just a header, no questions
         header_doc, questions_doc = yamldocs[0], None
 
-    doc['header'] = load_yaml(
+    doc['header'] = load_quizmlyaml(
         header_doc,
         validate=False,
-        filename=bbyaml_path
+        filename=quizmlyaml_path
     )  if header_doc else {}
 
-    doc['questions'] = load_yaml(
+    doc['questions'] = load_quizmlyaml(
         questions_doc,
         validate,
-        filename=bbyaml_path,
+        filename=quizmlyaml_path,
         schema_str=schema_str
     ) if questions_doc else []
 
@@ -209,7 +209,7 @@ def load(bbyaml_path, validate=True, schema_path=None):
     doc = filter_yaml(doc, f)
 
     # passing the input quiz file's basename to header
-    basename, _ = os.path.splitext(bbyaml_path)
+    basename, _ = os.path.splitext(quizmlyaml_path)
     doc['header']['inputbasename'] = basename
 
     # BRUTE FORCE CONVERSION

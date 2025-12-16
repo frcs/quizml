@@ -1,4 +1,4 @@
-# BBQuiz
+# QuizML
 
 Tool for converting a list of questions in yaml/markdown to a BlackBoard test or
 to a Latex exam source file
@@ -33,7 +33,7 @@ Then you can generate the BlackBoard exam, LaTeX, and HTML preview using the
 following command in the terminal:
 
 ```
-bbquiz quiz.yaml
+quizml quiz.yaml
 ```
 
 and this is what the provided default HTML preview looks like:

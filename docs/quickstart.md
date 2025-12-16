@@ -16,13 +16,13 @@ You will need a LaTeX installation with `gs` and
 
 ## Configuration File and Templates
 
-Out-of-the-box, BBQuiz comes with a number of template targets:
+Out-of-the-box, QuizML comes with a number of template targets:
 
 * BlackBoard test
 * LaTeX exam 
 * HTML preview
 
-If you only care about the BlackBoard tests and/or the HTML preview, then BBQuiz
+If you only care about the BlackBoard tests and/or the HTML preview, then QuizML
 should just work fine as it is.
 
 If you want to use the LaTeX exam target, chances are that you'll want to adapt
@@ -38,18 +38,18 @@ to specify template targets and in the [LaTeX setup section](config_latex).
 To get you started,
 
 ```shell-session
-$ bbquiz --init-local
+$ quizml --init-local
 ```
-This will copy a `bbquiz.cfg` to the current directory and copy all templates to
-`bbquiz-templates/`. You can then copy the relevant files to the correct directory.
+This will copy a `quizml.cfg` to the current directory and copy all templates to
+`quizml-templates/`. You can then copy the relevant files to the correct directory.
 
 Alternatively you can make a user-level install with:
 
 ```shell-session
-$ bbquiz --init-user
+$ quizml --init-user
 ```
 
-In this case `bbquiz.cfg` and the rest of the files will be moved to XXX
+In this case `quizml.cfg` and the rest of the files will be moved to XXX
 
 
 

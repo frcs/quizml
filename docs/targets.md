@@ -20,7 +20,7 @@ BlackBoard csv quiz file can be defined as the following target:
 
 As for the config file directory, any resource file or template file is defined
 as a relative path, the template is searched in:
-1. the local directory from which BBQuiz is called 
+1. the local directory from which quizml is called 
 2. the default application config dir 
 3. the install package templates dir
 
@@ -39,7 +39,7 @@ to the basename of the quiz.
 
 E.g., in the example above,
 
-`bbquiz test-01.yaml` will produce a file called `test-01.txt`
+`quizml test-01.yaml` will produce a file called `test-01.txt`
 
  
 #### `descr`
@@ -48,7 +48,7 @@ Description for the target.
 
 #### `descr_cmd` 
 
-Suggestion for the command to use after the BBQuiz build.
+Suggestion for the command to use after the quizml build.
 
 In the example above, there is no post-build require, so we simply output the
 path of the generated rendered BlackBoard test.
@@ -71,14 +71,14 @@ We recommand using `html-svg` for BlackBoard.
 Path to latex preamble file used when generating the equations in the markdown
 to html conversion. 
 
-In the example above we use BBQuiz's default which is `html-latex-preamble.tex`.
+In the example above we use quizml's default which is `html-latex-preamble.tex`.
 
 #### `html_css` 
 
 Path to the CSS file used for inline styling the HTML render. E.g. it can be
 used to style code, tables, line separation, etc.
 
-In the example above we default to BBQuiz's default which is
+In the example above we default to quizml's default which is
 `html-inline-style.css`.
 
 !> Note that the new version of BlackBoard tests strip out any CSS information.

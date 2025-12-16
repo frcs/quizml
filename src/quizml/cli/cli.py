@@ -16,13 +16,13 @@ from rich import print
 
 from importlib.metadata import version
 
-import bbquiz.cli.compile
-import bbquiz.cli.cleanup
-import bbquiz.cli.diff
-import bbquiz.cli.shellcompletion
-import bbquiz.cli.init
+import quizml.cli.compile
+import quizml.cli.cleanup
+import quizml.cli.diff
+import quizml.cli.shellcompletion
+import quizml.cli.init
 
-from ..exceptions import BBQuizError
+from ..exceptions import QuizMLError
 
 
 def main():
@@ -62,7 +62,7 @@ def main():
         action="store_true")
     
     default_config_dir = appdirs.user_config_dir(
-        appname="bbquiz", appauthor='frcs')
+        appname="quizml", appauthor='frcs')
 
     parser.add_argument(
         "-t", "--target",
@@ -78,7 +78,7 @@ def main():
 
     parser.add_argument(
         '--init-local',
-        help="create a local directory 'bbquiz_conf' with all config files",
+        help="create a local directory 'quizml_conf' with all config files",
         action="store_true")
 
     parser.add_argument(
@@ -109,7 +109,7 @@ def main():
     
     parser.add_argument(
         "--package-templates-path",
-        help="path for bbquiz's package templates directory",
+        help="path for quizml's package templates directory",
         action="store_true")
     
     # parser.add_argument(
@@ -127,11 +127,11 @@ def main():
     parser.add_argument(
         "--fish",
         help=("helper for fish completion: "
-              "bbquiz --fish > ~/.config/fish/completions/bbquiz.fish"),
+              "quizml --fish > ~/.config/fish/completions/quizml.fish"),
         action="store_true")    
     
     parser.add_argument(
-        '-v', '--version', action='version', version=version("bbquiz"))
+        '-v', '--version', action='version', version=version("quizml"))
     
     parser.add_argument(
         '--debug',
@@ -165,7 +165,7 @@ def main():
         )
 
         if args.target_list:
-            bbquiz.cli.compile.print_target_list(args)
+            quizml.cli.compile.print_target_list(args)
             return
 
         if args.package_templates_path:
@@ -175,38 +175,38 @@ def main():
             return
         
         if args.zsh:
-            print(bbquiz.cli.shellcompletion.zsh(parser))
+            print(quizml.cli.shellcompletion.zsh(parser))
             return
 
         if args.fish:
-            print(bbquiz.cli.shellcompletion.fish(parser))
+            print(quizml.cli.shellcompletion.fish(parser))
             return
 
         if args.cleanup:
-            bbquiz.cli.cleanup.cleanup_yaml_files()
+            quizml.cli.cleanup.cleanup_yaml_files()
             return
 
         if args.init_user:
-            bbquiz.cli.init.init_user()
+            quizml.cli.init.init_user()
             return
 
         if args.init_local:
-            bbquiz.cli.init.init_local()
+            quizml.cli.init.init_local()
             return
 
         if args.zsh:
-            print(bbquiz.cli.shellcompletion.zsh(parser))
+            print(quizml.cli.shellcompletion.zsh(parser))
             return
         
         # if args.bash:
-        #     print(bbquiz.cli.shellcompletion.bash(parser))
+        #     print(quizml.cli.shellcompletion.bash(parser))
         #     return
         
         if not args.yaml_filename:
             parser.error("a yaml file is required")
 
         if args.diff:
-            bbquiz.cli.diff.diff(args)
+            quizml.cli.diff.diff(args)
             return
 
         
@@ -214,11 +214,11 @@ def main():
             parser.error("only one yaml file is required")
         
         if args.watch:
-            bbquiz.cli.compile.compile(args)
-            bbquiz.cli.compile.compile_on_change(args)
+            quizml.cli.compile.compile(args)
+            quizml.cli.compile.compile_on_change(args)
         else:
-            bbquiz.cli.compile.compile(args)
+            quizml.cli.compile.compile(args)
 
-    except BBQuizError as e:
+    except QuizMLError as e:
         print(f"[bold red]Error:[/bold red] {e}")
         sys.exit(1)

@@ -1,6 +1,6 @@
 ## Test File Syntax <!-- {docsify-ignore} -->
 
-BBQuiz takes in a YAML file. [YAML](https://en.wikipedia.org/wiki/YAML) is a
+QuizML takes in a YAML file. [YAML](https://en.wikipedia.org/wiki/YAML) is a
 generic human-readable data-serialization language, typically used for
 configuration files, and it is used here to define the questions' statements,
 marks, type, answers, etc.
@@ -97,7 +97,7 @@ _latexpreamble: |
 ```
 
 
-?> BBQuiz uses a particular flavour of YAML called
+?> QuizML uses a particular flavour of YAML called
 [StrictYAML](https://github.com/crdoconnor/strictyaml). This is a type-safe YAML
 parser that parses and validates a restricted subset of the YAML
 specification. StrictYAML avoids some of the YAML oddities such as the [Norway

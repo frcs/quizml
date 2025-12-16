@@ -7,7 +7,7 @@ from colorama import Fore, Back, Style
 import textwrap
 import pathlib
 
-from bbquiz.bbyaml.stats import get_total_marks
+from quizml.quizmlyaml.stats import get_total_marks
 from ..exceptions import Jinja2SyntaxError
 from ..cli.errorhandler import text_wrap, msg_context
 

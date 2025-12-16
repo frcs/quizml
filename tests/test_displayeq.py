@@ -2,8 +2,8 @@ import sys
 from pathlib import Path
 import os
 
-from bbquiz.markdown.markdown import BBYAMLMarkdownTranscoder
-from bbquiz.bbyaml import loader
+from quizml.markdown.markdown import QuizMLYAMLMarkdownTranscoder
+from quizml.quizmlyaml import loader
 
 import re
 import mistletoe
@@ -20,12 +20,12 @@ from mistletoe.span_token import SpanToken
 from mistletoe.span_token import remove_token
 from mistletoe.block_token import BlockCode
 
-from bbquiz.markdown.utils import md_combine_list
-from bbquiz.markdown.latex import get_latex_dict
-from bbquiz.markdown.html import get_html_dict
-from bbquiz.bbyaml.utils import get_md_list_from_yaml
+from quizml.markdown.utils import md_combine_list
+from quizml.markdown.latex import get_latex_dict
+from quizml.markdown.html import get_html_dict
+from quizml.quizmlyaml.utils import get_md_list_from_yaml
 
-from bbquiz.markdown.extensions import MathInline, MathDisplay, ImageWithWidth
+from quizml.markdown.extensions import MathInline, MathDisplay, ImageWithWidth
 
 def print_doc(doc, lead=''):
     print(lead  + str(doc))
@@ -92,11 +92,11 @@ def test_displayeq(capsys):
     
     yaml_data = loader.load(yaml_file, validate=False) # schema=False because it's a test file
 
-    bbyamltranscoder = BBYAMLMarkdownTranscoder(yaml_data)
+    quizmlyamltranscoder = QuizMLYAMLMarkdownTranscoder(yaml_data)
 
     target = {'fmt': 'html'} # Dummy target for now, just to test transcode_target
 
-    yaml_transcoded = bbyamltranscoder.transcode_target(target)
+    yaml_transcoded = quizmlyamltranscoder.transcode_target(target)
     
     # with capsys.disabled():
     #     print_doc(doc_combined)

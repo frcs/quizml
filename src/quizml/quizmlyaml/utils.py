@@ -1,4 +1,4 @@
-"""a few utility functions to deal with BBYaml objects.
+"""a few utility functions to deal with QuizMLYaml objects.
 
 
 
@@ -6,12 +6,12 @@
 
 def filter_yaml(yaml_data, f):
     """
-    apply a function to all values in BByaml obj
+    apply a function to all values in QuizMLYaml obj
 
     Parameters
     ----------
     yaml_data : list
-        yaml file content, as decoded by bbyaml.load
+        yaml file content, as decoded by quizmlyaml.load
     """
 
     if isinstance(yaml_data, list):
@@ -32,7 +32,7 @@ def get_md_list_from_yaml(yaml_data, md_list=[]):
     Parameters
     ----------
     yaml_data : yaml datastruct, eg. list of dicts
-        yaml file content, as decoded by bbyaml.load
+        yaml file content, as decoded by quizmlyaml.load
     md_list : list
         output list of markdown entries
     """
@@ -60,7 +60,7 @@ def transcode_md_in_yaml(yaml_data, md_dict):
     Parameters
     ----------
     yaml_data : list
-        yaml file content, as decoded by bbyaml.load
+        yaml file content, as decoded by quizmlyaml.load
     md_dict : dictionary 
         markdown entries with their transcriptions
     """

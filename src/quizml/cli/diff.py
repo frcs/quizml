@@ -7,10 +7,10 @@ from rich.table import Table
 from rich.table import box
 from rich.console import Console
 
-from bbquiz.bbyaml.loader import load
-from bbquiz.bbyaml.stats import get_questions
-from bbquiz.bbyaml.stats import get_stats
-from bbquiz.exceptions import BBYamlSyntaxError
+from quizml.quizmlyaml.loader import load
+from quizml.quizmlyaml.stats import get_questions
+from quizml.quizmlyaml.stats import get_stats
+from quizml.exceptions import QuizMLYamlSyntaxError
 
 # from rich_argparse import *
 
@@ -45,9 +45,9 @@ def diff(args):
             # we need to turn off schema for speed this is OK because
             # everything will be considered as Strings anyway
             filedata[f] = load(f, schema=False) 
-        except BBYamlSyntaxError as err:
+        except QuizMLYamlSyntaxError as err:
             print(Panel(str(err),
-                        title=f"BByaml Syntax Error in file {f}",
+                        title=f"QuizMLYaml Syntax Error in file {f}",
                         border_style="red"))
             return
 

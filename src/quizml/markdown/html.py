@@ -411,7 +411,7 @@ def escape_LaTeX(str_eq):
     
     
 
-class BBYamlHTMLRenderer(HTMLRenderer):
+class QuizMLYamlHTMLRenderer(HTMLRenderer):
     """customised mistletoe renderer for HTML
 
     implements render for custom spans MathInline, MathDisplay,
@@ -507,7 +507,7 @@ def get_html(doc, opts):
         eq_dict = build_eq_dict_PNG(eq_list, opts)
         
 
-    with BBYamlHTMLRenderer(eq_dict) as renderer:
+    with QuizMLYamlHTMLRenderer(eq_dict) as renderer:
         html_result = renderer.render(doc)
 
     return html_result

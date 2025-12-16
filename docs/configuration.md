@@ -1,7 +1,7 @@
 # Configuration File and Target Templates
 
-After reading the BBYaml file and converting the markdown entries into LaTeX or
-HTML, BBQuiz uses jinja2 templates to render the various targets (BlackBoard
+After reading the QuizMLYaml file and converting the markdown entries into LaTeX or
+HTML, QuizML uses jinja2 templates to render the various targets (BlackBoard
 compatible quiz, HTML preview or LaTeX).
 
 
@@ -26,7 +26,7 @@ BlackBoard csv quiz file can be defined as the following target:
 
 As for the config file directory, any resource file or template file is defined
 as a relative path, the template is searched in:
-1. the local directory from which BBQuiz is called 
+1. the local directory from which QuizML is called 
 2. the default application config dir 
 3. the install package templates dir
 
@@ -37,7 +37,7 @@ Templates are rendered with Jinja2. The [Jinja2 Template Designer
 Documentation](https://jinja.palletsprojects.com/en/3.1.x/templates/) provides
 complete information about how to write jinja2 templates.
 
-The default templates used in BBQuiz can be found in the `templates`
+The default templates used in QuizML can be found in the `templates`
 directory. (Again, use `--verbose` to know which template is actually being
 used)
 
@@ -65,18 +65,18 @@ In my case it says that my local TEXMF tree is located at
 e.g., 
 
 ```bash
-mkdir -p  ~/Library/texmf/tex/latex/bbquiz-templates/
+mkdir -p  ~/Library/texmf/tex/latex/quizml-templates/
 ```
 
 I can then copy the required templates to that location:
 
 ```bash
-unzip bbquiz-latex-templates.zip ~/Library/texmf/tex/latex/bbquiz-templates/
+unzip quizml-latex-templates.zip ~/Library/texmf/tex/latex/quizml-templates/
 ```
 
 and then update LaTeX:
 ```bash
-texhash ~/Library/texmf/tex/latex/bbquiz-templates/
+texhash ~/Library/texmf/tex/latex/quizml-templates/
 ```
 
 At that point you should be able to compile your LaTeX targets from anywhere.

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "BBYaml Quiz Schema",
-  "description": "Schema for bbquiz YAML files.",
+  "title": "QuizMLYaml Quiz Schema",
+  "description": "Schema for quizml YAML files.",
   "type": "array",
   "items": {
     "type": "object",

@@ -12,7 +12,7 @@ def fish(parser):
             else:
                 s = b[1:]
 
-        line = "complete -c bbquiz"
+        line = "complete -c quizml"
         if s:
             line = line + " -s " + s
         if l:
@@ -21,13 +21,13 @@ def fish(parser):
         line = f"{line:<50} -d \"{a.help}\""    
         txt = txt + line + "\n" 
 
-    txt = txt + 'complete -c bbquiz -k -x -a "(__fish_complete_suffix .yaml .yml)"\n'
+    txt = txt + 'complete -c quizml -k -x -a "(__fish_complete_suffix .yaml .yml)"\n'
     return txt
 
 
 
 def zsh(parser):
-    txt = "function _bbquiz(){\n  _arguments\\\n"
+    txt = "function _quizml(){\n  _arguments\\\n"
     for a in parser._action_groups[1]._group_actions:
         help = a.help.replace("'", r"'\''")
         for b in a.option_strings:            

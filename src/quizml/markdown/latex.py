@@ -9,7 +9,7 @@ from .extensions import MathInline, MathDisplay, ImageWithWidth
 from ..exceptions import MarkdownError
 
 
-class BBYamlLaTeXRenderer(LaTeXRenderer):
+class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
     """
     customised mistletoe renderer for LaTeX
     implements render for custom spans MathInline, MathDisplay, ImageWithWidth
@@ -63,7 +63,7 @@ def get_latex(doc):
     returns the rendered LaTeX source for mistletoe object
     """
    
-    with BBYamlLaTeXRenderer() as renderer:
+    with QuizMLYamlLaTeXRenderer() as renderer:
         latex_content = renderer.render(doc)
        
     # svg is a bit of a problem. replacing .svg extensions with .pdf   

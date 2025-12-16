@@ -1,6 +1,6 @@
 ## Question Types Syntax <!-- {docsify-ignore} -->
 
-BBQuiz currently supports 5 types of questions.
+QuizML currently supports 5 types of questions.
 
 ### Essay
 

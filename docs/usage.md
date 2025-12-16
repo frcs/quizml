@@ -1,27 +1,27 @@
 # Usage
 
 
-This document explains how to use the `bbquiz` command-line tool, which converts questions in a YAML/markdown format into a Blackboard test or a LaTeX script.
+This document explains how to use the `quizml` command-line tool, which converts questions in a YAML/markdown format into a Blackboard test or a LaTeX script.
 
 
 ### TL;DR
 
 * Compile all targets
 ```bash
-bbquiz quiz.yaml
+quizml quiz.yaml
 ```
 
 * Re-compile all targets every time `quiz.yaml` changes:
 
 ```bash
-bbquiz -w quiz.yaml
+quizml -w quiz.yaml
 ```
 
 * Compile all targets and also run post-build commands, eg. run LaTeX on the
   rendered `quiz.tex` to produce `quiz.pdf`:
 
 ```bash
-bbquiz --build quiz.yaml
+quizml --build quiz.yaml
 ```
 
 
@@ -29,7 +29,7 @@ bbquiz --build quiz.yaml
 
 
 ```bash
-Usage: bbquiz [-h] [-w] [--config CONFIGFILE] [--build] [--diff] [--zsh]
+Usage: quizml [-h] [-w] [--config CONFIGFILE] [--build] [--diff] [--zsh]
 [--fish] [-v] [--debug] [--verbose] [quiz.yaml] [otherfiles [otherfiles ...]]
 
 ```
@@ -58,10 +58,10 @@ Usage: bbquiz [-h] [-w] [--config CONFIGFILE] [--build] [--diff] [--zsh]
 
 ### Examples
 
-* Running BBQuiz on the simple example:
+* Running QuizML on the simple example:
 
 ```shell-session
-$ bbquiz quiz1.yaml
+$ quizml quiz1.yaml
 
 ..  pdflatex compilation
 
@@ -101,7 +101,7 @@ $ latexmk -xelatex -pvc quiz1.tex
 You can automate these additional compilations by setting the `--build` flag:
 
 ```shell-session
-$ bbquiz --build quiz1.yaml
+$ quizml --build quiz1.yaml
 ```
 
 * Continuously compiling on file change:
@@ -110,6 +110,6 @@ When editing a test, you can continuously watch for any file change and
 recompile the target by setting the flag `-w`:
 
 ```shell-session
-$ bbquiz -w quiz1.yaml
+$ quizml -w quiz1.yaml
 ```
 

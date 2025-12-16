@@ -14,7 +14,7 @@ from rich.table import box
 from rich.console import Console
 from rich.panel import Panel
 
-from bbquiz.cli.errorhandler import print_error
+from quizml.cli.errorhandler import print_error
 
 from time import sleep
 from watchdog.observers import Observer
@@ -22,20 +22,20 @@ from watchdog.events import FileSystemEventHandler
 
 from string import Template
 
-from bbquiz.bbyaml.loader import load
-from bbquiz.bbyaml.stats import get_stats
-from bbquiz.bbyaml.loader import BBYamlSyntaxError
-import bbquiz.markdown.markdown as md
-from bbquiz.render import to_jinja
-from bbquiz.exceptions import (
-    BBQuizError,
-    BBQuizConfigError,
+from quizml.quizmlyaml.loader import load
+from quizml.quizmlyaml.stats import get_stats
+from quizml.quizmlyaml.loader import QuizMLYamlSyntaxError
+import quizml.markdown.markdown as md
+from quizml.render import to_jinja
+from quizml.exceptions import (
+    QuizMLError,
+    QuizMLConfigError,
     MarkdownError,
     LatexEqError,
     Jinja2SyntaxError,
 )
 
-import bbquiz.cli.filelocator as filelocator
+import quizml.cli.filelocator as filelocator
 
 import pathlib
 
@@ -50,7 +50,10 @@ def get_config(args):
     if args.config:
         config_file = os.path.realpath(os.path.expanduser(args.config))
     else:
-        config_file = filelocator.locate.path('bbquiz.cfg')
+        try:
+            config_file = filelocator.locate.path('quizml.cfg')
+        except FileNotFoundError:
+            raise QuizMLConfigError("Could not find config file quizml.cfg")
    
     logging.info(f"using config file:{config_file}")
     
@@ -59,7 +62,7 @@ def get_config(args):
             config = yaml.load(f, Loader=yaml.FullLoader)
     except yaml.YAMLError as err:
         s = f"Something went wrong while parsing the config file at:\n {config_file}\n\n {str(err)}"
-        raise BBQuizConfigError(s)
+        raise QuizMLConfigError(s)
 
     config['yaml_filename'] = args.yaml_filename
     
@@ -69,8 +72,8 @@ def get_config(args):
 def print_target_list(args):
     try:
         config = get_config(args)
-    except BBQuizConfigError as err:
-        print_error(str(err), title="BBQuiz Config Error")
+    except QuizMLConfigError as err:
+        print_error(str(err), title="QuizML Config Error")
         return
 
     table = Table(box=box.SIMPLE,
@@ -163,7 +166,7 @@ def get_target_list(args, config, yaml_data):
         # add target to list
         target_list.append(target)
 
-        # add preamble key if defined in the bbyaml header
+        # add preamble key if defined in the quizmlyaml header
         if 'fmt' in target:
             target['user_pre'] = yaml_data['header'].get('_latexpreamble', '')
 
@@ -280,10 +283,10 @@ def compile_cmd_target(target):
     
 
     
-def compile_target(target, bbyamltranscoder):
+def compile_target(target, quizmlyamltranscoder):
 
     try:
-        yaml_transcoded = bbyamltranscoder.transcode_target(target)
+        yaml_transcoded = quizmlyamltranscoder.transcode_target(target)
         rendered_doc = to_jinja.render(yaml_transcoded,
                                        target['template'])
         pathlib.Path(target['out']).write_text(rendered_doc)
@@ -302,8 +305,8 @@ def compile_target(target, bbyamltranscoder):
         print_error(f"\n did not generate target because of template errors ! \n {err}",
                           title='Jinja Template Error')
         success = False
-    except BBQuizError as err:
-        print_error(str(err), title='BBQuiz Error')
+    except QuizMLError as err:
+        print_error(str(err), title='QuizML Error')
         success = False
     except KeyboardInterrupt:
         print("[bold red] KeyboardInterrupt [/bold red]")
@@ -313,15 +316,15 @@ def compile_target(target, bbyamltranscoder):
 
 
 def compile(args):
-    """compiles the targets of a bbyaml file
+    """compiles the targets of a quizmlyaml file
 
     """
 
     # read config file
     try:
         config = get_config(args)
-    except BBQuizConfigError as err:
-        print_error(str(err), title="BBQuiz Config Error")
+    except QuizMLConfigError as err:
+        print_error(str(err), title="QuizML Config Error")
         return
 
     # load Schema file
@@ -333,17 +336,17 @@ def compile(args):
                           title="Schema Error")
         return
     
-    # load BBYaml file
+    # load QuizMLYaml file
     try:
         yaml_data = load(args.yaml_filename, validate=True, schema_path=schema_path)
-    except (BBYamlSyntaxError, FileNotFoundError) as err:
-        print_error(str(err), title="BByaml Syntax Error")
+    except (QuizMLYamlSyntaxError, FileNotFoundError) as err:
+        print_error(str(err), title="QuizMLYaml Syntax Error")
         return
 
     # load all markdown entries into a list
     # and build dictionaries of their HTML and LaTeX translations
     try:
-        bbyamltranscoder = md.BBYAMLMarkdownTranscoder(yaml_data)
+        quizmlyamltranscoder = md.QuizMLYAMLMarkdownTranscoder(yaml_data)
     except (LatexEqError, MarkdownError, FileNotFoundError) as err:
         print_error(str(err), title="Error")
         return
@@ -386,7 +389,7 @@ def compile(args):
 
         # a template task that needs to be rendered
         if ("template" in target):
-            success = compile_target(target, bbyamltranscoder)
+            success = compile_target(target, quizmlyamltranscoder)
             
         success_list[target['name']] = success
         
@@ -411,7 +414,7 @@ def compile(args):
         
 
 def compile_on_change(args):
-    """compiles the targets if input bbyaml file has changed on disk
+    """compiles the targets if input quizmlyaml file has changed on disk
 
     """
 

@@ -44,7 +44,7 @@ void main(int argc, char* argv[])
 
 ### Markdown Extensions
 
-BBQuiz implements the following Markdown extensions for integrating LaTeX
+QuizML implements the following Markdown extensions for integrating LaTeX
 equations and images.
 
 #### Images

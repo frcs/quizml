@@ -1,21 +1,21 @@
-"""bbquiz exceptions.
+"""quizml exceptions.
 
-This module contains the custom exception classes used throughout the bbquiz project.
+This module contains the custom exception classes used throughout the quizml project.
 """
 
-class BBQuizError(Exception):
-    """Base class for all bbquiz exceptions."""
+class QuizMLError(Exception):
+    """Base class for all quizml exceptions."""
     pass
 
-class BBYamlSyntaxError(BBQuizError):
-    """Raised for syntax errors in bbyaml files."""
+class QuizMLYamlSyntaxError(QuizMLError):
+    """Raised for syntax errors in quizmlyaml files."""
     pass
 
-class BBQuizConfigError(BBQuizError):
+class QuizMLConfigError(QuizMLError):
     """Raised for configuration errors."""
     pass
 
-class MarkdownError(BBQuizError):
+class MarkdownError(QuizMLError):
     """Raised for errors during Markdown processing."""
     pass
 
@@ -25,7 +25,7 @@ class LatexEqError(MarkdownError):
     pass
 
 
-class LatexToolError(BBQuizError):
+class LatexToolError(QuizMLError):
     """Base class for errors related to external LaTeX tools."""
     pass
 
@@ -63,6 +63,6 @@ class MarkdownImageError(MarkdownError):
     """Raised for errors related to image processing."""
     pass
 
-class Jinja2SyntaxError(BBQuizError):
+class Jinja2SyntaxError(QuizMLError):
     """Raised for errors during Jinja2 template rendering."""
     pass

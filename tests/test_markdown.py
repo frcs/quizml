@@ -6,12 +6,12 @@ import strictyaml
 from strictyaml import Any, Map, Float, Seq, Bool, Int, Str, Optional, MapCombined
 from strictyaml import YAMLError
 
-from bbquiz.bbyaml.loader import load
+from quizml.quizmlyaml.loader import load
 
-from bbquiz.markdown.markdown import BBYAMLMarkdownTranscoder
+from quizml.markdown.markdown import QuizMLYAMLMarkdownTranscoder
 
 
-def test_bbyaml_syntax(capsys):
+def test_quizmlyaml_syntax(capsys):
     
     pkg_dirname = os.path.dirname(__file__)
     yaml_file = os.path.join(pkg_dirname, "fixtures", "test-markdown.yaml")
@@ -24,9 +24,9 @@ def test_bbyaml_syntax(capsys):
     # with capsys.disabled():
     #     print(yamldoc)
         
-    bbyamltranscoder = BBYAMLMarkdownTranscoder(yamldoc)
-    html_md_dict = bbyamltranscoder.get_dict(opts={'fmt': 'html'})
-    latex_md_dict = bbyamltranscoder.get_dict(opts={'fmt': 'latex'})
+    quizmlyamltranscoder = QuizMLYAMLMarkdownTranscoder(yamldoc)
+    html_md_dict = quizmlyamltranscoder.get_dict(opts={'fmt': 'html'})
+    latex_md_dict = quizmlyamltranscoder.get_dict(opts={'fmt': 'latex'})
     
     # md_list = get_md_list_from_yaml(yamldoc)
     # with capsys.disabled():

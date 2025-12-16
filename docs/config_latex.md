@@ -25,18 +25,18 @@ In my case it says that my local TEXMF tree is located at
 e.g., 
 
 ```shell-session
-$ mkdir -p  ~/Library/texmf/tex/latex/bbquiz-templates/
+$ mkdir -p  ~/Library/texmf/tex/latex/quizml-templates/
 ```
 
 I can then copy the required templates to that location:
 
 ```shell-session
-$ cp -r XXXX ~/Library/texmf/tex/latex/bbquiz-templates/
+$ cp -r XXXX ~/Library/texmf/tex/latex/quizml-templates/
 ```
 
 and then update LaTeX:
 ```shell-session
-$ texhash ~/Library/texmf/tex/latex/bbquiz-templates/
+$ texhash ~/Library/texmf/tex/latex/quizml-templates/
 ```
 
 At that point you should be able to compile your LaTeX targets from anywhere.

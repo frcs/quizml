@@ -8,37 +8,37 @@ import mistletoe as mt
 from .utils import md_combine_list
 from .latex import get_latex_dict
 from .html import get_html_dict
-from bbquiz.bbyaml.utils import get_md_list_from_yaml
+from quizml.quizmlyaml.utils import get_md_list_from_yaml
 
-import bbquiz.markdown.extensions as mte
+import quizml.markdown.extensions as mte
 
-from bbquiz.bbyaml.utils import transcode_md_in_yaml
+from quizml.quizmlyaml.utils import transcode_md_in_yaml
 
 
 """
- BBYAMLMarkdownTranscoder 
+ QuizMLYAMLMarkdownTranscoder 
 
- This modules defines the BBYAMLMarkdownTranscoder class, that can be
+ This modules defines the QuizMLYAMLMarkdownTranscoder class, that can be
  used to render markdown entries in a YAML struct into HTML or LaTeX
  targets.
 
  Example:
 
-    import bbquiz.markdown as md
-    import bbquiz.bbyaml as bbyaml
+    import quizml.markdown as md
+    import quizml.quizmlyaml as quizmlyaml
 
-    yaml_data = bbyaml.loader.load("test.yaml", schema=True)
+    yaml_data = quizmlyaml.loader.load("test.yaml", schema=True)
     
-    bbyamltranscoder = md.BBYAMLMarkdownTranscoder(yaml_data)
+    quizmlyamltranscoder = md.QuizMLYAMLMarkdownTranscoder(yaml_data)
 
     target = {'fmt': 'html',
               'html_css': user_html_css,
               'html_pre': user_html_pre}
-    yaml_transcoded = bbyamltranscoder.transcode_target(target)
+    yaml_transcoded = quizmlyamltranscoder.transcode_target(target)
 
 """
 
-class BBYAMLMarkdownTranscoder:
+class QuizMLYAMLMarkdownTranscoder:
         
     def __init__(self, yaml_data):
         self.yaml_data = yaml_data

@@ -1,5 +1,5 @@
 
-from bbquiz.bbyaml.utils import filter_yaml
+from quizml.quizmlyaml.utils import filter_yaml
 
 def test_filter_yaml():
     

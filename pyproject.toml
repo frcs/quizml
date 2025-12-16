@@ -4,7 +4,7 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "bbquiz"
+name = "quizml"
 version = "0.6.9"
 dependencies = [
   "pillow",
@@ -33,10 +33,10 @@ license = {text = "GPLv3"}
 keywords = ["BlackBoard", "exam", "test", "quiz", "mcq", "Latex"]
 
 [project.urls]
-Repository = "https://github.com/frcs/bbquiz.git"
-Homepage = "https://github.com/frcs/bbquiz"
+Repository = "https://github.com/frcs/quizml.git"
+Homepage = "https://github.com/frcs/quizml"
 
 [project.scripts]
-bbquiz="bbquiz.cli.cli:main"
+quizml="quizml.cli.cli:main"
 
 
