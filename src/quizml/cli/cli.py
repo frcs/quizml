@@ -78,7 +78,7 @@ def main():
 
     parser.add_argument(
         '--init-local',
-        help="create a local directory 'quizml_conf' with all config files",
+        help="create a local directory 'quizml-templates' with all config files",
         action="store_true")
 
     parser.add_argument(
