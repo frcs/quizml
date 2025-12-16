@@ -1,9 +1,10 @@
 # testing basic syntax of all question types
    
 - type: essay
-  question: another matching question
-      
-  answer:  some very long answer
+  question: |
+    answer this question     
+  answer: |
+    some very long answer
 
 - type: ma
   marks: 2.5
@@ -13,7 +14,6 @@
     - o: B
     - x: C
     - o: D
-
 
 - type: mc
   marks: 2.5

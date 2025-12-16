@@ -11,7 +11,7 @@ def test_bbyaml_syntax():
     
     yamldata = [{"type": "essay",
                      "marks": 4.0,
-                     "question": "another matching question",
+                     "question": "answer this question",
                      "answer": "some very long answer",
                      },
                     {"type": "ma",

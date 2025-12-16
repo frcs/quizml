@@ -8,7 +8,7 @@
     "properties": {
       "type": {
         "type": "string",
-        "description": "The type of the question or section."
+        "description": "The type of the question or part."
       }
     },
     "required": ["type"],
@@ -126,7 +126,7 @@
         }
       },
       {
-        "if": { "properties": { "type": { "const": "section" } } },
+        "if": { "properties": { "type": { "const": "part" } } },
         "then": {
           "properties": {
             "type": { "type": "string" },
@@ -134,12 +134,6 @@
             "marks": { "type": ["number", "string"] },
             "question": { "type": "string" }
           }
-        }
-      },
-      {
-        "if": { "properties": { "type": { "const": "header" } } },
-        "then": {
-          "type": "object"
         }
       }
     ]

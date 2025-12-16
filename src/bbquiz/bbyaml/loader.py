@@ -151,10 +151,17 @@ def load(bbyaml_path, validate=True, schema_path=None):
     except FileNotFoundError:
         raise BBYamlSyntaxError(f"Yaml file not found: {bbyaml_path}")
 
-    try:
-        schema_str = Path(schema_path).read_text()
-    except FileNotFoundError:
-        raise BBYamlSyntaxError(f"Schema file not found: {schema_path}")
+    schema_str = None
+    if validate:
+        if schema_path is None:
+            from bbquiz.cli.filelocator import locate
+            schema_path = locate.path("schema.json")
+        try:
+            schema_str = Path(schema_path).read_text()
+        except FileNotFoundError:
+            raise BBYamlSyntaxError(f"Schema file not found: {schema_path}")
+        except TypeError:
+            raise BBYamlSyntaxError("Schema must be provided for validation when validate=True.")
     
     # Extracting the header and questions
     
