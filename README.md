@@ -55,7 +55,7 @@ This is a command line application. Assuming that you have python and pip
 installed, you can simply install it with:
 
 ```bash
-pip install .
+pip install quizml
 ```
 
 You will also need a LaTeX installation with `gs` and `pdflatex`.
