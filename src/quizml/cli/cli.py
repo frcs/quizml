@@ -75,7 +75,6 @@ def main():
         help="list all targets in config file",
         action="store_true")
 
-
     parser.add_argument(
         '--init-local',
         help="create a local directory 'quizml-templates' with all config files",
@@ -105,31 +104,18 @@ def main():
         "-C", "--cleanup",
         help="deletes build artefacts from all yaml files in dir",
         action="store_true")
-
     
     parser.add_argument(
         "--package-templates-path",
         help="path for quizml's package templates directory",
         action="store_true")
     
-    # parser.add_argument(
-    #     "--bash",
-    #     help="A helper command used for exporting the "
-    #     "command completion code in bash",
-    #     action="store_true")
-    
     parser.add_argument(
-        "--zsh",
-        help="A helper command used for exporting the "
-        "command completion code in zsh",
-        action="store_true")
+        "--shell-completion",
+        choices=['bash', 'zsh', 'fish'],
+        help="print shell completion script for the specified shell"
+    )
 
-    parser.add_argument(
-        "--fish",
-        help=("helper for fish completion: "
-              "quizml --fish > ~/.config/fish/completions/quizml.fish"),
-        action="store_true")    
-    
     parser.add_argument(
         '-v', '--version', action='version', version=version("quizml"))
     
@@ -152,7 +138,6 @@ def main():
         '--quiet',
         help="turn off info statements",
         action="store_true")
-
     
     args = parser.parse_args()
 
@@ -174,12 +159,9 @@ def main():
             print(f'{templates_path}')
             return
         
-        if args.zsh:
-            print(quizml.cli.shellcompletion.zsh(parser))
-            return
-
-        if args.fish:
-            print(quizml.cli.shellcompletion.fish(parser))
+        if args.shell_completion:
+            completion_func = getattr(quizml.cli.shellcompletion, args.shell_completion)
+            sys.stdout.write(completion_func(parser) + '\n')
             return
 
         if args.cleanup:
@@ -193,14 +175,6 @@ def main():
         if args.init_local:
             quizml.cli.init.init_local()
             return
-
-        if args.zsh:
-            print(quizml.cli.shellcompletion.zsh(parser))
-            return
-        
-        # if args.bash:
-        #     print(quizml.cli.shellcompletion.bash(parser))
-        #     return
         
         if not args.yaml_filename:
             parser.error("a yaml file is required")
@@ -208,7 +182,6 @@ def main():
         if args.diff:
             quizml.cli.diff.diff(args)
             return
-
         
         if args.otherfiles:
             parser.error("only one yaml file is required")
