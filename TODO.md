@@ -1,58 +1,50 @@
-# General Remarks
+# Philosophy
 
-The main idea is to have a core mechanism as tight as possible and let users
-augment the system with their own templates and user-defined YAML structure.
+The core objective is to keep the central mechanism as lean as possible, allowing users to extend the system through custom templates and user-defined YAML structures.
 
-# CLI/Install/UX
+# CLI / Install / UX
 
-* propose shell completion helper functions for bash
-* Latex install. I should really have a handy function to add Latex path at install
-* Documentation. Python command to serve could be exposed? ... and at least have
-  on github.io
+* Implement shell completion helper functions for Bash.
+* Improve the LaTeX installation process; consider a more robust method for adding the LaTeX path during setup.
 
 # Backend
 
-* Check ALL exceptions handling
-* Check ctrl-c interrupt logic
-* Schema seems to be quite slow
-* move from `pdflatex` to `dvipdfmx`, this could save 1 `latex` call
-* triple check MATHML, SVG and PNG backends...
+* Perform a comprehensive audit of **exception handling**.
+* Review and refine **Ctrl+C (SIGINT) interrupt logic**.
+* Further validate the **Schema**.
+* Consider switching from `pdflatex` to `dvipdfmx` to eliminate one redundant `latex` call.
+* Re-evaluate **MathML, SVG, and PNG** backends.
 
 # QuizMLYaml
 
-* Move away from not allowing unknown keys in Schema... [done]
-* decide over the Figure and side-by-side with choices. 
-    1. First option is to have a new key called `figure` that contains the code for
-       the figure. Then we could also have another key, eg. `figure-split: 80%`
-       that says how much of the width the figure takes.
-		   * Pro: it is simple to implement
-		   * Con: it breaks the `question` content accross two tags. Hence I'll
-             need to re-implement things like `--diff`. 
-    2. Second option is to have a new Markup Block keyword, eg. `:::figure` that
-       signals that this is the Figure, or to have an automatic detection of the
-       last figure in question. The problem then is I would need to parse the
-       markup and then to expose this in a simple data structure for the
-       templates. 
-		   * Pro: it preserves the `question` tag. This means that things like
-             `--diff`, etc. still make sense.
-		   * Con: it is magic. might be prone to bugs. Also, we could consider
-             that a `figure` key is semantic in a way. 
-* Add a `shortname` or equiv key to summarise question as a one-liner.
+* **Finalise implementation for Figures and side-by-side choices:**
+1. **Option 1: Dedicated `figure` key.** Include a `figure` key for the code and a `figure-split` key (e.g., `80%`) to define the width ratio.
+* **Pro:** Simple to implement.
+* **Con:** Splits question content across multiple tags, which would require refactoring features like `--diff`.
+
+
+2. **Option 2: Markup Block keyword.** Use a custom block (e.g., `:::figure`) or auto-detect the final figure in a question.
+* **Pro:** Preserves the integrity of the `question` tag, keeping `--diff` and other utilities functional.
+* **Con:** Relies on "magic" detection which may be bug-prone. However, a dedicated `figure` key might be more semantically clear.
+
+
+
+* Consider adding a `shortname` (or equivalent) key to provide a one-line summary of each question.
 
 # Templates
 
-* use `question` keyword??? doesn't look very neat
-* implement `matching` for latex/html-preview
-* implement `sort` for latex/html-preview
+* Evaluate the use of a `part` keyword.
+* Implement `matching` type for LaTeX/HTML previews.
+* Implement `sort` type for LaTeX/HTML previews.
 
 # Road to v1.0
 
-Overall, the idea of v1.0, is to have something that other people can use that
-is not just me in TCD.
+The goal for v1.0 is to deliver a user-friendly experience for external
+adopters. So, the following points probably need to be addressed:
 
-So, as far as I can see, I would need to consider the following points:
-* sort/matching done
-* robust error handling
-* better feedback on compile error
-* *probably* a JSON Schema implemented [in progress with 0.7]
-* better Latex resource installer with quizml and `quizml --init-user`
+* Implement `sort` and `matching`
+* Ensure robust error handling.
+* Provide clearer feedback on compilation errors.
+* Complete **JSON Schema** implementation (In progress since v0.7).
+* Improve the LaTeX resource installer.
+
