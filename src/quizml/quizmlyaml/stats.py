@@ -12,7 +12,7 @@ def is_question(yaml_entry):
 
     """
     
-    return yaml_entry['type'] in ['mc', 'ma', 'essay', 'matching', 'ordering']
+    return yaml_entry['type'] in ['tf', 'mc', 'ma', 'essay', 'matching', 'ordering']
 
 def get_questions(yaml_data):
     """returns a list of all the entries that are actual questions 
@@ -43,7 +43,6 @@ def get_entry_marks(entry):
         'ma': 2.5,
         'tf': 2.5,
         'essay': 5,
-        'header': 0,
         'matching': 2.5,
         'ordering': 2.5,
     }
@@ -77,6 +76,24 @@ def question_success_probability(entry):
         return 0.0
     else:
         return 0.0
+
+def question_number_choices(entry):
+    """returns the number of options for a question
+
+    """
+    
+    if entry['type']=='mc':
+         return str(len(entry['choices']))
+    elif entry['type']=='ma':
+        return str(len(entry['choices']))
+    elif entry['type']=='tf':
+        return str(2)
+    elif entry['type']=='matching':
+        return str(len(entry['choices']))
+    elif entry['type']=='essay':
+        return "-"
+    else:
+        return "-"
 
     
 def get_stats(yaml_data):
@@ -113,15 +130,16 @@ def get_stats(yaml_data):
         total_marks = total_marks + question_marks        
         question_expected_mark = question_marks*question_success_probability(entry)
         expected_mark = expected_mark + question_expected_mark
-        choices = (str(len(entry['choices']) if 'choices' in entry else '-'))
+        choices = question_number_choices(entry)
         lines = entry['question'].strip().splitlines()
         excerpt = f"{lines[0]}" + ("…" if len(lines)>1 else "")
-        
-        stats["questions"].append({"type":  entry['type'],
-                                   "marks": question_marks,
-                                   "choices": choices,
-                                   "EM": question_expected_mark, 
-                                   "excerpt": excerpt})
+
+        stat_entry = {"type"    : entry['type'],
+                      "marks"   : question_marks,
+                      "choices" : choices,
+                      "EM"      : question_expected_mark, 
+                      "excerpt" : excerpt}
+        stats["questions"].append(stat_entry)
 
     stats["total marks"] = total_marks
     stats["expected mark"] = expected_mark/total_marks*100

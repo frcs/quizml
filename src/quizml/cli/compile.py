@@ -343,6 +343,9 @@ def compile(args):
         print_error(str(err), title="QuizMLYaml Syntax Error")
         return
 
+    if logging.DEBUG:
+        logging.debug(yaml_data)
+    
     # load all markdown entries into a list
     # and build dictionaries of their HTML and LaTeX translations
     try:
