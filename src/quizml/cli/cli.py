@@ -106,8 +106,8 @@ def main():
         action="store_true")
     
     parser.add_argument(
-        "--package-templates-path",
-        help="path for quizml's package templates directory",
+        "--print-package-templates-path",
+        help="print path for quizml's package templates directory",
         action="store_true")
     
     parser.add_argument(
@@ -153,7 +153,7 @@ def main():
             quizml.cli.compile.print_target_list(args)
             return
 
-        if args.package_templates_path:
+        if args.print_package_templates_path:
             templates_path = os.path.abspath(
                 os.path.join(__file__, "..", "..", "templates"))
             print(f'{templates_path}')
