@@ -13,7 +13,7 @@ from rich.table import Table
 from rich.table import box
 from rich.console import Console
 from rich.panel import Panel
-from rich.markdown import Markdown
+from rich.padding import Padding
 
 from quizml.cli.errorhandler import print_error
 
@@ -40,7 +40,30 @@ import quizml.cli.filelocator as filelocator
 
 import pathlib
 
+from rich.markdown import Markdown, TableElement
+from rich import box
 
+class CustomTableElement(TableElement):
+    def __rich_console__(self, console, options):
+        for table in super().__rich_console__(console, options):
+            # Check if the table has visible headers
+            has_headers = any(col.header.plain.strip() for col in table.columns)
+            
+            if has_headers:
+                # Main Question Table
+                table.show_header = True
+                table.box = box.SIMPLE_HEAVY # Adds the rule and header structure
+                table.padding = (0, 0, 0, 1) # User preferred padding
+                table.show_edge = False # Hide bottom line
+            else:
+                # Summary Table (frameless alignment)
+                table.show_header = False
+                table.box = None
+                table.padding = (0, 0, 0, 1) # Align left, spacing between cols
+                
+            yield table
+
+Markdown.elements["table_open"] = CustomTableElement
 
 
 def get_config(args):
@@ -193,7 +216,9 @@ def print_stats_table(stats, config):
 
     try:
         rendered = to_jinja.render_template({'stats': stats}, template_path)
-        print(Markdown(rendered))
+        # Padding arguments: (top, right, bottom, left)
+        text_to_print = Padding(Markdown(rendered), (0, 0, 1, 4))
+        print(text_to_print)
     except Jinja2SyntaxError as err:
         print_error(str(err), title="Jinja Template Error")
 
@@ -317,7 +342,7 @@ def compile(args):
         return
 
     # diplay stats about the questions
-    if not args.quiet:
+    if not args.quiet:        
         print_stats_table(get_stats(yaml_data), config)
 
     # get target list from config file

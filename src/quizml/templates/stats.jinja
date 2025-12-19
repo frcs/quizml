@@ -1,5 +1,8 @@
-| Q (<< stats['nb questions'] >>) | Type | Marks (<< "%3.1f"|format(stats['total marks']) >>) | # | Exp (<< "%2.1f"|format(stats['expected mark']) >>%) | Question Statement |
+| Q | Type | Marks | # | Exp | Question Statement |
 |---:|:---:|---:|---:|---:|---|
 <| for q in stats['questions'] -|>
 | << loop.index >> | << q['type'] >> | << "%2.1f"|format(q['marks']) >> | << q['choices'] >> | << "%3.1f"|format(q['EM']) >> | << q['excerpt'] >> |
 <| endfor |>
+
+ Total: << "%3.1f"|format(stats['total marks']) >> (with random expected mark at << "%2.1f"|format(stats['expected mark']) >>)
+
