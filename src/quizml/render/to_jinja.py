@@ -1,4 +1,5 @@
 import os
+import math
 import jinja2
 from pathlib import Path
 from rich.panel import Panel
@@ -7,7 +8,7 @@ from colorama import Fore, Back, Style
 import textwrap
 import pathlib
 
-from quizml.quizmlyaml.stats import get_total_marks
+#from quizml.quizmlyaml.stats import get_total_marks
 from ..exceptions import Jinja2SyntaxError
 from ..cli.errorhandler import text_wrap, msg_context
 
@@ -19,13 +20,15 @@ def render_template(context, template_filename):
    
     try:
         template_src = pathlib.Path(template_filename).read_text()        
-        template = jinja2.Environment(
+        env = jinja2.Environment(
             comment_start_string  ='<#',
             comment_end_string    ='#>',
             block_start_string    ='<|',
             block_end_string      ='|>',
             variable_start_string ='<<',
-            variable_end_string   ='>>').from_string(template_src)
+            variable_end_string   ='>>')
+        env.globals['math'] = math
+        template = env.from_string(template_src)
         render_content = template.render(context)
 
     except jinja2.TemplateSyntaxError as exc:
@@ -65,7 +68,7 @@ def render(yaml_data, template_filename):
     context = {
         "header"      : yaml_data['header'],
         "questions"   : yaml_data['questions'],
-        "total_marks" : get_total_marks(yaml_data)
+        # "total_marks" : get_total_marks(yaml_data)
     }
    
     return render_template(context, template_filename)

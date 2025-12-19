@@ -8,8 +8,8 @@ from rich.table import box
 from rich.console import Console
 
 from quizml.quizmlyaml.loader import load
-from quizml.quizmlyaml.stats import get_questions
-from quizml.quizmlyaml.stats import get_stats
+# from quizml.quizmlyaml.stats import get_questions
+# from quizml.quizmlyaml.stats import get_stats
 from quizml.exceptions import QuizMLYamlSyntaxError
 
 # from rich_argparse import *
@@ -53,7 +53,7 @@ def diff(args):
 
     # checking for duplicate questions
     ref_yaml = filedata[files[0]]
-    ref_questions = get_questions(ref_yaml)
+    ref_questions = ref_yaml['questions']
     
     other_files = files[1:]
 
@@ -76,7 +76,7 @@ def diff(args):
                        "excerpt": long_excerpt})
                 
         for f in other_files:
-            dst_questions = get_questions(filedata[f])
+            dst_questions = filedata[f]['questions']
             for j, qd in enumerate(dst_questions):
                 if questions_are_similar(qr, qd):
                     qstats[i].setdefault('dups',[]).append(f)

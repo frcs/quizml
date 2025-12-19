@@ -1,8 +1,36 @@
+<| set ns = namespace(total_marks=0, expected_mark=0) |>
+<| set default_marks = {'mc': 2.5, 'ma': 2.5, 'tf': 2.5, 'essay': 5, 'matching': 2.5, 'ordering': 2.5} |>
+
 | Q | Type | Marks | # | Exp | Question Statement |
 |---:|:---:|---:|---:|---:|---|
-<| for q in stats['questions'] -|>
-| << loop.index >> | << q['type'] >> | << "%2.1f"|format(q['marks']) >> | << q['choices'] >> | << "%3.1f"|format(q['EM']) >> | << q['excerpt'] >> |
+<| for q in questions if q.type in ['tf', 'mc', 'ma', 'essay', 'matching', 'ordering'] -|>
+    <#- Marks -#>
+    <|- set q_marks = q.marks | float if q.marks is defined else default_marks.get(q.type, 0) -|>
+    <|- set ns.total_marks = ns.total_marks + q_marks -|>
+    <#- Choices count -#>
+    <|- if q.choices is defined -|>
+        <|- set n_choices = q.choices | length -|>
+    <|- else -|>
+        <|- set n_choices = 0 -|>
+    <|- endif -|>    
+    <#- Probability #>
+    <|- set prob = 0 -|>
+    <|- if q.type == 'mc' -|>
+        <|- set prob = 1.0 / n_choices -|>
+    <|- elif q.type == 'ma' -|>
+        <|- set prob = 1.0 / (2**(n_choices - 1)) -|>
+    <|- elif q.type == 'tf' -|>
+        <|- set prob = 0.5 -|>
+        <|- set n_choices = 2 -|>
+    <|- elif q.type == 'matching' -|>
+        <|- set prob = 1.0 / math.factorial(n_choices) -|>
+    <|- endif -|>    
+    <|- set q_em = q_marks * prob -|>
+    <|- set ns.expected_mark = ns.expected_mark + q_em -|>    
+    <#- Excerpt -#>
+    <|- set q_lines = q.question.strip().splitlines() -|>
+    <|- set excerpt = q_lines[0] ~ ("..." if q_lines|length > 1 else "") -|>
+| << loop.index >> | << q.type >> | << "%2.1f"|format(q_marks) >> | << n_choices if q.type != 'essay' else '-' >> | << "%3.1f"|format(q_em) >> | << excerpt >> |
 <| endfor |>
 
- Total: << "%3.1f"|format(stats['total marks']) >> (with random expected mark at << "%2.1f"|format(stats['expected mark']) >>)
-
+**Total: << "%3.1f"|format(ns.total_marks) >>** (with random expected mark at **<< "%2.1f"|format(ns.expected_mark/ns.total_marks*100 if ns.total_marks > 0 else 0) >>**)

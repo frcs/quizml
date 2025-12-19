@@ -52,7 +52,7 @@ def main():
         help = "path to the quiz in a yaml format")
    
     parser.add_argument(
-        "otherfiles", nargs='*',
+        "otherfiles", nargs='*', 
         type=str, 
         help = "other yaml files (only used with diff command)")
     
@@ -195,3 +195,6 @@ def main():
     except QuizMLError as e:
         print(f"[bold red]Error:[/bold red] {e}")
         sys.exit(1)
+
+if __name__ == "__main__":
+    main()

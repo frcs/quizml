@@ -24,7 +24,6 @@ from watchdog.events import FileSystemEventHandler
 from string import Template
 
 from quizml.quizmlyaml.loader import load
-from quizml.quizmlyaml.stats import get_stats
 from quizml.quizmlyaml.loader import QuizMLYamlSyntaxError
 import quizml.markdown.markdown as md
 from quizml.render import to_jinja
@@ -202,7 +201,7 @@ def add_hyperlinks(descr_str, filename):
     return  descr_str.replace(filename, uri)
 
 
-def print_stats_table(stats, config):
+def print_stats_table(quiz, config):
     """
     prints a table with information about each question, using a user-defined jinja template.
     """
@@ -215,7 +214,9 @@ def print_stats_table(stats, config):
         return
 
     try:
-        rendered = to_jinja.render_template({'stats': stats}, template_path)
+        #        rendered = to_jinja.render_template({'quiz': quiz}, template_path)
+        rendered = to_jinja.render_template(quiz, template_path)
+
         # Padding arguments: (top, right, bottom, left)
         text_to_print = Padding(Markdown(rendered), (0, 0, 1, 4))
         print(text_to_print)
@@ -271,6 +272,9 @@ def compile_cmd_target(target):
 
     
 def compile_target(target, quizmlyamltranscoder):
+    """compiles one target
+
+    """
 
     try:
         yaml_transcoded = quizmlyamltranscoder.transcode_target(target)
@@ -342,8 +346,8 @@ def compile(args):
         return
 
     # diplay stats about the questions
-    if not args.quiet:        
-        print_stats_table(get_stats(yaml_data), config)
+    if not args.quiet:
+        print_stats_table(yaml_data, config)
 
     # get target list from config file
     try:
