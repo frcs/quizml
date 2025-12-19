@@ -12,17 +12,10 @@ from ..exceptions import Jinja2SyntaxError
 from ..cli.errorhandler import text_wrap, msg_context
 
 
-def render(yaml_data, template_filename):
-
+def render_template(context, template_filename):
     if not template_filename:
         msg = "Template filename is missing, can't render jinja."
         raise Jinja2SyntaxError(msg)
-       
-    context = {
-        "header"      : yaml_data['header'],
-        "questions"   : yaml_data['questions'],
-        "total_marks" : get_total_marks(yaml_data)
-    }
    
     try:
         template_src = pathlib.Path(template_filename).read_text()        
@@ -33,7 +26,7 @@ def render(yaml_data, template_filename):
             block_end_string      ='|>',
             variable_start_string ='<<',
             variable_end_string   ='>>').from_string(template_src)
-        render_content = template.render(context, debug=True)
+        render_content = template.render(context)
 
     except jinja2.TemplateSyntaxError as exc:
         l = exc.lineno
@@ -65,5 +58,16 @@ def render(yaml_data, template_filename):
         raise Jinja2SyntaxError(msg)
                
     return render_content
+
+
+def render(yaml_data, template_filename):
+
+    context = {
+        "header"      : yaml_data['header'],
+        "questions"   : yaml_data['questions'],
+        "total_marks" : get_total_marks(yaml_data)
+    }
+   
+    return render_template(context, template_filename)
             
     return ''

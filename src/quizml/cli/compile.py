@@ -13,6 +13,7 @@ from rich.table import Table
 from rich.table import box
 from rich.console import Console
 from rich.panel import Panel
+from rich.markdown import Markdown
 
 from quizml.cli.errorhandler import print_error
 
@@ -178,62 +179,23 @@ def add_hyperlinks(descr_str, filename):
     return  descr_str.replace(filename, uri)
 
 
-def print_stats_table(stats):
+def print_stats_table(stats, config):
     """
-    prints a table with information about each question, including:
-      * question id
-      * question type
-      * marks for the question
-      * nb of possible solutions
-      * expected mark if answering at random
-      * excerpt of the question statement
+    prints a table with information about each question, using a user-defined jinja template.
     """
     
-    console = Console()
+    try:
+        template_name = config.get('stats_template', 'stats.jinja')
+        template_path = filelocator.locate.path(template_name)
+    except FileNotFoundError:
+        print_error(f"Stats template '{template_name}' not found", title="Error")
+        return
 
-    table = Table(box=box.SIMPLE,
-                  collapse_padding=True,
-                  show_footer=True)
-    
-    table.add_column(
-        "Q", f"{stats['nb questions']}",
-        min_width=3,
-        no_wrap=True,
-        justify="right")
-    table.add_column(
-        "Type", "--",
-        min_width=2,        
-        no_wrap=True,
-        justify="center")
-    table.add_column(
-        "Marks", f"{stats['total marks']:3.1f}",
-        min_width=3,                
-        no_wrap=True,
-        justify="right")
-    table.add_column(
-        "#", "-",
-        no_wrap=True,
-        justify="right")
-    table.add_column(
-        "Exp", f"{stats['expected mark']:2.1f}" + "%",
-        no_wrap=True,
-        justify="right")
-    table.add_column(
-        "Question Statement",
-        max_width=60,
-        no_wrap=True,
-        justify="left",
-        overflow="ellipsis")
-    
-    for i, q in enumerate(stats["questions"]):
-        table.add_row(f"{i+1}",
-                      q["type"],
-                      f"{q['marks']:2.1f}",
-                      f"{q['choices']}",
-                      f"{q['EM']:3.1f}",
-                      q["excerpt"])
-
-    console.print(table)
+    try:
+        rendered = to_jinja.render_template({'stats': stats}, template_path)
+        print(Markdown(rendered))
+    except Jinja2SyntaxError as err:
+        print_error(str(err), title="Jinja Template Error")
 
 
 def print_table_ouputs(targets_output):
@@ -356,7 +318,7 @@ def compile(args):
 
     # diplay stats about the questions
     if not args.quiet:
-        print_stats_table(get_stats(yaml_data))
+        print_stats_table(get_stats(yaml_data), config)
 
     # get target list from config file
     try:
