@@ -48,7 +48,7 @@
 \providecommand{\tightlist}
 {\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 
-\usepackage[totalmarks]{examquestions}
+%% \usepackage[totalmarks]{examquestions}
 \usepackage{listings}
 
 
@@ -98,8 +98,6 @@
 \onehalfspacing
 
 \usepackage{etoolbox}
-%% \usepackage{ifxetex}
-%% \usepackage{ifluatex}
 
 \newcommand{\btVFill}{\vskip0pt plus 1filll}
 
@@ -161,7 +159,55 @@
 %% loading the MCQ glyphs for keying (A-Z, 0-9). These glyphs are
 %% suitable for OCR.
 
-\usepackage{omrglyphs}
+% Engine-agnostic thickness control
+\newcommand{\thickText}[2][0.9]{%
+  \ifpdftex\pdfliteral{2 Tr #1 w}#2\pdfliteral{0 Tr}%
+  \else\ifluatex\pdfextension literal direct {2 Tr #1 w}#2\pdfextension literal direct {0 Tr}%
+  \else\ifxetex\special{pdf:literal direct 2 Tr #1 w}#2\special{pdf:literal direct 0 Tr}\fi\fi\fi
+}
+
+\newcommand{\omrCirc}[2][white]{%
+\hspace{-0.1em}%
+\begin{tikzpicture}[
+    baseline={([yshift=-0.7ex] current bounding box.center)},
+  ]   
+  \node[
+    draw, 
+    circle, 
+    fill=#1,
+    scale=0.58,
+    line width=1pt,
+    inner sep=2pt, 
+    minimum size=1em,
+    text width=1em, 
+    align=center,
+    font=\sffamily\small
+  ] {\thickText[0.8]{#2}};
+\end{tikzpicture}%
+\hspace{-0.1em}%
+\xspace%
+}
+
+\foreach \x in {A,...,Z} {
+  \expandafter\xdef\csname o\x\endcsname{\noexpand\omrCirc{\x}}
+  \expandafter\xdef\csname x\x\endcsname{\noexpand\omrCirc[black!60]{\x}}
+}
+
+\newcommand{\oZero}{\omrCirc{0}}  \newcommand{\xZero}{\omrCirc[gray!50]{0}}
+\newcommand{\oOne}{\omrCirc{1}}   \newcommand{\xOne}{\omrCirc[gray!50]{1}}
+\newcommand{\oTwo}{\omrCirc{2}}   \newcommand{\xTwo}{\omrCirc[gray!50]{2}}
+\newcommand{\oThree}{\omrCirc{3}} \newcommand{\xThree}{\omrCirc[gray!50]{3}}
+\newcommand{\oFour}{\omrCirc{4}}  \newcommand{\xFour}{\omrCirc[gray!50]{4}}
+\newcommand{\oFive}{\omrCirc{5}}  \newcommand{\xFive}{\omrCirc[gray!50]{5}}
+\newcommand{\oSix}{\omrCirc{6}}   \newcommand{\xSix}{\omrCirc[gray!50]{6}}
+\newcommand{\oSeven}{\omrCirc{7}} \newcommand{\xSeven}{\omrCirc[gray!50]{7}}
+\newcommand{\oEight}{\omrCirc{8}} \newcommand{\xEight}{\omrCirc[gray!50]{8}}
+\newcommand{\oNine}{\omrCirc{9}}  \newcommand{\xNine}{\omrCirc[gray!50]{9}}
+
+\newcommand{\omrDIGITS}{\oZero\oOne\oTwo\oThree\oFour\oFive\oSix\oSeven\oEight\oNine}
+
+%% end of ORM Glyphs
+
 
 \ifsolutions
 \newcommand{\iO}{\refstepcounter{enumii}\expandafter\csname o\Alph{enumii}\endcsname}
