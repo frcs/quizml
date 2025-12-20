@@ -11,7 +11,7 @@ dependencies = [
   "ruamel.yaml>=0.17",
   "jsonschema>=4.0",
   "bs4",
-  "rich",
+  "rich>=12.0.0",
   "rich-argparse",
   "jinja2",
   "colorama",
@@ -30,7 +30,7 @@ description = """
   BlackBoard test or to a Latex exam source file"""
 readme = "README.md"
 license = {text = "GPLv3"}
-keywords = ["BlackBoard", "exam", "test", "quiz", "mcq", "Latex"]
+keywords = ["BlackBoard", "exam", "test", "quiz", "MCQ",  "YAML", "Markdown", "Latex"]
 
 [project.urls]
 Repository = "https://github.com/frcs/quizml.git"
