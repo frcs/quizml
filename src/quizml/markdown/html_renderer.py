@@ -83,12 +83,12 @@ def strip_newlines_and_tabs(html_content):
 
 
 def escape_LaTeX(str_eq):
-    """HTML escape the LaTeX string defining an equation. This is to
+    r"""HTML escape the LaTeX string defining an equation. This is to
     be used in the `alt` tag of the corresponding rendered image
 
     It applies the following transformations:    
-    * convert main $ and $$ sign to \( and \[
-    * convert other $ into &dollar;
+    * convert main `$` and `$$` sign to `\(` and `\[`
+    * convert other `$` into `&dollar;`
     * escape HTML
     * remove '\n' and '\t'
 
@@ -354,7 +354,7 @@ def strip_newlines_and_tabs(html_content):
     """
     
     htmlsrc = BeautifulSoup(html_content, "html.parser")
-    for code in htmlsrc.findAll(name="code"):
+    for code in htmlsrc.find_all(name="code"):
         s = BeautifulSoup(str(code).replace('\n', '<br>'),
                           "html.parser")
         code.replace_with(s)
@@ -369,12 +369,12 @@ def strip_newlines_and_tabs(html_content):
 
 
 def escape_LaTeX(str_eq):
-    """HTML escape the LaTeX string defining an equation. This is to
+    r"""HTML escape the LaTeX string defining an equation. This is to
     be used in the `alt` tag of the corresponding rendered image
 
     It applies the following transformations:    
-    * convert main $ and $$ sign to \( and \[
-    * convert other $ into &dollar;
+    * convert main `$` and `$$` sign to `\(` and `\[`
+    * convert other `$` into `&dollar;`
     * escape HTML
     * remove '\n' and '\t'
 
@@ -518,7 +518,7 @@ def inline_css(html_content, opts):
     if 'html_css' in opts:
         css = opts['html_css']
         # remove all comments (/*COMMENT */) from string
-        css = re.sub(re.compile("/\*.*?\*/",re.DOTALL ) ,"" , css)        
+        css = re.sub(re.compile(r"/\*.*?\*/", re.DOTALL), "", css)
     else:
         css = """
         .math.inline {vertical-align:middle}
