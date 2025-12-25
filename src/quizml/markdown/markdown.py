@@ -6,13 +6,13 @@ import re
 import mistletoe as mt
 
 from .utils import md_combine_list
-from .latex import get_latex_dict
-from .html import get_html_dict
-from quizml.quizmlyaml.utils import get_md_list_from_yaml
+from .latex_renderer import get_latex_dict
+from .html_renderer import get_html_dict
+from quizml.utils import get_md_list_from_yaml
 
 import quizml.markdown.extensions as mte
 
-from quizml.quizmlyaml.utils import transcode_md_in_yaml
+from quizml.utils import transcode_md_in_yaml
 
 
 """
@@ -25,9 +25,9 @@ from quizml.quizmlyaml.utils import transcode_md_in_yaml
  Example:
 
     import quizml.markdown as md
-    import quizml.quizmlyaml as quizmlyaml
+    import quizml.loader as loader
 
-    yaml_data = quizmlyaml.loader.load("test.yaml", schema=True)
+    yaml_data = loader.load("test.yaml", schema=True)
     
     quizmlyamltranscoder = md.QuizMLYAMLMarkdownTranscoder(yaml_data)
 

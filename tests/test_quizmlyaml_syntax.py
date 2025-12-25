@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 import strictyaml
-from quizml.quizmlyaml.loader import load
+from quizml.loader import load
 
 def test_quizmlyaml_syntax():
     

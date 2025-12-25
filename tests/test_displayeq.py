@@ -3,7 +3,7 @@ from pathlib import Path
 import os
 
 from quizml.markdown.markdown import QuizMLYAMLMarkdownTranscoder
-from quizml.quizmlyaml import loader
+from quizml import loader
 
 import re
 import mistletoe
@@ -21,9 +21,9 @@ from mistletoe.span_token import remove_token
 from mistletoe.block_token import BlockCode
 
 from quizml.markdown.utils import md_combine_list
-from quizml.markdown.latex import get_latex_dict
-from quizml.markdown.html import get_html_dict
-from quizml.quizmlyaml.utils import get_md_list_from_yaml
+from quizml.markdown.latex_renderer import get_latex_dict
+from quizml.markdown.html_renderer import get_html_dict
+from quizml.utils import get_md_list_from_yaml
 
 from quizml.markdown.extensions import MathInline, MathDisplay, ImageWithWidth
 

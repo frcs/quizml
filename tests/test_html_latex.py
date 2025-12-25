@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from pathlib import Path
 
-from quizml.markdown.html import build_eq_dict_PNG
+from quizml.markdown.html_renderer import build_eq_dict_PNG
 from quizml.markdown.extensions import MathInline, MathDisplay
 from quizml.exceptions import LatexCompilationError
 
@@ -20,7 +20,8 @@ def create_mock_display(content):
     return MathDisplay([content])
 
 
-@patch('quizml.markdown.html.LatexRunner')
+@patch('quizml.markdown.html_renderer.embed_base64')
+@patch('quizml.markdown.html_renderer.LatexRunner')
 def test_build_eq_dict_png_success(MockLatexRunner, mock_embed_base64):
     """
     Tests that build_eq_dict_PNG successfully generates an image dictionary
@@ -76,7 +77,7 @@ def test_build_eq_dict_png_success(MockLatexRunner, mock_embed_base64):
     assert "height='40'" in display_html
 
 
-@patch('quizml.markdown.html.LatexRunner')
+@patch('quizml.markdown.html_renderer.LatexRunner')
 def test_build_eq_dict_png_latex_error(MockLatexRunner):
     """
     Tests that build_eq_dict_PNG properly propagates a LatexCompilationError

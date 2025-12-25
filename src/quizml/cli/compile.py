@@ -23,10 +23,10 @@ from watchdog.events import FileSystemEventHandler
 
 from string import Template
 
-from quizml.quizmlyaml.loader import load
-from quizml.quizmlyaml.loader import QuizMLYamlSyntaxError
+from quizml.loader import load
+from quizml.loader import QuizMLYamlSyntaxError
 import quizml.markdown.markdown as md
-from quizml.render import to_jinja
+from quizml import renderer
 from quizml.exceptions import (
     QuizMLError,
     QuizMLConfigError,
@@ -214,8 +214,8 @@ def print_stats_table(quiz, config):
         return
 
     try:
-        #        rendered = to_jinja.render_template({'quiz': quiz}, template_path)
-        rendered = to_jinja.render_template(quiz, template_path)
+        #        rendered = renderer.render_template({'quiz': quiz}, template_path)
+        rendered = renderer.render_template(quiz, template_path)
 
         # Padding arguments: (top, right, bottom, left)
         text_to_print = Padding(Markdown(rendered), (0, 0, 1, 4))
@@ -278,7 +278,7 @@ def compile_target(target, quizmlyamltranscoder):
 
     try:
         yaml_transcoded = quizmlyamltranscoder.transcode_target(target)
-        rendered_doc = to_jinja.render(yaml_transcoded,
+        rendered_doc = renderer.render(yaml_transcoded,
                                        target['template'])
         pathlib.Path(target['out']).write_text(rendered_doc)
         success = True

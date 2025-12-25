@@ -7,9 +7,9 @@ from rich.table import Table
 from rich.table import box
 from rich.console import Console
 
-from quizml.quizmlyaml.loader import load
-# from quizml.quizmlyaml.stats import get_questions
-# from quizml.quizmlyaml.stats import get_stats
+from quizml.loader import load
+# from quizml.stats import get_questions
+# from quizml.stats import get_stats
 from quizml.exceptions import QuizMLYamlSyntaxError
 
 # from rich_argparse import *

@@ -1,5 +1,5 @@
 
-from quizml.quizmlyaml.utils import filter_yaml
+from quizml.utils import filter_yaml
 
 def test_filter_yaml():
     

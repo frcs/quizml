@@ -6,7 +6,7 @@ import strictyaml
 from strictyaml import Any, Map, Float, Seq, Bool, Int, Str, Optional, MapCombined
 from strictyaml import YAMLError
 
-from quizml.quizmlyaml.loader import load
+from quizml.loader import load
 
 from quizml.markdown.markdown import QuizMLYAMLMarkdownTranscoder
 
