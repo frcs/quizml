@@ -10,8 +10,12 @@ $ pip install .
 
 ## LaTeX
 
-You will need a LaTeX installation with `gs` and
-`pdflatex`. eg. [MacTeX](https://www.tug.org/mactex/) or `texlive`.
+You will need a LaTeX installation with `gs` and `pdflatex` (e.g., [MacTeX](https://www.tug.org/mactex/) or `texlive`).
+
+For handling **SVG images** in LaTeX output:
+* QuizML will automatically look for a `.pdf`, `.png`, or `.jpg` version of the image in the same directory.
+* If only an `.svg` is present, it will attempt to convert it to PDF using `rsvg-convert` or `inkscape`.
+* Therefore, installing `librsvg` (which provides `rsvg-convert`) or `inkscape` is recommended but **optional** if you provide fallback images (e.g., `.png`).
 
 
 ## Configuration File and Templates

@@ -32,9 +32,8 @@ from ruamel.yaml.scalarstring import PlainScalarString
 from jsonschema import Draft7Validator, validators
 from jsonschema.exceptions import ValidationError
 
-from quizml.utils import filter_yaml
+from quizml.utils import filter_yaml, text_wrap, msg_context
 from quizml.exceptions import QuizMLYamlSyntaxError
-from quizml.cli.errorhandler import text_wrap, msg_context
 
 # --- Custom ruamel.yaml Constructor ---
 

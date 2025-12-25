@@ -1,3 +1,12 @@
+<a name="0.9"></a>
+
+# [0.9]() (2025-12-25)
+
+* **Fix:** Improved image path resolution for LaTeX. It now prioritizes existing PDF, PNG, or JPG files before attempting SVG conversion. This makes external tools like `rsvg-convert` or `inkscape` optional if compatible image formats are present.
+* **Fix:** Correctly exposed `main` entry point, fixing `python -m quizml` usage.
+* **Refactor:** Improved YAML loading and type alignment in tests/templates.
+* **Docs:** Added `GEMINI.md` and `run_test.py` for development.
+
 <a name="0.8"></a>
 
 # [0.8]() (2025-12-16)

@@ -7,7 +7,7 @@
   - [Usage](usage.md)
 
 - Writing a Test
-  - [Test File Syntax](syntax_quizmlyaml.md)
+  - [Test File Syntax](syntax_yaml.md)
   - [Questions Syntax](syntax_questions.md)
   - [Header Section](syntax_header.md)
   - [Markdown Syntax](syntax_md.md)

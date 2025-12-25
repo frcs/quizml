@@ -36,25 +36,21 @@ and an HTML preview.
 ```shell-session
 $ quizml quiz1.yaml
 
-..  pdflatex compilation
+     Q  Type  Marks  #  Exp  Question Statement
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     1   mc     5.0  4  1.2  If vector ${\bf w}$ is of dimension $3 \times 1$ and matrix ${\bf A}$ of...
+     2   tf     5.0  2  2.5  Is this the image of a tree?
 
-  Q  Type  Marks  #    Exp  Question Statement
- ────────────────────────────────────────────────────────────────────────
-  1   mc     5.0  4    1.2  If vector ${\bf w}$ is of dimension $3
-                            \times 1$ and matrix ${\bf A}$ of […]
-  2   mc     5.0  2    2.5  Is this the image of a tree? […]
- ────────────────────────────────────────────────────────────────────────
-  2   --    10.0  -  37.5%
+    Total: 10.0 (with random expected mark at 37.5%)
 
-╭──────────────────────────── Target Ouputs ─────────────────────────────╮
-│                                                                        │
-│   BlackBoard CSV   quiz1.txt                                           │
-│   html preview     quiz1.html                                          │
-│   latex            latexmk -xelatex -pvc quiz1.tex                     │
-│   Latex solutions  latexmk -xelatex -pvc quiz1.solutions.tex           │
-│                                                                        │
-╰────────────────────────────────────────────────────────────────────────╯
-
+╭────────────────────────────────────── Target Ouputs ──────────────────────────────────────╮
+│                                                                                           │
+│   BlackBoard CSV   quiz1.txt                                                              │
+│   html preview     quiz1.html                                                             │
+│   latex            latexmk -xelatex -pvc quiz1.tex                                        │
+│   Latex solutions  latexmk -xelatex -pvc quiz1.solutions.tex                               │
+│                                                                                           │
+╰───────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 and this is what the rendered outputs look like:

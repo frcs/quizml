@@ -70,16 +70,16 @@ possibilities. The (`A`,`B`) statements are shuffled when generating the exam
 - type: matching
   marks: 5
   question: |
-    question statement goes here...      
+    Match the following trees to their typical height.
   choices:
-    - A: text 1
-      B: text for correct match for text 1
-    - A: text 2
-      B: text for correct match for text 2
-    - A: text 3
-      B: text for correct match for text 3
-    - A: text 4
-      B: text for correct match for text 4 
+    - A: Japanese Maple (Acer palmatum)
+      B: 15-25 feet
+    - A: Flowering Dogwood (Cornus florida)
+      B: 30–40 feet
+    - A: Coast Redwood (Sequoia sempervirens)
+      B: 200–350+ feet
+    - A: American Beech (Fagus grandifolia)
+      B: 60–80 feet
 ```
 
 ### Ordering
@@ -92,12 +92,11 @@ occurs when generating the exam (see how to set the random seed here).
 - type: ordering
   marks: 5
   question: |
-    Order the following trees in **decreasing** order of height.  
+    Order the following trees in **increasing** order of height.  
   choices:
-    - tree 1
-    - tree 2
-    - tree 3
-    - tree 4
-
+    - Japanese Maple (Acer palmatum)
+    - Flowering Dogwood (Cornus florida)
+    - American Beech (Fagus grandifolia)
+    - Coast Redwood (Sequoia sempervirens)
 ```
 

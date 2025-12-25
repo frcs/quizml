@@ -60,6 +60,6 @@ def zsh(parser):
         for b in a.option_strings:            
             txt = txt + f"    '{b}[{help}]' \\\n"
 
-    txt = txt + "    '*:yaml file:_files -g \\*.\\(yml\|yaml\\)'\n}"
+    txt = txt + r"    '*:yaml file:_files -g \*.\(yml\|yaml\)'" + "\n}\n"
     return txt
 
