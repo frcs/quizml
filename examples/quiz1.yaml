@@ -1,0 +1,20 @@
+- type: mc
+  marks: 5           
+  question: |
+    If vector ${\bf w}$ is of dimension $3 \times 1$ and matrix ${\bf A}$ of
+    dimension $5 \times 3$, then what is the dimension of $\left({\bf w}^{\top}{\bf
+    A}^{\top}{\bf A}{\bf w}\right)^{\top}$?
+  choices:
+    - o:  $5\times 5$
+    - o:  $3\times 3$
+    - o:  $3\times 1$
+    - x:  $1\times 1$
+
+- type: tf
+  marks: 5         
+  question: |
+    From this graph of the loss during training, we can say that there is underfitting.
+    
+    ![](figures/fig-1.svg){width=30em}
+    
+  answer: false
