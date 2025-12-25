@@ -16,9 +16,9 @@ from quizml.utils import transcode_md_in_yaml
 
 
 """
- QuizMLYAMLMarkdownTranscoder 
+ MarkdownTranscoder 
 
- This modules defines the QuizMLYAMLMarkdownTranscoder class, that can be
+ This modules defines the MarkdownTranscoder class, that can be
  used to render markdown entries in a YAML struct into HTML or LaTeX
  targets.
 
@@ -29,16 +29,16 @@ from quizml.utils import transcode_md_in_yaml
 
     yaml_data = loader.load("test.yaml", schema=True)
     
-    quizmlyamltranscoder = md.QuizMLYAMLMarkdownTranscoder(yaml_data)
+    transcoder = md.MarkdownTranscoder(yaml_data)
 
     target = {'fmt': 'html',
               'html_css': user_html_css,
               'html_pre': user_html_pre}
-    yaml_transcoded = quizmlyamltranscoder.transcode_target(target)
+    yaml_transcoded = transcoder.transcode_target(target)
 
 """
 
-class QuizMLYAMLMarkdownTranscoder:
+class MarkdownTranscoder:
         
     def __init__(self, yaml_data):
         self.yaml_data = yaml_data

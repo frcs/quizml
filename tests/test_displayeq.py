@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 import os
 
-from quizml.markdown.markdown import QuizMLYAMLMarkdownTranscoder
+from quizml.markdown.markdown import MarkdownTranscoder
 from quizml import loader
 
 import re
@@ -92,11 +92,11 @@ def test_displayeq(capsys):
     
     yaml_data = loader.load(yaml_file, validate=False) # schema=False because it's a test file
 
-    quizmlyamltranscoder = QuizMLYAMLMarkdownTranscoder(yaml_data)
+    transcoder = MarkdownTranscoder(yaml_data)
 
     target = {'fmt': 'html'} # Dummy target for now, just to test transcode_target
 
-    yaml_transcoded = quizmlyamltranscoder.transcode_target(target)
+    yaml_transcoded = transcoder.transcode_target(target)
     
     # with capsys.disabled():
     #     print_doc(doc_combined)

@@ -152,7 +152,7 @@
 <div class='question-type'>True/False</div><div class='marks'><< q.marks >></div>
 <<q.question>>
 <ol class='answers'>
-<|   if q.answer == 'true'  -|>
+<|   if q.answer|lower == 'true'  -|>
   <li class='correct'>
 	True
   </li>	  

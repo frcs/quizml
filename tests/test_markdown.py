@@ -8,7 +8,7 @@ from strictyaml import YAMLError
 
 from quizml.loader import load
 
-from quizml.markdown.markdown import QuizMLYAMLMarkdownTranscoder
+from quizml.markdown.markdown import MarkdownTranscoder
 
 
 def test_quizmlyaml_syntax(capsys):
@@ -24,9 +24,9 @@ def test_quizmlyaml_syntax(capsys):
     # with capsys.disabled():
     #     print(yamldoc)
         
-    quizmlyamltranscoder = QuizMLYAMLMarkdownTranscoder(yamldoc)
-    html_md_dict = quizmlyamltranscoder.get_dict(opts={'fmt': 'html'})
-    latex_md_dict = quizmlyamltranscoder.get_dict(opts={'fmt': 'latex'})
+    transcoder = MarkdownTranscoder(yamldoc)
+    html_md_dict = transcoder.get_dict(opts={'fmt': 'html'})
+    latex_md_dict = transcoder.get_dict(opts={'fmt': 'latex'})
     
     # md_list = get_md_list_from_yaml(yamldoc)
     # with capsys.disabled():

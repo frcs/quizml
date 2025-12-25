@@ -83,7 +83,9 @@
 %%
 %% defining the `question` environment
 %%
-
+\newcommand*{\weightunit}{ marks}
+\newcommand*{\subquestionskip}{1em}
+\newsavebox{\qmarks}
 \newcounter{bbquestion}
 \newenvironment{bbquestion}[1][]{\sbox\qmarks{\bfseries #1 marks}
 \refstepcounter{bbquestion}\par\medskip\textbf{Q.\thebbquestion.}
@@ -333,7 +335,7 @@ questions with multiple choices, mark all solutions that are correct
 <|- if q.type == 'essay' |>
 essay question
 <|- elif q.type == 'tf' |>
-<|-     if q.answer    -|>
+<|-     if q.answer|lower == 'true'    -|>
 \ifsolutions\xT\oF\else\oT\oF\fi
 <|-     else  -|>
 \ifsolutions\oT\xF\else\oT\oF\fi
@@ -371,7 +373,7 @@ essay question
   \vspace{1em}
 \begin{enumerate}\setlength\itemsep{0.25em}
 \ifsolutions  
-<|        if q.answer    -|>
+<|        if q.answer|lower == 'true'    -|>
     \item[\xT] True
     \item[\oF] False
 <|-       else          -|>  

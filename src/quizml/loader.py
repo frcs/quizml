@@ -98,25 +98,22 @@ DefaultFillingValidator = extend_with_default(
     validators.extend(Draft7Validator, type_checker=CustomTypeChecker))
 
 
-# --- Main Loader Functions ---
-def load_quizmlyaml(quizmlyaml_txt, validate=True, filename="<YAML string>", schema_str=None):
+
+def _parse_yaml_fragment(text, validate=True, schema=None, filename="<string>"):
+    """
+    Parses a single YAML fragment.
+    Optionally validates against a schema (dict).
+    """
     yaml = YAML()
     yaml.Constructor = StringConstructor
     try:
-        data = yaml.load(quizmlyaml_txt)
+        data = yaml.load(text)
     except Exception as err:
         line = -1
         if hasattr(err, 'problem_mark'): line = err.problem_mark.line
         raise QuizMLYamlSyntaxError(f"YAML parsing error in {filename} near line {line}:\n{err}")
 
-    if validate:
-        if schema_str is None:
-            raise QuizMLYamlSyntaxError("Schema must be provided for validation when validate=True.")
-        try:
-            schema = json.loads(schema_str)
-        except json.JSONDecodeError as e:
-            raise QuizMLYamlSyntaxError(f"Invalid JSON in schema: {e}")
-
+    if validate and schema:
         validator = DefaultFillingValidator(schema)
         errors = sorted(validator.iter_errors(data), key=lambda e: e.path)
         if errors:
@@ -128,14 +125,13 @@ def load_quizmlyaml(quizmlyaml_txt, validate=True, filename="<YAML string>", sch
                 line_num = item.lc.line + 1
             except (KeyError, IndexError, AttributeError):
                 line_num = "unknown"
-            lines = quizmlyaml_txt.splitlines()
+            lines = text.splitlines()
             msg = f"Schema validation error in {filename} at '{path}' (line ~{line_num})\n"
             if line_num != "unknown":
                 msg += msg_context(lines, line_num) + "\n"
             msg += text_wrap(err.message)
             raise QuizMLYamlSyntaxError(msg)
-
-
+    
     return data
 
 def _to_plain_python(data):
@@ -145,26 +141,13 @@ def _to_plain_python(data):
         return [_to_plain_python(v) for v in data]
     return data
 
-def load(quizmlyaml_path, validate=True, schema_path=None):
-    try:
-        quizmlyaml_txt = Path(quizmlyaml_path).read_text()
-    except FileNotFoundError:
-        raise QuizMLYamlSyntaxError(f"Yaml file not found: {quizmlyaml_path}")
-
-    schema_str = None
-    if validate:
-        if schema_path is None:
-            from quizml.cli.filelocator import locate
-            schema_path = locate.path("schema.json")
-        try:
-            schema_str = Path(schema_path).read_text()
-        except FileNotFoundError:
-            raise QuizMLYamlSyntaxError(f"Schema file not found: {schema_path}")
-        except TypeError:
-            raise QuizMLYamlSyntaxError("Schema must be provided for validation when validate=True.")
+def loads(quizmlyaml_txt, validate=True, schema=None, filename="<string>"):
+    """
+    Parses a QuizML string.
+    Identifies header and questions documents, parses them, and returns the data structure.
+    """
     
     # Extracting the header and questions
-    
     yamldoc_pattern = re.compile(r"^---\s*$", re.MULTILINE)
     yamldocs = yamldoc_pattern.split(quizmlyaml_txt)
     yamldocs = list(filter(None, yamldocs))
@@ -191,37 +174,56 @@ def load(quizmlyaml_path, validate=True, schema_path=None):
         # just a header, no questions
         header_doc, questions_doc = yamldocs[0], None
 
-    doc['header'] = load_quizmlyaml(
+    doc['header'] = _parse_yaml_fragment(
         header_doc,
         validate=False,
-        filename=quizmlyaml_path
+        filename=filename
     )  if header_doc else {}
 
-    doc['questions'] = load_quizmlyaml(
+    doc['questions'] = _parse_yaml_fragment(
         questions_doc,
-        validate,
-        filename=quizmlyaml_path,
-        schema_str=schema_str
+        validate=validate,
+        filename=filename,
+        schema=schema
     ) if questions_doc else []
 
     # removing trailing white spaces in all string values
     f = lambda a: a.strip() if isinstance(a, str) else a
     doc = filter_yaml(doc, f)
 
+    return _to_plain_python(doc)
+
+
+def load(quizmlyaml_path, validate=True, schema_path=None):
+    try:
+        quizmlyaml_txt = Path(quizmlyaml_path).read_text()
+    except FileNotFoundError:
+        raise QuizMLYamlSyntaxError(f"Yaml file not found: {quizmlyaml_path}")
+
+    schema = None
+    if validate:
+        if schema_path is None:
+            from quizml.cli.filelocator import locate
+            schema_path = locate.path("schema.json")
+        try:
+            schema_str = Path(schema_path).read_text()
+            schema = json.loads(schema_str)
+        except FileNotFoundError:
+            raise QuizMLYamlSyntaxError(f"Schema file not found: {schema_path}")
+        except json.JSONDecodeError as e:
+            raise QuizMLYamlSyntaxError(f"Invalid JSON in schema: {e}")
+        except TypeError:
+            raise QuizMLYamlSyntaxError("Schema must be provided for validation when validate=True.")
+    
+    doc = loads(
+        quizmlyaml_txt,
+        validate=validate,
+        schema=schema,
+        filename=str(quizmlyaml_path)
+    )
+
     # passing the input quiz file's basename to header
     basename, _ = os.path.splitext(quizmlyaml_path)
     doc['header']['inputbasename'] = basename
 
-    # BRUTE FORCE CONVERSION
-    for q in doc.get('questions', []):
-        if 'marks' in q and isinstance(q['marks'], str):
-            try: q['marks'] = float(q['marks'])
-            except (ValueError, TypeError): pass
-        if 'cols' in q and isinstance(q['cols'], str):
-            try: q['cols'] = int(q['cols'])
-            except (ValueError, TypeError): pass
-        if 'answer' in q and isinstance(q['answer'], str):
-            if q['answer'].lower() == 'true': q['answer'] = True
-            elif q['answer'].lower() == 'false': q['answer'] = False
-
-    return _to_plain_python(doc)
+    return doc

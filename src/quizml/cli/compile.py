@@ -189,7 +189,7 @@ def get_target_list(args, config, yaml_data):
         # add target to list
         target_list.append(target)
 
-        # add preamble key if defined in the quizmlyaml header
+        # add preamble key if defined in the QuizMLYaml header
         if 'fmt' in target:
             target['user_pre'] = yaml_data['header'].get('_latexpreamble', '')
 
@@ -271,13 +271,13 @@ def compile_cmd_target(target):
     
 
     
-def compile_target(target, quizmlyamltranscoder):
+def compile_target(target, transcoder):
     """compiles one target
 
     """
 
     try:
-        yaml_transcoded = quizmlyamltranscoder.transcode_target(target)
+        yaml_transcoded = transcoder.transcode_target(target)
         rendered_doc = renderer.render(yaml_transcoded,
                                        target['template'])
         pathlib.Path(target['out']).write_text(rendered_doc)
@@ -307,7 +307,7 @@ def compile_target(target, quizmlyamltranscoder):
 
 
 def compile(args):
-    """compiles the targets of a quizmlyaml file
+    """compiles the targets of a yaml file
 
     """
 
@@ -340,7 +340,7 @@ def compile(args):
     # load all markdown entries into a list
     # and build dictionaries of their HTML and LaTeX translations
     try:
-        quizmlyamltranscoder = md.QuizMLYAMLMarkdownTranscoder(yaml_data)
+        transcoder = md.MarkdownTranscoder(yaml_data)
     except (LatexEqError, MarkdownError, FileNotFoundError) as err:
         print_error(str(err), title="Error")
         return
@@ -383,7 +383,7 @@ def compile(args):
 
         # a template task that needs to be rendered
         if ("template" in target):
-            success = compile_target(target, quizmlyamltranscoder)
+            success = compile_target(target, transcoder)
             
         success_list[target['name']] = success
         
@@ -408,7 +408,7 @@ def compile(args):
         
 
 def compile_on_change(args):
-    """compiles the targets if input quizmlyaml file has changed on disk
+    """compiles the targets if input QuizMLYaml file has changed on disk
 
     """
 
