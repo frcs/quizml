@@ -1,4 +1,7 @@
 import logging
+import os
+import shutil
+import subprocess
 
 import mistletoe
 from mistletoe.latex_renderer import LaTeXRenderer
@@ -7,6 +10,54 @@ from mistletoe.block_token import HTMLBlock
 from .utils import get_hash
 from .extensions import MathInline, MathDisplay, ImageWithWidth
 from ..exceptions import MarkdownError
+
+
+def convert_svg_to_pdf(svg_path, pdf_path):
+    """
+    Converts an SVG file to PDF using rsvg-convert or inkscape.
+    """
+    if shutil.which("rsvg-convert"):
+        cmd = ["rsvg-convert", "-f", "pdf", "-o", pdf_path, svg_path]
+    elif shutil.which("inkscape"):
+        # Inkscape 1.0+ CLI
+        cmd = ["inkscape", svg_path, "--export-filename=" + pdf_path]
+    else:
+        logging.warning(f"Could not find rsvg-convert or inkscape to convert {svg_path} to PDF.")
+        return False
+
+    try:
+        subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return True
+    except subprocess.CalledProcessError:
+        logging.warning(f"Failed to convert {svg_path} to PDF.")
+        return False
+
+
+def resolve_image_path(src):
+    """
+    Resolves the image path for LaTeX.
+    Prioritizes PDF > PNG > JPG/JPEG.
+    If SVG is provided and no compatible format is found, attempts conversion
+    if tools are available.
+    """
+    if not src.lower().endswith(".svg"):
+        return src
+        
+    base = os.path.splitext(src)[0]
+    
+    # Check for existing compatible formats
+    for ext in ['.pdf', '.png', '.jpg', '.jpeg']:
+        candidate = base + ext
+        if os.path.exists(candidate):
+            return candidate
+            
+    # If no compatible format exists, try conversion
+    pdf_path = base + ".pdf"
+    if convert_svg_to_pdf(src, pdf_path):
+        return pdf_path
+        
+    # If conversion fails/tools missing, return src (latex will likely complain)
+    return src
 
 
 class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
@@ -30,7 +81,8 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
         return token.content.strip()
 
     def render_image_with_width(self, token) -> str:
-        return '\\includegraphics[width=' + token.width + ']{' + token.src + '}'  
+        src = resolve_image_path(token.src)
+        return '\\includegraphics[width=' + token.width + ']{' + src + '}'  
 
     # def render_command(self, token) -> str:
     #     return '\\' + token.cmdname + '{' + token.cmd + '}'  
@@ -44,6 +96,7 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
 
     # fixing some default behaviour
     def render_image(self, token):
+        token.src = resolve_image_path(token.src)
         s = super().render_image(token)
         return s[1:-1]
 
@@ -67,7 +120,7 @@ def get_latex(doc):
         latex_content = renderer.render(doc)
        
     # svg is a bit of a problem. replacing .svg extensions with .pdf   
-    latex_content = latex_content.replace('.svg}', '.pdf}')
+    # latex_content = latex_content.replace('.svg}', '.pdf}') # Removed: handled in renderer
     latex_content = latex_content.replace('\\includesvg', '\\includegraphics')
 
     # I should check if this is still relevant... (pandoc legacy?)
