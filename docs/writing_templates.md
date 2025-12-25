@@ -79,7 +79,7 @@ Other type
 The header information is stored in `header`.
 
 For instance, this is how we can save the header keys/vales for keys that do not
-start with `pre_` as LaTeX macros:
+start with `_` as LaTeX macros:
 
 
 ```
@@ -87,7 +87,7 @@ start with `pre_` as LaTeX macros:
 <# we do not include 'type' and 'pre_' keys  #>
 <| if header                                               -|>
 <|   for key, value in header.items()                      -|>
-<|     if (key != 'type') and (not key.startswith('pre_'))  |>
+<|     if (key != 'type') and (not key.startswith('_'))     |>
 \def \info<<key>> {<<value>>}
 <|     endif                                                |>
 <|-  endfor                                                 |>

@@ -3,14 +3,14 @@
 An optional header section can be declared at the start of the yaml file. All
 (key, val) pairs declared in this section will be sent to the template
 renderer. For instance your LaTeX template might require information about the
-exam date, venue, etc. The header must edclared at the start of the file and
+exam date, venue, etc. The header must be declared at the start of the file and
 must be separated from the rest of the questions with a line starting with
 `---`.
 
 ```yaml
 descr: |
   A very long exam
-
+  
   You are all going to suffer.
 
 venue: Maxwell Theatre

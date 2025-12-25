@@ -5,7 +5,7 @@ This is a command line application written in Python. Assuming that you have
 python and pip installed, you can simply install it with:
 
 ```shell-session
-$ pip install .
+$ pip install quizml
 ```
 
 ## LaTeX
@@ -44,8 +44,9 @@ To get you started,
 ```shell-session
 $ quizml --init-local
 ```
-This will copy a `quizml.cfg` to the current directory and copy all templates to
-`quizml-templates/`. You can then copy the relevant files to the correct directory.
+This will copy a default `quizml.cfg` and all the provided templates to a newly
+created 
+`quizml-templates/` sub-directory. 
 
 Alternatively you can make a user-level install with:
 
@@ -53,8 +54,9 @@ Alternatively you can make a user-level install with:
 $ quizml --init-user
 ```
 
-In this case `quizml.cfg` and the rest of the files will be moved to XXX
-
+In this case `quizml.cfg` and the rest of the files will be moved to the default
+user configuration directory (eg. `~/Library/Application\ Support/quizml/` on my
+mac).
 
 
 

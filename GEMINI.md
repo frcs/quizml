@@ -7,6 +7,12 @@ To run the full suite of checks, execute the following command:
 ```bash
 pytest .
 ```
+
+## Updating the Docs
+
+Makse sure to update docs/usage.md with the accurate CLI arguments and descriptions
+obtained from the help command.
+
 ## Python version
 
 Do not use the default `python` or `python3` when invoking python as I use

@@ -11,7 +11,7 @@ BlackBoard csv quiz file can be defined as the following target:
   out       : ${inputbasename}.txt    
   descr     : BlackBoard CSV          
   descr_cmd : ${inputbasename}.txt    
-  fmt       : html                    
+  fmt       : html-svg                    
   html_pre  : html-latex-preamble.tex 
   html_css  : html-inline-style.css   
   template  : bb.jinja  
@@ -20,9 +20,10 @@ BlackBoard csv quiz file can be defined as the following target:
 
 As for the config file directory, any resource file or template file is defined
 as a relative path, the template is searched in:
-1. the local directory from which quizml is called 
-2. the default application config dir 
-3. the install package templates dir
+1. the local directory from which QuizML is called 
+2. the local templates subdirectory
+3. the default application config dir 
+4. the install package templates dir
 
 
 ### Target Configuration

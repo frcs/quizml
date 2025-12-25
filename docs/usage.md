@@ -4,14 +4,6 @@
 This document explains how to use the `quizml` command-line tool, which converts questions in a YAML/markdown format into a Blackboard test or a LaTeX script.
 
 
-### Running as a Module
-
-You can also run QuizML directly as a Python module, which is useful for development or if the `quizml` executable is not in your path:
-
-```bash
-python3 -m quizml quiz.yaml
-```
-
 ### TL;DR
 
 * Compile all targets
@@ -125,5 +117,13 @@ recompile the target by setting the flag `-w`:
 
 ```shell-session
 $ quizml -w quiz1.yaml
+```
+
+### Running as a Module
+
+You can also run QuizML directly as a Python module, which is useful for development or if the `quizml` executable is not in your path:
+
+```bash
+python3 -m quizml quiz.yaml
 ```
 

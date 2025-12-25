@@ -1,6 +1,8 @@
 ## Question Types Syntax <!-- {docsify-ignore} -->
 
-QuizML currently supports 5 types of questions.
+QuizML provided templates currently supports 5 types of questions but only
+`Essay`, `True/False`, `Multiple Choice` and `Multiple Answers` are currently
+implemented across all templates.
 
 ### Essay
 
@@ -82,6 +84,8 @@ possibilities. The (`A`,`B`) statements are shuffled when generating the exam
       B: 60–80 feet
 ```
 
+(only implemented for BlackBoard and HTML preview)
+
 ### Ordering
 
 In Ordering questions, the student is asked to rank each statement (`answer`) in
@@ -100,3 +104,4 @@ occurs when generating the exam (see how to set the random seed here).
     - Coast Redwood (Sequoia sempervirens)
 ```
 
+(only implemented for BlackBoard)

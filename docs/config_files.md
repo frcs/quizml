@@ -10,13 +10,15 @@ file is called `quizml.cfg`.
 
 QuizML will first try to read this file in 
 1. the local directory from which QuizML is called 
-2. the default application config dir 
-3. the install package templates dir
+2. the local templates subdirectory
+3. the default application config dir 
+4. the install package templates dir
 
 For instance, on my mac, it will be:
 1. `./quizml.cfg`
-2. `~/Library/Application\ Support/quizml/quizml.cfg`
-3. `~/Library/Python/3.9/lib/python/site-packages/quizml/templates/quizml.cfg`
+2. `quizml-templates/quizml.cfg`
+3. `~/Library/Application\ Support/quizml/quizml.cfg`
+4. `~/Library/Python/3.9/lib/python/site-packages/quizml/templates/quizml.cfg`
 
 You can otherwise directly specify the path with the `--config CONFIGFILE` option.
 

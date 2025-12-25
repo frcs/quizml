@@ -1,19 +1,18 @@
 ## Setting up your local LaTeX <!-- {docsify-ignore} -->
 
 
-To be able to compile the LaTeX targets, you will need to have the required
-LaTeX assets `.sty` `.cls` and other images. If we don't, trying to compile the
-LaTeX target will give out an error message like this one:
+To be able to compile the LaTeX targets, you might need to make sure to have the
+required LaTeX assets `.sty` `.cls` and other images. If we don't, trying to
+compile the LaTeX target will give out an error message like this one:
 
 ```
-! LaTeX Error: File `tcdexams.cls' not found.
+! LaTeX Error: File `exams.cls' not found.
 ```
 
 ### Using the local TEXMF tree
 
-
-The best way is to copy the templates in the local TEXMF tree so that LaTeX
-can see them. To know where your local tree is, you can run this command in the
+You can add these resources to your local TEXMF tree so that LaTeX can see
+them. To know where your local tree is, you can run this command in the
 terminal:
 
 ```shell-session
@@ -25,18 +24,18 @@ In my case it says that my local TEXMF tree is located at
 e.g., 
 
 ```shell-session
-$ mkdir -p  ~/Library/texmf/tex/latex/quizml-templates/
+$ mkdir -p  ~/Library/texmf/tex/latex/quizml/
 ```
 
-I can then copy the required templates to that location:
+I can then copy the required assets to that location.
 
 ```shell-session
-$ cp -r XXXX ~/Library/texmf/tex/latex/quizml-templates/
+$ cp -r my-latex-assets/* ~/Library/texmf/tex/latex/quizml/
 ```
 
 and then update LaTeX:
 ```shell-session
-$ texhash ~/Library/texmf/tex/latex/quizml-templates/
+$ texhash ~/Library/texmf/tex/latex/quizml/
 ```
 
 At that point you should be able to compile your LaTeX targets from anywhere.
@@ -45,11 +44,13 @@ At that point you should be able to compile your LaTeX targets from anywhere.
 ### Using the Environment Variables
 
 Alternatively, you can just set up the `TEXINPUTS` environment variable before
-using pdflatex. 
+using pdflatex. For instance, if you have set up a local copy of the templates
+using `quizml --init-local` and copied your LaTeX resouces there, you can
+compile your LaTeX output with something like:
 
 
 ```shell-session
-$ set TEXINPUTS=/path/to/package/a/c/b/c/d
+$ set TEXINPUTS=quizml-templates: latexmk -xelatex -pvc exam.tex
 ```
 
 
