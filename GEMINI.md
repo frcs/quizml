@@ -57,6 +57,3 @@ For example:
 - Fix: Fix loader and sets default schema
 - Refactor: Rename project structure to quizml
 
-
-
-

@@ -34,7 +34,7 @@ keywords = ["BlackBoard", "exam", "test", "quiz", "MCQ",  "YAML", "Markdown", "L
 
 [project.urls]
 Repository = "https://github.com/frcs/quizml.git"
-Homepage = "https://github.com/frcs/quizml"
+Homepage = "https://frcs.github.io/quizml"
 
 [project.scripts]
 quizml="quizml.cli.cli:main"
