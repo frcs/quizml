@@ -62,26 +62,96 @@ def is_string(checker, instance):
     return isinstance(instance, str)
 
 def is_number(checker, instance):
-    if not is_string(checker, instance): return False
-    try:
-        float(instance)
+    if isinstance(instance, (int, float)) and not isinstance(instance, bool):
         return True
-    except (ValueError, TypeError):
-        return False
+    if isinstance(instance, str):
+        try:
+            float(instance)
+            return True
+        except (ValueError, TypeError):
+            return False
+    return False
 
 def is_integer(checker, instance):
-    if not is_string(checker, instance): return False
-    try:
-        return str(int(instance)) == instance
-    except (ValueError, TypeError):
-        return False
+    if isinstance(instance, bool): return False
+    if isinstance(instance, int): return True
+    if isinstance(instance, str):
+        try:
+            return str(int(instance)) == instance
+        except (ValueError, TypeError):
+            return False
+    return False
 
 def is_boolean(checker, instance):
-    if not is_string(checker, instance): return False
-    return instance.lower() in ['true', 'false', 'yes', 'no', 'on', 'off']
+    if isinstance(instance, bool): return True
+    if isinstance(instance, str):
+        return instance.lower() in ['true', 'false', 'yes', 'no', 'on', 'off']
+    return False
 
 CustomTypeChecker = Draft7Validator.TYPE_CHECKER.redefine_many({
     "number": is_number, "integer": is_integer, "boolean": is_boolean})
+
+def coerce_value(value, schema):
+    """
+    Attempt to coerce the value to the types specified in schema.
+    Prioritizes Boolean > Integer > Number to match most specific types first.
+    """
+    types = schema.get("type", [])
+    if isinstance(types, str):
+        types = [types]
+        
+    # Check boolean
+    if "boolean" in types:
+        if is_boolean(None, value):
+            if isinstance(value, str):
+                return value.lower() in ['true', 'yes', 'on']
+            return value
+
+    # Check integer
+    if "integer" in types:
+        if is_integer(None, value):
+            if isinstance(value, str):
+                return int(value)
+            return value
+
+    # Check number
+    if "number" in types:
+        if is_number(None, value):
+            if isinstance(value, str):
+                return float(value)
+            return value
+            
+    return value
+
+def extend_with_coercion(validator_class):
+    """
+    Extends the validator to coerce types based on schema before validation.
+    """
+    validate_properties = validator_class.VALIDATORS["properties"]
+    validate_items = validator_class.VALIDATORS["items"]
+
+    def coercing_properties(validator, properties, instance, schema):
+        if isinstance(instance, dict):
+            for prop, subschema in properties.items():
+                if prop in instance:
+                    instance[prop] = coerce_value(instance[prop], subschema)
+        yield from validate_properties(validator, properties, instance, schema)
+
+    def coercing_items(validator, items, instance, schema):
+        if isinstance(instance, list):
+            if isinstance(items, dict):
+                for i in range(len(instance)):
+                    instance[i] = coerce_value(instance[i], items)
+            elif isinstance(items, list):
+                for i, subschema in enumerate(items):
+                    if i < len(instance):
+                        instance[i] = coerce_value(instance[i], subschema)
+        yield from validate_items(validator, items, instance, schema)
+
+    return validators.extend(
+        validator_class, 
+        {"properties": coercing_properties, "items": coercing_items}
+    )
 
 def extend_with_default(validator_class):
     validate_properties = validator_class.VALIDATORS["properties"]
@@ -93,8 +163,12 @@ def extend_with_default(validator_class):
         yield from validate_properties(validator, properties, instance, schema)
     return validators.extend(validator_class, {"properties": set_defaults})
 
+# Chain the validators: Defaults -> Coercion -> Validation
 DefaultFillingValidator = extend_with_default(
-    validators.extend(Draft7Validator, type_checker=CustomTypeChecker))
+    extend_with_coercion(
+        validators.extend(Draft7Validator, type_checker=CustomTypeChecker)
+    )
+)
 
 
 
