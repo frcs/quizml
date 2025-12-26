@@ -21,6 +21,7 @@ def render_template(context, template_filename):
     try:
         template_src = pathlib.Path(template_filename).read_text()        
         env = jinja2.Environment(
+            extensions=['jinja2.ext.do'],
             comment_start_string  ='<#',
             comment_end_string    ='#>',
             block_start_string    ='<|',
@@ -42,11 +43,9 @@ def render_template(context, template_filename):
         raise Jinja2SyntaxError(msg)
             
     except jinja2.UndefinedError as exc:
-        l = exc.lineno
-        msg = f"in {template_filename}, line {l}\n\n"
+        msg = f"in {template_filename}\n\n"
         msg = msg + exc.message + "\n\n"
-        msg = msg + "The template tries to access an undefined variable. "
-        msg = msg + "Have you checked if the header exits? \n\n"
+        msg = msg + "The template tries to access an undefined variable. \n\n"
         raise Jinja2SyntaxError(msg)
 
     except jinja2.TemplateError as exc:
