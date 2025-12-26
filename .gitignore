@@ -5,6 +5,20 @@
 *.fls
 *.fdb_latexmk
 *.xdv
+*.pdf
+*.toc
+*.out
+*.nav
+*.snm
+*.synctex.gz
+*.bbl
+*.blg
+
+# examples build products
+examples/*.txt
+examples/*.html
+examples/*.tex
+!examples/figures/*.tex
 
 # OSX 
 *.DS_Store
