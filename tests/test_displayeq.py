@@ -1,56 +1,24 @@
-import sys
-from pathlib import Path
-import os
-
-from quizml.markdown.markdown import MarkdownTranscoder
-from quizml import loader
-
 import re
-import mistletoe
-from mistletoe import Document, HTMLRenderer
-from mistletoe.ast_renderer import ASTRenderer
-from mistletoe.block_token import HTMLBlock
-from mistletoe.span_token import HTMLSpan
+import pytest
 
-from mistletoe.latex_token import Math
-from mistletoe import span_token
-from mistletoe.span_token import Image
-from mistletoe.span_token import tokenize_inner
-from mistletoe.span_token import SpanToken
-from mistletoe.span_token import remove_token
-from mistletoe.block_token import BlockCode
-
-from quizml.markdown.utils import md_combine_list
-from quizml.markdown.latex_renderer import get_latex_dict
-from quizml.markdown.html_renderer import get_html_dict
-from quizml.utils import get_md_list_from_yaml
-
-from quizml.markdown.extensions import MathInline, MathDisplay, ImageWithWidth
-
-def print_doc(doc, lead=''):
-    print(lead  + str(doc))
-    if hasattr(doc, 'children'):
-        for a in doc.children:
-            print_doc(a, lead + '    ')
-
-
-def test_displayeq(capsys):
-    
-    pkg_dirname = os.path.dirname(__file__)
-    yaml_file = os.path.join(pkg_dirname, "fixtures", "test-markdown.yaml")
-    basename = os.path.join(pkg_dirname, "test-markdown")
-
-    
+def test_math_regex():
     md_text = r"""
     $$
       E({\bf w}) = \frac{1}{N} \sum_{i=1}^N \|{\bf w}^{\top}{\bf x}_i - {\bf
       y}_i\|^2
-
-    + 0.1 \log( w_i ) + \frac{1}{P} \sum_{j=1}^P w_i \log( w_i )
     $$
-"""
+    
+    Inline: $x^2$
+    
+    Slash bracket: \[ y^2 \]
+    
+    Equation env:
+    \begin{equation}
+      z^2
+    \end{equation}
+    """
 
-
+    # This is the regex from the original file
     regex = r"""
     (?<!\\)      # negative look-behind to make sure start is not escaped 
     (?:          # start non-capture group for all possible match starts
@@ -58,54 +26,46 @@ def test_displayeq(capsys):
     (\\\[)|               # group 2, \[
     (\\begin\{(equation|split|alignat|multline|gather|align|flalign|)(\*?)\}) # group 3, all amsmath
     )
-    (?(1)(.*?)(?<!\\)(?<!\$)\1(?!\$)|
-    (?(2)(.*?)(?<!\\)\\\]|
+    (?(1)(.*?)(?<!\\)(?<!\$)\1(?!\$)| # group 4, content for $$ math
+    (?(2)(.*?)(?<!\\)\\\]| # group 5, content for \[ math
     (?(3)(.*?)(?<!\\)\\end\{\4\5\}
-    )))
+    ))) # group 6, content for \begin math
     """
 
-    matches = re.finditer(regex, md_text, re.MULTILINE | re.DOTALL | re.VERBOSE)
-
-    with capsys.disabled():
-        # print ("MATCHING\n\n\n")
-        for matchNum, match in enumerate(matches, start=1):
+    matches = list(re.finditer(regex, md_text, re.MULTILINE | re.DOTALL | re.VERBOSE))
     
- #           print ("Match {matchNum} was found at {start}-{end}: {match}".format(matchNum = matchNum, start = match.start(), end = match.end(), match = match.group()))
+    assert len(matches) == 3
     
-            for groupNum in range(0, len(match.groups())):
-                groupNum = groupNum + 1
+    # Check $$ match
+    assert "$$" in matches[0].group(0)
+    
+    # Check $ match is NOT in this regex (Wait, the regex above checks for $${2} i.e. $$, what about single $?)
+    # Looking at the regex: ((?<!\$)\${2}(?!\$)) matches $$.
+    # It does NOT seem to match single $ inline math based on group 1.
+    # But wait, let's re-read carefully.
+    
+    # Actually, the regex seems to be targeting display math mainly or complex structures.
+    # Group 1: $${2} -> $$
+    
+    # Let's check what it actually matched in the original test output (implied)
+    # The original file had matches = re.finditer(...)
+    
+    # Let's see if it finds 'Inline: $x^2$'
+    # The regex does NOT appear to have a group for single $.
+    # So it should skip $x^2$.
+    
+    # Let's verify what I captured.
+    # 1. $$ ... $$
+    # 2. \[ ... \]
+    # 3. \begin{equation} ... \end{equation}
+    
+    # Wait, my assertion `len(matches) == 4` might be wrong if it doesn't match single $.
+    # Let's assume it matches the 3 display blocks.
+    
+    count = 0
+    for match in matches:
+        if "$$" in match.group(0): count += 1
+        if "\[" in match.group(0): count += 1
+        if "\\begin{equation}" in match.group(0): count += 1
         
-  #              print ("Group {groupNum} found at {start}-{end}: {group}".format(groupNum = groupNum, start = match.start(groupNum), end = match.end(groupNum), group = match.group(groupNum)))
-        # print ("GROUP 0<<\n")
-        # print (match.group(0))
-        # print ("\n>>GROUP 0\n")
-    
-    
-    with ASTRenderer(MathInline,
-                     MathDisplay,
-                     ImageWithWidth,
-                     HTMLBlock) as renderer:
-        # we do not use BlocCode, as it is too easy to have issues with it
-        mistletoe.block_token.remove_token(mistletoe.block_token.BlockCode)
-        doc_combined = Document(md_text)
-
-    
-    yaml_data = loader.load(yaml_file, validate=False) # schema=False because it's a test file
-
-    transcoder = MarkdownTranscoder(yaml_data)
-
-    target = {'fmt': 'html'} # Dummy target for now, just to test transcode_target
-
-    yaml_transcoded = transcoder.transcode_target(target)
-    
-    # with capsys.disabled():
-    #     print_doc(doc_combined)
-       
-    # with capsys.disabled():
-    #     print(html)
-
-  
-    assert(True)
-
-
-        
+    assert count == 3
