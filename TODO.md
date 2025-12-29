@@ -10,7 +10,7 @@ The core objective is to keep the central mechanism as lean as possible, allowin
 # Backend
 
 * Perform a comprehensive audit of **exception handling**.
-* Review and refine **Ctrl+C (SIGINT) interrupt logic**.
+* Review and refine **Ctrl+C (SIGINT) interrupt logic**. (probably sorted now)
 * Further validate the **Schema**.
 * Consider switching from `pdflatex` to `dvipdfmx` to eliminate one redundant `latex` call.
 * Re-evaluate **MathML, SVG, and PNG** backends.

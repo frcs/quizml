@@ -1,9 +1,9 @@
-<| set ns = namespace(total_marks=0) |>
-<| set default_marks = {'mc': 2.5, 'ma': 2.5, 'tf': 2.5, 'essay': 5, 'matching': 2.5, 'ordering': 2.5} |>
+<| set ns = namespace(total_marks=0) -|>
+<| set default_marks = {'mc': 2.5, 'ma': 2.5, 'tf': 2.5, 'essay': 5, 'matching': 2.5, 'ordering': 2.5} -|>
 <| for q in questions if q.type in default_marks -|>
-    <| set q_marks = q.marks | float if q.marks is defined else default_marks.get(q.type, 0) |>
-    <| set ns.total_marks = ns.total_marks + q_marks |>
-<| endfor |>
+    <| set q_marks = q.marks | float if q.marks is defined else default_marks.get(q.type, 0) -|>
+    <| set ns.total_marks = ns.total_marks + q_marks -|>
+<| endfor -|>
 <!DOCTYPE html>
 <html dir="ltr" lang="en">
   <head>
@@ -353,7 +353,7 @@
             console.debug("LiveReload server unreachable");
         });
     }
-    setInterval(checkServerUpdate, 1000);
+    setInterval(checkServerUpdate, 100);
     <| else |>
     var lastModifiedHeader = null;
     function checkFileUpdate() {
@@ -371,7 +371,7 @@
             // Fails silently on file:// protocol usually
         });
     }
-    setInterval(checkFileUpdate, 1000);
+    setInterval(checkFileUpdate, 100);
     <| endif |>
 	    
 </script>
