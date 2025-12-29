@@ -1,49 +1,63 @@
 from docx import Document
 from docxtpl import DocxTemplate
 import sys
+import os
 
-def create_template(filename="template.docx"):
+def create_template(filename):
     doc = Document()
     
+    # Header
     doc.add_heading('{{ header.title }}', 0)
     
-    doc.add_paragraph('Duration: {{ header.duration }} minutes')
+    p = doc.add_paragraph()
+    p.add_run('Duration: ').bold = True
+    p.add_run('{{ header.duration }} minutes')
     
-    doc.add_paragraph('Instructions: {{ header.instructions }}')
+    p = doc.add_paragraph()
+    p.add_run('Instructions: ').bold = True
+    p.add_run('{{ header.instructions }}')
     
     doc.add_heading('Questions', level=1)
     
-    # Add a loop over questions
-    # Note: In docxtpl, loops are often done with {% for ... %} inside the document text
-    # or by using table rows. Here we'll just add text with jinja tags.
+    # Loop start
+    doc.add_paragraph('{% for q in questions %}')
     
-    p = doc.add_paragraph('{% for q in questions %}')
-    
+    # Question Title/Number
     doc.add_heading('Question {{ loop.index }}', level=2)
     
-    # We assume 'question' might contain some markdown/html, but for now just dump it
-    # docxtpl can handle RichText if we passed it, but here we just put the variable
+    # Question Text
     doc.add_paragraph('{{ q.question }}')
     
-    # Choices
-    p = doc.add_paragraph('{% if q.choices %}')
-    p = doc.add_paragraph('{% for c in q.choices %}')
-    # Handling the complex choice structure (list of dicts)
-    # This is a simplification, might need adjustment based on exact data structure
-    p = doc.add_paragraph(' - {{ c }}') 
-    p = doc.add_paragraph('{% endfor %}')
-    p = doc.add_paragraph('{% endif %}')
+    # Choices (conditional)
+    doc.add_paragraph('{% if q.choices %}')
     
-    p = doc.add_paragraph('{% endfor %}')
+    # Loop over choices
+    doc.add_paragraph('{% for c in q.choices %}')
     
+    # Handle list of dicts (standard quizml format: [{x: 'Wrong'}, {o: 'Right'}])
+    # or just simple strings if normalized.
+    # We'll use a jinja macro or just simple logic to print values.
+    # Since c is a dict like {'x': 'Text'}, we can iterate its values.
+    
+    # Simple bullet point
+    p = doc.add_paragraph('', style='List Bullet')
+    p.add_run('{{ c.values() | list | first }}')
+    
+    doc.add_paragraph('{% endfor %}') # end choices loop
+    doc.add_paragraph('{% endif %}')  # end choices check
+    
+    # Loop end
+    doc.add_paragraph('{% endfor %}')
+    
+    # Save
     doc.save(filename)
     print(f"Created {filename}")
 
 if __name__ == "__main__":
+    output_path = os.path.join(os.path.dirname(__file__), "prototype.docx")
     try:
         import docxtpl
+        create_template(output_path)
     except ImportError:
         print("Please install docxtpl: pip install docxtpl")
         sys.exit(1)
-        
-    create_template("quiz_template.docx")
