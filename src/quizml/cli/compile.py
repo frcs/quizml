@@ -6,6 +6,7 @@ import subprocess
 import shlex
 
 import logging
+import threading
 
 from rich import print
 from rich_argparse import *
@@ -412,24 +413,44 @@ def compile_on_change(args):
 
     """
 
-    waitingtxt = ("\n...waiting for a file change"
+    waitingtxt = ("\n...waiting for a file change "
                   "to re-compile the document...\n ")
     print(waitingtxt)
+    
     full_yaml_path = os.path.abspath(args.yaml_filename)
+    rebuild_event = threading.Event()
+
     class Handler(FileSystemEventHandler):
         def on_modified(self, event):
-            if event.src_path == full_yaml_path:
-                compile(args)
-                print(waitingtxt)
+            if os.path.abspath(event.src_path) == full_yaml_path:
+                rebuild_event.set()
+        
+        def on_moved(self, event):
+            # Support for editors that use atomic saves (write to tmp -> rename)
+            if os.path.abspath(event.dest_path) == full_yaml_path:
+                rebuild_event.set()
                
     observer = Observer()
     observer.schedule(Handler(), ".") # watch the local directory
     observer.start()
 
     try:
-        while observer.is_alive():
-            observer.join(1)
+        while True:
+            # Wait for the event, checking every 0.5s to allow KeyboardInterrupt
+            if rebuild_event.wait(timeout=0.5):
+                rebuild_event.clear()
+                
+                # Debounce: wait a brief moment for file operations to settle
+                sleep(0.1)
+                # Clear any events that occurred during the sleep
+                rebuild_event.clear()
+
+                print("[bold yellow]Change detected, re-compiling...[/bold yellow]")
+                compile(args)
+                print(waitingtxt)
+
     except KeyboardInterrupt:
+        print("[bold red]Stopping watch mode...[/bold red]")
         observer.stop()
 
     observer.join()
