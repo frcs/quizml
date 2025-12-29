@@ -32,6 +32,7 @@ from .image_embedding import embed_base64
 from .extensions import MathInline, MathDisplay, ImageWithWidth
 from .latextools import LatexRunner
 from ..exceptions import LatexCompilationError, MarkdownAttributeError
+from ..cache import compute_hash, get_from_cache, save_to_cache
 from mistletoe import span_token
 
 
@@ -160,8 +161,29 @@ def build_eq_dict_PNG(eq_list, opts):
         + "\\begin{document}\n"
     )
 
-    latex_body = ""
+    # Check cache first
+    settings_str = latex_preamble + "PNG"
+    to_compile = []
+    
     for eq in eq_list:
+        h = compute_hash(eq.content, settings_str)
+        cached_html = get_from_cache(h)
+        
+        if isinstance(eq, MathInline):
+            key = "##Inline##" + eq.content
+        else:
+            key = "##Display##" + eq.content
+            
+        if cached_html:
+            eq_dict[key] = cached_html
+        else:
+            to_compile.append(eq)
+
+    if not to_compile:
+        return eq_dict
+
+    latex_body = ""
+    for eq in to_compile:
         if isinstance(eq, MathInline):
             latex_body += "\\setbox0=\\hbox{" + eq.content + "}\n"
             latex_body += ("\\makeatletter\\typeout{:::"
@@ -178,13 +200,14 @@ def build_eq_dict_PNG(eq_list, opts):
             pdf_filename, depthratio = latex_runner.run_pdflatex(latex_content)
             png_files = latex_runner.run_gs_png(pdf_filename)
 
-            for i, (eq, png_file) in enumerate(zip(eq_list, png_files)):
+            for i, (eq, png_file) in enumerate(zip(to_compile, png_files)):
                 w, h, data64 = embed_base64(png_file)
                 d = depthratio[i]
                 d_ = round(d * w * 0.5, 2)
                 w_ = round(w / 2)
                 h_ = round(h / 2)
-
+                
+                html_img = ""
                 if isinstance(eq, MathInline):
                     key = "##Inline##" + eq.content
                     html_img = (
@@ -204,6 +227,10 @@ def build_eq_dict_PNG(eq_list, opts):
                     )
                     logging.debug(f"[eq-display] '{html_img}'")
                     eq_dict[key] = html_img
+                
+                # Save to cache
+                h = compute_hash(eq.content, settings_str)
+                save_to_cache(h, html_img)
 
     except (LatexCompilationError) as e:
         # Re-raise to be caught by the CLI
@@ -242,8 +269,27 @@ def build_eq_dict_SVG(eq_list, opts):
         + "\\begin{document}\n"
     )
 
-    latex_body = ""
+    settings_str = latex_preamble + "SVG"
+    to_compile = []
+
     for eq in eq_list:
+        h = compute_hash(eq.content, settings_str)
+        cached_html = get_from_cache(h)
+        if isinstance(eq, MathInline):
+            key = "##Inline##" + eq.content
+        else:
+            key = "##Display##" + eq.content
+            
+        if cached_html:
+            eq_dict[key] = cached_html
+        else:
+            to_compile.append(eq)
+            
+    if not to_compile:
+        return eq_dict
+
+    latex_body = ""
+    for eq in to_compile:
         if isinstance(eq, MathInline):
             latex_body += "\\sbox{0}{" + eq.content + "}\n"
             latex_body += "\\ifdim\\dimexpr\\ht0-\\dp0>4.8pt\n"
@@ -260,11 +306,12 @@ def build_eq_dict_SVG(eq_list, opts):
             dvi_path = latex_runner.run_latex_dvi(latex_content)
             svg_files = latex_runner.run_dvisvgm_svg(dvi_path)
 
-            for eq, svg_file in zip(eq_list, svg_files):
+            for eq, svg_file in zip(to_compile, svg_files):
                 _, _, data64 = embed_base64(svg_file)
                 alt_text = escape_LaTeX(eq.content)
                 style = "vertical-align:middle;"
 
+                html_img = ""
                 if isinstance(eq, MathInline):
                     key = "##Inline##" + eq.content
                     html_img = f"<img src='{data64}' alt='{alt_text}' style='{style}'>"
@@ -275,6 +322,10 @@ def build_eq_dict_SVG(eq_list, opts):
                     html_img = f"<img src='{data64}' alt='{alt_text}' style='{style}'>"
                     logging.debug(f"[eq-display] '{html_img}'")
                     eq_dict[key] = html_img
+                
+                # Save cache
+                h = compute_hash(eq.content, settings_str)
+                save_to_cache(h, html_img)
 
     except LatexCompilationError as e:
         raise e
@@ -302,7 +353,26 @@ def build_eq_dict_MathML(eq_list, opts):
         + "\\begin{document}\n"
     )
 
-    latex_body = "\n".join(eq.content for eq in eq_list)
+    settings_str = latex_preamble + "MathML"
+    to_compile = []
+    
+    for eq in eq_list:
+        h = compute_hash(eq.content, settings_str)
+        cached_html = get_from_cache(h)
+        if isinstance(eq, MathInline):
+            key = "##Inline##" + eq.content
+        else:
+            key = "##Display##" + eq.content
+        
+        if cached_html:
+            eq_dict[key] = cached_html
+        else:
+            to_compile.append(eq)
+            
+    if not to_compile:
+        return eq_dict
+
+    latex_body = "\n".join(eq.content for eq in to_compile)
     latex_content = latex_preamble + latex_body + "\n\\end{document}\n"
 
     try:
@@ -313,21 +383,23 @@ def build_eq_dict_MathML(eq_list, opts):
             regex = r"(<math.*?<\/math>)"
             eq_list_str = re.findall(regex, make4ht_out, re.DOTALL)
 
-            if len(eq_list_str) != len(eq_list):
+            if len(eq_list_str) != len(to_compile):
                 raise LatexCompilationError(
                     "Mismatch between number of equations and make4ht output.\n"
-                    f"Expected {len(eq_list)}, got {len(eq_list_str)}."
+                    f"Expected {len(to_compile)}, got {len(eq_list_str)}."
                 )
 
-            for i, eq in enumerate(eq_list):
+            for i, eq in enumerate(to_compile):
+                mathml = eq_list_str[i]
+                h = compute_hash(eq.content, settings_str)
+                save_to_cache(h, mathml)
+                
                 if isinstance(eq, MathInline):
                     key = "##Inline##" + eq.content
-                    mathml = eq_list_str[i]
                     logging.debug(f"[eq-inline] '{mathml}'")
                     eq_dict[key] = mathml
                 else:
                     key = "##Display##" + eq.content
-                    mathml = eq_list_str[i]
                     logging.debug(f"[eq-display] '{mathml}'")
                     eq_dict[key] = mathml
 
