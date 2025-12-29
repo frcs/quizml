@@ -143,6 +143,7 @@ def main():
 
     try:
         logging.basicConfig(
+            force=True,
             level=args.loglevel,
             format="%(message)s",
             datefmt="[%X]",

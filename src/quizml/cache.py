@@ -5,12 +5,15 @@ import appdirs
 import json
 import logging
 from pathlib import Path
+import functools
 
 CACHE_DIR = appdirs.user_cache_dir("quizml")
 
+@functools.lru_cache(maxsize=1)
 def get_cache_dir():
     """Returns the cache directory, creating it if it doesn't exist."""
     os.makedirs(CACHE_DIR, exist_ok=True)
+    logging.debug(f"Cache dir: {CACHE_DIR}")
     return Path(CACHE_DIR)
 
 def compute_hash(content, settings_str=""):
@@ -23,6 +26,7 @@ def compute_hash(content, settings_str=""):
 def get_from_cache(key):
     """Retrieves data from cache if it exists."""
     cache_path = get_cache_dir() / f"{key}.json"
+    
     if cache_path.exists():
         try:
             return json.loads(cache_path.read_text())
