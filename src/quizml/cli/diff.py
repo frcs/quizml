@@ -7,6 +7,8 @@ from rich.table import Table
 from rich.table import box
 from rich.console import Console
 
+import difflib
+
 from quizml.loader import load
 # from quizml.stats import get_questions
 # from quizml.stats import get_stats
@@ -18,9 +20,48 @@ from quizml.exceptions import QuizMLYamlSyntaxError
 # from rich.logging import RichHandler
 
 
-# at the moment this is pretty basic
+def normalize_text(text):
+    """Normalize whitespace and case."""
+    if not isinstance(text, str):
+        return str(text)
+    return ' '.join(text.strip().lower().split())
+
+def get_choices_content(q):
+    """Extracts choices content as a sorted list of strings."""
+    choices = q.get('choices', [])
+    content = []
+    if isinstance(choices, list):
+        for c in choices:
+            # Handle list of dicts or strings
+            if isinstance(c, dict):
+                for v in c.values():
+                    content.append(normalize_text(v))
+            else:
+                content.append(normalize_text(str(c)))
+    return sorted(content)
+
 def questions_are_similar(q1, q2):
-    return q1 == q2
+    # Check type first
+    if q1.get('type') != q2.get('type'):
+        return False
+        
+    # Compare question text
+    t1 = normalize_text(q1.get('question', ''))
+    t2 = normalize_text(q2.get('question', ''))
+    
+    # Fuzzy match threshold for question text
+    matcher = difflib.SequenceMatcher(None, t1, t2)
+    if matcher.ratio() < 0.9: # 90% similarity
+        return False
+        
+    # Compare choices if they exist (normalized strict match)
+    c1 = get_choices_content(q1)
+    c2 = get_choices_content(q2)
+    
+    if c1 != c2:
+        return False 
+        
+    return True
 
 
 def diff(args):
@@ -44,7 +85,7 @@ def diff(args):
         try:
             # we need to turn off schema for speed this is OK because
             # everything will be considered as Strings anyway
-            filedata[f] = load(f, schema=False) 
+            filedata[f] = load(f, validate=False) 
         except QuizMLYamlSyntaxError as err:
             print(Panel(str(err),
                         title=f"QuizMLYaml Syntax Error in file {f}",
@@ -61,15 +102,20 @@ def diff(args):
     
     for i, qr in enumerate(ref_questions):
 
-        lines = qr['question'].splitlines()
-        long_excerpt = f"{lines[0]}" + (" […]" if len(lines)>1 else "")
-        if 'choices' in qr:
+        lines = str(qr.get('question', '')).splitlines()
+        long_excerpt = (lines[0] if lines else "") + (" […]" if len(lines)>1 else "")
+        
+        if 'choices' in qr and isinstance(qr['choices'], list):
             for ans in qr['choices']:
-                if ('true' in ans):
-                    lines = ans['true'].splitlines()
-                    long_excerpt += f"\n  * {lines[0]}" + (" […]" if len(lines)>1 else "")
-                if ('false' in ans):
-                    lines = ans['false'].splitlines()
+                val_str = ""
+                if isinstance(ans, dict):
+                    # Concatenate values of keys like x, o, true, false
+                    val_str = " ".join([str(v) for v in ans.values()])
+                else:
+                    val_str = str(ans)
+                
+                lines = val_str.splitlines()
+                if lines:
                     long_excerpt += f"\n  * {lines[0]}" + (" […]" if len(lines)>1 else "")
                        
         qstats.append({"type": qr['type'],

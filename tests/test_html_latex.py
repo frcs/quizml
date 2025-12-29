@@ -20,13 +20,18 @@ def create_mock_display(content):
     return MathDisplay([content])
 
 
+@patch('quizml.markdown.html_renderer.save_to_cache')
+@patch('quizml.markdown.html_renderer.get_from_cache')
 @patch('quizml.markdown.html_renderer.embed_base64')
 @patch('quizml.markdown.html_renderer.LatexRunner')
-def test_build_eq_dict_png_success(MockLatexRunner, mock_embed_base64):
+def test_build_eq_dict_png_success(MockLatexRunner, mock_embed_base64, mock_get_from_cache, mock_save_to_cache):
     """
     Tests that build_eq_dict_PNG successfully generates an image dictionary
     by mocking the external pdflatex and gs commands.
     """
+    # 0. Setup Cache Mock
+    mock_get_from_cache.return_value = None
+
     # 1. Setup Mocks
     mock_latex_runner_instance = MockLatexRunner.return_value.__enter__.return_value
     mock_latex_runner_instance.run_pdflatex.return_value = (Path("/tmp/fake.pdf"), [0.5, 0.0])
@@ -77,12 +82,16 @@ def test_build_eq_dict_png_success(MockLatexRunner, mock_embed_base64):
     assert "height='40'" in display_html
 
 
+@patch('quizml.markdown.html_renderer.get_from_cache')
 @patch('quizml.markdown.html_renderer.LatexRunner')
-def test_build_eq_dict_png_latex_error(MockLatexRunner):
+def test_build_eq_dict_png_latex_error(MockLatexRunner, mock_get_from_cache):
     """
     Tests that build_eq_dict_PNG properly propagates a LatexCompilationError
     if the mocked pdflatex command fails.
     """
+    # 0. Setup Cache Mock
+    mock_get_from_cache.return_value = None
+
     # 1. Setup Mock
     mock_latex_runner_instance = MockLatexRunner.return_value.__enter__.return_value
     mock_latex_runner_instance.run_pdflatex.side_effect = LatexCompilationError("LaTeX failed!")
