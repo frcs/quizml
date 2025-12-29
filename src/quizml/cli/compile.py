@@ -331,7 +331,12 @@ def compile_target(target, transcoder, extra_context=None):
         rendered_doc = renderer.render(yaml_transcoded,
                                        target['template'],
                                        extra_context)
-        pathlib.Path(target['out']).write_text(rendered_doc)
+        
+        if isinstance(rendered_doc, bytes):
+            pathlib.Path(target['out']).write_bytes(rendered_doc)
+        else:
+            pathlib.Path(target['out']).write_text(rendered_doc)
+            
         success = True
 
     except LatexEqError as err:

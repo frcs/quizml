@@ -73,6 +73,10 @@ def render(yaml_data, template_filename, extra_context=None):
     if extra_context:
         context.update(extra_context)
    
+    if template_filename.endswith('.docx'):
+        from quizml import docx_renderer
+        return docx_renderer.render(context, template_filename)
+
     return render_template(context, template_filename)
             
     return ''
