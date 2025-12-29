@@ -331,6 +331,48 @@
 		}
 		
 	});
+
+    // Auto-reload polling
+    // If livereload_port is defined (by compile.py --watch), we poll the local server
+    // otherwise we try to poll the file itself (works only if served via HTTP)
+    
+    <| if livereload_port is defined |>
+    var lastTimestamp = null;
+    function checkServerUpdate() {
+        fetch("http://localhost:<< livereload_port >>/status")
+        .then(res => res.json())
+        .then(data => {
+            if (lastTimestamp === null) {
+                lastTimestamp = data.timestamp;
+            } else if (data.timestamp > lastTimestamp) {
+                console.log("File changed (server), reloading...");
+                window.location.reload();
+            }
+        })
+        .catch(err => {
+            console.debug("LiveReload server unreachable");
+        });
+    }
+    setInterval(checkServerUpdate, 1000);
+    <| else |>
+    var lastModifiedHeader = null;
+    function checkFileUpdate() {
+        fetch(window.location.href, {method: 'HEAD', cache: 'no-cache'})
+        .then(res => {
+            const lm = res.headers.get('Last-Modified');
+            if (lastModifiedHeader === null) {
+                lastModifiedHeader = lm;
+            } else if (lm && lm !== lastModifiedHeader) {
+                console.log("File changed, reloading...");
+                window.location.reload();
+            }
+        })
+        .catch(err => {
+            // Fails silently on file:// protocol usually
+        });
+    }
+    setInterval(checkFileUpdate, 1000);
+    <| endif |>
 	    
 </script>
 

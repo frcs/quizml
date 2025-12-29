@@ -7,6 +7,11 @@ import shlex
 
 import logging
 import threading
+import http.server
+import socketserver
+import json
+import socket
+import time
 
 from rich import print
 from rich_argparse import *
@@ -64,6 +69,50 @@ class CustomTableElement(TableElement):
             yield table
 
 Markdown.elements["table_open"] = CustomTableElement
+
+# Global state for the LiveReload server
+LIVERELOAD_PORT = None
+LIVERELOAD_TIMESTAMP = 0.0
+SERVER_THREAD = None
+
+class LiveReloadHandler(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, format, *args):
+        pass # Silence logs
+
+    def do_GET(self):
+        if self.path == '/status':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+            data = json.dumps({'timestamp': LIVERELOAD_TIMESTAMP})
+            self.wfile.write(data.encode())
+        else:
+            self.send_error(404)
+
+def start_livereload_server():
+    global LIVERELOAD_PORT, SERVER_THREAD
+    if SERVER_THREAD is not None:
+        return
+
+    # Find a free port
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('', 0))
+            LIVERELOAD_PORT = s.getsockname()[1]
+
+        def run_server():
+            # Allow address reuse to prevent issues if we restart quickly
+            socketserver.TCPServer.allow_reuse_address = True
+            with socketserver.TCPServer(("", LIVERELOAD_PORT), LiveReloadHandler) as httpd:
+                httpd.serve_forever()
+
+        SERVER_THREAD = threading.Thread(target=run_server, daemon=True)
+        SERVER_THREAD.start()
+        # print(f"[dim]LiveReload server started on port {LIVERELOAD_PORT}[/dim]")
+    except Exception as e:
+        print_error(f"Failed to start LiveReload server: {e}", title="Warning")
 
 
 def get_config(args):
@@ -272,7 +321,7 @@ def compile_cmd_target(target):
     
 
     
-def compile_target(target, transcoder):
+def compile_target(target, transcoder, extra_context=None):
     """compiles one target
 
     """
@@ -280,7 +329,8 @@ def compile_target(target, transcoder):
     try:
         yaml_transcoded = transcoder.transcode_target(target)
         rendered_doc = renderer.render(yaml_transcoded,
-                                       target['template'])
+                                       target['template'],
+                                       extra_context)
         pathlib.Path(target['out']).write_text(rendered_doc)
         success = True
 
@@ -357,6 +407,13 @@ def compile(args):
         print_error(str(err), title="Template NotFoundError")
         return
 
+    # Prepare LiveReload if watching
+    extra_context = {}
+    if args.watch:
+        start_livereload_server()
+        if LIVERELOAD_PORT:
+            extra_context['livereload_port'] = LIVERELOAD_PORT
+
     # sets up list of the output for each build
     targets_output = []
     targets_quiet_output = []
@@ -384,7 +441,7 @@ def compile(args):
 
         # a template task that needs to be rendered
         if ("template" in target):
-            success = compile_target(target, transcoder)
+            success = compile_target(target, transcoder, extra_context)
             
         success_list[target['name']] = success
         
@@ -400,6 +457,10 @@ def compile(args):
         if not success:
             break
         
+    # Update timestamp for LiveReload clients
+    global LIVERELOAD_TIMESTAMP
+    LIVERELOAD_TIMESTAMP = time.time()
+
     # diplay stats about the outputs
     if not args.quiet:
         print_table_ouputs(targets_output)

@@ -62,13 +62,16 @@ def render_template(context, template_filename):
     return render_content
 
 
-def render(yaml_data, template_filename):
+def render(yaml_data, template_filename, extra_context=None):
 
     context = {
         "header"      : yaml_data['header'],
         "questions"   : yaml_data['questions'],
         # "total_marks" : get_total_marks(yaml_data)
     }
+    
+    if extra_context:
+        context.update(extra_context)
    
     return render_template(context, template_filename)
             
