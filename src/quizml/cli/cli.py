@@ -16,12 +16,6 @@ from rich import print
 
 from importlib.metadata import version
 
-import quizml.cli.compile
-import quizml.cli.cleanup
-import quizml.cli.diff
-import quizml.cli.shellcompletion
-import quizml.cli.init
-
 from ..exceptions import QuizMLError
 
 
@@ -151,6 +145,7 @@ def main():
         )
 
         if args.target_list:
+            import quizml.cli.compile
             quizml.cli.compile.print_target_list(args)
             return
 
@@ -161,19 +156,23 @@ def main():
             return
         
         if args.shell_completion:
+            import quizml.cli.shellcompletion
             completion_func = getattr(quizml.cli.shellcompletion, args.shell_completion)
             sys.stdout.write(completion_func(parser) + '\n')
             return
 
         if args.cleanup:
+            import quizml.cli.cleanup
             quizml.cli.cleanup.cleanup_yaml_files()
             return
 
         if args.init_user:
+            import quizml.cli.init
             quizml.cli.init.init_user()
             return
 
         if args.init_local:
+            import quizml.cli.init
             quizml.cli.init.init_local()
             return
         
@@ -181,12 +180,14 @@ def main():
             parser.error("a yaml file is required")
 
         if args.diff:
+            import quizml.cli.diff
             quizml.cli.diff.diff(args)
             return
         
         if args.otherfiles:
             parser.error("only one yaml file is required")
         
+        import quizml.cli.compile
         if args.watch:
             quizml.cli.compile.compile(args)
             quizml.cli.compile.compile_on_change(args)
