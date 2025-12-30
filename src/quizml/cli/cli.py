@@ -145,8 +145,8 @@ def main():
         )
 
         if args.target_list:
-            import quizml.cli.compile
-            quizml.cli.compile.print_target_list(args)
+            import quizml.cli.ui
+            quizml.cli.ui.print_target_list(args)
             return
 
         if args.print_package_templates_path:

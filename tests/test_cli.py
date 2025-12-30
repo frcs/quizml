@@ -5,7 +5,7 @@ import sys
 from quizml.cli.cli import main
 from quizml.exceptions import QuizMLError
 
-@patch('quizml.cli.compile.print_target_list')
+@patch('quizml.cli.ui.print_target_list')
 def test_target_list(mock_print_target_list):
     with patch.object(sys, 'argv', ['quizml', '--target-list']):
         main()
