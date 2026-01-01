@@ -68,11 +68,15 @@ def get_target_list(args, config, yaml_data):
 
     # if CLI provided specific list of required target names
     # we compile a list of all the required target names
+    target_names = args.target
+    if not target_names:
+        target_names = config.get('default_targets')
+
     required_target_names_set = get_required_target_names_set(
-        args.target, config['targets'])
+        target_names, config['targets'])
    
-    if args.target:
-        logging.info(f"requested target list:{args.target}")
+    if target_names:
+        logging.info(f"requested target list:{target_names}")
         logging.info(f"required target list:{required_target_names_set}")
 
     target_list = []

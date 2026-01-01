@@ -24,6 +24,18 @@ BlackBoard csv quiz file can be defined as the following target:
     template  : bb.jinja                 # filename for the jinja template used
 ```
 
+### Default Targets
+
+You can specify a subset of targets to be compiled by default when no `--target` option is provided.
+
+```yaml
+default_targets:
+  - html-preview
+  - latex
+```
+
+If `default_targets` is not defined, all targets are compiled by default.
+
 As for the config file directory, any resource file or template file is defined
 as a relative path, the template is searched in:
 1. the local directory from which QuizML is called 
