@@ -105,11 +105,6 @@ def main():
         action="store_true")
 
     parser.add_argument(
-        "--print-package-templates-path",
-        help="print path for quizml's package templates directory",
-        action="store_true")
-    
-    parser.add_argument(
         "--shell-completion",
         choices=['bash', 'zsh', 'fish'],
         help="print shell completion script for the specified shell"
@@ -176,12 +171,6 @@ def main():
             sys.stdout.write(json.dumps(info, indent=4) + '\n')
             return
 
-        if args.print_package_templates_path:
-            templates_path = os.path.abspath(
-                os.path.join(__file__, "..", "..", "templates"))
-            print(f'{templates_path}')
-            return
-        
         if args.shell_completion:
             import quizml.cli.shellcompletion
             completion_func = getattr(quizml.cli.shellcompletion, args.shell_completion)

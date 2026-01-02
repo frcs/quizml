@@ -37,7 +37,6 @@ quizml -t bb quiz.yaml
 ```bash
 Usage: quizml [-h] [-w] [-t TARGET] [--target-list] [--init-local]
               [--init-user] [--config CONFIGFILE] [--build] [--diff] [-C]
-              [--print-package-templates-path]
 			  [--shell-completion {bash,zsh,fish}] [-v] [--debug]
 			  [--verbose] [--quiet]
               [quiz.yaml] [otherfiles ...]
@@ -60,7 +59,6 @@ Usage: quizml [-h] [-w] [-t TARGET] [--target-list] [--init-local]
 * `--build`: compiles all targets and run all post-compilation commands
 * `--diff`: compares questions from first yaml file to rest of files
 * `-C`, `--cleanup`: deletes build artefacts from all yaml files in dir
-* `--print-package-templates-path`: print path for quizml's package templates directory
 * `--shell-completion {bash,zsh,fish}`: print shell completion script for the specified shell
 * `-v`, `--version`: show program's version number and exit
 * `--debug`: Print lots of debugging statements
