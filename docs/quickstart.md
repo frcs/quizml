@@ -1,5 +1,6 @@
+## Quick Start
 
-## Installation 
+### Installation 
 
 This is a command line application written in Python. Assuming that you have
 python and pip installed, you can simply install it with:
@@ -8,17 +9,16 @@ python and pip installed, you can simply install it with:
 $ pip install quizml
 ```
 
-## LaTeX
+### LaTeX
 
-You will need a LaTeX installation with `gs` and `pdflatex` (e.g., [MacTeX](https://www.tug.org/mactex/) or `texlive`).
+You will need a LaTeX installation with `gs` and `pdflatex` (e.g.,
+[MacTeX](https://www.tug.org/mactex/) or `texlive`). 
 
-For handling **SVG images** in LaTeX output:
-* QuizML will automatically look for a `.pdf`, `.png`, or `.jpg` version of the image in the same directory.
-* If only an `.svg` is present, it will attempt to convert it to PDF using `rsvg-convert` or `inkscape`.
-* Therefore, installing `librsvg` (which provides `rsvg-convert`) or `inkscape` is recommended but **optional** if you provide fallback images (e.g., `.png`).
+You might also want to install `librsvg` to automatically convert `.svg` files
+to `.pdf`.
 
 
-## Configuration File and Templates
+### Configuration File and Templates
 
 Out-of-the-box, QuizML comes with a number of template targets:
 

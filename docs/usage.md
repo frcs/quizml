@@ -35,8 +35,11 @@ quizml -t bb quiz.yaml
 
 
 ```bash
-Usage: quizml [-h] [-w] [-t TARGET] [--target-list] [--init-local] [--init-user] [--config CONFIGFILE] [--build] [--diff] [-C]
-              [--print-package-templates-path] [--shell-completion {bash,zsh,fish}] [-v] [--debug] [--verbose] [--quiet]
+Usage: quizml [-h] [-w] [-t TARGET] [--target-list] [--init-local]
+              [--init-user] [--config CONFIGFILE] [--build] [--diff] [-C]
+              [--print-package-templates-path]
+			  [--shell-completion {bash,zsh,fish}] [-v] [--debug]
+			  [--verbose] [--quiet]
               [quiz.yaml] [otherfiles ...]
 ```
 
@@ -72,21 +75,21 @@ Usage: quizml [-h] [-w] [-t TARGET] [--target-list] [--init-local] [--init-user]
 ```shell-session
 $ quizml quiz1.yaml
 
-     Q  Type  Marks  #  Exp  Question Statement
-    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-     1   mc     5.0  4  1.2  If vector ${\bf w}$ is of dimension $3 \times 1$ and matrix ${\bf A}$ of...
-     2   tf     5.0  2  2.5  Is this the image of a tree?
+  Q  Type  Marks  #  Exp  Question Statement
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1   mc     5.0  4  1.2  If vector ${\bf w}$ is of dimension $3 \times 1$ ...
+  2   tf     5.0  2  2.5  Is this the image of a tree?
 
-    Total: 10.0 (with random expected mark at 37.5%)
+  Total: 10.0 (with random expected mark at 37.5%)
 
-╭────────────────────────────────────── Target Ouputs ──────────────────────────────────────╮
-│                                                                                           │
-│   BlackBoard CSV   quiz1.txt                                                              │
-│   html preview     quiz1.html                                                             │
-│   latex            latexmk -xelatex -pvc quiz1.tex                                        │
-│   Latex solutions  latexmk -xelatex -pvc quiz1.solutions.tex                               │
-│                                                                                           │
-╰───────────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────── Target Ouputs ────────────────────────────────╮
+│                                                                               │
+│   BlackBoard CSV   quiz1.txt                                                  │
+│   html preview     quiz1.html                                                 │
+│   latex            latexmk -xelatex -pvc quiz1.tex                            │
+│   Latex solutions  latexmk -xelatex -pvc quiz1.solutions.tex                  │
+│                                                                               │
+╰───────────────────────────────────────────────────────────────────────────────╯
 ```
 
 The command returns a table that summarises some statistics about this

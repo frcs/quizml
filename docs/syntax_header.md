@@ -1,4 +1,4 @@
-## Header <!-- {docsify-ignore} -->
+## The Header Section<!-- {docsify-ignore} -->
 
 An optional header section can be declared at the start of the yaml file. All
 (key, val) pairs declared in this section will be sent to the template

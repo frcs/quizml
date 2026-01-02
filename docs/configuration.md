@@ -1,4 +1,4 @@
-# Configuration File and Target Templates
+## Configuration File and Target Templates
 
 After reading the QuizMLYaml file and converting the markdown entries into LaTeX or
 HTML, QuizML uses jinja2 templates to render the various targets (BlackBoard
@@ -6,7 +6,7 @@ compatible quiz, HTML preview or LaTeX).
 
 
 
-## Defining Your Own Targets
+### Defining Your Own Targets
 
 The configuration file defines the list of all the targets. For instance, the
 BlackBoard csv quiz file can be defined as the following target:
@@ -43,7 +43,7 @@ as a relative path, the template is searched in:
 3. the install package templates dir
 
 
-## Writing Your Own Rendering Templates
+### Writing Your Own Rendering Templates
 
 Templates are rendered with Jinja2. The [Jinja2 Template Designer
 Documentation](https://jinja.palletsprojects.com/en/3.1.x/templates/) provides
