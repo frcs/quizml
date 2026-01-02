@@ -1,4 +1,4 @@
-# Usage
+## Usage
 
 
 This document explains how to use the `quizml` command-line tool, which converts questions in a YAML/markdown format into a Blackboard test or a LaTeX script.
@@ -42,27 +42,27 @@ Usage: quizml [-h] [-w] [-t TARGET] [--target-list] [--init-local] [--init-user]
 
 ### Positional Arguments
 
-* `quiz.yaml`: The primary input file containing the quiz questions in YAML format.
-* `otherfiles`: (Optional) Additional YAML files to compare questions against the primary `quiz.yaml` file (only used with `--diff` command).
+* `quiz.yaml`: path to the quiz in a yaml format
+* `otherfiles`: other yaml files (only used with diff command)
 
 ### Optional Arguments
 
-* `-h`, `--help`: Show this help message and exit.
-* `-w`, `--watch`: Continuously compiles the document on file change.
-* `-t`, `--target TARGET`: Specific target names to compile (e.g. 'pdf', 'html-preview'). Can be specified multiple times.
-* `--target-list`: List all targets defined in the configuration file.
-* `--init-local`: Create a local directory 'quizml-templates' with all configuration files.
-* `--init-user`: Create the user application directory with all its configuration files.
-* `--config CONFIGFILE`: Sets path to a specific config file.
-* `--build`: Compiles all targets and runs all post-compilation commands.
-* `--diff`: Compares questions from the first YAML file to the rest of the files.
-* `-C`, `--cleanup`: Deletes build artefacts from all YAML files in the current directory.
-* `--print-package-templates-path`: Print the path for QuizML's package templates directory.
-* `--shell-completion {bash,zsh,fish}`: Print shell completion script for the specified shell.
-* `-v`, `--version`: Show program's version number and exit.
-* `--debug`: Print lots of debugging statements.
-* `--verbose`: Set verbose mode on.
-* `--quiet`: Turn off informational statements.
+* `-h`, `--help`: show this help message and exit
+* `-w`, `--watch`: continuously compiles the document on file change
+* `-t`, `--target TARGET`: target names (e.g. 'pdf', 'html-preview')
+* `--target-list`: list all targets in config file
+* `--init-local`: create a local directory 'quizml-templates' with all config files
+* `--init-user`: create the user app directory with all its config files
+* `--config CONFIGFILE`: user config file. Default location is system dependent.
+* `--build`: compiles all targets and run all post-compilation commands
+* `--diff`: compares questions from first yaml file to rest of files
+* `-C`, `--cleanup`: deletes build artefacts from all yaml files in dir
+* `--print-package-templates-path`: print path for quizml's package templates directory
+* `--shell-completion {bash,zsh,fish}`: print shell completion script for the specified shell
+* `-v`, `--version`: show program's version number and exit
+* `--debug`: Print lots of debugging statements
+* `--verbose`: set verbose on
+* `--quiet`: turn off info statements
 
 
 ### Examples

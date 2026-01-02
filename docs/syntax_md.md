@@ -2,7 +2,7 @@
 ## Markdown Syntax <!-- {docsify-ignore} -->
 
 All yaml entries, including the question statements and answers, will be
-interpreted as Markdown (expect if key is prefixed with `_` as discussed in 
+interpreted as Markdown (except if key is prefixed with `_` as discussed in 
 [header section](header)).
 
 ### Basic Markdown Syntax 
@@ -18,7 +18,7 @@ images can be inserted this way:
 
 ![](figures/bee.jpg)
 
-You can defined lists this way:
+You can define lists this way:
 
 * List
 * List
