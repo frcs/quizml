@@ -100,6 +100,11 @@ def main():
         action="store_true")
     
     parser.add_argument(
+        "--info",
+        help="print configuration info and paths as json",
+        action="store_true")
+
+    parser.add_argument(
         "--print-package-templates-path",
         help="print path for quizml's package templates directory",
         action="store_true")
@@ -147,6 +152,28 @@ def main():
         if args.target_list:
             import quizml.cli.ui
             quizml.cli.ui.print_target_list(args)
+            return
+
+        if args.info:
+            import json
+            import quizml.cli.filelocator
+            
+            try:
+                config_file = quizml.cli.filelocator.locate.path('quizml.cfg')
+            except FileNotFoundError:
+                config_file = "not found"
+
+            info = {
+                "version": version("quizml"),
+                "cwd": quizml.cli.filelocator.locate.cw_dir,
+                "local_templates": quizml.cli.filelocator.locate.local_template_dir,
+                "user_config_dir": quizml.cli.filelocator.locate.app_dir,
+                "user_templates": quizml.cli.filelocator.locate.user_template_dir,
+                "package_templates": quizml.cli.filelocator.locate.pkg_template_dir,
+                "search_paths": quizml.cli.filelocator.locate.dirlist,
+                "config_file": config_file
+            }
+            sys.stdout.write(json.dumps(info, indent=4) + '\n')
             return
 
         if args.print_package_templates_path:

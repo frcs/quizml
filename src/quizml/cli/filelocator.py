@@ -16,12 +16,12 @@ class FileLocator:
         sets up default directories to search
         """
         
-        pkg_template_dir = os.path.join(os.path.dirname(__file__), '../templates')
-        app_dir = appdirs.user_config_dir(appname="quizml", appauthor='frcs')
-        user_template_dir = os.path.join(app_dir, 'templates')
-        cw_dir = os.getcwd()
-        local_template_dir =  os.path.join(cw_dir, 'quizml-templates')
-        self.dirlist = [ cw_dir, local_template_dir, user_template_dir, pkg_template_dir ]
+        self.pkg_template_dir = os.path.join(os.path.dirname(__file__), '../templates')
+        self.app_dir = appdirs.user_config_dir(appname="quizml", appauthor='frcs')
+        self.user_template_dir = os.path.join(self.app_dir, 'templates')
+        self.cw_dir = os.getcwd()
+        self.local_template_dir =  os.path.join(self.cw_dir, 'quizml-templates')
+        self.dirlist = [ self.cw_dir, self.local_template_dir, self.user_template_dir, self.pkg_template_dir ]
 
     def path(self, refpath):
         """

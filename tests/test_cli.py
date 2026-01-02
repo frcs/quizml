@@ -58,3 +58,31 @@ def test_version(capsys):
         with pytest.raises(SystemExit):
             main()
     # verify output contains version? argparse usually prints to stdout/stderr
+
+def test_info_command(capsys):
+    import json
+    with patch.object(sys, 'argv', ['quizml', '--info']):
+        try:
+            main()
+        except SystemExit:
+            pass 
+        
+    captured = capsys.readouterr()
+    output = captured.out
+    
+    # Check if output is valid JSON
+    data = json.loads(output)
+    
+    expected_keys = [
+        "version",
+        "cwd",
+        "local_templates",
+        "user_config_dir",
+        "user_templates",
+        "package_templates",
+        "search_paths",
+        "config_file"
+    ]
+    
+    for key in expected_keys:
+        assert key in data
