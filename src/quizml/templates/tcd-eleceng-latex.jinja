@@ -82,7 +82,7 @@
 \newsavebox{\qmarks}
 \newcounter{bbquestion}
 \newenvironment{bbquestion}[1][]{\sbox\qmarks{\bfseries #1 marks}
-\refstepcounter{bbquestion}\par\medskip\textbf{Q.\thebbquestion.}}
+\refstepcounter{bbquestion}\par\medskip\textbf{Q.\thebbquestion.}
 \hfill\begin{minipage}[t]{0.92\textwidth}}{\hspace*{0em plus 1fill}
 \makebox{\bfseries [\usebox{\qmarks}]}\end{minipage}
 \vspace{\subquestionskip}}
@@ -156,13 +156,13 @@
 %% suitable for OCR.
 
 % Engine-agnostic thickness control
-\newcommand{\thickText}[2][0.9]{
+\newcommand{\thickText}[2][0.9]{%
   \ifpdftex\pdfliteral{2 Tr #1 w}#2\pdfliteral{0 Tr}%
   \else\ifluatex\pdfextension literal direct {2 Tr #1 w}#2\pdfextension literal direct {0 Tr}%
   \else\ifxetex\special{pdf:literal direct 2 Tr #1 w}#2\special{pdf:literal direct 0 Tr}\fi\fi\fi
 }
 
-\newcommand{\omrCirc}[2][white]{
+\newcommand{\omrCirc}[2][white]{%
 \hspace{-0.1em}%
 \begin{tikzpicture}[
     baseline={([yshift=-0.7ex] current bounding box.center)},
@@ -368,9 +368,9 @@ essay question
 \begin{minipage}[t]{<< q['figure-split']|float >>\linewidth}
 \vspace*{0pt}
 \centering
-\adjustbox{width=\linewidth}{<<q.figure>>}
+\adjustbox{width=\linewidth}{\resizebox{\textwidth}{!}{<<q.figure>>}}%
 \end{minipage}%
-\hfill
+%\hfill
 \begin{minipage}[t]{<< 1.0 - q['figure-split']|float - 0.05 >>\linewidth}
 <|   endif |>
   \vspace{1em}
@@ -407,9 +407,9 @@ essay question
 \begin{minipage}[t]{<< q['figure-split']|float >>\linewidth}
 \vspace*{0pt}
 \centering
-\adjustbox{width=\linewidth}{<<q.figure>>}
+\adjustbox{width=\linewidth}{\resizebox{\textwidth}{!}{<<q.figure>>}}%
 \end{minipage}%
-\hfill
+%\hfill
 \begin{minipage}[t]{<< 1.0 - q['figure-split']|float - 0.05 >>\linewidth}
 <|   endif |>
   \vspace{1em}
@@ -449,17 +449,6 @@ essay question
 <| elif q.type == 'matching' |>
 \begin{bbquestion}[<<q.marks>>]
 <<q.question>>
-<|   if q['figure-split'] is defined |>
-\par\noindent
-\begin{adjustwidth}{-3.5em}{-3.5em}
-\begin{minipage}[t]{<< q['figure-split']|float >>\linewidth}
-\vspace*{0pt}
-\centering
-\adjustbox{width=\linewidth}{<<q.figure>>}
-\end{minipage}%
-\hfill
-\begin{minipage}[t]{<< 1.0 - q['figure-split']|float - 0.05 >>\linewidth}
-<|   endif |>
 
 \begin{tabular}{cc}
 <|-   for a in q.choices |>
@@ -468,14 +457,6 @@ essay question
 	  (a) & (1) \\	  
 <|-    endfor +|>
   \end{tabular}
-<|   if q['figure-split'] is defined |>
-\end{minipage}
-\end{adjustwidth}
-<|   elif q.figure is defined |>
-\begin{center}
-<<q.figure>>
-\end{center}
-<|   endif |>
 \end{bbquestion}
 <| endif |>  
 <| endfor |> 
