@@ -108,6 +108,39 @@
 	 
 	 ol { max-width: 43em; page-break-before: avoid; }
      li { max-width: 43em; page-break-before: avoid; }
+
+     /* Side-by-side figure support */
+     .question-container {
+         display: flex;
+         flex-direction: row;
+         gap: 2em;
+         align-items: flex-start;
+         margin-top: 1em;
+     }
+     .question-content {
+         /* flex-basis set inline */
+     }
+     .question-figure {
+         /* flex-basis set inline */
+         text-align: center;
+         align-self: flex-start;
+     }
+     .question-figure img, .question-figure svg {
+         max-width: 100%;
+         height: auto;
+         border: 1px solid #eee;
+         padding: 5px;
+     }
+     @media (max-width: 700px) {
+         .question-container {
+             flex-direction: column;
+         }
+         .question-figure {
+             flex-basis: auto !important;
+             width: 100%;
+             margin-top: 1em;
+         }
+     }
     </style>
   </head>
   <body>
@@ -141,6 +174,11 @@
 <| elif q.type == 'mc'|>
 <div class='question-type'>Multiple Choice</div><div class='marks'><< q.marks >></div>
 <<q.question>>
+<| if q['figure-split'] is defined |>
+<div class="question-container">
+<div class="question-figure" style="flex: << q['figure-split']|float >>"><<q.figure>></div>
+<div class="question-content" style="flex: << 1.0 - q['figure-split']|float >>">
+<| endif |>
 <ol class='answers'>
 <|-   for a in q.choices |>
 <|        if a.x is defined   -|>
@@ -154,9 +192,18 @@
 <|-        endif          |>  
 <|-    endfor +|>
 </ol>
+<| if q['figure-split'] is defined |></div></div>
+<| elif q.figure is defined |><div class="question-figure" style="margin-top: 1em;"><<q.figure>></div>
+<| endif |>
+
 <| elif q.type == 'tf'|>
 <div class='question-type'>True/False</div><div class='marks'><< q.marks >></div>
 <<q.question>>
+<| if q['figure-split'] is defined |>
+<div class="question-container">
+<div class="question-figure" style="flex: << q['figure-split']|float >>"><<q.figure>></div>
+<div class="question-content" style="flex: << 1.0 - q['figure-split']|float >>">
+<| endif |>
 <ol class='answers'>
 <|   if q.answer|lower == 'true'  -|>
   <li class='correct'>
@@ -174,9 +221,18 @@
   </li>	  
 <|-   endif          |>  
 </ol>
+<| if q['figure-split'] is defined |></div></div>
+<| elif q.figure is defined |><div class="question-figure" style="margin-top: 1em;"><<q.figure>></div>
+<| endif |>
+
 <| elif q.type == 'ma'|>
 <div class='question-type'>Multiple Answers</div><div class='marks'><< q.marks >></div>
 <<q.question>>
+<| if q['figure-split'] is defined |>
+<div class="question-container">
+<div class="question-figure" style="flex: << q['figure-split']|float >>"><<q.figure>></div>
+<div class="question-content" style="flex: << 1.0 - q['figure-split']|float >>">
+<| endif |>
 <ol class='answers'>
 <|-   for a in q.choices |>
 <|        if a.x is defined   -|>
@@ -190,9 +246,18 @@
 <|-        endif          |>  
 <|-    endfor +|>
 </ol>
+<| if q['figure-split'] is defined |></div></div>
+<| elif q.figure is defined |><div class="question-figure" style="margin-top: 1em;"><<q.figure>></div>
+<| endif |>
+
 <| elif q.type == 'matching' |>
 <div class='question-type'>Matching</div><div class='marks'><< q.marks >></div>
 <<q.question>>
+<| if q['figure-split'] is defined |>
+<div class="question-container">
+<div class="question-figure" style="flex: << q['figure-split']|float >>"><<q.figure>></div>
+<div class="question-content" style="flex: << 1.0 - q['figure-split']|float >>">
+<| endif |>
 <ol class='answers'>
 <|-   for choice in q.choices |>
 	<li>
@@ -215,9 +280,18 @@
 	</li>
 <|-    endfor +|>
 </ol>
+<| if q['figure-split'] is defined |></div></div>
+<| elif q.figure is defined |><div class="question-figure" style="margin-top: 1em;"><<q.figure>></div>
+<| endif |>
+
 <| elif q.type == 'ordering' |>
 <div class='question-type'>Ordering</div><div class='marks'><< q.marks >></div>
 <<q.question>>
+<| if q['figure-split'] is defined |>
+<div class="question-container">
+<div class="question-figure" style="flex: << q['figure-split']|float >>"><<q.figure>></div>
+<div class="question-content" style="flex: << 1.0 - q['figure-split']|float >>">
+<| endif |>
 <ol class='answers'>
   <|-   for choice in q.choices |>
   <li>
@@ -229,6 +303,10 @@
   </li>
   <|-    endfor +|>
 </ol>
+<| if q['figure-split'] is defined |></div></div>
+<| elif q.figure is defined |><div class="question-figure" style="margin-top: 1em;"><<q.figure>></div>
+<| endif |>
+
 <|- endif          |>
   </li>
 <| endfor |>
@@ -380,5 +458,3 @@
 
   </body>
 </html>
-
-

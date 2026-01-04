@@ -22,6 +22,8 @@
             "comments": { "type": "string" },
             "cols": { "type": ["integer", "string"], "default": "1" },
             "question": { "type": "string" },
+            "figure": { "type": "string" },
+            "figure-split": { "type": ["number", "string"] },
             "choices": {
               "type": "array",
               "items": {
@@ -45,6 +47,8 @@
             "comments": { "type": "string" },
             "cols": { "type": ["integer", "string"], "default": "1" },
             "question": { "type": "string" },
+            "figure": { "type": "string" },
+            "figure-split": { "type": ["number", "string"] },
             "choices": {
               "type": "array",
               "items": {
@@ -67,6 +71,8 @@
             "marks": { "type": ["number", "string"], "default": "2.5" },
             "comments": { "type": "string" },
             "question": { "type": "string" },
+            "figure": { "type": "string" },
+            "figure-split": { "type": ["number", "string"] },
             "answer": { "type": ["boolean", "string"] }
           },
           "required": ["question", "answer"]
@@ -93,6 +99,8 @@
             "marks": { "type": ["number", "string"], "default": "2.5" },
             "comments": { "type": "string" },
             "question": { "type": "string" },
+            "figure": { "type": "string" },
+            "figure-split": { "type": ["number", "string"] },
             "choices": {
               "type": "array",
               "items": {
@@ -117,6 +125,8 @@
             "comments": { "type": "string" },
             "cols": { "type": ["integer", "string"], "default": "1" },
             "question": { "type": "string" },
+            "figure": { "type": "string" },
+            "figure-split": { "type": ["number", "string"] },
             "choices": {
               "type": "array",
               "items": { "type": "string" }

@@ -60,6 +60,13 @@ def questions_are_similar(q1, q2):
     
     if c1 != c2:
         return False 
+
+    # Compare figure if they exist (normalized strict match)
+    f1 = normalize_text(q1.get('figure', ''))
+    f2 = normalize_text(q2.get('figure', ''))
+    
+    if f1 != f2:
+        return False 
         
     return True
 

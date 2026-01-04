@@ -57,3 +57,14 @@ For example:
 - Fix: Fix loader and sets default schema
 - Refactor: Rename project structure to quizml
 
+## Jinja Templates
+
+the delimiters are as follows:
+* comment start string : `<#`
+* comment end string   : `#>`
+* block start string   : `<|`
+* block end string     : `|>`
+* variable start string: `<<`
+* variable end string  : `>>`
+
+

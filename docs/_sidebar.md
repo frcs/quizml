@@ -14,8 +14,8 @@
 
 - Customisation 
   - [Configuration File](config_files.md)
-  - [Writing Your Own Target](targets.md)
-  - [Writing Your Own Rendering Templates](writing_templates.md)
+  - [Writing Targets](targets.md)
+  - [Writing Templates](writing_templates.md)
   
 - [Changelog](changelog.md)
 
