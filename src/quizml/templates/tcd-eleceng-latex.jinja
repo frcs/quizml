@@ -41,6 +41,8 @@
 
 \usepackage{longtable,booktabs,tabto,multicol}
 \usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\setlist[enumerate,1]{leftmargin=2.5em}
 
 \providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 
@@ -54,26 +56,99 @@
 \usepackage{fontspec}
 \setmonofont[Scale=0.8]{inconsolata}
 
+\usepackage[most]{tcolorbox}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\usepackage{inconsolata}
+\usepackage{fontspec}
+\setmonofont[Scale=0.8]{inconsolata}
+
+
+\tcbset{
+  every listing line/.style={coltext=black},
+  listing box/.style={
+    enhanced,
+    arc=4pt,  
+    boxrule=0.5pt,
+    colback=white,
+    colframe=gray!40,
+    top=-6pt,
+    bottom=-6pt,
+    fontupper=\ttfamily\linespread{1}\fontsize{12}{13}\selectfont,  	
+  }
+}
+
+% Apply the tcolorbox style to the existing lstlisting environment
+\BeforeBeginEnvironment{lstlisting}{\begin{tcolorbox}[listing box]}
+\AfterEndEnvironment{lstlisting}{\end{tcolorbox}}
+
+%% \newtcblisting{mytcbstyle}[2][]{
+%%   enhanced,
+%%   arc=2pt,
+%%   boxsep=2pt,  % Small base padding
+%%   top=-6pt,     % Extra space at the top
+%%   bottom=-6pt,  % Extra space at the bottom
+%%   boxrule=1pt,
+%%   colback=white,
+%%   colframe=white!50!black,
+%%   fontlower=\tiny,
+%%   fontupper=\ttfamily\linespread{1}\fontsize{12}{13}\selectfont,  
+%%   listing only,
+%%   listing options={
+%%     numbers=left,
+%%     numberstyle=\scriptsize,
+%%     stepnumber=1,
+%%     keywordstyle=\color{blue},
+%%     stringstyle=\color{red},
+%%     numberstyle=\fontsize{11}{13}\selectfont\color{gray},
+%%     xleftmargin=-10pt,
+%%     resetmargins=true,
+%%     commentstyle=\itshape,    
+%%   },
+%%   #1
+%% }
+
+%% \let\lstlisting\mytcbstyle
+%% \let\endlstlisting\endmytcbstyle
+
+%%   numberstyle=\fontsize{11}{13}\selectfont\color{gray},
+%%   keywordstyle=\color{blue},
+%%   rulecolor=\color{gray},
+%%   stringstyle=\color{red},
+%%   commentstyle=\color{green},
+%%   stringstyle=\color{red},
+%%   resetmargins=true
+
+%% \newtcblisting[auto counter, number within=section, list inside=examplelist]{mycode}[2][]{
+%%     colback=gray!5,
+%%     colbacktitle=gray!40,
+%%     coltitle=black,
+%%     title=Listing \thetcbcounter: #2, % Automatic numbering and custom title
+%%     fonttitle=\bfseries,
+%%     breakable,
+%%     enhanced,
+%%     % Options below handle cases where you want a comment next to the code
+%%     % comment and listing, 
+%%     % comment={#2},
+%%     #1 % Allows overriding default options with an optional argument
+%% }
+
+
+%% defining style for code blocks
+%%
+
 \lstset{
-  frame=l,
-  basicstyle=\ttfamily\linespread{1.1}\fontsize{12}{13}\selectfont,
   commentstyle=\itshape,
   columns=fullflexible,
   breaklines=true,
   numbersep=10pt,
-  numbers=left,  
-  framerule=0.5pt,
-  xleftmargin=-16pt,
+  numbers=left,
+  xleftmargin=-9pt,
   language=Python,
-  xrightmargin=-24pt,
   numberstyle=\fontsize{11}{13}\selectfont\color{gray},
-  keywordstyle=\color{blue},
-  rulecolor=\color{gray},
-  stringstyle=\color{red},
-  commentstyle=\color{green},
-  stringstyle=\color{red},
-  resetmargins=true
 }
+
 
 %% defining the `question` environment
 %%
@@ -99,7 +174,6 @@
 
 \usepackage{nccmath}
 \usepackage{empheq}
-\usepackage[many]{tcolorbox}
 \usepackage{ragged2e}
 \justifying
 
@@ -366,9 +440,7 @@ essay question
 \par\noindent
 \begin{adjustwidth}{-3.5em}{-3.5em}
 \begin{minipage}[t]{<< q['figure-split']|float >>\linewidth}
-\vspace*{0pt}
-\centering
-\adjustbox{width=\linewidth}{\resizebox{\textwidth}{!}{<<q.figure>>}}%
+<<q.figure>>%
 \end{minipage}%
 %\hfill
 \begin{minipage}[t]{<< 1.0 - q['figure-split']|float - 0.05 >>\linewidth}
@@ -392,25 +464,31 @@ essay question
 \end{minipage}
 \end{adjustwidth}
 <|   elif q.figure is defined |>
-\begin{center}
+\vspace{0.5em}
 <<q.figure>>
-\end{center}
 <|   endif |>
 \end{bbquestion}
 
 <| elif q.type == 'mc' or q.type == 'ma' |>
+%%
+%% Multiple Choice or Multiple Answers type question
+%%
 \begin{bbquestion}[<<q.marks>>]
 <<q.question>>
 <|   if q['figure-split'] is defined |>
+\vspace{0.5em}
 \par\noindent
-\begin{adjustwidth}{-3.5em}{-3.5em}
+\begin{adjustwidth}{-2.5em}{-2.5em}
+\adjustbox{valign=c}{%
 \begin{minipage}[t]{<< q['figure-split']|float >>\linewidth}
-\vspace*{0pt}
-\centering
-\adjustbox{width=\linewidth}{\resizebox{\textwidth}{!}{<<q.figure>>}}%
-\end{minipage}%
+\adjustbox{width=\linewidth}{<<q.figure>>}%
+\end{minipage}}%
 %\hfill
+\adjustbox{valign=c}{%
 \begin{minipage}[t]{<< 1.0 - q['figure-split']|float - 0.05 >>\linewidth}
+<|   elif q.figure is defined |>
+\vspace{0.5em}
+<<q.figure>>
 <|   endif |>
   \vspace{1em}
 <|   if q['cols']|int > 1  |>
@@ -439,11 +517,8 @@ essay question
 <|   endif           |>
 <|   if q['figure-split'] is defined |>
 \end{minipage}
+}%end of adjustbox
 \end{adjustwidth}
-<|   elif q.figure is defined |>
-\begin{center}
-<<q.figure>>
-\end{center}
 <|   endif |>
 \end{bbquestion}
 <| elif q.type == 'matching' |>
