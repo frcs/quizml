@@ -12,9 +12,9 @@ BlackBoard csv quiz file can be defined as the following target:
   descr     : BlackBoard CSV          
   descr_cmd : ${inputbasename}.txt    
   fmt       : html-svg                    
-  html_pre  : html-latex-preamble.tex 
-  html_css  : html-inline-style.css   
-  template  : bb.jinja  
+  html_pre  : math-preamble.tex 
+  html_css  : markdown-html.css   
+  template  : blackboard.txt.j2  
 ```
 
 
@@ -72,7 +72,7 @@ We recommend using `html-svg` for BlackBoard.
 Path to latex preamble file used when generating the equations in the markdown
 to html conversion. 
 
-In the example above we use quizml's default which is `html-latex-preamble.tex`.
+In the example above we use quizml's default which is `math-preamble.tex`.
 
 #### `html_css` 
 
@@ -80,7 +80,7 @@ Path to the CSS file used for inline styling the HTML render. E.g. it can be
 used to style code, tables, line separation, etc.
 
 In the example above we default to quizml's default which is
-`html-inline-style.css`.
+`markdown-html.css`.
 
 !> Note that the new version of BlackBoard tests strip out any CSS information.
 
