@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "quizml"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
   "pillow",
   "ruamel.yaml>=0.17",
