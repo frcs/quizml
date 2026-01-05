@@ -9,6 +9,7 @@
 - Writing a Test
   - [Test File Syntax](syntax_yaml.md)
   - [Questions Syntax](syntax_questions.md)
+  - [Question Layout](question_layout.md)
   - [Header Section](syntax_header.md)
   - [Markdown Syntax](syntax_md.md)
 
