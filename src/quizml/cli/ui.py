@@ -66,7 +66,7 @@ def print_stats_table(quiz, config):
     """
     
     try:
-        template_name = config.get('stats_template', 'stats.jinja')
+        template_name = config.get('stats_template', 'stats.txt.j2')
         template_path = filelocator.locate.path(template_name)
     except FileNotFoundError:
         print_error(f"Stats template '{template_name}' not found", title="Error")
