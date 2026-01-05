@@ -35,12 +35,13 @@ quizml -t bb quiz.yaml
 
 
 ```bash
-Usage: quizml [-h] [-w] [-t TARGET] [--target-list] [--init-local]
-              [--init-user] [--config CONFIGFILE] [--build] [--diff] [-C]
-			  [--shell-completion {bash,zsh,fish}] [-v] [--debug]
-			  [--verbose] [--quiet]
+Usage: quizml [-h] [-w] [-t TARGET] [--target-list] [--init-local] [--init-user]
+              [--config CONFIGFILE] [--build] [--diff] [-C] [--info]
+              [--shell-completion {bash,zsh,fish}] [-v] [--debug] [--verbose] [--quiet]
               [quiz.yaml] [otherfiles ...]
 ```
+
+Converts a questions in a YAML/markdown format into a Blackboard test or a LaTeX script
 
 ### Positional Arguments
 
@@ -55,10 +56,12 @@ Usage: quizml [-h] [-w] [-t TARGET] [--target-list] [--init-local]
 * `--target-list`: list all targets in config file
 * `--init-local`: create a local directory 'quizml-templates' with all config files
 * `--init-user`: create the user app directory with all its config files
-* `--config CONFIGFILE`: user config file. Default location is system dependent.
+* `--config CONFIGFILE`: user config file. Default location is
+  `/Users/fpitie/Library/Application Support/quizml`
 * `--build`: compiles all targets and run all post-compilation commands
 * `--diff`: compares questions from first yaml file to rest of files
 * `-C`, `--cleanup`: deletes build artefacts from all yaml files in dir
+* `--info`: print configuration info and paths as json
 * `--shell-completion {bash,zsh,fish}`: print shell completion script for the specified shell
 * `-v`, `--version`: show program's version number and exit
 * `--debug`: Print lots of debugging statements
