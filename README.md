@@ -5,8 +5,7 @@
 
 [![Documentation](https://img.shields.io/badge/docs-frcs.github.io%2Fquizml-blue)](https://frcs.github.io/quizml)
 
-This is a command line application. Assuming that you have python and pip
-installed, you can simply install it with:
+Assuming that you have python and pip installed, you can simply install it with:
 
 ```bash
 pip install quizml
@@ -15,8 +14,9 @@ pip install quizml
 You will also need a LaTeX installation with `gs` and `pdflatex` (e.g. TeXLive or MacTeX).
 
 
-Questions are written in a YAML file, using a Markdown syntax. Here is a minimal
-`quiz.yaml` example:
+Questions are written in a YAML file, using a Markdown syntax. 
+
+Here is a minimal `quiz.yaml` example:
 
 ```yaml
 - type: mc
