@@ -99,7 +99,8 @@ _latexpreamble: |
 
 ?> QuizML avoids some of the YAML oddities such as the [Norway
 Problem](https://hitchdev.com/strictyaml/why/implicit-typing-removed) by
-assuming that all key values in the YAML file are strings. 
+interpreting yaml fields according to the provided schema definition (see
+[Schema Validation](schema_validation) for more information).
 
 
 
