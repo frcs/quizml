@@ -18,7 +18,7 @@ The `cols` attribute takes an integer value representing the number of columns.
 
 ```yaml
 - type: mc
-  statement: Which of the following are primary colors?
+  question: Which of the following are primary colors?
   cols: 3
   choices:
     - Red
@@ -40,7 +40,7 @@ does not do much, the idea is to use it in conjonction with `figure-split`.
 
 ```yaml
 - type: mc
-  statement: Is this the image of a bee?
+  question: Is this the image of a bee?
   figure: figures/bee.jpg
   choices:
     - True
@@ -50,16 +50,14 @@ does not do much, the idea is to use it in conjonction with `figure-split`.
 **Example with a Code Listing:**
 
 ```yaml
-- type: mc
-  statement: Is this the code of a sort function?
+- type: tf
+  question: Is this the code of a sort function?
   figure: |
     ```python
     def sort_list(items):
         return sorted(items)
     ```
-  choices:
-    - True
-    - False
+  answer: True
 ```
 
 ### Side-by-Side Figure and Question (`figure-split`)
@@ -73,8 +71,8 @@ will be used for the question text.
 
 ```yaml
 - type: mc
-  statement: What is shown in the figure?
-  figure: figures/diagram.png
+  question: What is shown in the figure?
+  figure: ![](figures/diagram.png)
   figure-split: 0.6
   choices:
     - A diagram
