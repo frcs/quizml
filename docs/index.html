@@ -13,16 +13,33 @@
    <!-- Themes (light + dark) -->
    <link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple-dark.css">
    <link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple.css">
+   <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/prismjs@1/themes/prism-tomorrow.min.css">  
+  
    <style>
    :root {
 	   --code-block-line-height : 1.185;
    }
    </style>
-	
+
+<style>
+  .token.jinja-statement, 
+  .token.jinja-expression {
+    background: rgba(255, 165, 0, 0.1); /* Light orange tint background */
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+  .token.jinja-delimiter {
+      color: #ff79c6; /* Pinkish color for the brackets */
+      font-weight: bold;
+      /* background: rgba(255, 165, 0, 0.1); /* Light orange tint background */       */
+  }
+</style>
+   
   </head>
   <body>
 
 <div id="app"></div>
+
     <script>
     window.$docsify = {
 		repo: 'https://github.com/frcs/quizml',
@@ -34,7 +51,7 @@
     </script>
     <!-- <script src="//cdn.jsdelivr.net/npm/docsify@4"></script> -->
 	<!-- Required -->
-	<script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>   
 	<script src="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/js/docsify-themeable.min.js"></script>
 
 	
@@ -43,17 +60,63 @@
 	<script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/zoom-image.min.js"></script>
 
 	
-    <!-- <script src="//cdn.jsdelivr.net/npm/docsify@5/dist/docsify.min.js"></script> -->
+  <!-- <script src="//cdn.jsdelivr.net/npm/docsify@5/dist/docsify.min.js"></script> -->
     <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
     <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-markdown.min.js"></script>
     <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-yaml.min.js"></script>
     <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-latex.min.js"></script>
     <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-shell-session.min.js"></script>
- 	
+    <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-python.min.js"></script>
+    
+<script>
+  Prism.languages['jinja-html'] = Prism.languages.extend('markup', {});
+  
+  Prism.languages.insertBefore('jinja-html', 'tag', {
+    'jinja-comment': {
+      pattern: /<#[\s\S]*?#>/,
+      alias: 'comment'
+    },
+    'jinja-statement': {
+      pattern: /<\|[\s\S]*?\|>/,
+      inside: {
+        'jinja-delimiter': { pattern: /^<\|[-+]?|[-+]?\|>$/, alias: 'punctuation' },
+        rest: Prism.languages.python // Use Python syntax for the logic inside
+      }
+    },
+    'jinja-expression': {
+      pattern: /<<[\s\S]*?>>/,
+      inside: {
+        'jinja-delimiter': { pattern: /^<<|>>$/, alias: 'punctuation' },
+        rest: Prism.languages.python
+      }
+    }
+  });
+
+  Prism.languages['jinja-tex'] = Prism.languages.extend('latex', {});
+  
+  Prism.languages.insertBefore('jinja-tex', 'comment', {
+    'jinja-comment': {
+      pattern: /<#[\s\S]*?#>/,
+      alias: 'comment'
+    },
+    'jinja-statement': {
+      pattern: /<\|[\s\S]*?\|>/,
+      inside: {
+        'jinja-delimiter': { pattern: /^<\|[-+]?|[-+]?\|>$/, alias: 'punctuation' },
+        rest: Prism.languages.python // Use Python syntax for the logic inside
+      }
+    },
+    'jinja-expression': {
+      pattern: /<<[\s\S]*?>>/,
+      inside: {
+        'jinja-delimiter': { pattern: /^<<|>>$/, alias: 'punctuation' },
+        rest: Prism.languages.python
+      }
+    }
+  });
+</script>
   </body>
 </html>
 
 
 <!-- index.html -->
-
-

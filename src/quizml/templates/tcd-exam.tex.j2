@@ -395,7 +395,7 @@ questions with multiple choices, mark all solutions that are correct
 
 \begin{multicols}{3}
 \begin{enumerate}
-<| set letter = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'] |>
+<| set letter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' |>
 <| for q in questions +|>
 \item[{\bf Q.<<loop.index>>}]
 <|- if q.type == 'essay' |>

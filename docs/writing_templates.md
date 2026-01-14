@@ -21,7 +21,7 @@ Here is a minimal example of template for LaTeX, where we make a enumeration of
 all questions 
 
 
-```
+```jinja-tex
 \begin{enumerate}
 <| for q in questions +|>
 \item[{\bf Q.<<loop.index>>}] <<q.question>>
@@ -31,7 +31,7 @@ all questions
 
 The output would look like something like this:
 
-```
+```jinja-tex
 \begin{enumerate}
 \item[{\bf Q1}] This is statement for question 1
 \item[{\bf Q2}] This is statement for question 2
@@ -56,7 +56,7 @@ dictionary, and has the same structure as per the yaml syntax specified in .
 
 For instance, this code would generate an HTML list of the types of questions:
 
-```
+```jinja-html
 <ol>
 <| for q in questions +|>
 <li> 
@@ -82,7 +82,7 @@ For instance, this is how we can save the header keys/vales for keys that do not
 start with `_` as LaTeX macros:
 
 
-```
+```jinja-tex
 <# passing the header variables to template  #>
 <# we do not include 'type' and 'pre_' keys  #>
 <| if header                                               -|>
