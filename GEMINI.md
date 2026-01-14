@@ -1,70 +1,53 @@
-## Building and running
+# Gemini Agent Context
 
-Before submitting any changes, it is crucial to validate them by running the
-full preflight check. 
-To run the full suite of checks, execute the following command:
+This document provides context and instructions for the Gemini agent working on the QuizML project.
 
+## Project Overview
+QuizML is a command-line tool for converting quiz questions (YAML/Markdown) into Blackboard tests (CSV) or LaTeX exam source files. The goal is to keep the core mechanism lean while allowing extensibility through templates.
+
+## Operational Rules
+
+### 1. Preflight Checks
+Before submitting any changes, you **must** validate them by running the full test suite:
 ```bash
 pytest .
 ```
 
-## Updating the Docs
+### 2. Python Environment
+**Do not** use the default `python` or `python3` commands. Use the specific MacPorts installation:
+- Path: `/opt/local/bin/python3.9`
 
-Makse sure to update docs/usage.md with the accurate CLI arguments and descriptions
-obtained from the help command.
+### 3. Documentation
+- When modifying the CLI, update `docs/usage.md` with accurate arguments and descriptions.
 
-## Python version
+### 4. Git Conventions
+- **Main Branch:** `main`
+- **Commit Messages:** Use the "Type: Subject" format.
+  - Types: `Feat`, `Fix`, `Docs`, `Refactor`, `Chore`, `Test`, `Style`.
+  - Example: `Feat: Adding --target-list as feature`
 
-Do not use the default `python` or `python3` when invoking python as I use
-macports, specifically /opt/local/bin/python3.9
+### 5. Comments Policy
+- Write high-value comments only.
+- Focus on *why*, not *what*.
+- Do not address the user through code comments.
 
-## Git Repo
+## Technical Context
 
-The main branch for this project is called "main"
+### Jinja2 Configuration
+Custom delimiters are used to avoid conflicts with LaTeX:
+- **Block:** `<| ... |>`
+- **Variable:** `<< ... >>`
+- **Comment:** `<# ... #>`
 
-## Comments policy
+### Project Structure
+- `src/quizml/`: Core source code.
+- `src/quizml/templates/`: Jinja2 templates (e.g., `blackboard.txt.j2`, `tcd-exam.tex.j2`).
+- `tests/`: Unit tests.
 
-Only write high-value comments if at all. Avoid talking to the user through
-comments.
+### Dependencies
+- **Internal:** `ruamel.yaml`, `rich`, `jinja2`, `docxtpl`, `latex2mathml`, `mistletoe`.
+- **External:** Requires a LaTeX installation (TeXLive/MacTeX) with `gs`, `dvisvgm`, `dvipdfmx`.
 
-## General requirements
-
-- If there is something you do not understand or is ambiguous, seek confirmation
-  or clarification from the user before making changes based on assumptions.
-
-## External Dependencies
-
-It is assumed that a latex installation exists, along with tools like gs,
-dvisvgm, dvipdfmx, dvipng, etc.
-
-
-## Philosophy
-
-The core objective is to keep the central mechanism as lean as possible,
-allowing users to extend the system through custom templates and user-defined
-YAML structures.
-
-When possible, use a modular architecture.
-
-## Git 
-
-The commit messages have been standardised to the "Type: Subject" format.  The
-  types include Feat, Fix, Docs, Refactor, Chore, Test, Style.
-  
-For example:
-- Feat: Adding --target-list as feature
-- Docs: Using docsify.js
-- Fix: Fix loader and sets default schema
-- Refactor: Rename project structure to quizml
-
-## Jinja Templates
-
-the delimiters are as follows:
-* comment start string : `<#`
-* comment end string   : `#>`
-* block start string   : `<|`
-* block end string     : `|>`
-* variable start string: `<<`
-* variable end string  : `>>`
-
-
+## General Requirements
+- If requirements are ambiguous, ask the user for clarification before assuming.
+- Prefer modular architecture changes.
