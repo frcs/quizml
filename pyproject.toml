@@ -44,3 +44,36 @@ quizml="quizml.cli.cli:main"
 pythonpath = ["src"]
 
 
+
+# 
+# RUFF Setup, matching Black default's
+# 
+
+[tool.ruff]
+# Set the maximum line length (88 is the Black default)
+line-length = 88
+
+# Target a specific Python version
+target-version = "py310"
+
+[tool.ruff.lint]
+# Enable specific rule sets
+# E/F are default (Pycodestyle/Pyflakes), I is isort (import sorting)
+select = ["E", "F", "I", "B", "UP"]
+
+# Rules to ignore (e.g., E501 is line-too-long)
+ignore = ["E501", "B905"]
+
+# Allow fixable violations to be automatically fixed
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+# Configure the formatter to act like 'Black'
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+
+

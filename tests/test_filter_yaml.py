@@ -1,6 +1,7 @@
 
 from quizml.utils import filter_yaml
 
+
 def test_filter_yaml():
     
     yaml = [{ 'A': '\n  \n item 1\n\n',
@@ -15,7 +16,8 @@ def test_filter_yaml():
                'C': 'item 3'},
              { 'F': 'item 4'}]
     
-    f = lambda a : a.strip() if isinstance(a, str) else a
+    def f(a):
+        return a.strip() if isinstance(a, str) else a
     
     yaml1 = filter_yaml(yaml, f)
     assert(yaml0 == yaml1)

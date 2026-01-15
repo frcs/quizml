@@ -1,7 +1,9 @@
-import pytest
 from unittest.mock import MagicMock, patch
-import os
+
+import pytest
+
 from quizml.cli.config import get_target_list
+
 
 @pytest.fixture
 def mock_dependencies():

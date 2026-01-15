@@ -1,10 +1,8 @@
-import sys
-from pathlib import Path
 import os
-import pytest
 
 from quizml.loader import load
 from quizml.markdown.markdown import MarkdownTranscoder
+
 
 def test_markdown_transcoding_html():
     pkg_dirname = os.path.dirname(__file__)

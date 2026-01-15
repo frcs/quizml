@@ -1,5 +1,5 @@
 import re
-import pytest
+
 
 def test_math_regex():
     md_text = r"""
@@ -64,8 +64,11 @@ def test_math_regex():
     
     count = 0
     for match in matches:
-        if "$$" in match.group(0): count += 1
-        if "\[" in match.group(0): count += 1
-        if "\\begin{equation}" in match.group(0): count += 1
+        if "$$" in match.group(0):
+            count += 1
+        if "\[" in match.group(0):
+            count += 1
+        if "\\begin{equation}" in match.group(0):
+            count += 1
         
     assert count == 3

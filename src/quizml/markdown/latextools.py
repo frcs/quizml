@@ -46,19 +46,21 @@ class LatexRunner:
         stdout, _ = process.communicate()
 
         if process.returncode != 0:
-            raise LatexCompilationError(f"pdflatex failed with return code {process.returncode}\n\n{stdout}")
+            raise LatexCompilationError(
+                f"pdflatex failed with return code {process.returncode}\n\n{stdout}"
+            )
 
         # Parse depth ratio from stdout
         depthratio = []
-        err_msg = ''
+        err_msg = ""
         found_pdflatex_errors = False
         for line in stdout.splitlines():
-            if line.startswith(':::'):
+            if line.startswith(":::"):
                 depthratio.append(float(line[4:]))
-            if line.startswith('!'):
+            if line.startswith("!"):
                 found_pdflatex_errors = True
             if found_pdflatex_errors:
-                err_msg += line + '\n'
+                err_msg += line + "\n"
 
         if found_pdflatex_errors:
             raise LatexCompilationError(err_msg)
@@ -104,15 +106,17 @@ class LatexRunner:
         stdout, _ = process.communicate()
 
         if process.returncode != 0:
-            raise LatexCompilationError(f"latex failed with return code {process.returncode}\n\n{stdout}")
+            raise LatexCompilationError(
+                f"latex failed with return code {process.returncode}\n\n{stdout}"
+            )
 
-        err_msg = ''
+        err_msg = ""
         found_latex_errors = False
         for line in stdout.splitlines():
-            if line.startswith('!'):
+            if line.startswith("!"):
                 found_latex_errors = True
             if found_latex_errors:
-                err_msg += line + '\n'
+                err_msg += line + "\n"
 
         if found_latex_errors:
             raise LatexCompilationError(err_msg)
@@ -126,9 +130,12 @@ class LatexRunner:
             [
                 "dvisvgm",
                 "-n",
-                '-v', '1',
-                '-p', "1-",
-                "-c", "1.2,1.2",
+                "-v",
+                "1",
+                "-p",
+                "1-",
+                "-c",
+                "1.2,1.2",
                 f"-o{output_template}",
                 str(dvi_path),
             ],
@@ -155,10 +162,11 @@ class LatexRunner:
 
         if process.returncode != 0:
             # make4ht returns errors on stdout
-            raise LatexCompilationError(f"make4ht failed with return code {process.returncode}\n\n{stdout}")
+            raise LatexCompilationError(
+                f"make4ht failed with return code {process.returncode}\n\n{stdout}"
+            )
 
         return html_filename
-
 
     def cleanup(self):
         if self.temp_dir.exists():

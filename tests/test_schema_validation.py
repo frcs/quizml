@@ -1,8 +1,11 @@
 
-import pytest
 import os
-from quizml.loader import load
+
+import pytest
+
 from quizml.exceptions import QuizMLYamlSyntaxError
+from quizml.loader import load
+
 
 def test_incorrect_01():
     pkg_dirname = os.path.dirname(__file__)

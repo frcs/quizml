@@ -1,9 +1,11 @@
 
-import pytest
-from unittest.mock import patch, MagicMock
 import sys
+from unittest.mock import patch
+
+import pytest
+
 from quizml.cli.cli import main
-from quizml.exceptions import QuizMLError
+
 
 @patch('quizml.cli.ui.print_target_list')
 def test_target_list(mock_print_target_list):

@@ -1,9 +1,11 @@
-
-import pytest
 import os
 import tempfile
-from quizml.renderer import render_template, render
+
+import pytest
+
 from quizml.exceptions import Jinja2SyntaxError
+from quizml.renderer import render, render_template
+
 
 def test_render_template_success():
     # Create a temporary template file

@@ -1,6 +1,7 @@
-import sys
-import pytest
 import os
+import sys
+
+import pytest
 
 # Add src to sys.path
 sys.path.insert(0, os.path.abspath("src"))

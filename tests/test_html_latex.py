@@ -1,10 +1,12 @@
-import pytest
-from unittest.mock import patch, MagicMock
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
-from quizml.markdown.html_renderer import build_eq_dict_PNG
-from quizml.markdown.extensions import MathInline, MathDisplay
+import pytest
+
 from quizml.exceptions import LatexCompilationError
+from quizml.markdown.extensions import MathDisplay, MathInline
+from quizml.markdown.html_renderer import build_eq_dict_PNG
+
 
 # Helper functions to create correctly-structured mock tokens
 def create_mock_inline(content):

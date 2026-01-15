@@ -1,13 +1,12 @@
-from pathlib import Path
 import os
-import strictyaml
+
 from quizml.loader import load
+
 
 def test_yaml_syntax():
     
     pkg_dirname = os.path.dirname(__file__)
     yaml_file = os.path.join(pkg_dirname, "fixtures", "test-basic-syntax.yaml")
-    basename = os.path.join(pkg_dirname, "test-basic-syntax")
     
     yamldata = [{"type": "essay",
                      "marks": 4.0,
@@ -44,14 +43,8 @@ def test_yaml_syntax():
                      "question": "some ordering question",
                      "choices": ["A", "B", "C", "D"],
                      "cols": 1},
-                    ]
-    #    yaml_txt = Path(.read_text()
-   
+                    ]  
     yamldoc = load(yaml_file)
-    # print(yamldoc['questions'])
-    # print(yamldata)
 
     assert(yamldoc['questions'] == yamldata)
-    # print(yamldoc)
-    # print(yamldata)
         
