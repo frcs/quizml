@@ -10,12 +10,16 @@ QuizML is a command-line tool for converting quiz questions (YAML/Markdown) into
 ### 1. Preflight Checks
 Before submitting any changes, you **must** validate them by running the full test suite:
 ```bash
-pytest .
+python3.11 -m pytest .
 ```
+
+Also, **NEVER** commit without an explicit confirmation. This means that you first
+need to present the proposed changes, the commit message and ask for permission to commit.
+
 
 ### 2. Python Environment
 **Do not** use the default `python` or `python3` commands. Use the specific MacPorts installation:
-- Path: `/opt/local/bin/python3.9`
+- Path: `/opt/local/bin/python3.11`
 
 ### 3. Documentation
 - When modifying the CLI, update `docs/usage.md` with accurate arguments and descriptions.
@@ -25,6 +29,11 @@ pytest .
 - **Commit Messages:** Use the "Type: Subject" format.
   - Types: `Feat`, `Fix`, `Docs`, `Refactor`, `Chore`, `Test`, `Style`.
   - Example: `Feat: Adding --target-list as feature`
+
+- NEVER commit without an explicit confirmation. This means that you first need
+  to present the proposed changes, the commit message and ask for permission to
+  commit.
+
 
 ### 5. Comments Policy
 - Write high-value comments only.
