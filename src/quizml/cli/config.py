@@ -3,7 +3,8 @@ import os
 import pathlib
 from string import Template
 
-import yaml
+from ruamel.yaml import YAML
+from ruamel.yaml.error import YAMLError
 
 import quizml.cli.filelocator as filelocator
 from quizml.exceptions import QuizMLConfigError
@@ -26,8 +27,9 @@ def get_config(args):
 
     try:
         with open(config_file) as f:
-            config = yaml.load(f, Loader=yaml.FullLoader)
-    except yaml.YAMLError as err:
+            yaml = YAML(typ='safe')
+            config = yaml.load(f)
+    except YAMLError as err:
         s = f"Something went wrong while parsing the config file at:\n {config_file}\n\n {str(err)}"
         raise QuizMLConfigError(s) from err
 
