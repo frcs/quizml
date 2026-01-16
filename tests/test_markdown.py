@@ -1,4 +1,11 @@
 import os
+import pytest
+from mistletoe import block_token, span_token
+
+@pytest.fixture(autouse=True)
+def reset_mistletoe_tokens():
+    block_token.reset_tokens()
+    span_token.reset_tokens()
 
 from quizml.loader import load
 from quizml.markdown.markdown import MarkdownTranscoder

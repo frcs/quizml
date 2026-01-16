@@ -23,7 +23,7 @@ def get_eq_list_from_doc(doc):
     """
 
     eq_list = []
-    if hasattr(doc, "children"):
+    if hasattr(doc, "children") and doc.children is not None:
         for a in doc.children:
             eq_list = append_unique(eq_list, get_eq_list_from_doc(a))
     elif isinstance(doc, MathInline) or isinstance(doc, MathDisplay):
