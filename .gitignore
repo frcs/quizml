@@ -1,4 +1,3 @@
-
 # latex files
 *.aux
 *.log
@@ -36,3 +35,4 @@ __pycache__/
 build
 
 *~
+localtest/
