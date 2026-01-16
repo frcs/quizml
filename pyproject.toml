@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "quizml"
-version = "0.9.4"
+version = "0.10.0"
 dependencies = [
   "pillow",
   "ruamel.yaml>=0.17",
@@ -42,8 +42,6 @@ quizml="quizml.cli.cli:main"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
-
-
 
 # 
 # RUFF Setup, matching Black default's
