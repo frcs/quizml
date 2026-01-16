@@ -47,7 +47,7 @@ def render_template(context, template_filename):
         msg = msg + exc.message + "\n\n"
         raise Jinja2SyntaxError(msg) from exc
 
-    except Jinja2SyntaxError as exc:
+    except Exception as exc:
         msg = f"in {template_filename}\n\n"
         msg = msg + f"{exc}" + "\n\n"
         raise Jinja2SyntaxError(msg) from exc
