@@ -1,6 +1,15 @@
-
 ## Changelog 
 
+<a name="0.9.5"></a>
+
+### [0.9.5]() (2026-01-16)
+
+* **Refactor:** Replaced `pyyaml` with `ruamel.yaml` for consistency.
+* **Refactor:** Added Ruff for linting and fixed all Ruff errors.
+* **Docs:** Updated documentation, including adding a page on custom schema validation and question layout.
+* **Feat:** Added Jinja syntax highlighting to the documentation.
+* **Fix:** Improved side figure implementation for MA/MC in the HTML preview.
+* **Chore:** Ignored `localtest` directory.
 
 <a name="0.9"></a>
 
@@ -9,7 +18,6 @@
 * **Fix:** Improved image path resolution for LaTeX. It now prioritizes existing PDF, PNG, or JPG files before attempting SVG conversion. This makes external tools like `rsvg-convert` or `inkscape` optional if compatible image formats are present.
 * **Fix:** Correctly exposed `main` entry point, fixing `python -m quizml` usage.
 * **Refactor:** Improved YAML loading and type alignment in tests/templates.
-* **Docs:** Added `GEMINI.md` and `run_test.py` for development.
 
 <a name="0.8"></a>
 
@@ -41,5 +49,3 @@ new MCQ syntax with `-x:` and `-o:` style.
 ### [0.5]() (2025-01-10)
 
 first release
-
-
