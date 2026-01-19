@@ -5,26 +5,51 @@ import os
 import textwrap
 
 
-def walk_yaml(yaml_data, fn, *args, **kwargs):
+def iter_nodes(data, key_filter=None):
     """
-    recursively apply a function to all values in QuizMLYaml obj
+    Generator that yields all leaf nodes in the data structure.
+    Recurses into lists and dicts.
 
-    Parameters
-    ----------
-    yaml_data : list
-        yaml file content, as decoded by quizmlyaml.load
-    fn: function to apply
+    :param data: The structure to traverse (list, dict, or value).
+    :param key_filter: Optional function(key) -> bool.
+                       If True (or None), recurses into the dict value.
+                       If False, skips the key (value is ignored).
     """
+    if isinstance(data, list):
+        for item in data:
+            yield from iter_nodes(item, key_filter)
+    elif isinstance(data, dict):
+        for k, v in data.items():
+            if key_filter and not key_filter(k):
+                continue
+            yield from iter_nodes(v, key_filter)
+    else:
+        yield data
 
-    if isinstance(yaml_data, list):
-        return [walk_yaml(a, fn, *args, **kwargs) for a in yaml_data]
-    elif isinstance(yaml_data, dict):
-        new_dict = type(yaml_data)()
-        for k, v in yaml_data.items():
-            new_dict[k] = walk_yaml(v, fn, *args, **kwargs)
+
+def map_nodes(data, fn, key_filter=None):
+    """
+    Recursively applies fn to all leaf nodes in the data structure.
+    Returns a new structure with transformed values.
+
+    :param data: The structure to traverse.
+    :param fn: Function(node) -> new_node. Applied to leaves.
+    :param key_filter: Optional function(key) -> bool.
+                       If True (or None), recurses into the dict value.
+                       If False, preserves the value as-is without recursion/transformation.
+    """
+    if isinstance(data, list):
+        return [map_nodes(item, fn, key_filter) for item in data]
+    elif isinstance(data, dict):
+        new_dict = type(data)()
+        for k, v in data.items():
+            if key_filter and not key_filter(k):
+                new_dict[k] = v
+            else:
+                new_dict[k] = map_nodes(v, fn, key_filter)
         return new_dict
     else:
-        return fn(yaml_data, *args, **kwargs)
+        return fn(data)
 
 
 class MarkdownString(str):
@@ -167,37 +192,25 @@ def get_md_list_from_yaml(yaml_data, schema=None):
     """
     md_list = []
 
-    def collect_questions(node):
-        if isinstance(node, list):
-            for item in node:
-                collect_questions(item)
-        elif isinstance(node, dict):
-            for val in node.values():
-                collect_questions(val)
-        elif isinstance(node, MarkdownString):
-            md_list.append(str(node))
-
-    def collect_header(node):
+    def header_key_filter(key):
         non_md_keys = ["type"]
-        if isinstance(node, list):
-            for item in node:
-                collect_header(item)
-        elif isinstance(node, dict):
-            for key, val in node.items():
-                if (key not in non_md_keys) and not key.startswith("_"):
-                    collect_header(val)
-        elif isinstance(node, str):
-            md_list.append(str(node))
+        return (key not in non_md_keys) and not key.startswith("_")
 
     if isinstance(yaml_data, dict) and ("header" in yaml_data or "questions" in yaml_data):
         if "header" in yaml_data:
-            collect_header(yaml_data["header"])
+            for node in iter_nodes(yaml_data["header"], header_key_filter):
+                if isinstance(node, str):
+                    md_list.append(str(node))
         
         if "questions" in yaml_data:
-            collect_questions(yaml_data["questions"])
+            for node in iter_nodes(yaml_data["questions"]):
+                if isinstance(node, MarkdownString):
+                    md_list.append(str(node))
     else:
         # Fallback
-        collect_header(yaml_data)
+        for node in iter_nodes(yaml_data, header_key_filter):
+            if isinstance(node, str):
+                md_list.append(str(node))
 
     return md_list
 
@@ -207,47 +220,31 @@ def transcode_md_in_yaml(yaml_data, md_dict, schema=None):
     translate all strings in md_dict into their transcribed text
     """
 
-    def transcode_questions(node):
-        if isinstance(node, list):
-            return [transcode_questions(item) for item in node]
-        elif isinstance(node, dict):
-            new_dict = {}
-            for key, val in node.items():
-                new_dict[key] = transcode_questions(val)
-            return new_dict
-        elif isinstance(node, MarkdownString) and (node in md_dict):
+    def transform_questions(node):
+        if isinstance(node, MarkdownString) and node in md_dict:
             return md_dict[node]
-        else:
-            return node
-
-    def transcode_header(node):
-        if isinstance(node, list):
-            return [transcode_header(item) for item in node]
-        elif isinstance(node, dict):
-            new_dict = {}
-            for key, val in node.items():
-                if key.startswith("_"):
-                    new_dict[key] = val              
-                else:
-                    new_dict[key] = transcode_header(val)
-            return new_dict
-        elif isinstance(node, str) and (node in md_dict):
+        return node
+    
+    def transform_header(node):
+        if isinstance(node, str) and node in md_dict:
             return md_dict[node]
-        else:
-            return node
+        return node
+        
+    def header_key_filter(key):
+        return not key.startswith("_")
 
     if isinstance(yaml_data, dict) and ("header" in yaml_data or "questions" in yaml_data):
         new_doc = {}
         for k, v in yaml_data.items():
             if k == "header":
-                new_doc[k] = transcode_header(v)
+                new_doc[k] = map_nodes(v, transform_header, header_key_filter)
             elif k == "questions":
-                new_doc[k] = transcode_questions(v)
+                new_doc[k] = map_nodes(v, transform_questions)
             else:
                 new_doc[k] = v
         return new_doc
     else:
-        return transcode_header(yaml_data)
+        return map_nodes(yaml_data, transform_header, header_key_filter)
 
 
 def text_wrap(msg):
