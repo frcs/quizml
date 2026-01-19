@@ -10,7 +10,7 @@ QuizML is a command-line tool for converting quiz questions (YAML/Markdown) into
 ### 1. Preflight Checks
 Before submitting any changes, you **must** validate them by running the full test suite:
 ```bash
-python3.11 -m pytest .
+uv run pytest
 ```
 
 Also, **NEVER** commit without an explicit confirmation. This means that you first
@@ -18,8 +18,9 @@ need to present the proposed changes, the commit message and ask for permission 
 
 
 ### 2. Python Environment
-**Do not** use the default `python` or `python3` commands. Use the specific MacPorts installation:
-- Path: `/opt/local/bin/python3.11`
+**Do not** use the default `python` or `python3` commands. Use `uv` to manage the Python environment:
+- Run commands with `uv run <command>`.
+- Manage dependencies with `uv add` / `uv remove`.
 
 ### 3. Documentation
 - When modifying the CLI, update `docs/usage.md` with accurate arguments and descriptions.
