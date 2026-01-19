@@ -30,7 +30,8 @@ from ruamel.yaml.nodes import ScalarNode
 from ruamel.yaml.scalarstring import PlainScalarString
 
 from quizml.exceptions import QuizMLYamlSyntaxError
-from quizml.utils import filter_yaml, msg_context, text_wrap
+from quizml.utils import coerce_data, msg_context, text_wrap
+
 
 # --- Custom ruamel.yaml Constructor ---
 
@@ -61,10 +62,6 @@ StringConstructor.add_constructor(
 
 
 # --- Custom jsonschema Validator and Type Conversion ---
-
-
-def is_string(checker, instance):
-    return isinstance(instance, str)
 
 
 def is_number(checker, instance):
@@ -105,69 +102,6 @@ CustomTypeChecker = Draft7Validator.TYPE_CHECKER.redefine_many(
 )
 
 
-def coerce_value(value, schema):
-    """
-    Attempt to coerce the value to the types specified in schema.
-    Prioritizes Boolean > Integer > Number to match most specific types first.
-    """
-    types = schema.get("type", [])
-    if isinstance(types, str):
-        types = [types]
-
-    # Check boolean
-    if "boolean" in types:
-        if is_boolean(None, value):
-            if isinstance(value, str):
-                return value.lower() in ["true", "yes", "on"]
-            return value
-
-    # Check integer
-    if "integer" in types:
-        if is_integer(None, value):
-            if isinstance(value, str):
-                return int(value)
-            return value
-
-    # Check number
-    if "number" in types:
-        if is_number(None, value):
-            if isinstance(value, str):
-                return float(value)
-            return value
-
-    return value
-
-
-def extend_with_coercion(validator_class):
-    """
-    Extends the validator to coerce types based on schema before validation.
-    """
-    validate_properties = validator_class.VALIDATORS["properties"]
-    validate_items = validator_class.VALIDATORS["items"]
-
-    def coercing_properties(validator, properties, instance, schema):
-        if isinstance(instance, dict):
-            for prop, subschema in properties.items():
-                if prop in instance:
-                    instance[prop] = coerce_value(instance[prop], subschema)
-        yield from validate_properties(validator, properties, instance, schema)
-
-    def coercing_items(validator, items, instance, schema):
-        if isinstance(instance, list):
-            if isinstance(items, dict):
-                for i in range(len(instance)):
-                    instance[i] = coerce_value(instance[i], items)
-            elif isinstance(items, list):
-                for i, subschema in enumerate(items):
-                    if i < len(instance):
-                        instance[i] = coerce_value(instance[i], subschema)
-        yield from validate_items(validator, items, instance, schema)
-
-    return validators.extend(
-        validator_class, {"properties": coercing_properties, "items": coercing_items}
-    )
-
-
 def extend_with_default(validator_class):
     validate_properties = validator_class.VALIDATORS["properties"]
 
@@ -181,11 +115,9 @@ def extend_with_default(validator_class):
     return validators.extend(validator_class, {"properties": set_defaults})
 
 
-# Chain the validators: Defaults -> Coercion -> Validation
+# Chain the validators: Defaults -> Validation
 DefaultFillingValidator = extend_with_default(
-    extend_with_coercion(
-        validators.extend(Draft7Validator, type_checker=CustomTypeChecker)
-    )
+    validators.extend(Draft7Validator, type_checker=CustomTypeChecker)
 )
 
 
@@ -194,6 +126,8 @@ def _parse_yaml_fragment(text, validate=True, schema=None, filename="<string>"):
     Parses a single YAML fragment.
     Optionally validates against a schema (dict).
     """
+
+    # loading all scalars as strings
     yaml = YAML()
     yaml.Constructor = StringConstructor
     try:
@@ -206,6 +140,7 @@ def _parse_yaml_fragment(text, validate=True, schema=None, filename="<string>"):
             f"YAML parsing error in {filename} near line {line}:\n{err}"
         ) from err
 
+    # validating against the schema
     if validate and schema:
         validator = DefaultFillingValidator(schema)
         errors = sorted(validator.iter_errors(data), key=lambda e: e.path)
@@ -250,10 +185,8 @@ def loads(quizmlyaml_txt, validate=True, schema=None, filename="<string>"):
 
     if len(yamldocs) > 2:
         raise QuizMLYamlSyntaxError(
-            
-                "YAML file cannot have more than 2 documents: "
-                "one for the header and one for the questions."
-            
+            "YAML file cannot have more than 2 documents: "
+            "one for the header and one for the questions."
         )
 
     doc = {"header": {}, "questions": []}
@@ -287,12 +220,10 @@ def loads(quizmlyaml_txt, validate=True, schema=None, filename="<string>"):
         else []
     )
 
-    # removing trailing white spaces in all string values
-    def f(a):
-        return a.strip() if isinstance(a, str) else a
-    doc = filter_yaml(doc, f)
+    doc = _to_plain_python(doc)
+    doc = coerce_data(doc, schema)
 
-    return _to_plain_python(doc)
+    return doc, schema
 
 
 def load(quizmlyaml_path, validate=True, schema_path=None):
@@ -319,7 +250,7 @@ def load(quizmlyaml_path, validate=True, schema_path=None):
                 "Schema must be provided for validation when validate=True."
             ) from err
 
-    doc = loads(
+    doc, _ = loads(
         quizmlyaml_txt, validate=validate, schema=schema, filename=str(quizmlyaml_path)
     )
 
@@ -327,4 +258,4 @@ def load(quizmlyaml_path, validate=True, schema_path=None):
     basename, _ = os.path.splitext(quizmlyaml_path)
     doc["header"]["inputbasename"] = basename
 
-    return doc
+    return doc, schema

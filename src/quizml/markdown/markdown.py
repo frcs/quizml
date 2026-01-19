@@ -38,18 +38,22 @@ from .utils import md_combine_list
 
 
 class MarkdownTranscoder:
-    def __init__(self, yaml_data):
+    def __init__(self, yaml_data, schema=None):
         self.yaml_data = yaml_data
+        self.schema = schema
 
         # the dictionary of rendered entries will be cached
         self.cache_dict = {}
 
         # read yaml_data and collect all MD entries into a single list
-        self.md_list = get_md_list_from_yaml(yaml_data)
+        self.md_list = get_md_list_from_yaml(yaml_data, schema)
 
         # combine this into a single MD string,
         # with entries separated by sections
         md_combined = md_combine_list(self.md_list)
+        
+        if not self.md_list:
+            return
 
         # The MD parser is a Mistletoe AST renderer
 
@@ -77,6 +81,9 @@ class MarkdownTranscoder:
             a dictionary where each key corresponds to the MD string
             and the value is the rendered HTML
         """
+        if not self.md_list:
+            return {}
+
         if opts is None:
             opts = {}
             
@@ -101,6 +108,9 @@ class MarkdownTranscoder:
             a dictionary where each key corresponds to the MD string
             and the value is the rendered LaTeX
         """
+        if not self.md_list:
+            return {}
+
         if opts is None:
             opts = {}
         
@@ -162,8 +172,11 @@ class MarkdownTranscoder:
         if target is None:
             target = {}
 
+        if not self.md_list:
+            return self.yaml_data
+
         target_dict = self.get_dict(opts=target)
-        return transcode_md_in_yaml(self.yaml_data, target_dict)
+        return transcode_md_in_yaml(self.yaml_data, target_dict, self.schema)
 
 
 def print_doc(doc, lead=""):

@@ -3,6 +3,12 @@
   "title": "QuizMLYaml Quiz Schema",
   "description": "Schema for quizml YAML files.",
   "type": "array",
+  "definitions": {
+    "markdown": {
+      "type": "string",
+      "format": "markdown"
+    }
+  },
   "items": {
     "type": "object",
     "properties": {
@@ -18,19 +24,19 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
-            "marks": { "type": ["number", "string"], "default": "2.5" },
-            "comments": { "type": "string" },
-            "cols": { "type": ["integer", "string"], "default": "1" },
-            "question": { "type": "string" },
-            "figure": { "type": "string" },
-            "figure-split": { "type": ["number", "string"] },
+            "marks": { "type": "number", "default": "2.5" },
+            "comments": { "$ref": "#/definitions/markdown" },
+            "cols": { "type": "integer", "default": "1" },
+            "question": { "$ref": "#/definitions/markdown" },
+            "figure": { "$ref": "#/definitions/markdown" },
+            "figure-split": { "type": "number" },
             "choices": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "x": { "type": "string" },
-                  "o": { "type": "string" }
+                  "x": { "$ref": "#/definitions/markdown" },
+                  "o": { "$ref": "#/definitions/markdown" }
                 }
               }
             }
@@ -43,19 +49,19 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
-            "marks": { "type": ["number", "string"], "default": "2.5" },
-            "comments": { "type": "string" },
-            "cols": { "type": ["integer", "string"], "default": "1" },
-            "question": { "type": "string" },
-            "figure": { "type": "string" },
-            "figure-split": { "type": ["number", "string"] },
+            "marks": { "type": "number", "default": "2.5" },
+            "comments": { "$ref": "#/definitions/markdown" },
+            "cols": { "type": "integer", "default": "1" },
+            "question": { "$ref": "#/definitions/markdown" },
+            "figure": { "$ref": "#/definitions/markdown" },
+            "figure-split": { "type": "number" },
             "choices": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "x": { "type": "string" },
-                  "o": { "type": "string" }
+                  "x": { "$ref": "#/definitions/markdown" },
+                  "o": { "$ref": "#/definitions/markdown" }
                 }
               }
             }
@@ -68,12 +74,13 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
-            "marks": { "type": ["number", "string"], "default": "2.5" },
-            "comments": { "type": "string" },
-            "question": { "type": "string" },
-            "figure": { "type": "string" },
-            "figure-split": { "type": ["number", "string"] },
-            "answer": { "type": ["boolean", "string"] }
+            "marks": { "type": "number", "default": "2.5" },
+            "comments": { "$ref": "#/definitions/markdown" },
+            "question": { "$ref": "#/definitions/markdown" },
+            "figure": { "$ref": "#/definitions/markdown" },
+
+            "figure-split": { "type": "number" },
+            "answer": { "type": "boolean" }
           },
           "required": ["question", "answer"]
         }
@@ -83,9 +90,9 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
-            "marks": { "type": ["number", "string"], "default": "4" },
-            "comments": { "type": "string" },
-            "question": { "type": "string" },
+            "marks": { "type": "number", "default": "4" },
+            "comments": { "$ref": "#/definitions/markdown" },
+            "question": { "$ref": "#/definitions/markdown" },
             "answer": { "type": "string" }
           },
           "required": ["question"]
@@ -96,18 +103,18 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
-            "marks": { "type": ["number", "string"], "default": "2.5" },
-            "comments": { "type": "string" },
-            "question": { "type": "string" },
-            "figure": { "type": "string" },
-            "figure-split": { "type": ["number", "string"] },
+            "marks": { "type": "number", "default": "2.5" },
+            "comments": { "$ref": "#/definitions/markdown" },
+            "question": { "$ref": "#/definitions/markdown" },
+            "figure": { "$ref": "#/definitions/markdown" },
+            "figure-split": { "type": "number" },
             "choices": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "A": { "type": "string" },
-                  "B": { "type": "string" }
+                  "A": { "$ref": "#/definitions/markdown" },
+                  "B": { "$ref": "#/definitions/markdown" }
                 },
                 "required": ["A", "B"]
               }
@@ -121,15 +128,15 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
-            "marks": { "type": ["number", "string"], "default": "2.5" },
-            "comments": { "type": "string" },
-            "cols": { "type": ["integer", "string"], "default": "1" },
-            "question": { "type": "string" },
-            "figure": { "type": "string" },
-            "figure-split": { "type": ["number", "string"] },
+            "marks": { "type": "number", "default": "2.5" },
+            "comments": { "$ref": "#/definitions/markdown" },
+            "cols": { "type": "integer", "default": "1" },
+            "question": { "$ref": "#/definitions/markdown" },
+            "figure": { "$ref": "#/definitions/markdown" },
+            "figure-split": { "type": "number" },
             "choices": {
               "type": "array",
-              "items": { "type": "string" }
+              "items": { "$ref": "#/definitions/markdown" }
             }
           },
           "required": ["question", "choices"]
@@ -140,9 +147,9 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
-            "title": { "type": "string" },
-            "marks": { "type": ["number", "string"] },
-            "question": { "type": "string" }
+            "title": {  "$ref": "#/definitions/markdown" },
+            "marks": { "type": "number" },
+            "question": { "$ref": "#/definitions/markdown" }
           }
         }
       }

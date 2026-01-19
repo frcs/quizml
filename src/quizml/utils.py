@@ -1,91 +1,253 @@
-"""a few utility functions to deal with QuizMLYaml objects."""
+"a few utility functions to deal with QuizMLYaml objects."
 
 
 import os
 import textwrap
 
 
-def filter_yaml(yaml_data, f):
+def walk_yaml(yaml_data, fn, *args, **kwargs):
     """
-    apply a function to all values in QuizMLYaml obj
+    recursively apply a function to all values in QuizMLYaml obj
 
     Parameters
     ----------
     yaml_data : list
         yaml file content, as decoded by quizmlyaml.load
+    fn: function to apply
     """
 
     if isinstance(yaml_data, list):
-        return [filter_yaml(a, f) for a in yaml_data]
+        return [walk_yaml(a, fn, *args, **kwargs) for a in yaml_data]
     elif isinstance(yaml_data, dict):
         new_dict = type(yaml_data)()
         for k, v in yaml_data.items():
-            new_dict[k] = filter_yaml(v, f)
+            new_dict[k] = walk_yaml(v, fn, *args, **kwargs)
         return new_dict
     else:
-        return f(yaml_data)
+        return fn(yaml_data, *args, **kwargs)
 
 
-def get_md_list_from_yaml(yaml_data, md_list=None):
+class MarkdownString(str):
+    """
+    A string subclass to tag values that should be treated as Markdown.
+    """
+    pass
+
+
+# --- Schema Helpers ---
+
+def apply_conditions(data, current_schema):
+    """
+    Applies conditional logic (if/then/else) from JSON schema.
+    Handles root if/then/else and those inside allOf/anyOf/oneOf.
+    Returns the specific sub-schema to apply, or the original if no condition matches.
+    """
+    # Helper to check a condition
+    def check_condition(cond_schema):
+        if "properties" in cond_schema:
+            for prop, value in cond_schema["properties"].items():
+                if "const" in value:
+                    if data.get(prop) != value["const"]:
+                        return False
+        return True
+
+    # Check root if/then/else
+    if "if" in current_schema:
+        if check_condition(current_schema["if"]):
+            return current_schema.get("then", {})
+        else:
+            return current_schema.get("else", {})
+
+    # Check combinators
+    for key in ["allOf", "anyOf", "oneOf"]:
+        if key in current_schema:
+            for sub_schema in current_schema[key]:
+                if "if" in sub_schema:
+                    if check_condition(sub_schema["if"]):
+                        return sub_schema.get("then", {})
+    
+    return current_schema
+
+
+def is_format_markdown(schema_node):
+    if not schema_node or not isinstance(schema_node, dict):
+        return False
+    if "$ref" in schema_node:
+        # Note: simplistic ref resolution, assumes local definitions structure
+        # In our specific case, we just need to detect the tag.
+        if schema_node["$ref"] == "#/definitions/markdown":
+            return True
+        return False
+    return schema_node.get("format") == "markdown"
+
+
+# --- Coercion Logic ---
+
+def coerce_value(value, schema):
+    """
+    Coerce a single value based on the schema type.
+    """
+    # Check Markdown
+    if is_format_markdown(schema):
+        if isinstance(value, str):
+            return MarkdownString(value)
+        return value
+
+    types = schema.get("type", [])
+    if isinstance(types, str):
+        types = [types]
+
+    if "boolean" in types:
+        if isinstance(value, str):
+            if value.lower() in ["true", "yes", "on"]:
+                return True
+            if value.lower() in ["false", "no", "off"]:
+                return False
+    
+    if "integer" in types:
+        if isinstance(value, str):
+            try:
+                return int(value)
+            except ValueError:
+                pass
+    
+    if "number" in types:
+        if isinstance(value, str):
+            try:
+                return float(value)
+            except ValueError:
+                pass
+                
+    return value
+
+
+def coerce_data(yaml_data, schema):
+    """
+    Traverses the yaml_data (specifically questions) and coerces types
+    (int, float, bool, MarkdownString) based on the provided schema.
+    """
+    
+    def coerce_recursive(data, current_schema):
+        if not current_schema:
+            return data
+
+        if isinstance(data, dict):
+            refined_schema = apply_conditions(data, current_schema)
+            new_dict = {}
+            properties = refined_schema.get("properties", {})
+            for key, value in data.items():
+                if key in properties:
+                    new_dict[key] = coerce_recursive(value, properties[key])
+                else:
+                    new_dict[key] = value
+            return new_dict
+
+        elif isinstance(data, list):
+            new_list = []
+            items_schema = current_schema.get("items", {})
+            for item in data:
+                new_list.append(coerce_recursive(item, items_schema))
+            return new_list
+        
+        else:
+            return coerce_value(data, current_schema)
+
+    if isinstance(yaml_data, dict) and "questions" in yaml_data and schema:
+        yaml_data["questions"] = coerce_recursive(yaml_data["questions"], schema)
+    
+    return yaml_data
+
+
+# --- Markdown Processing ---
+
+def get_md_list_from_yaml(yaml_data, schema=None):
     """
     List all Markdown entries in the yaml file.
-
-    Parameters
-    ----------
-    yaml_data : yaml datastruct, eg. list of dicts
-        yaml file content, as decoded by quizmlyaml.load
-    md_list : list
-        output list of markdown entries
+    Uses MarkdownString type for questions, and legacy logic for headers.
     """
+    md_list = []
 
-    if md_list is None:
-        md_list = []
+    def collect_questions(node):
+        if isinstance(node, list):
+            for item in node:
+                collect_questions(item)
+        elif isinstance(node, dict):
+            for val in node.values():
+                collect_questions(val)
+        elif isinstance(node, MarkdownString):
+            md_list.append(str(node))
+
+    def collect_header(node):
+        non_md_keys = ["type"]
+        if isinstance(node, list):
+            for item in node:
+                collect_header(item)
+        elif isinstance(node, dict):
+            for key, val in node.items():
+                if (key not in non_md_keys) and not key.startswith("_"):
+                    collect_header(val)
+        elif isinstance(node, str):
+            md_list.append(str(node))
+
+    if isinstance(yaml_data, dict) and ("header" in yaml_data or "questions" in yaml_data):
+        if "header" in yaml_data:
+            collect_header(yaml_data["header"])
         
-    non_md_keys = ["type"]
-
-    if isinstance(yaml_data, list):
-        for item in yaml_data:
-            md_list = get_md_list_from_yaml(item, md_list)
-    elif isinstance(yaml_data, dict):
-        for key, val in yaml_data.items():
-            if (key not in non_md_keys) and not key.startswith("_"):
-                md_list = get_md_list_from_yaml(val, md_list)
-    elif isinstance(yaml_data, str):
-        md_list.append(str(yaml_data))
+        if "questions" in yaml_data:
+            collect_questions(yaml_data["questions"])
+    else:
+        # Fallback
+        collect_header(yaml_data)
 
     return md_list
 
 
-def transcode_md_in_yaml(yaml_data, md_dict):
+def transcode_md_in_yaml(yaml_data, md_dict, schema=None):
     """
     translate all strings in md_dict into their transcribed text
-
-    Parameters
-    ----------
-    yaml_data : list
-        yaml file content, as decoded by quizmlyaml.load
-    md_dict : dictionary
-        markdown entries with their transcriptions
     """
 
-    non_md_keys = ["type"]
+    def transcode_questions(node):
+        if isinstance(node, list):
+            return [transcode_questions(item) for item in node]
+        elif isinstance(node, dict):
+            new_dict = {}
+            for key, val in node.items():
+                new_dict[key] = transcode_questions(val)
+            return new_dict
+        elif isinstance(node, MarkdownString) and (node in md_dict):
+            return md_dict[node]
+        else:
+            return node
 
-    if isinstance(yaml_data, list):
-        out_data = [transcode_md_in_yaml(item, md_dict) for item in yaml_data]
-    elif isinstance(yaml_data, dict):
-        out_data = {}
-        for key, val in yaml_data.items():
-            if (key not in non_md_keys) and not key.startswith("pre_"):
-                out_data[key] = transcode_md_in_yaml(val, md_dict)
+    def transcode_header(node):
+        if isinstance(node, list):
+            return [transcode_header(item) for item in node]
+        elif isinstance(node, dict):
+            new_dict = {}
+            for key, val in node.items():
+                if key.startswith("_"):
+                    new_dict[key] = val              
+                else:
+                    new_dict[key] = transcode_header(val)
+            return new_dict
+        elif isinstance(node, str) and (node in md_dict):
+            return md_dict[node]
+        else:
+            return node
+
+    if isinstance(yaml_data, dict) and ("header" in yaml_data or "questions" in yaml_data):
+        new_doc = {}
+        for k, v in yaml_data.items():
+            if k == "header":
+                new_doc[k] = transcode_header(v)
+            elif k == "questions":
+                new_doc[k] = transcode_questions(v)
             else:
-                out_data[key] = val
-    elif isinstance(yaml_data, str) and (yaml_data in md_dict):
-        out_data = md_dict[yaml_data]
+                new_doc[k] = v
+        return new_doc
     else:
-        out_data = yaml_data
-
-    return out_data
-
+        return transcode_header(yaml_data)
 
 
 def text_wrap(msg):

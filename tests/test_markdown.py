@@ -1,6 +1,8 @@
 import os
+
 import pytest
 from mistletoe import block_token, span_token
+
 
 @pytest.fixture(autouse=True)
 def reset_mistletoe_tokens():
@@ -15,8 +17,8 @@ def test_markdown_transcoding_html():
     pkg_dirname = os.path.dirname(__file__)
     yaml_file = os.path.join(pkg_dirname, "fixtures", "test-markdown.yaml")
     
-    yamldoc = load(yaml_file, validate=False)
-    transcoder = MarkdownTranscoder(yamldoc)
+    yamldoc, schema = load(yaml_file, validate=True)
+    transcoder = MarkdownTranscoder(yamldoc, schema)
     
     # Test HTML conversion
     html_md_dict = transcoder.get_dict(opts={'fmt': 'html'})
@@ -50,8 +52,8 @@ def test_markdown_transcoding_latex():
     pkg_dirname = os.path.dirname(__file__)
     yaml_file = os.path.join(pkg_dirname, "fixtures", "test-markdown.yaml")
     
-    yamldoc = load(yaml_file, validate=False)
-    transcoder = MarkdownTranscoder(yamldoc)
+    yamldoc, schema = load(yaml_file, validate=True)
+    transcoder = MarkdownTranscoder(yamldoc, schema)
     
     # Test LaTeX conversion
     latex_md_dict = transcoder.get_dict(opts={'fmt': 'latex'})

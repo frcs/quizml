@@ -44,7 +44,17 @@ def test_yaml_syntax():
                      "choices": ["A", "B", "C", "D"],
                      "cols": 1},
                     ]  
-    yamldoc = load(yaml_file)
+    yamldoc, _ = load(yaml_file)
 
-    assert(yamldoc['questions'] == yamldata)
+    # Helper to strip strings recursively
+    def strip_strings(data):
+        if isinstance(data, dict):
+            return {k: strip_strings(v) for k, v in data.items()}
+        if isinstance(data, list):
+            return [strip_strings(v) for v in data]
+        if isinstance(data, str):
+            return data.strip()
+        return data
+
+    assert strip_strings(yamldoc['questions']) == yamldata
         

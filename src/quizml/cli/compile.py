@@ -117,7 +117,9 @@ def compile(args):
 
     # load QuizMLYaml file
     try:
-        yaml_data = load(args.yaml_filename, validate=True, schema_path=schema_path)
+        yaml_data, schema = load(
+            args.yaml_filename, validate=True, schema_path=schema_path
+        )
     except (QuizMLYamlSyntaxError, FileNotFoundError) as err:
         print_error(str(err), title="QuizMLYaml Syntax Error")
         return
@@ -128,7 +130,7 @@ def compile(args):
     # load all markdown entries into a list
     # and build dictionaries of their HTML and LaTeX translations
     try:
-        transcoder = md.MarkdownTranscoder(yaml_data)
+        transcoder = md.MarkdownTranscoder(yaml_data, schema)
     except (LatexEqError, MarkdownError, FileNotFoundError) as err:
         print_error(str(err), title="Error")
         return
