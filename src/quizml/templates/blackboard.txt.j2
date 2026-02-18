@@ -11,6 +11,15 @@ MC<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><|- if a.x is 
 MAT<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><< a.A >><< "\t" >><< a.B >><|-   endfor -|>
 <|- elif q.type == 'ordering' -|>
 ORD<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><< a >><|-   endfor -|>
+<|- elif q.type == 'fill' -|>
+FIB<< "\t" >><< q.question >><|-   for a in q.answers -|><< "\t" >><< a >><|-   endfor -|>
+<|- elif q.type == 'mfill' -|>
+  FIB_PLUS<< "\t" >><< q.question >><< "\t" >>
+  <|- for key, values in q.answers.items() -|>
+    << key >><< "\t" >><< values | join("\t") >><< "\t\t" if not loop.last >>
+  <|-   endfor -|>
+<|- elif q.type == 'num' -|>
+NUM<< "\t" >><< q.question >><< "\t" >><< q.answer >><< "\t" >><< q.tolerance if q.tolerance is defined >>
 <|- endif -|>
 << "\n" >>
 <|-endfor -|>

@@ -1,11 +1,19 @@
 <# This template is used when reporting the exam stats Command Line app #>
 <|- set ns = namespace(total_marks=0, expected_mark=0) -|>
-<|- set default_marks = {'mc': 2.5, 'ma': 2.5, 'tf': 2.5, 'essay': 5, 'matching': 2.5, 'ordering': 2.5} -|>
-
+  <|- set default_marks = {
+      'mc': 2.5,
+      'ma': 2.5,
+      'tf': 2.5,
+      'essay': 5,
+      'matching': 2.5,
+      'ordering': 2.5,
+      'fill': 2.5,
+      'mfill': 2.5,
+      'num': 2.5} -|>
 | Q | Type | Marks | # | Exp | Question Statement |
 |---:|:---:|---:|---:|---:|---|
 <| for q in questions if q.type in default_marks -|>
-    <|- set q_marks = q.marks if q.marks is defined else default_marks.get(q.type, 0) -|>
+    <|- set q_marks = q.marks|float if q.marks is defined else default_marks.get(q.type, 0) -|>
     <|- set n_choices = (q.choices | length) if q.choices is defined else (2 if q.type == 'tf' else 0) -|>
     <|- set prob = (1.0/n_choices) if q.type == 'mc' else 
                (1.0/(2**(n_choices-1)) if q.type == 'ma' else 
