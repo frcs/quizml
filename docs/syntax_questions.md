@@ -1,8 +1,6 @@
 ## Question Types Syntax <!-- {docsify-ignore} -->
 
-QuizML provided templates currently supports 5 types of questions but only
-`Essay`, `True/False`, `Multiple Choice` and `Multiple Answers` are currently
-implemented across all templates.
+QuizML templates currently support several types of questions: `Essay`, `True/False`, `Multiple Choice`, `Multiple Answers`, `Fill in the Blank`, `Fill in Multiple Blanks`, and `Calculated Numeric` are implemented across all templates.
 
 ### Essay
 
@@ -92,16 +90,48 @@ In Ordering questions, the student is asked to rank each statement (`answer`) in
 correct order. The statements need to be entered in correct order. Shuffling
 occurs when generating the exam (see how to set the random seed here). 
 
+### Fill in the Blank (fill)
+
+Used for a single blank. The `answers` field provides a list of acceptable correct variations.
+
 ```yaml
-- type: ordering
+- type: fill
   marks: 5
   question: |
-    Order the following trees in **increasing** order of height.  
-  choices:
-    - Japanese Maple (Acer palmatum)
-    - Flowering Dogwood (Cornus florida)
-    - American Beech (Fagus grandifolia)
-    - Coast Redwood (Sequoia sempervirens)
+    The color of the sky on a clear day is _____.
+  answers:
+    - blue
+    - Blue
+    - cyan
 ```
 
-(only implemented for BlackBoard)
+### Fill in Multiple Blanks (mfill)
+
+Uses a dictionary to map variables (defined in brackets `[ ]` in the question) to their acceptable answers.
+
+```yaml
+- type: mfill
+  marks: 5
+  question: |
+    Roses are [color1] and violets are [color2].
+  answers:
+    color1:
+      - red
+      - Red
+    color2:
+      - blue
+      - Blue
+```
+
+### Calculated Numeric (num)
+
+Simple value and tolerance structure for numeric answers.
+
+```yaml
+- type: num
+  marks: 5
+  question: |
+     What is the value of $\pi$ to two decimal places?
+  answer: 3.14
+  tolerance: 0.01
+```

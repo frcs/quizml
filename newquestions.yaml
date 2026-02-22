@@ -1,0 +1,41 @@
+
+-
+# Fill in the Blank (FILL)
+# Used for a single blank. answers provides a list 
+# of acceptable correct variations.
+  type: fill
+  marks: 5
+  question: |
+    The color of the sky on a clear day is _____.
+  answers:
+    - blue
+    - Blue
+    - cyan
+
+-
+# Fill in Multiple Blanks (MFILL)
+# Uses a dictionary to map variables (defined in brackets [ ] 
+# in the question) to their acceptable answers.
+  type: mfill
+  marks: 5
+  question: |
+    Roses are _____ and violets are _____.
+  answers:
+    color1:
+      - red
+      - Red
+    color2:
+      - blue
+      - Blue
+
+-
+# Calculated Numeric (NUM)
+# Simple value and tolerance structure.
+  type: num
+  marks: 5
+  question: |
+     What is the value of $\pi$ to two decimal places?
+  answer: 3.14
+  tolerance: 0.01
+
+

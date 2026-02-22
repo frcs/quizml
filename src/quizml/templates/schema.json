@@ -143,6 +143,61 @@
         }
       },
       {
+        "if": { "properties": { "type": { "const": "fill" } } },
+        "then": {
+          "properties": {
+            "type": { "type": "string" },
+            "marks": { "type": "number", "default": "2.5" },
+            "comments": { "$ref": "#/definitions/markdown" },
+            "question": { "$ref": "#/definitions/markdown" },
+            "figure": { "$ref": "#/definitions/markdown" },
+            "figure-split": { "type": "number" },
+            "answers": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "required": ["question", "answers"]
+        }
+      },
+      {
+        "if": { "properties": { "type": { "const": "mfill" } } },
+        "then": {
+          "properties": {
+            "type": { "type": "string" },
+            "marks": { "type": "number", "default": "2.5" },
+            "comments": { "$ref": "#/definitions/markdown" },
+            "question": { "$ref": "#/definitions/markdown" },
+            "figure": { "$ref": "#/definitions/markdown" },
+            "figure-split": { "type": "number" },
+            "answers": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          },
+          "required": ["question", "answers"]
+        }
+      },
+      {
+        "if": { "properties": { "type": { "const": "num" } } },
+        "then": {
+          "properties": {
+            "type": { "type": "string" },
+            "marks": { "type": "number", "default": "2.5" },
+            "comments": { "$ref": "#/definitions/markdown" },
+            "question": { "$ref": "#/definitions/markdown" },
+            "figure": { "$ref": "#/definitions/markdown" },
+            "figure-split": { "type": "number" },
+            "answer": { "type": ["number", "string"] },
+            "tolerance": { "type": "number" }
+          },
+          "required": ["question", "answer"]
+        }
+      },
+      {
         "if": { "properties": { "type": { "const": "part" } } },
         "then": {
           "properties": {

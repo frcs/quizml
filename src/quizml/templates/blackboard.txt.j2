@@ -1,25 +1,22 @@
 <|- for q in questions -|>
 <|- if q.type == 'essay' -|>
-ESS<< "\t" >><< q.question >><< "\t" >><< q.answer >>
+ESS<< "\t" >><< q.question.strip() >><< "\t" >><< q.answer.strip() >>
 <|- elif q.type == 'tf' -|>
-TF<< "\t" >><< q.question >><< "\t" >><< q.answer >>
+TF<< "\t" >><< q.question.strip() >><< "\t" >><< q.answer >>
 <|- elif q.type == 'ma' -|>
-MA<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><|- if a.x is defined -|><< a.x >><|-else-|><< a.o >><|-endif-|><< "\t" >><|- if a.x is defined -|>correct<|-else-|>incorrect<|-endif-|><|-   endfor -|>
+MA<< "\t" >><< q.question.strip() >><|-   for a in q.choices -|><< "\t" >><|- if a.x is defined -|><< a.x.strip() >><|-else-|><< a.o.strip() >><|-endif-|><< "\t" >><|- if a.x is defined -|>correct<|-else-|>incorrect<|-endif-|><|-   endfor -|>
 <|- elif q.type == 'mc' -|>
-MC<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><|- if a.x is defined -|><< a.x >><|-else-|><< a.o >><|-endif-|><< "\t" >><|- if a.x is defined -|>correct<|-else-|>incorrect<|-endif-|><|-   endfor -|>
+MC<< "\t" >><< q.question.strip() >><|-   for a in q.choices -|><< "\t" >><|- if a.x is defined -|><< a.x.strip() >><|-else-|><< a.o.strip() >><|-endif-|><< "\t" >><|- if a.x is defined -|>correct<|-else-|>incorrect<|-endif-|><|-   endfor -|>
 <|- elif q.type == 'matching' -|>
-MAT<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><< a.A >><< "\t" >><< a.B >><|-   endfor -|>
+MAT<< "\t" >><< q.question.strip() >><|-   for a in q.choices -|><< "\t" >><< a.A.strip() >><< "\t" >><< a.B.strip() >><|-   endfor -|>
 <|- elif q.type == 'ordering' -|>
-ORD<< "\t" >><< q.question >><|-   for a in q.choices -|><< "\t" >><< a >><|-   endfor -|>
+ORD<< "\t" >><< q.question.strip() >><|-   for a in q.choices -|><< "\t" >><< a.strip() >><|-   endfor -|>
 <|- elif q.type == 'fill' -|>
-FIB<< "\t" >><< q.question >><|-   for a in q.answers -|><< "\t" >><< a >><|-   endfor -|>
+FIB<< "\t" >><< q.question.strip() >><|-   for a in q.answers -|><< "\t" >><< a.strip() >><|-   endfor -|>
 <|- elif q.type == 'mfill' -|>
-  FIB_PLUS<< "\t" >><< q.question >><< "\t" >>
-  <|- for key, values in q.answers.items() -|>
-    << key >><< "\t" >><< values | join("\t") >><< "\t\t" if not loop.last >>
-  <|-   endfor -|>
+FIB_PLUS<< "\t" >><< q.question.strip() >><|- for key, values in q.answers.items() -|><< "\t\t" if not loop.first else "\t" >><< key.strip() >><|- for val in values -|><< "\t" >><< val.strip() >><|- endfor -|><|- endfor -|>
 <|- elif q.type == 'num' -|>
-NUM<< "\t" >><< q.question >><< "\t" >><< q.answer >><< "\t" >><< q.tolerance if q.tolerance is defined >>
+NUM<< "\t" >><< q.question.strip() >><< "\t" >><< q.answer >><< "\t" >><< q.tolerance if q.tolerance is defined >>
 <|- endif -|>
 << "\n" >>
 <|-endfor -|>

@@ -19,6 +19,10 @@
                (1.0/(2**(n_choices-1)) if q.type == 'ma' else 
                (0.5 if q.type == 'tf' else 
                (1.0/math.factorial(n_choices) if q.type == 'matching' else 0))) -|>
+    <|- if q.type in ['fill', 'mfill', 'num'] -|>
+      <|- set n_choices = '-' -|>
+      <|- set prob = 0 -|>
+    <|- endif -|>
     <|- set q_em = q_marks * prob -|>
     <|- set q_lines = q.question.strip().splitlines() -|>
     <|- set excerpt = q_lines[0] ~ ("..." if q_lines|length > 1 else "") -|>

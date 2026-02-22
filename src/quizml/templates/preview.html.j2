@@ -1,5 +1,5 @@
 <| set ns = namespace(total_marks=0) -|>
-<| set default_marks = {'mc': 2.5, 'ma': 2.5, 'tf': 2.5, 'essay': 5, 'matching': 2.5, 'ordering': 2.5} -|>
+<| set default_marks = {'mc': 2.5, 'ma': 2.5, 'tf': 2.5, 'essay': 5, 'matching': 2.5, 'ordering': 2.5, 'fill': 2.5, 'mfill': 2.5, 'num': 2.5} -|>
 <| for q in questions if q.type in default_marks -|>
     <| set q_marks = q.marks | float if q.marks is defined else default_marks.get(q.type, 0) -|>
     <| set ns.total_marks = ns.total_marks + q_marks -|>
@@ -306,6 +306,40 @@
 <| if q['figure-split'] is defined |></div></div>
 <| elif q.figure is defined |><div class="question-figure" style="margin-top: 1em;"><<q.figure>></div>
 <| endif |>
+
+<| elif q.type == 'fill' |>
+<div class='question-type'>Fill in the Blank</div><div class='marks'><< q.marks >></div>
+<<q.question>>
+<div class='correct' style='background:#eee; max-width: 34.5em;
+			  padding: 1em; margin-bottom:1em; margin-top:1em'>
+  <p><i>acceptable answers:</i></p>
+  <ul>
+  <|- for a in q.answers |>
+    <li><< a >></li>
+  <|- endfor |>
+  </ul>
+</div>
+
+<| elif q.type == 'mfill' |>
+<div class='question-type'>Fill in Multiple Blanks</div><div class='marks'><< q.marks >></div>
+<<q.question>>
+<div class='correct' style='background:#eee; max-width: 34.5em;
+			  padding: 1em; margin-bottom:1em; margin-top:1em'>
+  <p><i>acceptable answers:</i></p>
+  <ul>
+  <|- for key, values in q.answers.items() |>
+    <li><b>[<< key >>]</b>: << values | join(", ") >></li>
+  <|- endfor |>
+  </ul>
+</div>
+
+<| elif q.type == 'num' |>
+<div class='question-type'>Calculated Numeric</div><div class='marks'><< q.marks >></div>
+<<q.question>>
+<div class='correct' style='background:#eee; max-width: 34.5em;
+			  padding: 1em; margin-bottom:1em; margin-top:1em'>
+  <p><i>answer:</i> << q.answer >> <| if q.tolerance is defined |>(+/- << q.tolerance >>)<| endif |></p>
+</div>
 
 <|- endif          |>
   </li>

@@ -414,11 +414,14 @@ essay question
 \o<<letter[loop.index0]>>
 <|-     endif -|>
 <|-   endfor |>
+<|- elif q.type == 'fill' or q.type == 'mfill' |>
+fill-in
+<|- elif q.type == 'num' |>
+numeric
 <| endif |>
-<| endfor |>
+<| endfor |> 
 \end{enumerate}
 \end{multicols}
-
 \cleardoublepage
 \ifsolutions\else
 \renewcommand{\labelenumii}{(\alph{enumii})}
@@ -533,6 +536,32 @@ essay question
 <|-    endfor +|>
   \end{tabular}
 \end{bbquestion}
+<| elif q.type == 'fill' |>
+\begin{bbquestion}[<<q.marks>>]
+<<q.question>>
+\end{bbquestion}
+\begin{answer}
+acceptable answers: << q.answers | join(", ") >>
+\end{answer}
+<| elif q.type == 'mfill' |>
+\begin{bbquestion}[<<q.marks>>]
+<<q.question>>
+\end{bbquestion}
+\begin{answer}
+acceptable answers:
+\begin{itemize}
+<|- for key, values in q.answers.items() |>
+  \item \textbf{[<< key >>]}: << values | join(", ") >>
+<|- endfor |>
+\end{itemize}
+\end{answer}
+<| elif q.type == 'num' |>
+\begin{bbquestion}[<<q.marks>>]
+<<q.question>>
+\end{bbquestion}
+\begin{answer}
+answer: << q.answer >> <| if q.tolerance is defined |>(\textpm << q.tolerance >>)<| endif |>
+\end{answer}
 <| endif |>  
 <| endfor |> 
 
