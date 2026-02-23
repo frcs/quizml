@@ -5,6 +5,7 @@ from pathlib import Path
 from ruamel.yaml import YAML
 from ruamel.yaml.tokens import CommentToken
 from ruamel.yaml.error import StreamMark
+from ruamel.yaml.scalarstring import LiteralScalarString
 from ..exceptions import QuizMLError
 
 def is_q_comment(token):
@@ -12,7 +13,6 @@ def is_q_comment(token):
     if not isinstance(token, CommentToken):
         return False
     # Matches "# <Q12>" or "#<Q12>" with any amount of whitespace
-    # We strip both sides because ruamel sometimes prepends \n
     val = token.value.strip()
     return bool(re.match(r"^#[ \t]*<Q[0-9]+>$", val))
 
@@ -35,16 +35,22 @@ def clean_all_q_comments(data):
                 comm_list_list = data.ca.items[k]
                 if comm_list_list:
                     for c_idx in range(len(comm_list_list)):
-                        # If it's a list of tokens
                         if isinstance(comm_list_list[c_idx], list):
                             comm_list_list[c_idx] = [t for t in comm_list_list[c_idx] if not is_q_comment(t)]
-                        # If it's a single token (often EOL comment)
                         elif is_q_comment(comm_list_list[c_idx]):
                             comm_list_list[c_idx] = None
 
-    # Recursive step
+    # Recursive step and choices literal conversion
     if isinstance(data, dict):
-        for v in data.values():
+        for k, v in data.items():
+            # Special rule: convert all choices values to long strings (literal scalars)
+            if k == 'choices' and isinstance(v, list):
+                for choice_item in v:
+                    if isinstance(choice_item, dict):
+                        for ck in choice_item:
+                            val = str(choice_item[ck]).strip()
+                            if val:
+                                choice_item[ck] = LiteralScalarString(val + "\n")
             clean_all_q_comments(v)
     elif isinstance(data, list):
         for item in data:
@@ -76,7 +82,7 @@ def format_yaml(args):
             
         data = yaml.load(part)
         
-        # Aggressively remove all existing <Q#> style comments
+        # Aggressive cleaning and choices literal conversion
         clean_all_q_comments(data)
 
         # Renumber questions if this part is a list
@@ -85,14 +91,14 @@ def format_yaml(args):
                 q_num = q_idx + 1
                 new_comment = f"# <Q{q_num}>\n"
                 
-                # Insert fresh numbering comment
                 if q_idx not in data.ca.items:
                     data.ca.items[q_idx] = [None, [], None, None]
                 
-                # Prepend to pre-item comments (index 1)
                 if data.ca.items[q_idx][1] is None:
                     data.ca.items[q_idx][1] = []
-                data.ca.items[q_idx][1].insert(0, CommentToken(new_comment, dummy_mark, None, 0))
+                
+                # Append so it stays right before the hyphen line
+                data.ca.items[q_idx][1].append(CommentToken(new_comment, dummy_mark, None, 0))
         
         buf = io.StringIO()
         yaml.dump(data, buf)

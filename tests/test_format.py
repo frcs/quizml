@@ -1,3 +1,4 @@
+
 import pytest
 from pathlib import Path
 from quizml.cli.cli import main
@@ -78,3 +79,21 @@ def test_format_no_space_numbering(tmp_path, monkeypatch):
     new_txt = yaml_file.read_text()
     assert "- # <Q1>" in new_txt
     assert "<Q10>" not in new_txt
+
+def test_format_choices_literal_and_indent(tmp_path, monkeypatch):
+    yaml_file = tmp_path / "test_choices.yaml"
+    yaml_file.write_text("""
+- type: mc
+  choices:
+    - o: Short string
+    - x: Another one
+""")
+    monkeypatch.setattr(sys, "argv", ["quizml", "--format", str(yaml_file)])
+    main()
+    
+    new_txt = yaml_file.read_text()
+    # Check for literal block scalar indicator '|' followed by indented text
+    assert "o: |\n      Short string" in new_txt
+    # Check for zero indent of choices list items relative to 'choices' key
+    # '  choices:' followed by '  - o:'
+    assert "  choices:\n  - o:" in new_txt
