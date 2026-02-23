@@ -36,7 +36,7 @@ quizml -t bb quiz.yaml
 
 ```bash
 Usage: quizml [-h] [-w] [-t TARGET] [--target-list] [--init-local] [--init-user]
-              [--config CONFIGFILE] [--build] [--diff] [-C] [--info]
+              [--config CONFIGFILE] [--build] [--diff] [--format] [-C] [--info]
               [--shell-completion {bash,zsh,fish}] [-v] [--debug] [--verbose] [--quiet]
               [quiz.yaml] [otherfiles ...]
 ```
@@ -60,6 +60,7 @@ Converts a questions in a YAML/markdown format into a Blackboard test or a LaTeX
   `/Users/fpitie/Library/Application Support/quizml`
 * `--build`: compiles all targets and run all post-compilation commands
 * `--diff`: compares questions from first yaml file to rest of files
+* `--format`: formats and renumbers questions in the yaml file
 * `-C`, `--cleanup`: deletes build artefacts from all yaml files in dir
 * `--info`: print configuration info and paths as json
 * `--shell-completion {bash,zsh,fish}`: print shell completion script for the specified shell
@@ -114,13 +115,13 @@ You can automate these additional compilations by setting the `--build` flag:
 $ quizml --build quiz1.yaml
 ```
 
-* Continuously compiling on file change:
+* Formatting and renumbering questions:
 
-When editing a test, you can continuously watch for any file change and
-recompile the target by setting the flag `-w`:
+You can format the YAML file and renumber the questions with the `--format` flag.
+This will update the `<Q#>` comments in front of each question sequentially.
 
 ```shell-session
-$ quizml -w quiz1.yaml
+$ quizml --format quiz1.yaml
 ```
 
 ### Running as a Module

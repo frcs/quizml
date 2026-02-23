@@ -104,6 +104,12 @@ def main():
     )
 
     parser.add_argument(
+        "--format",
+        help="formats and renumbers questions in the yaml file",
+        action="store_true",
+    )
+
+    parser.add_argument(
         "-C",
         "--cleanup",
         help="deletes build artefacts from all yaml files in dir",
@@ -213,6 +219,12 @@ def main():
             import quizml.cli.diff
 
             quizml.cli.diff.diff(args)
+            return
+
+        if args.format:
+            import quizml.cli.format
+
+            quizml.cli.format.format_yaml(args)
             return
 
         if args.otherfiles:
