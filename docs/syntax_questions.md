@@ -1,6 +1,20 @@
 ## Question Types Syntax <!-- {docsify-ignore} -->
 
-QuizML templates currently support several types of questions: `Essay`, `True/False`, `Multiple Choice`, `Multiple Answers`, `Fill in the Blank`, `Fill in Multiple Blanks`, and `Calculated Numeric` are implemented across all templates.
+QuizML supports several types of questions. The following table summarizes the support for each question type across the different output templates:
+
+| Type | Name | Blackboard | LaTeX | HTML | Word |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| `essay` | [Essay](#essay) | ✅ | ✅ | ✅ | ✅ |
+| `tf` | [True/False](#true-false) | ✅ | ✅ | ✅ | ✅ |
+| `mc` | [Multiple Choice](#multiple-choice) | ✅ | ✅ | ✅ | ✅ |
+| `ma` | [Multiple Answers](#multiple-answers) | ✅ | ✅ | ✅ | ✅ |
+| `matching` | [Matching](#matching) | ✅ | ✅ | ✅ | ❌ |
+| `ordering` | [Ordering](#ordering) | ❌ (1) | ❌ | ✅ | ❌ |
+| `fill` | [Fill in the Blank](#fill-in-the-blank-fill) | ✅ | ✅ | ✅ | ❌ |
+| `mfill` | [Fill in Multiple Blanks](#fill-in-multiple-blanks-mfill) | ✅ | ✅ | ✅ | ❌ |
+| `num` | [Calculated Numeric](#calculated-numeric-num) | ✅ | ✅ | ✅ | ❌ |
+
+(1) Removed in Blackboard Ultra.
 
 ### Essay
 
@@ -82,13 +96,25 @@ possibilities. The (`A`,`B`) statements are shuffled when generating the exam
       B: 60–80 feet
 ```
 
-(only implemented for BlackBoard and HTML preview)
-
 ### Ordering
 
-In Ordering questions, the student is asked to rank each statement (`answer`) in
+!> **Note:** Blackboard Ultra has removed support for Ordering questions. It is currently only supported for HTML preview.
+
+In Ordering questions, the student is asked to rank each statement (`choices`) in
 correct order. The statements need to be entered in correct order. Shuffling
 occurs when generating the exam (see how to set the random seed here). 
+
+```yaml
+- type: ordering
+  marks: 5
+  question: |
+    Rank the following planets from closest to farthest from the Sun.
+  choices:
+    - Mercury
+    - Venus
+    - Earth
+    - Mars
+```
 
 ### Fill in the Blank (fill)
 
