@@ -31,13 +31,17 @@ materials: ""
 additionalinformation: ""
 _latexpreamble: |
   \newcommand{\R}{\mathbb{R}}
+
 ---
-- type: mc
+
+- # <Q1>
+  type: mc
   marks: 5           
   question: |
     If vector ${\bf w}$ is of dimension $3 \times 1$ and matrix ${\bf A}$ of
     dimension $5 \times 3$, then what is the dimension of $\left({\bf w}^{\top}{\bf
     A}^{\top}{\bf A}{\bf w}\right)^{\top}$?
+  cols: 3    
   choices:
     - o:  $5 \times 5$
     - o:  $3 \times 3$
@@ -46,21 +50,24 @@ _latexpreamble: |
     - o:  $1 \times 5$
     - o:  $1 \times 3$
 
-- type: ma
+- # <Q2>
+  type: ma
   marks: 5         
   question: |
     Consider the binary class dataset below (with 2 features $(x_1, x_2)\in\R^2$
     and 2 classes (cross and circle). Select all suitable classification
     techniques for this dataset.
 
-    ![](figures/dataset-4.png){ width=30em }    
+    ![](figures/dataset-4.png){ width=30em }
+  cols: 2
   choices:
     - x: Decision Tree
     - x: Logistic Regression
     - x: Random Forest
     - o: Least Squares
 
-- type: matching
+- # <Q3>
+  type: matching
   marks: 2.5
   question: |
     Match the images to their corresponding PSD (the DC component is at the
@@ -85,7 +92,8 @@ _latexpreamble: |
       B: |
         ![](figures/psd-25-psd-blur.png){width=30em}
 
-- type: essay
+- # <Q4>
+  type: essay
   marks: 10
   question: |
     Prove, in no more than a page, that the Riemann zeta function has its zeros
