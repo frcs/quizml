@@ -148,7 +148,6 @@ occurs when generating the exam (see how to set the random seed here).
     - Mars
 ```
 
-
 ### Support
 
 The following table summarises the support for each question type across the different output templates:
