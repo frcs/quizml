@@ -1,4 +1,12 @@
-## Changelog 
+# Changelog
+
+## [Unreleased]
+### Added
+- Implemented 80-column text wrapping for paragraph lines in `quizml --format`.
+
+### Changed
+- Converted versioning to use `setuptools_scm` for dynamic version strings.
+
 
 <a name="0.10.0"></a>
 
