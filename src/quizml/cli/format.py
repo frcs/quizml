@@ -16,18 +16,27 @@ def is_q_comment(token):
     val = token.value.strip()
     return bool(re.match(r"^#[ \t]*<Q[0-9]+>$", val))
 
+def is_blank_comment(token):
+    """Checks if a comment token is just an empty line."""
+    if not isinstance(token, CommentToken):
+        return False
+    return token.value.strip() == ""
+
+def should_remove_comment(token):
+    return is_q_comment(token) or is_blank_comment(token)
+
 def clean_all_q_comments(data):
-    """Recursively removes all <Q#> comments from a ruamel.yaml data structure."""
+    """Recursively removes all <Q#> comments and blank lines from a ruamel.yaml data structure."""
     if hasattr(data, 'ca'):
         # 1. Clean object-level comments (pre/post)
         if data.ca.comment:
             for c_idx in range(len(data.ca.comment)):
                 if isinstance(data.ca.comment[c_idx], list):
-                    data.ca.comment[c_idx] = [t for t in data.ca.comment[c_idx] if not is_q_comment(t)]
+                    data.ca.comment[c_idx] = [t for t in data.ca.comment[c_idx] if not should_remove_comment(t)]
         
         # 2. Clean end comments
         if hasattr(data.ca, 'end') and data.ca.end:
-            data.ca.end = [t for t in data.ca.end if not is_q_comment(t)]
+            data.ca.end = [t for t in data.ca.end if not should_remove_comment(t)]
             
         # 3. Clean item-level comments
         if data.ca.items:
@@ -36,8 +45,8 @@ def clean_all_q_comments(data):
                 if comm_list_list:
                     for c_idx in range(len(comm_list_list)):
                         if isinstance(comm_list_list[c_idx], list):
-                            comm_list_list[c_idx] = [t for t in comm_list_list[c_idx] if not is_q_comment(t)]
-                        elif is_q_comment(comm_list_list[c_idx]):
+                            comm_list_list[c_idx] = [t for t in comm_list_list[c_idx] if not should_remove_comment(t)]
+                        elif should_remove_comment(comm_list_list[c_idx]):
                             comm_list_list[c_idx] = None
 
     # Recursive step and choices literal conversion
@@ -89,7 +98,8 @@ def format_yaml(args):
         if isinstance(data, list):
             for q_idx, item in enumerate(data):
                 q_num = q_idx + 1
-                new_comment = f"# <Q{q_num}>\n"
+                prefix = "\n" if q_idx > 0 else ""
+                new_comment = f"{prefix}# <Q{q_num}>\n"
                 
                 if q_idx not in data.ca.items:
                     data.ca.items[q_idx] = [None, [], None, None]
