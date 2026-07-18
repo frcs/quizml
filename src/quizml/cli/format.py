@@ -49,21 +49,34 @@ def clean_all_q_comments(data):
                         elif should_remove_comment(comm_list_list[c_idx]):
                             comm_list_list[c_idx] = None
 
-    # Recursive step and choices literal conversion
+    # Recursive step
     if isinstance(data, dict):
         for k, v in data.items():
-            # Special rule: convert all choices values to long strings (literal scalars)
-            if k == 'choices' and isinstance(v, list):
-                for choice_item in v:
-                    if isinstance(choice_item, dict):
-                        for ck in choice_item:
-                            val = str(choice_item[ck]).strip()
-                            if val:
-                                choice_item[ck] = LiteralScalarString(val + "\n")
             clean_all_q_comments(v)
     elif isinstance(data, list):
         for item in data:
             clean_all_q_comments(item)
+
+def wrap_text_fields(data):
+    from .wrap import wrap_markdown
+    if isinstance(data, dict):
+        for k, v in data.items():
+            if isinstance(v, str):
+                # Always format choices values or long strings as Literal Blocks
+                is_choice = (k in ('x', 'o', 'A', 'B') and len(v.strip()) > 0)
+                if '\n' in v or len(v) > 60 or is_choice:
+                    # Skip header keys starting with _
+                    if k.startswith('_'):
+                        data[k] = LiteralScalarString(v.strip() + "\n")
+                        continue
+                    val = wrap_markdown(v.strip(), width=74)
+                    if val:
+                        data[k] = LiteralScalarString(val + "\n")
+            elif isinstance(v, (dict, list)):
+                wrap_text_fields(v)
+    elif isinstance(data, list):
+        for item in data:
+            wrap_text_fields(item)
 
 def format_yaml(args):
     yaml_path = Path(args.yaml_filename)
@@ -91,8 +104,9 @@ def format_yaml(args):
             
         data = yaml.load(part)
         
-        # Aggressive cleaning and choices literal conversion
+        # Aggressive cleaning and text wrapping
         clean_all_q_comments(data)
+        wrap_text_fields(data)
 
         # Renumber questions if this part is a list
         if isinstance(data, list):
