@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+<a name="0.12.0"></a>
+
+### [0.12.0]() (2026-09-03)
+
+**Refactors:**
+*   Replaced shadow document concatenation with a discrete AST parsing pipeline in `MarkdownTranscoder`, fixing heading truncation in question statements.
+*   Made `MathDisplay` stateless, removing mutable class-level parsing variables.
+
+**Fixes:**
+*   Fixed single-line `MathDisplay` block equations (`$$E=mc^2$$`) greedily consuming subsequent paragraphs.
+*   Restricted `quizml --cleanup` strictly to known targets and LaTeX build artifacts to protect authored files (`.py`, `.md`, `.png`, etc.).
+*   Fixed tuple unpacking on `load()` in the `quizml --diff` CLI command.
+*   Prevented process CWD mutation and tempdir leaks in `embed_pdf`.
+*   Supported `viewBox`-only SVG dimensions and SVGs with `height` before `width`.
+*   Replaced regex document splitting with native `yaml.load_all()` in loader and formatter, allowing Markdown horizontal rules (`---`) in question bodies.
+*   Enforced explicit `encoding="utf-8"` across all file reading and writing operations for reliable cross-platform execution on Windows.
+*   Resolved all codebase lint and style warnings and transitioned tests to `tmp_path` fixtures.
+
+
 <a name="0.11.0"></a>
 
 ### [0.11.0]() (2026-07-18)
