@@ -1,5 +1,6 @@
 import re
 
+
 def wrap_markdown(text, width=80):
     # Regexes for protected blocks (non-wrapping)
     block_patterns = [
@@ -47,16 +48,23 @@ def wrap_markdown(text, width=80):
     
     for line in lines:
         if re.match(r"^[ \t]*__BLOCK_\d+__[ \t]*$", line):
-            if current_p: paragraphs.append('\n'.join(current_p)); current_p = []
+            if current_p:
+                paragraphs.append("\n".join(current_p))
+                current_p = []
             paragraphs.append(line)
         elif not line.strip():
-            if current_p: paragraphs.append('\n'.join(current_p)); current_p = []
+            if current_p:
+                paragraphs.append("\n".join(current_p))
+                current_p = []
         elif re.match(r"^[ \t]*(?:[-*+]|\d+\.)[ \t]+", line):
-            if current_p: paragraphs.append('\n'.join(current_p)); current_p = []
+            if current_p:
+                paragraphs.append("\n".join(current_p))
+                current_p = []
             current_p.append(line)
         else:
             current_p.append(line)
-    if current_p: paragraphs.append('\n'.join(current_p))
+    if current_p:
+        paragraphs.append("\n".join(current_p))
     
     wrapped_paragraphs = []
     
@@ -91,7 +99,8 @@ def wrap_markdown(text, width=80):
         current_len = 0
         
         for w in words:
-            if not w: continue
+            if not w:
+                continue
             
             real_w = w
             for k, v in inlines.items():
