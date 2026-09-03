@@ -509,21 +509,54 @@ def inline_css(html_content, opts):
 
     css = css.replace("\n", " ").replace("\t", "  ")
 
-    html_payload = "<html><head><style>" + css + "</style>" + html_content + "</html>"
+    html_payload = "<html><head><style>" + css + "</style></head><body>" + html_content + "</body></html>"
     out = css_inline.inline(html_payload)
-    out = out[26:-15]
+    soup = BeautifulSoup(out, "html.parser")
+    return soup.body.decode_contents() if soup.body else out
 
-    return out
 
-
-def get_html_dict(combined_doc, md_list, opts):
+def get_html_dict(ast_dict_or_doc, opts_or_md_list=None, opts=None):
     """
-    md_list: a list of markdown entries
-    combined_doc: the mistletoe object for the collation of all these entries
-
-    renders the HTML source of a collation of mardown entries
-    and build a dictionary of these renders.
+    Renders HTML for markdown entries.
+    Supports either:
+      get_html_dict(ast_dict, opts) -> Discrete AST mode
+      get_html_dict(combined_doc, md_list, opts) -> Legacy combined doc mode
     """
+    if isinstance(ast_dict_or_doc, dict):
+        ast_dict = ast_dict_or_doc
+        if opts is None:
+            opts = opts_or_md_list or {}
+
+        # 1. Collect all equations across all AST documents in batch
+        eq_list = []
+        for doc in ast_dict.values():
+            eq_list = append_unique(eq_list, get_eq_list_from_doc(doc))
+
+        # 2. Batch compile equations
+        fmt = opts.get("fmt", "")
+        if fmt == "html-svg":
+            eq_dict = build_eq_dict_SVG(eq_list, opts)
+        elif fmt == "html-mathml":
+            eq_dict = build_eq_dict_MathML(eq_list, opts)
+        else:
+            eq_dict = build_eq_dict_PNG(eq_list, opts)
+
+        # 3. Render each document and inline CSS
+        md_dict = {}
+        with QuizMLYamlHTMLRenderer(eq_dict) as renderer:
+            for txt, doc in ast_dict.items():
+                html_raw = renderer.render(doc)
+                html_inlined = inline_css(html_raw, opts)
+                html_clean = strip_newlines_and_tabs(html_inlined)
+                md_dict[txt] = html_clean
+
+        return md_dict
+
+    # Legacy combined document mode
+    combined_doc = ast_dict_or_doc
+    md_list = opts_or_md_list or []
+    if opts is None:
+        opts = {}
 
     html_result = get_html(combined_doc, opts)
 

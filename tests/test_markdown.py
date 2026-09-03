@@ -3,14 +3,15 @@ import os
 import pytest
 from mistletoe import block_token, span_token
 
+from quizml.loader import load
+from quizml.markdown.markdown import MarkdownTranscoder
+from quizml.utils import MarkdownString
+
 
 @pytest.fixture(autouse=True)
 def reset_mistletoe_tokens():
     block_token.reset_tokens()
     span_token.reset_tokens()
-
-from quizml.loader import load
-from quizml.markdown.markdown import MarkdownTranscoder
 
 
 def test_markdown_transcoding_html():
@@ -72,3 +73,50 @@ def test_markdown_transcoding_latex():
     key_c0 = choice_0_md
     assert key_c0 in latex_md_dict
     assert r"\includegraphics" in latex_md_dict[key_c0] # ![pic] -> \includegraphics
+
+
+def test_markdown_transcoding_with_headings():
+    """Verify that markdown containing headings does not break document splitting."""
+    q1_text = MarkdownString(
+        "# Important Concept\n\nPlease read carefully.\n\n## Subpart A\n\nWhat is $x$?"
+    )
+    q2_text = MarkdownString(
+        "Question 2 statement.\n\n# Another Heading\n\nFinal text."
+    )
+    yamldoc = {
+        "header": {},
+        "questions": [
+            {
+                "type": "mc",
+                "question": q1_text,
+                "choices": [{"x": MarkdownString("First choice")}, {"o": MarkdownString("Second choice")}],
+            },
+            {
+                "type": "mc",
+                "question": q2_text,
+                "choices": [{"x": MarkdownString("Yes")}, {"o": MarkdownString("No")}],
+            },
+        ],
+    }
+
+    transcoder = MarkdownTranscoder(yamldoc)
+
+    # Test HTML: ensure headings and text after headings are fully preserved
+    html_dict = transcoder.get_dict(opts={"fmt": "html"})
+    assert q1_text in html_dict
+    assert q2_text in html_dict
+    assert "Important Concept" in html_dict[q1_text]
+    assert "Subpart A" in html_dict[q1_text]
+    assert "What is" in html_dict[q1_text]
+    assert "Another Heading" in html_dict[q2_text]
+    assert "Final text." in html_dict[q2_text]
+
+    # Test LaTeX: ensure section tags and subsequent text are not truncated
+    latex_dict = transcoder.get_dict(opts={"fmt": "latex"})
+    assert q1_text in latex_dict
+    assert q2_text in latex_dict
+    assert r"\section{Important Concept}" in latex_dict[q1_text]
+    assert r"\subsection{Subpart A}" in latex_dict[q1_text]
+    assert "What is $x$?" in latex_dict[q1_text]
+    assert r"\section{Another Heading}" in latex_dict[q2_text]
+    assert "Final text." in latex_dict[q2_text]

@@ -131,14 +131,29 @@ def get_latex(doc):
     return latex_content
 
 
-def get_latex_dict(combined_doc, md_list):
+def get_latex_dict(ast_dict_or_doc, md_list=None):
     """
-    md_list: a list of markdown entries
-    combined_doc: the mistletoe object for the collation of all these entries
+    Renders LaTeX for markdown entries.
+    Supports either:
+      get_latex_dict(ast_dict) -> Discrete AST mode
+      get_latex_dict(combined_doc, md_list) -> Legacy combined doc mode
+    """
+    if isinstance(ast_dict_or_doc, dict):
+        ast_dict = ast_dict_or_doc
+        md_dict = {}
+        with QuizMLYamlLaTeXRenderer() as renderer:
+            for txt, doc in ast_dict.items():
+                latex_content = renderer.render(doc)
+                latex_content = latex_content.replace("\\includesvg", "\\includegraphics")
+                latex_content = latex_content.replace(",height=\\textheight", "")
+                latex_content = latex_content.replace("\\passthrough", "")
+                md_dict[txt] = latex_content.strip()
+        return md_dict
 
-    renders the LaTeX source of a collation of mardown entries
-    and build a dictionary of these renders.
-    """
+    # Legacy combined document mode
+    combined_doc = ast_dict_or_doc
+    if md_list is None:
+        md_list = []
 
     latex_result = get_latex(combined_doc)
 

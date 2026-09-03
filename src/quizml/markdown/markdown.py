@@ -4,14 +4,12 @@ Markdown classes requried by mistletoe for parsing
 """
 
 import mistletoe as mt
-from mistletoe import ast_renderer
 
 import quizml.markdown.extensions as mte
 from quizml.utils import get_md_list_from_yaml, transcode_md_in_yaml
 
 from .html_renderer import get_html_dict
 from .latex_renderer import get_latex_dict
-from .utils import md_combine_list
 
 """
  MarkdownTranscoder 
@@ -37,6 +35,18 @@ from .utils import md_combine_list
 """
 
 
+def _setup_mistletoe_tokens():
+    """Ensure mistletoe has required block and span tokens without duplicates."""
+    if mte.MathInline not in mt.span_token._token_types:
+        mt.block_token.remove_token(mt.block_token.Paragraph)
+        mt.block_token.remove_token(mt.block_token.BlockCode)
+        mt.block_token.add_token(mte.MathDisplay)
+        mt.block_token.add_token(mt.block_token.HTMLBlock)
+        mt.block_token.add_token(mt.block_token.Paragraph, 10)
+        mt.span_token.add_token(mte.MathInline)
+        mt.span_token.add_token(mte.ImageWithWidth)
+
+
 class MarkdownTranscoder:
     def __init__(self, yaml_data, schema=None):
         self.yaml_data = yaml_data
@@ -47,26 +57,16 @@ class MarkdownTranscoder:
 
         # read yaml_data and collect all MD entries into a single list
         self.md_list = get_md_list_from_yaml(yaml_data, schema)
-
-        # combine this into a single MD string,
-        # with entries separated by sections
-        md_combined = md_combine_list(self.md_list)
         
         if not self.md_list:
+            self.ast_dict = {}
             return
 
-        # The MD parser is a Mistletoe AST renderer
+        _setup_mistletoe_tokens()
 
-        mt.block_token.remove_token(mt.block_token.Paragraph)
-        mt.block_token.remove_token(mt.block_token.BlockCode)
-        mt.block_token.add_token(mte.MathDisplay)
-        mt.block_token.add_token(mt.block_token.HTMLBlock)
-        mt.block_token.add_token(mt.block_token.Paragraph, 10)
-        mt.span_token.add_token(mte.MathInline)
-        mt.span_token.add_token(mte.ImageWithWidth)
-        self.renderer = ast_renderer.AstRenderer()
-
-        self.doc_combined = mt.Document(md_combined)
+        # Parse each unique markdown string into its own isolated AST Document
+        unique_md = list(dict.fromkeys(self.md_list))
+        self.ast_dict = {txt: mt.Document(txt) for txt in unique_md}
 
     def html_dict(self, opts=None):
         """Returns a HTML dictionary of all MD entries in the YAML data
@@ -89,10 +89,10 @@ class MarkdownTranscoder:
             
         html_pre = opts.get("html_pre", "")
         html_css = opts.get("html_css", "")
-        key = opts["fmt"] + ":PRE:" + html_pre + "CSS:" + html_css
+        key = opts.get("fmt", "html") + ":PRE:" + html_pre + "CSS:" + html_css
         if key in self.cache_dict:
             return self.cache_dict[key]
-        d = get_html_dict(self.doc_combined, self.md_list, opts)
+        d = get_html_dict(self.ast_dict, opts)
         self.cache_dict[key] = d
         return d
 
@@ -100,7 +100,7 @@ class MarkdownTranscoder:
         """Returns a LaTeX dictionary of all MD entries in the YAML data
 
         Note:
-            the rendered HTML dictionary is cached
+            the rendered LaTeX dictionary is cached
 
         Args:
 
@@ -114,10 +114,10 @@ class MarkdownTranscoder:
         if opts is None:
             opts = {}
         
-        key = opts["fmt"]
+        key = opts.get("fmt", "latex")
         if key in self.cache_dict:
             return self.cache_dict[key]
-        d = get_latex_dict(self.doc_combined, self.md_list)
+        d = get_latex_dict(self.ast_dict)
         self.cache_dict[key] = d
         return d
 
