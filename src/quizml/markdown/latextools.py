@@ -33,7 +33,7 @@ class LatexRunner:
         latex_filename = self.temp_dir / "eq_list.tex"
         pdf_filename = self.temp_dir / "eq_list.pdf"
 
-        latex_filename.write_text(latex_content)
+        latex_filename.write_text(latex_content, encoding="utf-8")
 
         process = subprocess.Popen(
             ["pdflatex", "-interaction=nonstopmode", str(latex_filename)],
@@ -93,7 +93,7 @@ class LatexRunner:
         latex_filename = self.temp_dir / "eq_list.tex"
         dvi_filename = self.temp_dir / "eq_list.dvi"
 
-        latex_filename.write_text(latex_content)
+        latex_filename.write_text(latex_content, encoding="utf-8")
 
         process = subprocess.Popen(
             ["latex", "-interaction=nonstopmode", str(latex_filename)],
@@ -148,7 +148,7 @@ class LatexRunner:
         latex_filename = self.temp_dir / "eq_list.tex"
         html_filename = self.temp_dir / "eq_list.html"
 
-        latex_filename.write_text(latex_content)
+        latex_filename.write_text(latex_content, encoding="utf-8")
 
         process = subprocess.Popen(
             ["make4ht", "-x", str(latex_filename), "xhtml,html5,mathml"],

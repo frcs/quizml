@@ -86,7 +86,7 @@ def format_yaml(args):
     if not yaml_path.exists():
         raise QuizMLError(f"File not found: {yaml_path}")
     
-    txt = yaml_path.read_text()
+    txt = yaml_path.read_text(encoding="utf-8")
     
     yaml = YAML()
     yaml.indent(mapping=2, sequence=2, offset=0)
@@ -142,7 +142,7 @@ def format_yaml(args):
     res = re.sub(r"^[ ]*(# <Q[0-9]+>)\n- ", r"- \1\n  ", res, flags=re.MULTILINE)
     
     if res != txt:
-        yaml_path.write_text(res)
+        yaml_path.write_text(res, encoding="utf-8")
         print(f"Formatted and renumbered {yaml_path}")
     else:
         print(f"No changes made to {yaml_path}")

@@ -79,3 +79,19 @@ def test_horizontal_rule_in_markdown_question():
     assert "Section above divider" in q_text
     assert "---" in q_text
     assert "Section below divider" in q_text
+
+
+def test_unicode_yaml_loading(tmp_path):
+    f = tmp_path / "unicode.yaml"
+    content = """title: Math Quiz with Unicode € é à ü 數學 🚀
+---
+- type: tf
+  marks: 2.5
+  question: 'Is $e^{i\\pi} + 1 = 0$ vérité? €100'
+  answer: true
+"""
+    f.write_text(content, encoding="utf-8")
+    doc, _ = load(str(f), validate=False)
+    assert "€" in doc["header"]["title"]
+    assert "數學" in doc["header"]["title"]
+    assert "vérité" in doc["questions"][0]["question"]

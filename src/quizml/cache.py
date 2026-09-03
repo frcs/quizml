@@ -32,7 +32,7 @@ def get_from_cache(key):
 
     if cache_path.exists():
         try:
-            return json.loads(cache_path.read_text())
+            return json.loads(cache_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             logging.warning(f"Failed to read cache for {key}")
             return None
@@ -43,7 +43,7 @@ def save_to_cache(key, data):
     """Saves data to cache."""
     cache_path = get_cache_dir() / f"{key}.json"
     try:
-        cache_path.write_text(json.dumps(data))
+        cache_path.write_text(json.dumps(data), encoding="utf-8")
     except OSError:
         logging.warning(f"Failed to write cache for {key}")
 

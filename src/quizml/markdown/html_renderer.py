@@ -355,7 +355,7 @@ def build_eq_dict_MathML(eq_list, opts):
     try:
         with LatexRunner() as latex_runner:
             html_path = latex_runner.run_make4ht_mathml(latex_content)
-            make4ht_out = html_path.read_text()
+            make4ht_out = html_path.read_text(encoding="utf-8", errors="replace")
 
             regex = r"(<math.*?<\/math>)"
             eq_list_str = re.findall(regex, make4ht_out, re.DOTALL)

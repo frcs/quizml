@@ -13,7 +13,7 @@ def render_template(context, template_filename):
         raise Jinja2SyntaxError(msg)
 
     try:
-        template_src = pathlib.Path(template_filename).read_text()
+        template_src = pathlib.Path(template_filename).read_text(encoding="utf-8")
         env = jinja2.Environment(
             extensions=["jinja2.ext.do"],
             comment_start_string="<#",

@@ -244,7 +244,7 @@ def loads(quizmlyaml_txt, validate=True, schema=None, filename="<string>"):
 
 def load(quizmlyaml_path, validate=True, schema_path=None):
     try:
-        quizmlyaml_txt = Path(quizmlyaml_path).read_text()
+        quizmlyaml_txt = Path(quizmlyaml_path).read_text(encoding="utf-8")
     except FileNotFoundError as err:
         raise QuizMLYamlSyntaxError(f"Yaml file not found: {quizmlyaml_path}") from err
 
@@ -255,7 +255,7 @@ def load(quizmlyaml_path, validate=True, schema_path=None):
 
             schema_path = locate.path("schema.json")
         try:
-            schema_str = Path(schema_path).read_text()
+            schema_str = Path(schema_path).read_text(encoding="utf-8")
             schema = json.loads(schema_str)
         except FileNotFoundError as err:
             raise QuizMLYamlSyntaxError(f"Schema file not found: {schema_path}") from err

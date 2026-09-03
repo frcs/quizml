@@ -26,7 +26,7 @@ def get_config(args):
     logging.info(f"using config file:{config_file}")
 
     try:
-        with open(config_file) as f:
+        with open(config_file, encoding="utf-8") as f:
             yaml = YAML(typ='safe')
             config = yaml.load(f)
     except YAMLError as err:
@@ -107,7 +107,7 @@ def get_target_list(args, config, yaml_data):
         for key in files_to_read_now:
             if key in target:
                 file_path = target[key]
-                contents = pathlib.Path(file_path).read_text()
+                contents = pathlib.Path(file_path).read_text(encoding="utf-8")
                 target[key] = contents
 
         # add target to list

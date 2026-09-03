@@ -64,7 +64,7 @@ def compile_target(target, transcoder, extra_context=None):
         if isinstance(rendered_doc, bytes):
             pathlib.Path(target["out"]).write_bytes(rendered_doc)
         else:
-            pathlib.Path(target["out"]).write_text(rendered_doc)
+            pathlib.Path(target["out"]).write_text(rendered_doc, encoding="utf-8")
 
         success = True
 
