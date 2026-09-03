@@ -55,6 +55,26 @@ def test_diff_command(mock_diff):
         main()
     mock_diff.assert_called_once()
 
+
+def test_diff_execution(tmp_path, capsys):
+    f1 = tmp_path / "quiz1.yaml"
+    f2 = tmp_path / "quiz2.yaml"
+    content = """
+- type: tf
+  marks: 2.5
+  question: Is this a test question?
+  answer: true
+"""
+    f1.write_text(content)
+    f2.write_text(content)
+
+    with patch.object(sys, 'argv', ['quizml', '--diff', str(f1), str(f2)]):
+        main()
+
+    captured = capsys.readouterr()
+    assert "Is this a test question?" in captured.out
+    assert "tf" in captured.out
+
 def test_version(capsys):
     with patch.object(sys, 'argv', ['quizml', '--version']):
         with pytest.raises(SystemExit):

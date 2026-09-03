@@ -6,15 +6,8 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table, box
 
-# from quizml.stats import get_questions
-# from quizml.stats import get_stats
 from quizml.exceptions import QuizMLYamlSyntaxError
 from quizml.loader import load
-
-# from rich_argparse import *
-
-# import logging
-# from rich.logging import RichHandler
 
 
 def normalize_text(text):
@@ -79,7 +72,9 @@ def diff(args):
     # remove duplicate files from list
     # this is useful when using something like exam*.yaml in arguments
     files = [args.yaml_filename]
-    [files.append(item) for item in args.otherfiles if item not in files]
+    for item in args.otherfiles:
+        if item not in files:
+            files.append(item)
 
     # we load all the files. For speed, We do not do any schema checking.
     filedata = {}
@@ -90,7 +85,7 @@ def diff(args):
         try:
             # we need to turn off schema for speed this is OK because
             # everything will be considered as Strings anyway
-            filedata[f] = load(f, validate=False)
+            filedata[f], _ = load(f, validate=False)
         except QuizMLYamlSyntaxError as err:
             print(
                 Panel(
