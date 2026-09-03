@@ -20,7 +20,6 @@ Typical usage example:
 
 import json
 import os
-import re
 from pathlib import Path
 
 from jsonschema import Draft7Validator, validators
@@ -31,7 +30,6 @@ from ruamel.yaml.scalarstring import PlainScalarString
 
 from quizml.exceptions import QuizMLYamlSyntaxError
 from quizml.utils import coerce_data, msg_context, text_wrap
-
 
 # --- Custom ruamel.yaml Constructor ---
 
@@ -175,13 +173,27 @@ def _to_plain_python(data):
 def loads(quizmlyaml_txt, validate=True, schema=None, filename="<string>"):
     """
     Parses a QuizML string.
-    Identifies header and questions documents, parses them, and returns the data structure.
+    Identifies header and questions documents using native YAML multi-doc parsing,
+    validates questions against the schema, and returns the data structure.
     """
+    yaml = YAML()
+    yaml.Constructor = StringConstructor
+    try:
+        raw_docs = list(yaml.load_all(quizmlyaml_txt))
+    except Exception as err:
+        line = -1
+        if hasattr(err, "problem_mark"):
+            line = err.problem_mark.line
+        raise QuizMLYamlSyntaxError(
+            f"YAML parsing error in {filename} near line {line}:\n{err}"
+        ) from err
 
-    # Extracting the header and questions
-    yamldoc_pattern = re.compile(r"^---\s*$", re.MULTILINE)
-    yamldocs = yamldoc_pattern.split(quizmlyaml_txt)
-    yamldocs = list(filter(None, yamldocs))
+    # Filter out empty/None documents (e.g. from leading/trailing ---)
+    yamldocs = [
+        d
+        for d in raw_docs
+        if d is not None and not (isinstance(d, str) and not d.strip())
+    ]
 
     if len(yamldocs) > 2:
         raise QuizMLYamlSyntaxError(
@@ -189,38 +201,42 @@ def loads(quizmlyaml_txt, validate=True, schema=None, filename="<string>"):
             "one for the header and one for the questions."
         )
 
-    doc = {"header": {}, "questions": []}
+    if not yamldocs:
+        return {"header": {}, "questions": []}, schema
 
-    # Check if the first document starts with a list item indicator ('-')
-    doc_starts_with_list = re.search(r"^\s*-", yamldocs[0], re.MULTILINE)
-
-    # Assign header_doc and questions_doc simultaneously based on the conditions.
-    if doc_starts_with_list:
-        # this is a bit of a hack: if we only have one document and that
-        # it contains a list, then we assume that it is a list of questions
-        header_doc, questions_doc = None, yamldocs[0]
-    elif len(yamldocs) == 2:
-        # contains both a header and a list of questions
-        header_doc, questions_doc = yamldocs[0], yamldocs[1]
+    if len(yamldocs) == 1:
+        if isinstance(yamldocs[0], list):
+            header_data, questions_data = {}, yamldocs[0]
+        else:
+            header_data, questions_data = yamldocs[0], []
     else:
-        # just a header, no questions
-        header_doc, questions_doc = yamldocs[0], None
+        header_data, questions_data = yamldocs[0], yamldocs[1]
 
-    doc["header"] = (
-        _parse_yaml_fragment(header_doc, validate=False, filename=filename)
-        if header_doc
-        else {}
-    )
+    # Validating questions against the schema
+    if validate and schema and questions_data:
+        validator = DefaultFillingValidator(schema)
+        errors = sorted(validator.iter_errors(questions_data), key=lambda e: e.path)
+        if errors:
+            err = errors[0]
+            path = " -> ".join(map(str, err.path))
+            try:
+                item = questions_data
+                for key in err.path:
+                    item = item[key]
+                line_num = item.lc.line + 1
+            except (KeyError, IndexError, AttributeError):
+                line_num = "unknown"
+            lines = quizmlyaml_txt.splitlines()
+            msg = f"Schema validation error in {filename} at '{path}' (line ~{line_num})\n"
+            if line_num != "unknown":
+                msg += msg_context(lines, line_num) + "\n"
+            msg += text_wrap(err.message)
+            raise QuizMLYamlSyntaxError(msg)
 
-    doc["questions"] = (
-        _parse_yaml_fragment(
-            questions_doc, validate=validate, filename=filename, schema=schema
-        )
-        if questions_doc
-        else []
-    )
-
-    doc = _to_plain_python(doc)
+    doc = {
+        "header": _to_plain_python(header_data) if header_data else {},
+        "questions": _to_plain_python(questions_data) if questions_data else [],
+    }
     doc = coerce_data(doc, schema)
 
     return doc, schema

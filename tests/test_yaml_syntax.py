@@ -57,4 +57,25 @@ def test_yaml_syntax():
         return data
 
     assert strip_strings(yamldoc['questions']) == yamldata
-        
+
+
+def test_horizontal_rule_in_markdown_question():
+    from quizml.loader import loads
+
+    quiz_yaml = """title: Math Quiz
+---
+- type: tf
+  marks: 2.5
+  question: |
+    Section above divider
+    ---
+    Section below divider
+  answer: true
+"""
+    doc, _ = loads(quiz_yaml, validate=False)
+    assert doc["header"]["title"] == "Math Quiz"
+    assert len(doc["questions"]) == 1
+    q_text = doc["questions"][0]["question"]
+    assert "Section above divider" in q_text
+    assert "---" in q_text
+    assert "Section below divider" in q_text

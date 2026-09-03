@@ -1,9 +1,8 @@
 
-import pytest
-from pathlib import Path
-from quizml.cli.cli import main
 import sys
-import os
+
+from quizml.cli.cli import main
+
 
 def test_format_renumbering(tmp_path, monkeypatch):
     yaml_file = tmp_path / "test.yaml"
@@ -97,3 +96,22 @@ def test_format_choices_literal_and_indent(tmp_path, monkeypatch):
     # Check for zero indent of choices list items relative to 'choices' key
     # '  choices:' followed by '  - o:'
     assert "  choices:\n  - o:" in new_txt
+
+
+def test_format_with_horizontal_rules(tmp_path, monkeypatch):
+    yaml_file = tmp_path / "test_hr.yaml"
+    yaml_file.write_text("""title: Quiz
+---
+- type: tf
+  question: |
+    Top
+    ---
+    Bottom
+  answer: true
+""")
+    monkeypatch.setattr(sys, "argv", ["quizml", "--format", str(yaml_file)])
+    main()
+    new_txt = yaml_file.read_text()
+    assert "- # <Q1>" in new_txt
+    assert "Top" in new_txt
+    assert "Bottom" in new_txt

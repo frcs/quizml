@@ -1,12 +1,15 @@
 
-import re
 import io
+import re
 from pathlib import Path
+
 from ruamel.yaml import YAML
-from ruamel.yaml.tokens import CommentToken
 from ruamel.yaml.error import StreamMark
 from ruamel.yaml.scalarstring import LiteralScalarString
+from ruamel.yaml.tokens import CommentToken
+
 from ..exceptions import QuizMLError
+
 
 def is_q_comment(token):
     """Checks if a comment token matches the <Q#> pattern."""
@@ -51,7 +54,7 @@ def clean_all_q_comments(data):
 
     # Recursive step
     if isinstance(data, dict):
-        for k, v in data.items():
+        for v in data.values():
             clean_all_q_comments(v)
     elif isinstance(data, list):
         for item in data:
@@ -85,45 +88,45 @@ def format_yaml(args):
     
     txt = yaml_path.read_text()
     
-    # Split documents by ---
-    yamldoc_pattern = re.compile(r"^---\s*$", re.MULTILINE)
-    parts = yamldoc_pattern.split(txt)
-    
     yaml = YAML()
     yaml.indent(mapping=2, sequence=2, offset=0)
     yaml.width = 80
     yaml.preserve_quotes = True
-    
+
+    try:
+        docs = list(yaml.load_all(txt))
+    except Exception as err:
+        raise QuizMLError(f"YAML parsing error in {yaml_path}: {err}") from err
+
     formatted_parts = []
     dummy_mark = StreamMark(None, 0, 0, 0)
-    
-    for part in parts:
-        if not part.strip():
-            formatted_parts.append("")
+
+    for data in docs:
+        if data is None or (isinstance(data, str) and not data.strip()):
             continue
-            
-        data = yaml.load(part)
-        
+
         # Aggressive cleaning and text wrapping
         clean_all_q_comments(data)
         wrap_text_fields(data)
 
         # Renumber questions if this part is a list
         if isinstance(data, list):
-            for q_idx, item in enumerate(data):
+            for q_idx, _item in enumerate(data):
                 q_num = q_idx + 1
                 prefix = "\n" if q_idx > 0 else ""
                 new_comment = f"{prefix}# <Q{q_num}>\n"
-                
+
                 if q_idx not in data.ca.items:
                     data.ca.items[q_idx] = [None, [], None, None]
-                
+
                 if data.ca.items[q_idx][1] is None:
                     data.ca.items[q_idx][1] = []
-                
+
                 # Append so it stays right before the hyphen line
-                data.ca.items[q_idx][1].append(CommentToken(new_comment, dummy_mark, None, 0))
-        
+                data.ca.items[q_idx][1].append(
+                    CommentToken(new_comment, dummy_mark, None, 0)
+                )
+
         buf = io.StringIO()
         yaml.dump(data, buf)
         formatted_parts.append(buf.getvalue().strip())
