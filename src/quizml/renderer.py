@@ -71,5 +71,3 @@ def render(yaml_data, template_filename, extra_context=None):
         return docx_renderer.render(context, template_filename)
 
     return render_template(context, template_filename)
-
-    return ""

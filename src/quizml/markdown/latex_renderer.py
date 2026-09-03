@@ -6,9 +6,7 @@ import subprocess
 from mistletoe.block_token import HTMLBlock
 from mistletoe.latex_renderer import LaTeXRenderer
 
-from ..exceptions import MarkdownError
 from .extensions import ImageWithWidth, MathDisplay, MathInline
-from .utils import get_hash
 
 
 def convert_svg_to_pdf(svg_path, pdf_path):
@@ -85,9 +83,6 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
         src = resolve_image_path(token.src)
         return "\\includegraphics[width=" + token.width + "]{" + src + "}"
 
-    # def render_command(self, token) -> str:
-    #     return '\\' + token.cmdname + '{' + token.cmd + '}'
-
     def render_html_block(self, token):
         return ""
 
@@ -108,74 +103,17 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
         if self.caption:
             return s[1:-1]
 
-    # def render_paragraph(self, token):
-    #     s = super().render_paragraph(token.strip())
 
-
-def get_latex(doc):
+def get_latex_dict(ast_dict):
     """
-    returns the rendered LaTeX source for mistletoe object
+    Renders LaTeX for markdown entries from discrete AST documents.
     """
-
-    with QuizMLYamlLaTeXRenderer() as renderer:
-        latex_content = renderer.render(doc)
-
-    # svg is a bit of a problem. replacing .svg extensions with .pdf
-    # latex_content = latex_content.replace('.svg}', '.pdf}') # Removed: handled in renderer
-    latex_content = latex_content.replace("\\includesvg", "\\includegraphics")
-
-    # I should check if this is still relevant... (pandoc legacy?)
-    latex_content = latex_content.replace(",height=\\textheight", "")
-    latex_content = latex_content.replace("\\passthrough", "")
-
-    return latex_content
-
-
-def get_latex_dict(ast_dict_or_doc, md_list=None):
-    """
-    Renders LaTeX for markdown entries.
-    Supports either:
-      get_latex_dict(ast_dict) -> Discrete AST mode
-      get_latex_dict(combined_doc, md_list) -> Legacy combined doc mode
-    """
-    if isinstance(ast_dict_or_doc, dict):
-        ast_dict = ast_dict_or_doc
-        md_dict = {}
-        with QuizMLYamlLaTeXRenderer() as renderer:
-            for txt, doc in ast_dict.items():
-                latex_content = renderer.render(doc)
-                latex_content = latex_content.replace("\\includesvg", "\\includegraphics")
-                latex_content = latex_content.replace(",height=\\textheight", "")
-                latex_content = latex_content.replace("\\passthrough", "")
-                md_dict[txt] = latex_content.strip()
-        return md_dict
-
-    # Legacy combined document mode
-    combined_doc = ast_dict_or_doc
-    if md_list is None:
-        md_list = []
-
-    latex_result = get_latex(combined_doc)
-
     md_dict = {}
-
-    for txt in md_list:
-        h = get_hash(txt)
-        latex_section = "\\section{" + h + "}"
-        start = latex_result.find(latex_section)
-        if start < 0:
-            logging.error(
-                "couldn't find hash in md_list. This shouldn't happen."
-                + "I'm quitting.\n"
-            )
-            raise MarkdownError("couldn't find hash in md_list")
-        else:
-            start = latex_result.find("}\n", start) + 1
-        end = latex_result.find("\\section{", start + 1)
-        if end == -1:
-            end = len(latex_result)
-        latex_content = latex_result[start:end].strip()
-
-        md_dict[txt] = latex_content
-
+    with QuizMLYamlLaTeXRenderer() as renderer:
+        for txt, doc in ast_dict.items():
+            latex_content = renderer.render(doc)
+            latex_content = latex_content.replace("\\includesvg", "\\includegraphics")
+            latex_content = latex_content.replace(",height=\\textheight", "")
+            latex_content = latex_content.replace("\\passthrough", "")
+            md_dict[txt] = latex_content.strip()
     return md_dict

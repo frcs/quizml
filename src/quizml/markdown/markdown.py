@@ -140,25 +140,6 @@ class MarkdownTranscoder:
         elif opts["fmt"] == "latex":
             return self.latex_dict(opts)
 
-    def build_target_dict(self, target=None):
-        """precomputes a dictionary of all transcoded MD entries in the YAML data
-
-        Args:
-            opts (:dict): target format with 'fmt' key set to either 'html'
-            or 'latex'. See latex_dict and html_dict for other optional
-            options.
-
-        Returns:
-            computes and caches the dictionary where each key
-            corresponds to found MD strings and its value is the
-            corresponding rendered HTML or LaTeX
-        """
-        
-        if target is None:
-            target = {}
-
-        self.get_dict(opts=target)
-
     def transcode_target(self, target=None):
         """transcodes MD entries in YAML struct
 
@@ -177,20 +158,3 @@ class MarkdownTranscoder:
 
         target_dict = self.get_dict(opts=target)
         return transcode_md_in_yaml(self.yaml_data, target_dict, self.schema)
-
-
-def print_doc(doc, lead=""):
-    """Pretty Prints a Mistletoe document
-
-    Args:
-        doc: the mistletoe document.
-        lead: a string that is used to indent the depth of the elt
-
-    Returns:
-        prints the document
-    """
-
-    print(lead + str(doc))
-    if hasattr(doc, "children"):
-        for a in doc.children:
-            print_doc(a, lead + "    ")

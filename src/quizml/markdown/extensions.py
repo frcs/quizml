@@ -63,38 +63,6 @@ class MathDisplay(BlockToken):
         return self.latex
 
 
-# no nesting
-class Command(SpanToken):
-    repr_attributes = ("cmdname", "cmd")
-    parse_group = 2
-    parse_inner = True
-    pattern = re.compile(
-        r"""
-        \\([a-zA-Z]+?){\s*(.*?)\s*}""",
-        re.MULTILINE | re.VERBOSE | re.DOTALL,
-    )
-
-    def __init__(self, match):
-        self.cmdname = match.group(1)
-        self.cmd = match.group(2)
-
-
-# no nesting
-class Environment(SpanToken):
-    repr_attributes = ("envname", "cmd")
-    parse_group = 2
-    parse_inner = True
-    pattern = re.compile(
-        r"""
-        \\begin{([a-zA-Z]+?)}{\s*(.*?)\s*}""",
-        re.MULTILINE | re.VERBOSE | re.DOTALL,
-    )
-
-    def __init__(self, match):
-        self.cmdname = match.group(1)
-        self.cmd = match.group(2)
-
-
 class ImageWithWidth(SpanToken):
     content = ""
     src = ""

@@ -14,22 +14,16 @@ from ..exceptions import (
 
 class LatexRunner:
     def __init__(self, working_dir_prefix="quizml_latex_"):
-        self._check_executables()
         self.temp_dir = Path(tempfile.mkdtemp(prefix=working_dir_prefix))
 
-    def _check_executables(self):
-        if not shutil.which("pdflatex"):
-            raise LatexNotFoundError("pdflatex not found in PATH.")
-        if not shutil.which("gs"):
-            raise GhostscriptNotFoundError("gs (Ghostscript) not found in PATH.")
-        if not shutil.which("latex"):
-            raise LatexNotFoundError("latex not found in PATH.")
-        if not shutil.which("dvisvgm"):
-            raise DvisvgmNotFoundError("dvisvgm not found in PATH.")
-        if not shutil.which("make4ht"):
-            raise Make4htNotFoundError("make4ht not found in PATH.")
+    @staticmethod
+    def _require_executable(name, error_cls, desc=None):
+        if not shutil.which(name):
+            desc = desc or name
+            raise error_cls(f"{desc} not found in PATH.")
 
     def run_pdflatex(self, latex_content: str):
+        self._require_executable("pdflatex", LatexNotFoundError)
         latex_filename = self.temp_dir / "eq_list.tex"
         pdf_filename = self.temp_dir / "eq_list.pdf"
 
@@ -68,6 +62,7 @@ class LatexRunner:
         return pdf_filename, depthratio
 
     def run_gs_png(self, pdf_path: Path, output_prefix="eq_img_"):
+        self._require_executable("gs", GhostscriptNotFoundError, "gs (Ghostscript)")
         output_template = self.temp_dir / f"{output_prefix}%05d.png"
 
         subprocess.check_call(
@@ -90,6 +85,7 @@ class LatexRunner:
         return sorted(self.temp_dir.glob(f"{output_prefix}*.png"))
 
     def run_latex_dvi(self, latex_content: str):
+        self._require_executable("latex", LatexNotFoundError)
         latex_filename = self.temp_dir / "eq_list.tex"
         dvi_filename = self.temp_dir / "eq_list.dvi"
 
@@ -124,6 +120,7 @@ class LatexRunner:
         return dvi_filename
 
     def run_dvisvgm_svg(self, dvi_path: Path, output_prefix="eq_list"):
+        self._require_executable("dvisvgm", DvisvgmNotFoundError)
         output_template = self.temp_dir / f"{output_prefix}-%p.svg"
 
         subprocess.check_call(
@@ -145,6 +142,7 @@ class LatexRunner:
         return sorted(self.temp_dir.glob(f"{output_prefix}-*.svg"))
 
     def run_make4ht_mathml(self, latex_content: str):
+        self._require_executable("make4ht", Make4htNotFoundError)
         latex_filename = self.temp_dir / "eq_list.tex"
         html_filename = self.temp_dir / "eq_list.html"
 

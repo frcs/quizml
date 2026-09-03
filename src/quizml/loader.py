@@ -119,49 +119,6 @@ DefaultFillingValidator = extend_with_default(
 )
 
 
-def _parse_yaml_fragment(text, validate=True, schema=None, filename="<string>"):
-    """
-    Parses a single YAML fragment.
-    Optionally validates against a schema (dict).
-    """
-
-    # loading all scalars as strings
-    yaml = YAML()
-    yaml.Constructor = StringConstructor
-    try:
-        data = yaml.load(text)
-    except Exception as err:
-        line = -1
-        if hasattr(err, "problem_mark"):
-            line = err.problem_mark.line
-        raise QuizMLYamlSyntaxError(
-            f"YAML parsing error in {filename} near line {line}:\n{err}"
-        ) from err
-
-    # validating against the schema
-    if validate and schema:
-        validator = DefaultFillingValidator(schema)
-        errors = sorted(validator.iter_errors(data), key=lambda e: e.path)
-        if errors:
-            err = errors[0]
-            path = " -> ".join(map(str, err.path))
-            try:
-                item = data
-                for key in err.path:
-                    item = item[key]
-                line_num = item.lc.line + 1
-            except (KeyError, IndexError, AttributeError):
-                line_num = "unknown"
-            lines = text.splitlines()
-            msg = f"Schema validation error in {filename} at '{path}' (line ~{line_num})\n"
-            if line_num != "unknown":
-                msg += msg_context(lines, line_num) + "\n"
-            msg += text_wrap(err.message)
-            raise QuizMLYamlSyntaxError(msg)
-
-    return data
-
-
 def _to_plain_python(data):
     if isinstance(data, dict):
         return {k: _to_plain_python(v) for k, v in data.items()}

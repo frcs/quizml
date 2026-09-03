@@ -13,7 +13,7 @@ from ..exceptions import LatexCompilationError, MarkdownAttributeError
 from .extensions import ImageWithWidth, MathDisplay, MathInline
 from .image_embedding import embed_base64
 from .latextools import LatexRunner
-from .utils import append_unique, get_hash
+from .utils import append_unique
 
 
 def get_eq_list_from_doc(doc):
@@ -449,21 +449,6 @@ class QuizMLYamlHTMLRenderer(HTMLRenderer):
 
         return template
 
-        ## don't delete as yet, this is SVG free code
-        ## but not playing great with BB2, maybe it's just a matter
-        ## of inserting height and width to image tag
-        #
-        # template = '<img src="{}" alt="{}"{} style="width:{}">'
-        # if token.title:
-        #     title = ' title="{}"'.format(html.escape(token.title))
-        # else:
-        #     title = ''
-        # [w, h, data64] = embed_base64(token.src)
-        # return template.format(data64,
-        #                        self.render_to_plain(token),
-        #                        title,
-        #                        token.width)
-
 
 def get_html(doc, opts):
     """
@@ -515,62 +500,34 @@ def inline_css(html_content, opts):
     return soup.body.decode_contents() if soup.body else out
 
 
-def get_html_dict(ast_dict_or_doc, opts_or_md_list=None, opts=None):
+def get_html_dict(ast_dict, opts=None):
     """
-    Renders HTML for markdown entries.
-    Supports either:
-      get_html_dict(ast_dict, opts) -> Discrete AST mode
-      get_html_dict(combined_doc, md_list, opts) -> Legacy combined doc mode
+    Renders HTML for markdown entries from discrete AST documents.
     """
-    if isinstance(ast_dict_or_doc, dict):
-        ast_dict = ast_dict_or_doc
-        if opts is None:
-            opts = opts_or_md_list or {}
-
-        # 1. Collect all equations across all AST documents in batch
-        eq_list = []
-        for doc in ast_dict.values():
-            eq_list = append_unique(eq_list, get_eq_list_from_doc(doc))
-
-        # 2. Batch compile equations
-        fmt = opts.get("fmt", "")
-        if fmt == "html-svg":
-            eq_dict = build_eq_dict_SVG(eq_list, opts)
-        elif fmt == "html-mathml":
-            eq_dict = build_eq_dict_MathML(eq_list, opts)
-        else:
-            eq_dict = build_eq_dict_PNG(eq_list, opts)
-
-        # 3. Render each document and inline CSS
-        md_dict = {}
-        with QuizMLYamlHTMLRenderer(eq_dict) as renderer:
-            for txt, doc in ast_dict.items():
-                html_raw = renderer.render(doc)
-                html_inlined = inline_css(html_raw, opts)
-                html_clean = strip_newlines_and_tabs(html_inlined)
-                md_dict[txt] = html_clean
-
-        return md_dict
-
-    # Legacy combined document mode
-    combined_doc = ast_dict_or_doc
-    md_list = opts_or_md_list or []
     if opts is None:
         opts = {}
 
-    html_result = get_html(combined_doc, opts)
+    # 1. Collect all equations across all AST documents in batch
+    eq_list = []
+    for doc in ast_dict.values():
+        eq_list = append_unique(eq_list, get_eq_list_from_doc(doc))
 
+    # 2. Batch compile equations
+    fmt = opts.get("fmt", "")
+    if fmt == "html-svg":
+        eq_dict = build_eq_dict_SVG(eq_list, opts)
+    elif fmt == "html-mathml":
+        eq_dict = build_eq_dict_MathML(eq_list, opts)
+    else:
+        eq_dict = build_eq_dict_PNG(eq_list, opts)
+
+    # 3. Render each document and inline CSS
     md_dict = {}
-    for _i, txt in enumerate(md_list, start=1):
-        h = get_hash(txt)
-        html_h1 = "<h1>" + h + "</h1>"
-        start = html_result.find(html_h1) + len(html_h1)
-        end = html_result.find("<h1>", start + 1)
-        if end == -1:
-            end = len(html_result)
+    with QuizMLYamlHTMLRenderer(eq_dict) as renderer:
+        for txt, doc in ast_dict.items():
+            html_raw = renderer.render(doc)
+            html_inlined = inline_css(html_raw, opts)
+            html_clean = strip_newlines_and_tabs(html_inlined)
+            md_dict[txt] = html_clean
 
-        html_content = html_result[start:end]
-        html_content = inline_css(html_content, opts)
-        html_content = strip_newlines_and_tabs(html_content)
-        md_dict[txt] = html_content
     return md_dict

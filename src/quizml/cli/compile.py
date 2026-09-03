@@ -203,12 +203,11 @@ def compile(args):
     # Update timestamp for LiveReload clients
     update_timestamp()
 
-    # diplay stats about the outputs
-    if not args.quiet:
-        print_table_ouputs(targets_output)
-
+    # display stats about the outputs
     if args.quiet:
         print_quiet_ouputs(targets_quiet_output)
+    else:
+        print_table_ouputs(targets_output)
 
 
 def compile_on_change(args):
