@@ -66,9 +66,37 @@ def test_math_regex():
     for match in matches:
         if "$$" in match.group(0):
             count += 1
-        if "\[" in match.group(0):
+        if r"\[" in match.group(0):
             count += 1
         if "\\begin{equation}" in match.group(0):
             count += 1
         
     assert count == 3
+
+
+def test_math_display_token_parsing():
+    import mistletoe as mt
+
+    from quizml.markdown.extensions import MathDisplay
+    from quizml.markdown.markdown import _setup_mistletoe_tokens
+
+    _setup_mistletoe_tokens()
+
+    # Multi-line block equation
+    doc1 = mt.Document("$$\nE=mc^2\n$$\n\nParagraph text.")
+    assert len(doc1.children) == 2
+    assert isinstance(doc1.children[0], MathDisplay)
+    assert doc1.children[0].latex == "$$\nE=mc^2\n$$"
+
+    # Single-line block equation
+    doc2 = mt.Document("$$E=mc^2$$\nParagraph text.")
+    assert len(doc2.children) == 2
+    assert isinstance(doc2.children[0], MathDisplay)
+    assert doc2.children[0].latex == "$$E=mc^2$$"
+    assert doc2.children[1].children[0].content == "Paragraph text."
+
+    # Interrupted paragraph with two single-line block equations
+    doc3 = mt.Document("Question text\n$$E=mc^2$$\nExplanation text\n$$\\alpha=5$$\nDone.")
+    assert len(doc3.children) == 5
+    assert isinstance(doc3.children[1], MathDisplay)
+    assert isinstance(doc3.children[3], MathDisplay)

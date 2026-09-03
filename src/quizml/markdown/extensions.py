@@ -6,11 +6,9 @@ from mistletoe.span_token import SpanToken
 
 class MathDisplay(BlockToken):
     pattern = re.compile(
-        r"(\$\$|\\\[|\\begin\{(equation|split|alignat|multline|gather|align|flalign|)(\*?))"
+        r"(\$\$|\\\[|\\begin\{(equation|split|alignat|multline|gather|align|flalign|)(\*?)\})"
     )
 
-    envname = ""
-    envstart = ""
     latex = ""
     repr_attributes = ["latex"]
 
@@ -19,30 +17,40 @@ class MathDisplay(BlockToken):
 
     @classmethod
     def start(cls, line):
-        match_obj = cls.pattern.match(line.strip())
-        if not match_obj:
-            return False
-        cls.envname = match_obj.group(2)
-        cls.envstar = match_obj.group(3)
-        cls.envstart = match_obj.group(1)
-
-        return True
+        return bool(cls.pattern.match(line.strip()))
 
     @classmethod
     def read(cls, lines):
-        line_buffer = [next(lines)]
+        first_line = next(lines)
+        stripped = first_line.strip()
+        match_obj = cls.pattern.match(stripped)
+        if not match_obj:
+            return [first_line]
+
+        envstart = match_obj.group(1)
+        envname = match_obj.group(2)
+        envstar = match_obj.group(3)
+
+        if envstart == "$$":
+            if "$$" in stripped[2:]:
+                return [first_line]
+            close_pattern = "$$"
+        elif envstart == r"\[":
+            if r"\]" in stripped[2:]:
+                return [first_line]
+            close_pattern = r"\]"
+        elif envname:
+            close_pattern = r"\end{" + envname + envstar + "}"
+            if close_pattern in stripped[match_obj.end():]:
+                return [first_line]
+        else:
+            return [first_line]
+
+        line_buffer = [first_line]
         for line in lines:
             line_buffer.append(line)
-            stripped_line = line.lstrip()
-            if cls.envstart == r"$$" and stripped_line.startswith(r"$$"):
+            if close_pattern in line.lstrip():
                 break
-            elif cls.envstart == r"\[" and stripped_line.startswith(r"\]"):
-                break
-            elif cls.envname and stripped_line.startswith(
-                r"\end{" + cls.envname + cls.envstar + "}"
-            ):
-                break
-
         return line_buffer
 
     @classmethod
