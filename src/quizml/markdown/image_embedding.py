@@ -2,10 +2,10 @@ import base64
 import os
 import re
 import struct
+import subprocess
 import tempfile
 from io import BytesIO
 from pathlib import Path
-from subprocess import call
 
 from PIL import Image
 
@@ -18,29 +18,34 @@ def embed_pdf(pdf_filename):
     """
 
     pdf_abspath = os.path.abspath(pdf_filename)
-    tmpdir = tempfile.mkdtemp()
-    olddir = os.getcwd()
-    os.chdir(tmpdir)
+    if not os.path.exists(pdf_abspath):
+        raise MarkdownImageError(f"cannot read image {pdf_filename}")
 
-    call(
-        [
-            "gs",
-            "-dBATCH",
-            "-q",
-            "-dNOPAUSE",
-            "-sDEVICE=pngalpha",
-            "-r250",
-            "-dTextAlphaBits=4",
-            "-dGraphicsAlphaBits=4",
-            "-sOutputFile=pngfile.png",
-            pdf_abspath,
-        ]
-    )
+    with tempfile.TemporaryDirectory(prefix="quizml_pdf_") as tmpdir:
+        png_path = os.path.join(tmpdir, "pngfile.png")
+        try:
+            subprocess.check_call(
+                [
+                    "gs",
+                    "-dBATCH",
+                    "-q",
+                    "-dNOPAUSE",
+                    "-sDEVICE=pngalpha",
+                    "-r250",
+                    "-dTextAlphaBits=4",
+                    "-dGraphicsAlphaBits=4",
+                    f"-sOutputFile={png_path}",
+                    pdf_abspath,
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except (subprocess.CalledProcessError, FileNotFoundError) as err:
+            raise MarkdownImageError(
+                f"failed to convert PDF {pdf_filename} to PNG using ghostscript: {err}"
+            ) from err
 
-    # converting into base64 strings
-    [w, h, data64] = embed_base64("pngfile.png")
-    os.chdir(olddir)
-    return (w, h, data64)
+        return embed_base64(png_path)
 
 
 def embed_base64(pathname):
@@ -59,7 +64,7 @@ def embed_base64(pathname):
         return embed_pdf(pathname)
     else:
         raise MarkdownImageError(
-            "image formats other than png and svg are not supported"
+            f"unsupported image format '{suffix}'. Supported formats: .png, .svg, .jpg, .jpeg, .pdf"
         )
 
     try:
@@ -68,7 +73,7 @@ def embed_base64(pathname):
         raise MarkdownImageError(f"cannot read image {pathname}") from err
 
     if ext == "svg+xml":
-        [w, h] = get_SVG_info(data.decode())
+        [w, h] = get_SVG_info(data.decode("utf-8", errors="replace"))
     else:
         im = Image.open(BytesIO(data))
         w, h = im.size
@@ -92,16 +97,6 @@ def get_PNG_info(data):
     width = int(w)
     height = int(h)
     return width, height
-
-
-def get_image_info(data):
-    from PIL import Image
-
-    # Load an image
-    image = Image.open("path/to/your/image.jpg")
-
-    # Get the size of the image
-    width, height = image.size
 
 
 def convert_css_values_to_pixels(value):
@@ -149,16 +144,40 @@ def get_SVG_info(data):
 
     Parameters
     ----------
-    data : image
-        input image
+    data : str
+        SVG XML content
     """
-    pattern = r"<svg.*width\s*=[\"\'](.*?)[\"\'].*height\s*=\s*[\"\'](.*?)[\"\'].*>"
-    m = re.search(pattern, data, re.MULTILINE)
+    svg_match = re.search(r"<svg\b([^>]*)>", data, re.IGNORECASE | re.DOTALL)
+    if not svg_match:
+        raise MarkdownImageError("can't read SVG dimensions: no <svg> tag found")
 
-    if not m:
-        raise MarkdownImageError("can't read SVG dimensions")
+    attrs = svg_match.group(1)
+    w_match = re.search(r'\bwidth\s*=\s*["\']([^"\']+)["\']', attrs, re.IGNORECASE)
+    h_match = re.search(r'\bheight\s*=\s*["\']([^"\']+)["\']', attrs, re.IGNORECASE)
+    vb_match = re.search(r'\bviewBox\s*=\s*["\']([^"\']+)["\']', attrs, re.IGNORECASE)
 
-    w = convert_css_values_to_pixels(m.group(1))
-    h = convert_css_values_to_pixels(m.group(2))
+    vb_w, vb_h = None, None
+    if vb_match:
+        parts = vb_match.group(1).replace(",", " ").split()
+        if len(parts) == 4:
+            try:
+                vb_w = float(parts[2])
+                vb_h = float(parts[3])
+            except ValueError:
+                pass
 
-    return w, h
+    if w_match:
+        w = convert_css_values_to_pixels(w_match.group(1))
+    elif vb_w is not None:
+        w = vb_w
+    else:
+        raise MarkdownImageError("can't read SVG dimensions: missing width and viewBox")
+
+    if h_match:
+        h = convert_css_values_to_pixels(h_match.group(1))
+    elif vb_h is not None:
+        h = vb_h
+    else:
+        raise MarkdownImageError("can't read SVG dimensions: missing height and viewBox")
+
+    return round(w), round(h)
