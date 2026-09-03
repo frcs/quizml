@@ -1,44 +1,90 @@
-import os
 from pathlib import Path
 
 from rich import print
 
+# Suffixes relative to the YAML base stem (e.g. "exam" -> "exam" + suffix)
+KNOWN_TARGET_SUFFIXES = {
+    ".txt",
+    ".html",
+    ".tex",
+    ".solutions.tex",
+    ".pdf",
+    ".solutions.pdf",
+    ".docx",
+    ".csv",
+}
 
-def cleanup_yaml_files(directory_path="."):
+# Intermediate LaTeX build artifact extensions
+LATEX_ARTIFACT_EXTENSIONS = {
+    ".aux",
+    ".log",
+    ".out",
+    ".fls",
+    ".fdb_latexmk",
+    ".synctex.gz",
+    ".toc",
+    ".nav",
+    ".snm",
+    ".vrb",
+    ".bbl",
+    ".blg",
+    ".dvi",
+    ".xdv",
+}
+
+
+def get_cleanup_candidates(stem):
+    """Returns the set of filenames that are known build artifacts or targets for a given YAML stem."""
+    candidates = {f"{stem}{s}" for s in KNOWN_TARGET_SUFFIXES}
+    for base in (stem, f"{stem}.solutions"):
+        for ext in LATEX_ARTIFACT_EXTENSIONS:
+            candidates.add(f"{base}{ext}")
+    return candidates
+
+
+def cleanup_yaml_files(directory_path=".", dry_run=False):
     """
-    Looks at all .yaml files in a directory and deletes any other files
-    that share the same base name (name without extension).
+    Looks at all .yaml files in a directory and deletes generated targets
+    and LaTeX build artifacts matching their base names.
+    Non-target files (like .py, .md, .png, etc.) are never deleted.
 
     Args:
         directory_path (str): The directory to scan. Defaults to the current directory.
+        dry_run (bool): If True, only prints files that would be deleted without deleting them.
     """
+    dir_path = Path(directory_path)
+    if not dir_path.is_dir():
+        print(f"Directory not found: {directory_path}")
+        return 0
+
+    print(f"Scanning directory: {dir_path.resolve()}")
 
     # 1. Identify all base names of .yaml files
-    yaml_basenames = set()
+    yaml_stems = {
+        p.stem for p in dir_path.iterdir() if p.is_file() and p.suffix == ".yaml"
+    }
+    print(f"Found {len(yaml_stems)} unique YAML files to check.")
 
-    print(f"Scanning directory: {os.path.abspath(directory_path)}")
+    # 2. Build set of allowed filenames to clean up
+    allowed_to_delete = set()
+    for stem in yaml_stems:
+        allowed_to_delete.update(get_cleanup_candidates(stem))
 
-    for path in Path(directory_path).iterdir():
-        # Check if the path is a file and ends with .yaml
-        if path.is_file() and path.suffix == ".yaml":
-            # Store the name without the extension (the 'stem')
-            yaml_basenames.add(path.stem)
-
-    print(f"Found {len(yaml_basenames)} unique YAML base names to check.")
-
-    # 2. Iterate again and delete non-YAML files with matching base names
+    # 3. Check directory for matches and delete safely
     deleted_files_count = 0
-
-    for path in Path(directory_path).iterdir():
-        # Check if the file's base name is in our set AND it's not a .yaml file
-        if path.is_file() and path.stem in yaml_basenames and path.suffix != ".yaml":
-            print(f"-> Deleting file: {path.name}")
-            try:
-                # Use os.remove for deletion
-                os.remove(path)
-                deleted_files_count += 1
-            except OSError as e:
-                print(f"Error deleting file {path.name}: {e}")
+    for path in dir_path.iterdir():
+        if path.is_file() and path.name in allowed_to_delete:
+            if dry_run:
+                print(f"-> [Dry-run] Would delete: {path.name}")
+            else:
+                print(f"-> Deleting file: {path.name}")
+                try:
+                    path.unlink()
+                    deleted_files_count += 1
+                except OSError as e:
+                    print(f"Error deleting file {path.name}: {e}")
 
     print("-" * 30)
-    print(f"Cleanup complete. Total files deleted: {deleted_files_count}")
+    action = "Would delete" if dry_run else "Total files deleted"
+    print(f"Cleanup complete. {action}: {deleted_files_count}")
+    return deleted_files_count
