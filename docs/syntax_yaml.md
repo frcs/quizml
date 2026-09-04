@@ -108,8 +108,60 @@ _latexpreamble: |
 ?> QuizML avoids some of the YAML oddities such as the [Norway
 Problem](https://hitchdev.com/strictyaml/why/implicit-typing-removed) by
 interpreting yaml fields according to the provided schema definition (see
-[Schema Validation](schema_validation) for more information).
+[Schema Validation](schema_validation.md) for more information).
 
 
+### Question Banking with `_include`
+
+To organize large exams into modular topic files or reuse common question banks, QuizML supports the `- _include:` directive directly inside the questions list:
+
+```yaml
+title: Midterm Exam
+---
+# Inline question
+- type: essay
+  marks: 5
+  question: Introduce yourself and state your student ID.
+  answer: Model answer
+
+# Include all questions from a topic file
+- _include: topics/calculus.yaml
+
+# Include a random sample from a large question bank
+- _include: banks/linear_algebra.yaml
+  count: 3
+  seed: 42
+```
+
+#### Relative Paths & Nesting
+- **Document-relative**: Included paths are resolved relative to the directory of the file referencing them.
+- **Recursive**: Included files can themselves include further sub-files. Cycle detection automatically prevents circular inclusions.
+- **Sub-file structure**: Included files can either be a standalone question list or contain their own header document; only questions are imported into the parent exam.
+
+#### Random Sampling (`count` & `seed`)
+- `count`: (Optional) Extracts a random sample of `count` questions from the target file without replacement.
+- `seed`: (Optional) Provides an integer or string seed for reproducible pseudo-random sampling across repeated builds or exam variations.
+
+#### Figures & Image Paths in Included Files
+When including a file from a different directory that contains images (e.g. `![](fig/diagram.png)`), QuizML automatically handles figure resolution:
+- The included file's base directory is automatically registered as a figure search directory relative to the parent exam.
+- Any `_figures_path` declared in the included file's own header (e.g. `custom_assets/`) is resolved relative to that sub-file and added to the parent exam's figure search paths.
+- Both HTML Base64 embedding and LaTeX compilation (`\graphicspath`) resolve these assets seamlessly without altering question text or assuming magic subfolders.
+
+#### Automatic Renumbering & Searchability (`quizml --format`)
+When running `quizml --format`, QuizML renumbers questions and decorates includes with all the question numbers they introduce:
+```yaml
+- # <Q1>
+  type: essay
+  question: First question
+
+- # <Q2>, <Q3>, <Q4>
+  _include: bank.yaml
+
+- # <Q5>
+  type: essay
+  question: Next question
+```
+This preserves fast text-search workflows (`/<Q3>` in your text editor jumps directly to the include containing Q3).
 
 
