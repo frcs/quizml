@@ -93,3 +93,41 @@ def test_embed_base64_with_base_dir(tmp_path):
     assert h == 10
     assert data64.startswith("data:image/png;base64,")
 
+
+def test_embed_base64_with_search_dirs(tmp_path):
+    shared_dir = tmp_path / "figures-quiz"
+    shared_dir.mkdir()
+    quiz_dir = tmp_path / "quizzes"
+    quiz_dir.mkdir()
+
+    from PIL import Image
+    im = Image.new("RGB", (15, 20), color="red")
+    im.save(str(shared_dir / "quiz-plot.png"))
+
+    # Asset found via search_dirs without specifying directory in pathname
+    w, h, data64 = embed_base64(
+        "quiz-plot.png", base_dir=str(quiz_dir), search_dirs=[str(shared_dir)]
+    )
+    assert w == 15
+    assert h == 20
+    assert data64.startswith("data:image/png;base64,")
+
+
+def test_resolve_image_path_with_search_dirs(tmp_path):
+    from quizml.markdown.latex_renderer import resolve_image_path
+    from PIL import Image
+
+    shared_dir = tmp_path / "figures-quiz"
+    shared_dir.mkdir()
+    quiz_dir = tmp_path / "quizzes"
+    quiz_dir.mkdir()
+
+    im = Image.new("RGB", (10, 10), color="green")
+    im.save(str(shared_dir / "regression.png"))
+
+    # When found in search_dirs, resolve_image_path retains filename for \graphicspath
+    resolved = resolve_image_path(
+        "regression.png", base_dir=str(quiz_dir), search_dirs=[str(shared_dir)]
+    )
+    assert resolved == "regression.png"
+

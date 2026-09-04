@@ -32,7 +32,7 @@ def convert_svg_to_pdf(svg_path, pdf_path):
         return False
 
 
-def resolve_image_path(src, base_dir=None):
+def resolve_image_path(src, base_dir=None, search_dirs=None):
     """
     Resolves the image path for LaTeX.
     Prioritizes PDF > PNG > JPG/JPEG.
@@ -40,29 +40,49 @@ def resolve_image_path(src, base_dir=None):
     if tools are available.
     """
     actual_src = src
-    if base_dir and not os.path.isabs(src):
-        candidate_path = os.path.join(base_dir, src)
-        if os.path.exists(candidate_path):
-            actual_src = candidate_path
+    found_in_search_dirs = False
 
-    if not actual_src.lower().endswith(".svg"):
+    dirs_to_check = []
+    if not os.path.isabs(src):
+        if search_dirs:
+            dirs_to_check.extend([(d, True) for d in search_dirs])
+        if base_dir:
+            dirs_to_check.append((base_dir, False))
+
+    # 1. Try finding the exact file first
+    for d, is_search_dir in dirs_to_check:
+        candidate = os.path.normpath(os.path.join(d, src))
+        if os.path.exists(candidate):
+            actual_src = candidate
+            found_in_search_dirs = is_search_dir
+            break
+
+    # If not SVG, return if found or check cwd
+    if not src.lower().endswith(".svg"):
+        if found_in_search_dirs:
+            return src
         return actual_src
 
-    base = os.path.splitext(actual_src)[0]
-
-    # Check for existing compatible formats
+    # For SVG, check for existing compatible formats in candidate dirs
+    src_base_name = os.path.splitext(src)[0]
     for ext in [".pdf", ".png", ".jpg", ".jpeg"]:
-        candidate = base + ext
-        if os.path.exists(candidate):
-            return candidate
+        if found_in_search_dirs:
+            candidate = os.path.splitext(actual_src)[0] + ext
+            if os.path.exists(candidate):
+                return src_base_name + ext
+        for d, is_search_dir in dirs_to_check:
+            candidate = os.path.normpath(os.path.join(d, src_base_name + ext))
+            if os.path.exists(candidate):
+                return src_base_name + ext if is_search_dir else candidate
 
-    # If no compatible format exists, try conversion
-    pdf_path = base + ".pdf"
-    if convert_svg_to_pdf(actual_src, pdf_path):
-        return pdf_path
+    # If no compatible format exists, try converting the SVG if found
+    if os.path.exists(actual_src):
+        base = os.path.splitext(actual_src)[0]
+        pdf_path = base + ".pdf"
+        if convert_svg_to_pdf(actual_src, pdf_path):
+            return src_base_name + ".pdf" if found_in_search_dirs else pdf_path
 
-    # If conversion fails/tools missing, return actual_src (latex will likely complain)
-    return actual_src
+    return src if found_in_search_dirs else actual_src
 
 
 class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
@@ -71,8 +91,9 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
     implements render for custom spans MathInline, MathDisplay, ImageWithWidth
     """
 
-    def __init__(self, base_dir=None):
+    def __init__(self, base_dir=None, search_dirs=None):
         self.base_dir = base_dir
+        self.search_dirs = search_dirs or []
         super().__init__(MathInline, MathDisplay, ImageWithWidth, HTMLBlock)
 
     def render_document(self, token):
@@ -87,7 +108,7 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
         return token.content.strip()
 
     def render_image_with_width(self, token) -> str:
-        src = resolve_image_path(token.src, self.base_dir)
+        src = resolve_image_path(token.src, self.base_dir, self.search_dirs)
         return "\\includegraphics[width=" + token.width + "]{" + src + "}"
 
     def render_html_block(self, token):
@@ -99,7 +120,7 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
 
     # fixing some default behaviour
     def render_image(self, token):
-        token.src = resolve_image_path(token.src, self.base_dir)
+        token.src = resolve_image_path(token.src, self.base_dir, self.search_dirs)
         s = super().render_image(token)
         return s[1:-1]
 
@@ -111,12 +132,12 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
             return s[1:-1]
 
 
-def get_latex_dict(ast_dict, base_dir=None):
+def get_latex_dict(ast_dict, base_dir=None, search_dirs=None):
     """
     Renders LaTeX for markdown entries from discrete AST documents.
     """
     md_dict = {}
-    with QuizMLYamlLaTeXRenderer(base_dir=base_dir) as renderer:
+    with QuizMLYamlLaTeXRenderer(base_dir=base_dir, search_dirs=search_dirs) as renderer:
         for txt, doc in ast_dict.items():
             latex_content = renderer.render(doc)
             latex_content = latex_content.replace("\\includesvg", "\\includegraphics")

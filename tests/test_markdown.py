@@ -120,3 +120,78 @@ def test_markdown_transcoding_with_headings():
     assert "What is $x$?" in latex_dict[q1_text]
     assert r"\section{Another Heading}" in latex_dict[q2_text]
     assert "Final text." in latex_dict[q2_text]
+
+
+def test_markdown_transcoder_with_figures_path(tmp_path):
+    from PIL import Image
+
+    shared_figures = tmp_path / "figures-quiz"
+    shared_figures.mkdir()
+    quizzes_dir = tmp_path / "quizzes"
+    quizzes_dir.mkdir()
+
+    # Create dummy image
+    im = Image.new("RGB", (10, 10), color="purple")
+    im.save(str(shared_figures / "plot.png"))
+
+    question_text = MarkdownString("Here is a plot:\n![](plot.png)")
+    yamldoc = {
+        "header": {"_figures_path": "../figures-quiz"},
+        "questions": [
+            {
+                "type": "tf",
+                "question": question_text,
+                "answer": True,
+            }
+        ],
+    }
+
+    transcoder = MarkdownTranscoder(yamldoc, base_dir=str(quizzes_dir))
+
+    # HTML transcoding: verifies image is located in _figures_path and embedded
+    html_dict = transcoder.get_dict(opts={"fmt": "html"})
+    assert question_text in html_dict
+    assert "data:image/png;base64," in html_dict[question_text]
+
+    # LaTeX transcoding: verifies image name is preserved for \graphicspath
+    latex_dict = transcoder.get_dict(opts={"fmt": "latex"})
+    assert question_text in latex_dict
+    assert r"\includegraphics{plot.png}" in latex_dict[question_text]
+
+
+def test_inputbasename_with_underscore_not_escaped():
+    yamldoc = {
+        "header": {"inputbasename": "quizzes/mda_01_final"},
+        "questions": [],
+    }
+    transcoder = MarkdownTranscoder(yamldoc)
+    transcoded = transcoder.transcode_target({"fmt": "latex"})
+    assert transcoded["header"]["inputbasename"] == "quizzes/mda_01_final"
+
+
+def test_latex_template_graphicspath():
+    from quizml import renderer
+    import os
+
+    template_path = os.path.join(
+        os.path.dirname(__file__), "../src/quizml/templates/tcd-exam.tex.j2"
+    )
+
+    # 1. Single string path
+    doc_single = {
+        "header": {"title": "Test", "_figures_path": "../figures-quiz"},
+        "questions": [],
+    }
+    rendered_single = renderer.render(doc_single, template_path)
+    assert r"\graphicspath{" in rendered_single
+    assert "{../figures-quiz/}" in rendered_single
+
+    # 2. List of paths
+    doc_list = {
+        "header": {"title": "Test", "_figures_path": ["figures", "../shared-figures"]},
+        "questions": [],
+    }
+    rendered_list = renderer.render(doc_list, template_path)
+    assert r"\graphicspath{" in rendered_list
+    assert "{figures/}" in rendered_list
+    assert "{../shared-figures/}" in rendered_list

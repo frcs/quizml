@@ -39,6 +39,15 @@
 \materials{\infomaterials}
 \additionalinformation{\infoadditionalinformation}
 
+\usepackage{graphicx}
+<| if header and header.get('_figures_path') -|>
+\graphicspath{
+<|- set fig_paths = [header['_figures_path']] if header['_figures_path'] is string else header['_figures_path'] -|>
+<|- for p in fig_paths -|>
+  {<< p if p.endswith('/') else p ~ '/' >>}
+<|- endfor -|>
+}
+<|- endif |>
 \usepackage{longtable,booktabs,tabto,multicol}
 \usepackage{amsmath,amssymb}
 \usepackage{enumitem}

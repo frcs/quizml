@@ -193,7 +193,7 @@ def get_md_list_from_yaml(yaml_data):
     md_list = []
 
     def header_key_filter(key):
-        non_md_keys = ["type"]
+        non_md_keys = ["type", "inputbasename"]
         return (key not in non_md_keys) and not key.startswith("_")
 
     if isinstance(yaml_data, dict) and ("header" in yaml_data or "questions" in yaml_data):
@@ -231,7 +231,7 @@ def transcode_md_in_yaml(yaml_data, md_dict):
         return node
         
     def header_key_filter(key):
-        return not key.startswith("_")
+        return key != "inputbasename" and not key.startswith("_")
 
     if isinstance(yaml_data, dict) and ("header" in yaml_data or "questions" in yaml_data):
         new_doc = {}

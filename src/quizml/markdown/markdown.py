@@ -67,6 +67,25 @@ class MarkdownTranscoder:
         else:
             self.base_dir = os.path.abspath(base_dir)
 
+        figures_rel = (
+            yaml_data.get("header", {}).get("_figures_path", [])
+            if isinstance(yaml_data, dict)
+            else []
+        )
+        if isinstance(figures_rel, str):
+            figures_rel = [figures_rel]
+        elif not isinstance(figures_rel, list):
+            figures_rel = []
+
+        self.search_dirs = []
+        for p in figures_rel:
+            if os.path.isabs(p):
+                self.search_dirs.append(os.path.normpath(p))
+            elif self.base_dir:
+                self.search_dirs.append(os.path.normpath(os.path.join(self.base_dir, p)))
+            else:
+                self.search_dirs.append(os.path.normpath(os.path.abspath(p)))
+
         # the dictionary of rendered entries will be cached
         self.cache_dict = {}
 
@@ -107,7 +126,9 @@ class MarkdownTranscoder:
         key = opts.get("fmt", "html") + ":PRE:" + html_pre + "CSS:" + html_css
         if key in self.cache_dict:
             return self.cache_dict[key]
-        d = get_html_dict(self.ast_dict, opts, base_dir=self.base_dir)
+        d = get_html_dict(
+            self.ast_dict, opts, base_dir=self.base_dir, search_dirs=self.search_dirs
+        )
         self.cache_dict[key] = d
         return d
 
@@ -132,7 +153,9 @@ class MarkdownTranscoder:
         key = opts.get("fmt", "latex")
         if key in self.cache_dict:
             return self.cache_dict[key]
-        d = get_latex_dict(self.ast_dict, base_dir=self.base_dir)
+        d = get_latex_dict(
+            self.ast_dict, base_dir=self.base_dir, search_dirs=self.search_dirs
+        )
         self.cache_dict[key] = d
         return d
 
