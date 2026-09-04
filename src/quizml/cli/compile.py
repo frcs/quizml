@@ -1,8 +1,7 @@
+"""CLI command handler for quiz compilation and watch mode."""
+
 import logging
 import os
-import pathlib
-import shlex
-import subprocess
 import threading
 from time import sleep
 
@@ -10,11 +9,10 @@ from rich import print
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-import quizml.cli.filelocator as filelocator
-import quizml.markdown.markdown as md
-from quizml import renderer
-
-# Imported from refactored modules
+from quizml.builder.scheduler import (
+    compile_cmd_target as _builder_cmd_target,
+    compile_render_target as _builder_render_target,
+)
 from quizml.cli.config import get_config, get_target_list
 from quizml.cli.errorhandler import print_error
 from quizml.cli.livereload import (
@@ -29,93 +27,49 @@ from quizml.cli.ui import (
     print_table_ouputs,
 )
 from quizml.exceptions import (
-    Jinja2SyntaxError,
     LatexEqError,
     MarkdownError,
     QuizMLConfigError,
     QuizMLError,
 )
-from quizml.loader import QuizMLYamlSyntaxError, load
+from quizml.filelocator import locate
+from quizml.quizmlyaml import QuizMLYamlSyntaxError, load
+from quizml.transcoder import MarkdownTranscoder
 
 
 def compile_cmd_target(target):
-    """execute command line scripts of the post compilation targets."""
-    command = shlex.split(target["build_cmd"])
-
-    try:
-        subprocess.check_output(command)
-        return True
-
-    except subprocess.CalledProcessError as e:
-        print_error(e.output.decode(), title="Failed to build command")
-
-        return False
+    """Executes command line scripts for post-compilation build targets."""
+    success, err_msg = _builder_cmd_target(target)
+    if not success and err_msg:
+        print_error(err_msg, title="Failed to build command")
+    return success
 
 
 def compile_target(target, transcoder, extra_context=None):
-    """compiles one target"""
-
-    try:
-        yaml_transcoded = transcoder.transcode_target(target)
-        rendered_doc = renderer.render(
-            yaml_transcoded, target["template"], extra_context
-        )
-
-        if isinstance(rendered_doc, bytes):
-            pathlib.Path(target["out"]).write_bytes(rendered_doc)
-        else:
-            pathlib.Path(target["out"]).write_text(rendered_doc, encoding="utf-8")
-
-        success = True
-
-    except LatexEqError as err:
-        print_error(str(err), title="Latex Error")
-        success = False
-    except MarkdownError as err:
-        print_error(str(err), title="Markdown Error")
-        success = False
-    except FileNotFoundError as err:
-        print_error(str(err), title="FileNotFoundError Error")
-        success = False
-    except Jinja2SyntaxError as err:
-        print_error(
-            f"\n did not generate target because of template errors ! \n {err}",
-            title="Jinja Template Error",
-        )
-        success = False
-    except QuizMLError as err:
-        print_error(str(err), title="QuizML Error")
-        success = False
-    except KeyboardInterrupt:
-        print("[bold red] KeyboardInterrupt [/bold red]")
-        success = False
-
+    """Transcodes and renders one target template."""
+    success, err_msg = _builder_render_target(target, transcoder, extra_context)
+    if not success and err_msg:
+        print_error(err_msg, title="Target Render Error")
     return success
 
 
 def compile(args):
-    """compiles the targets of a yaml file"""
-
-    # read config file
+    """Compiles the targets of a YAML quiz file."""
     try:
         config = get_config(args)
     except QuizMLConfigError as err:
         print_error(str(err), title="QuizML Config Error")
         return
 
-    # load Schema file
     try:
-        schema_path = filelocator.locate.path(config["schema_path"])
+        schema_path = locate.path(config["schema_path"])
     except FileNotFoundError:
         print_error(
-            "Schema file "
-            + config["schema_path"]
-            + " not found, check the config file.",
+            f"Schema file {config['schema_path']} not found, check the config file.",
             title="Schema Error",
         )
         return
 
-    # load QuizMLYaml file
     try:
         yaml_data, schema = load(
             args.yaml_filename, validate=True, schema_path=schema_path
@@ -127,27 +81,22 @@ def compile(args):
     if logging.DEBUG:
         logging.debug(yaml_data)
 
-    # load all markdown entries into a list
-    # and build dictionaries of their HTML and LaTeX translations
     try:
         base_dir = os.path.dirname(os.path.abspath(args.yaml_filename))
-        transcoder = md.MarkdownTranscoder(yaml_data, schema, base_dir=base_dir)
+        transcoder = MarkdownTranscoder(yaml_data, schema, base_dir=base_dir)
     except (LatexEqError, MarkdownError, FileNotFoundError) as err:
         print_error(str(err), title="Error")
         return
 
-    # diplay stats about the questions
     if not args.quiet:
         print_stats_table(yaml_data, config)
 
-    # get target list from config file
     try:
         target_list = get_target_list(args, config, yaml_data)
     except FileNotFoundError as err:
         print_error(str(err), title="Template NotFoundError")
         return
 
-    # Prepare LiveReload if watching
     extra_context = {}
     if args.watch:
         start_livereload_server()
@@ -155,24 +104,18 @@ def compile(args):
         if port:
             extra_context["livereload_port"] = port
 
-    # sets up list of the output for each build
     targets_output = []
     targets_quiet_output = []
     success_list = {}
 
-    for _i, target in enumerate(target_list):
-        # skipping build target if build option is not on
-        if ("build_cmd" in target) and not (args.build or args.target):
+    for target in target_list:
+        is_build_cmd = "build_cmd" in target
+        is_targeted = bool(args.target)
+
+        if is_build_cmd and not (args.build or is_targeted):
             continue
 
-        # a build target (eg. compile pdf of generated latex) a build
-        # target only requires the execution of an external command,
-        # ie. no python code required
-        #
-        if ("build_cmd" in target) and (args.build or args.target):
-            # need to check if there is a dependency,
-            # and if this dependency compiled successfully
-
+        if is_build_cmd and (args.build or is_targeted):
             if ("dep" not in target) or (
                 "dep" in target and success_list.get(target["dep"], False)
             ):
@@ -180,7 +123,6 @@ def compile(args):
             else:
                 success = False
 
-        # a template task that needs to be rendered
         if "template" in target:
             success = compile_target(target, transcoder, extra_context)
 
@@ -201,10 +143,8 @@ def compile(args):
         if not success:
             break
 
-    # Update timestamp for LiveReload clients
     update_timestamp()
 
-    # display stats about the outputs
     if args.quiet:
         print_quiet_ouputs(targets_quiet_output)
     else:
@@ -212,8 +152,7 @@ def compile(args):
 
 
 def compile_on_change(args):
-    """compiles the targets if input QuizMLYaml file has changed on disk"""
-
+    """Watches input YAML file on disk and recompiles targets on change."""
     waitingtxt = "\n...waiting for a file change to re-compile the document...\n "
     print(waitingtxt)
 
@@ -226,23 +165,18 @@ def compile_on_change(args):
                 rebuild_event.set()
 
         def on_moved(self, event):
-            # Support for editors that use atomic saves (write to tmp -> rename)
             if os.path.abspath(event.dest_path) == full_yaml_path:
                 rebuild_event.set()
 
     observer = Observer()
-    observer.schedule(Handler(), ".")  # watch the local directory
+    observer.schedule(Handler(), ".")
     observer.start()
 
     try:
         while True:
-            # Wait for the event, checking every 0.5s to allow KeyboardInterrupt
             if rebuild_event.wait(timeout=0.5):
                 rebuild_event.clear()
-
-                # Debounce: wait a brief moment for file operations to settle
                 sleep(0.1)
-                # Clear any events that occurred during the sleep
                 rebuild_event.clear()
 
                 print("[bold yellow]Change detected, re-compiling...[/bold yellow]")

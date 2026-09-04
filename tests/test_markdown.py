@@ -3,9 +3,8 @@ import os
 import pytest
 from mistletoe import block_token, span_token
 
-from quizml.loader import load
-from quizml.markdown.markdown import MarkdownTranscoder
-from quizml.utils import MarkdownString
+from quizml.quizmlyaml import MarkdownString, load
+from quizml.transcoder import MarkdownTranscoder
 
 
 @pytest.fixture(autouse=True)

@@ -1160,7 +1160,6 @@ wheels = [
 
 [[package]]
 name = "quizml"
-version = "0.10.0"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },

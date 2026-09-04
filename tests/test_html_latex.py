@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from quizml.exceptions import LatexCompilationError
-from quizml.markdown.extensions import MathDisplay, MathInline
-from quizml.markdown.html_renderer import build_eq_dict_PNG
+from quizml.transcoder.html import build_eq_dict_PNG
+from quizml.transcoder.tokens import MathDisplay, MathInline
 
 
 # Helper functions to create correctly-structured mock tokens
@@ -22,10 +22,10 @@ def create_mock_display(content):
     return MathDisplay([content])
 
 
-@patch('quizml.markdown.html_renderer.save_to_cache')
-@patch('quizml.markdown.html_renderer.get_from_cache')
-@patch('quizml.markdown.html_renderer.embed_base64')
-@patch('quizml.markdown.html_renderer.LatexRunner')
+@patch('quizml.transcoder.html.save_to_cache')
+@patch('quizml.transcoder.html.get_from_cache')
+@patch('quizml.transcoder.html.embed_base64')
+@patch('quizml.transcoder.html.LatexRunner')
 def test_build_eq_dict_png_success(MockLatexRunner, mock_embed_base64, mock_get_from_cache, mock_save_to_cache):
     """
     Tests that build_eq_dict_PNG successfully generates an image dictionary
@@ -84,8 +84,8 @@ def test_build_eq_dict_png_success(MockLatexRunner, mock_embed_base64, mock_get_
     assert "height='40'" in display_html
 
 
-@patch('quizml.markdown.html_renderer.get_from_cache')
-@patch('quizml.markdown.html_renderer.LatexRunner')
+@patch('quizml.transcoder.html.get_from_cache')
+@patch('quizml.transcoder.html.LatexRunner')
 def test_build_eq_dict_png_latex_error(MockLatexRunner, mock_get_from_cache):
     """
     Tests that build_eq_dict_PNG properly propagates a LatexCompilationError

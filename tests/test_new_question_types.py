@@ -3,7 +3,7 @@ import os
 
 from jsonschema import validate
 
-from quizml.loader import load
+from quizml.quizmlyaml import load
 from quizml.renderer import render
 
 

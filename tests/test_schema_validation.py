@@ -4,7 +4,7 @@ import os
 import pytest
 
 from quizml.exceptions import QuizMLYamlSyntaxError
-from quizml.loader import load
+from quizml.quizmlyaml import load
 
 
 def test_incorrect_01():

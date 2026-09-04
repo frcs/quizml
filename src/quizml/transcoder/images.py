@@ -1,4 +1,7 @@
+"""Image resolution, format conversion (PDF/SVG/PNG), and base64 embedding."""
+
 import base64
+import hashlib
 import os
 import re
 import struct
@@ -9,12 +12,26 @@ from pathlib import Path
 
 from PIL import Image
 
-from ..exceptions import MarkdownImageError
+from quizml.exceptions import MarkdownImageError
+
+
+def get_hash(txt: str) -> str:
+    """Returns MD5 hash hex string."""
+    return hashlib.md5(txt.encode("utf-8")).hexdigest()
+
+
+def append_unique(alist: list, blist: list) -> list:
+    """Append all elements of blist to alist that are not already in alist."""
+    for b in blist:
+        if b not in alist:
+            alist.append(b)
+    return alist
 
 
 def embed_pdf(pdf_filename, base_dir=None, search_dirs=None):
-    """returns a base64 string of a PDF file. The PDF is first converted to
-    a PNG file using ghostscript (gs).
+    """Returns a base64 string of a PDF file.
+
+    The PDF is first converted to a PNG file using ghostscript (gs).
     """
     if not os.path.isabs(pdf_filename):
         dirs = []
@@ -61,8 +78,7 @@ def embed_pdf(pdf_filename, base_dir=None, search_dirs=None):
 
 
 def embed_base64(pathname, base_dir=None, search_dirs=None):
-    """returns a base64 string of an image file."""
-
+    """Returns (width, height, data64_uri) of an image file."""
     path = Path(pathname)
     if not path.is_absolute():
         dirs = []
@@ -83,7 +99,7 @@ def embed_base64(pathname, base_dir=None, search_dirs=None):
         ext = "svg+xml"
     elif suffix == ".png":
         ext = "png"
-    elif suffix == ".jpeg" or suffix == ".jpg":
+    elif suffix in (".jpeg", ".jpg"):
         ext = "jpeg"
     elif suffix == ".pdf":
         return embed_pdf(str(path), base_dir=base_dir, search_dirs=search_dirs)
@@ -109,34 +125,13 @@ def embed_base64(pathname, base_dir=None, search_dirs=None):
 
 
 def get_PNG_info(data):
-    """
-    get width and height from an image
-
-    Parameters
-    ----------
-    data : image
-        input image
-    """
-
+    """Get width and height from PNG binary header."""
     w, h = struct.unpack(">LL", data[16:24])
-    width = int(w)
-    height = int(h)
-    return width, height
+    return int(w), int(h)
 
 
 def convert_css_values_to_pixels(value):
-    """converts CSS lengths such as 12in into pixels
-        https://www.w3.org/TR/css3-values/#cm
-
-    cm	centimeters	1cm = 96px/2.54
-    mm	millimeters	1mm = 1/10th of 1cm
-    Q	quarter-millimeters	1Q = 1/40th of 1cm
-    in	inches	1in = 2.54cm = 96px
-    pc	picas	1pc = 1/6th of 1in
-    pt	points	1pt = 1/72nd of 1in
-    px	pixels	1px = 1/96th of 1in
-    """
-
+    """Converts CSS lengths such as 12in into pixels."""
     regex = r"(\d*\.?\d*)\s*([a-zA-Z]*)"
     m = re.search(regex, value, re.MULTILINE)
     if m:
@@ -164,14 +159,7 @@ def convert_css_values_to_pixels(value):
 
 
 def get_SVG_info(data):
-    """
-    get width and height from an SVG
-
-    Parameters
-    ----------
-    data : str
-        SVG XML content
-    """
+    """Get width and height from SVG XML content."""
     svg_match = re.search(r"<svg\b([^>]*)>", data, re.IGNORECASE | re.DOTALL)
     if not svg_match:
         raise MarkdownImageError("can't read SVG dimensions: no <svg> tag found")

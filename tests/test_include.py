@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from quizml.exceptions import QuizMLYamlSyntaxError
-from quizml.loader import count_included_questions, load, loads
+from quizml.quizmlyaml import count_included_questions, load, loads
 
 
 def test_basic_include(tmp_path: Path):
@@ -323,7 +323,7 @@ title: Final Exam
     assert "../banks/physics" in doc["header"]["_figures_path"]
 
     # Verify Markdown image embedding finds the image and converts to base64
-    from quizml.markdown.markdown import MarkdownTranscoder
+    from quizml.transcoder import MarkdownTranscoder
 
     transcoder = MarkdownTranscoder(doc)
     html_dict = transcoder.get_dict(opts={"fmt": "html"})
@@ -377,7 +377,7 @@ title: Custom Exam
     assert "../banks/physics/custom_assets" in fig_paths
 
     # Verify Markdown image embedding finds plot.png inside custom_assets
-    from quizml.markdown.markdown import MarkdownTranscoder
+    from quizml.transcoder import MarkdownTranscoder
 
     transcoder = MarkdownTranscoder(doc)
     html_dict = transcoder.get_dict(opts={"fmt": "html"})
@@ -385,7 +385,7 @@ title: Custom Exam
     assert len(rendered_q) == 1
 
     # Verify LaTeX graphicspath contains both directories
-    from quizml.cli.filelocator import locate
+    from quizml.filelocator import locate
     from quizml.renderer import render_template
 
     template_path = locate.path("tcd-exam.tex.j2")

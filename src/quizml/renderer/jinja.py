@@ -1,11 +1,37 @@
+"""Jinja2 rendering engine with LaTeX-safe custom delimiters."""
+
 import functools
 import math
+import os
 import pathlib
+import textwrap
 
 import jinja2
 
 from quizml.exceptions import Jinja2SyntaxError
-from quizml.utils import msg_context, text_wrap
+
+
+def _text_wrap(msg: str) -> str:
+    try:
+        w, _ = os.get_terminal_size(0)
+    except OSError:
+        w = 80
+    return textwrap.fill(msg, max(20, w - 5))
+
+
+def _msg_context_line(lines: list[str], lineo: int, highlight: bool = False) -> str:
+    if lineo < 1 or lineo > len(lines):
+        return ""
+    if highlight:
+        return f"❱ {lineo:>4} │  {lines[lineo - 1]}\n"
+    return f"  {lineo:>4} │ {lines[lineo - 1]}\n"
+
+
+def _msg_context(lines: list[str], lineo: int) -> str:
+    msg = _msg_context_line(lines, lineo - 1, highlight=False)
+    msg += _msg_context_line(lines, lineo, highlight=True)
+    msg += _msg_context_line(lines, lineo + 1, highlight=False)
+    return msg
 
 
 @functools.lru_cache(maxsize=1)
@@ -24,23 +50,25 @@ def get_jinja_env():
     return env
 
 
-def render_template(context, template_filename):
+def render_template(context: dict, template_filename: str | pathlib.Path) -> str:
+    """Renders a Jinja2 template file with the given context dict."""
     if not template_filename:
         msg = "Template filename is missing, can't render jinja."
         raise Jinja2SyntaxError(msg)
 
+    template_path = pathlib.Path(template_filename)
     try:
-        template_src = pathlib.Path(template_filename).read_text(encoding="utf-8")
+        template_src = template_path.read_text(encoding="utf-8")
         env = get_jinja_env()
         template = env.from_string(template_src)
-        render_content = template.render(context)
+        return template.render(context)
 
     except jinja2.TemplateSyntaxError as exc:
         lineno = exc.lineno
         lines = template_src.split("\n")
         msg = f"in {template_filename}, line {lineno}\n\n"
-        msg = msg + msg_context(lines, lineno) + "\n"
-        msg = msg + text_wrap(exc.message)
+        msg = msg + _msg_context(lines, lineno) + "\n"
+        msg = msg + _text_wrap(exc.message)
         raise Jinja2SyntaxError(msg) from exc
 
     except jinja2.UndefinedError as exc:
@@ -59,23 +87,3 @@ def render_template(context, template_filename):
         msg = f"in {template_filename}\n\n"
         msg = msg + f"{exc}" + "\n\n"
         raise Jinja2SyntaxError(msg) from exc
-
-    return render_content
-
-
-def render(yaml_data, template_filename, extra_context=None):
-    context = {
-        "header": yaml_data["header"],
-        "questions": yaml_data["questions"],
-        # "total_marks" : get_total_marks(yaml_data)
-    }
-
-    if extra_context:
-        context.update(extra_context)
-
-    if template_filename.endswith(".docx"):
-        from quizml import docx_renderer
-
-        return docx_renderer.render(context, template_filename)
-
-    return render_template(context, template_filename)

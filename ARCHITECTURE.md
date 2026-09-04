@@ -10,100 +10,142 @@ QuizML is a pipeline-driven tool that transforms structured quiz data (YAML/Mark
 3.  **Render:** Apply the transformed data to Jinja2 templates (or Docx templates) to generate final artifacts.
 4.  **Build:** Execute external build commands (e.g., `latexmk`) if required.
 
+## 2. Design Philosophy
+
+QuizML is built around five core architectural principles:
+
+### 2.1 Pure Declarative Compiler (Deterministic & Auditable)
+* **What you write is what gets compiled.** QuizML is a deterministic compiler, not a runtime code-execution sandbox.
+* **Zero Hidden State:** Document compilation does not execute arbitrary code or introduce dynamic/probabilistic behavior (like random question sampling) during builds.
+* **Auditability & Version Control:** An exam document (`quiz.yaml`) represents an immutable, reviewable pedagogical artifact that can be diffed (`quizml diff`), signed off by external examiners, and tracked in Git. If randomized question variants are needed, they are generated beforehand as static, reviewable YAML files.
+
+### 2.2 Document-Centric Authoring (Cohesive vs. Fragmented)
+* **Exam as a Unified Assessment:** Instead of forcing one file per question (which creates file sprawl and bookkeeping friction), an entire exam lives cohesively in a single human-readable YAML document.
+* **Modular Question Banking via Static Inclusion (`_include:`):** When modular topic banks or shared repositories are desired, `- _include:` acts as a clean, transparent 1-to-1 composition mechanism without nesting or hidden logic.
+
+### 2.3 Lean Core + Transparent Template Extensibility
+QuizML does only three core things:
+1. **Ingest & Validate:** Type-safe YAML ingestion with schema validation (solving YAML gotchas like the "Norway problem").
+2. **Transcode:** Uniformly translates Markdown formatting, LaTeX equations, and embedded figures into target-specific assets.
+3. **Render:** Applies data to user-editable Jinja2 templates (using LaTeX-safe delimiters `<| ... |>`, `<< ... >>`) or Word templates.
+
+Institutional layouts, grading guidelines, and university templates remain completely decoupled from the compiler engine and can be customized with `quizml --init-local`.
+
+### 2.4 Human & AI Ergonomics
+* **Natural Authoring Syntax:** Intuitive inline markers like `- x:` (correct) and `- o:` (distractor) eliminate error-prone binary bitstrings or detached answer lists.
+* **AI & LLM Synergy:** Compact, standard YAML fits cleanly in single prompts and produces near-zero syntax hallucinations when prompting AI assistants to draft or refine question sets.
+
+### 2.5 Unix Philosophy: Composability over Monoliths
+* QuizML focuses strictly on **exam document compilation and multi-target rendering** (LaTeX, Blackboard, Word, HTML).
+* Peripheral tasks (e.g. generating randomized question batches, pulling grades, or archiving) are left to simple scripts, CLI utilities (`quizml format`, `quizml diff`), or standard Unix tools.
+
 ---
 
-## 2. Component Analysis
+## 3. Component Analysis
 
-### 2.1 CLI & Configuration
-*   **Entry Point:** `src/quizml/cli/cli.py`
-    *   Uses `rich_argparse` for a polished CLI experience.
-    *   Main dispatch logic for commands: `compile`, `diff`, `init`, `cleanup`.
-*   **File Resolution:** `src/quizml/cli/filelocator.py`
-    *   Implements a cascading search strategy for configs and templates:
-        1.  Current Working Directory
-        2.  `./quizml-templates/` (Local override)
-        3.  User Config Directory (OS-specific, e.g., `~/.config/quizml`)
-        4.  Package `templates/` directory (Fallback)
-*   **Configuration:** `src/quizml/cli/config.py`
-    *   Loads `quizml.cfg`.
-    *   Resolves target dependencies (e.g., ensuring a `.tex` file is generated before trying to compile it to PDF).
-    *   Substitutes variables like `${inputbasename}` in file paths.
-
-### 2.2 Data Ingestion (Loader)
-*   **Module:** `src/quizml/loader.py`
-*   **The "Norway Problem" Solution:**
+### 3.1 Data Ingestion (`quizml.quizmlyaml`)
+*   **Package:** `src/quizml/quizmlyaml/`
+*   **The "Norway Problem" Solution (`parser.py`):**
     *   Uses a custom `ruamel.yaml` constructor (`StringConstructor`) to load *all* scalar values as strings initially. This prevents `country: NO` from becoming `country: False`.
-*   **Validation & Coercion:**
+*   **Modular Ingestion (`includes.py`):**
+    *   Recursively resolves `- _include: file.yaml` directives cleanly into a flattened list of questions.
+    *   Tracks visited paths to prevent circular dependency cycles.
+    *   Propagates figure directory paths relative to the root quiz directory.
+*   **Validation & Coercion (`validator.py`):**
     *   Uses `jsonschema` with a custom validator stack (`DefaultFillingValidator`).
-    *   **Coercion:** It attempts to convert strings to `boolean`, `integer`, or `number` *only* if the schema explicitly allows those types for a specific field.
+    *   **Coercion:** Attempts to convert strings to `boolean`, `integer`, or `number` *only* if the schema explicitly allows those types for a specific field.
     *   **Defaults:** Automatically populates missing fields with default values defined in the schema.
 
-### 2.3 Markdown Transcoding Engine
-*   **Module:** `src/quizml/markdown/markdown.py`
-*   **Concept:** Instead of rendering Markdown fields one by one, the `MarkdownTranscoder`:
-    1.  Extracts all Markdown strings from the loaded YAML.
-    2.  Concatenates them into a single "Shadow Document" (separated by headers).
-    3.  Parses this document once using `mistletoe`.
-    4.  Splits the rendered output back into a dictionary (keyed by content hash) and caches it.
-*   **Custom Tokens (`src/quizml/markdown/extensions.py`):**
+### 3.2 Markdown Transcoder (`quizml.transcoder`)
+*   **Package:** `src/quizml/transcoder/`
+*   **Concept (`transcoder.py`):**
+    *   Extracts all Markdown strings from the loaded YAML.
+    *   Parses each unique Markdown block into an isolated Mistletoe AST Document.
+    *   Renders to HTML or LaTeX dictionaries and caches results.
+*   **Custom Tokens (`tokens.py`):**
     *   `MathDisplay`: Handles `$$...$$`, `\[...\]`, `\begin{equation}`.
     *   `MathInline`: Handles `$ ... $`, `\( ... \)`.
     *   `ImageWithWidth`: Handles `![alt](src){width=...}`.
-*   **HTML Rendering (`src/quizml/markdown/html_renderer.py`):**
+*   **HTML Rendering (`html.py`):**
     *   Converts LaTeX math to images (PNG/SVG) or MathML using external tools (`pdflatex`, `gs`, `dvisvgm`, `make4ht`).
     *   Embeds images as Base64 strings for self-contained HTML.
-*   **LaTeX Rendering (`src/quizml/markdown/latex_renderer.py`):**
+*   **LaTeX Rendering (`latex.py`):**
     *   Converts `ImageWithWidth` tokens to `\includegraphics`.
     *   Auto-converts SVG images to PDF (using `rsvg-convert` or `inkscape`) for compatibility with `pdflatex`.
+*   **Images & Tools (`images.py`, `latextools.py`, `nodes.py`):**
+    *   Path resolution across figure search paths, dimensions calculation, and equation compilation.
 
-### 2.4 Template Rendering
-*   **Module:** `src/quizml/renderer.py`
-*   **Jinja2 Engine:**
+### 3.3 Template Renderer (`quizml.renderer`)
+*   **Package:** `src/quizml/renderer/`
+*   **Jinja2 Engine (`jinja.py`):**
     *   Configured with custom delimiters to avoid clashes with LaTeX syntax:
         *   Block: `<| ... |>`
         *   Variable: `<< ... >>`
         *   Comment: `<# ... #>`
     *   Context includes `header`, `questions` (with transcoded Markdown), and `math` module.
-*   **Docx Support:** `src/quizml/docx_renderer.py`
+*   **Docx Support (`docx.py`):**
     *   Delegates to `docxtpl` for rendering Word documents (`.docx`).
     *   Bypasses the standard Jinja text engine to work directly with Word's XML structure.
 
+### 3.4 Build Engine (`quizml.builder`)
+*   **Package:** `src/quizml/builder/`
+*   **DAG Dependency Resolution (`dag.py`):**
+    *   Uses Python's `graphlib.TopologicalSorter` to ensure prerequisite targets compile before dependents.
+*   **Config Resolution (`config.py`):**
+    *   Loads `quizml.cfg`, substitutes `$inputbasename`, resolves relative template paths, reads preambles.
+*   **Headless Scheduler (`scheduler.py`):**
+    *   Compiles targets and executes external build tools (`pdflatex`, `latexmk`), returning structured `TargetResult` objects without terminal UI dependencies.
+
+### 3.5 Companion Tools (`quizml.tools`)
+*   **Package:** `src/quizml/tools/`
+*   **Pure Functional Utilities:**
+    *   `format.py`: Indentation formatting and automatic question comment numbering (`# <Q1>`, `# <Q2>`).
+    *   `diff.py`: Similarity matching across quiz exams and duplicate detection.
+    *   `cleanup.py`: Build artifact detection and cleanup.
+
+### 3.6 CLI & Terminal Presentation (`quizml.cli`)
+*   **Package:** `src/quizml/cli/`
+*   **Entry Point (`cli.py`):**
+    *   Uses `rich_argparse` and `rich` tables/panels for terminal output.
+    *   Supports `--watch` with LiveReload server (`livereload.py`).
+    *   Exports JSON Intermediate Representation via `--ingest`.
+
 ---
 
-## 3. Data Flow Diagram
+## 4. Data Flow Diagram
 
 ```mermaid
 graph TD
-    User[User] -->|quizml file.yaml| CLI[CLI Entry (cli.py)]
-    CLI -->|Load Config| Config[Config Loader (config.py)]
-    CLI -->|Load Data| Loader[Data Loader (loader.py)]
+    User[User / Python API] -->|quizml quiz.yaml / compile_quiz| Builder[Builder Engine (quizml.builder)]
+    Builder -->|Load & Validate| YAML[Ingestion Engine (quizml.quizmlyaml)]
     
-    Loader -->|Raw Strings| YAML[ruamel.yaml]
-    YAML -->|Schema Validation| Validator[JSON Schema Validator]
-    Validator -->|Coerced Data| DataStruct[Internal Data Structure]
+    YAML -->|StringConstructor| ruamel[ruamel.yaml]
+    YAML -->|Includes| IncludeRes[_resolve_includes]
+    YAML -->|Schema & Defaults| Validator[DefaultFillingValidator]
+    Validator -->|Coerced QuizMLDoc| DocIR[QuizML Document IR]
 
-    DataStruct -->|Extract MD| Transcoder[Markdown Transcoder (markdown.py)]
-    Transcoder -->|Render HTML/LaTeX| Mistletoe[Mistletoe Parser]
-    Mistletoe -->|Images/Math| ExternalTools[External Tools (latex, gs)]
-    Mistletoe -->|Rendered Content| TranscodedData[Transcoded Data]
+    DocIR -->|Transcode| Transcoder[Transcoder (quizml.transcoder)]
+    Transcoder -->|Mistletoe AST| ASTTokens[Math & Image Tokens]
+    ASTTokens -->|LaTeX / HTML| RenderTargetData[Transcoded Doc]
 
-    CLI -->|Compile Targets| Renderer[Template Renderer (renderer.py)]
-    TranscodedData --> Renderer
+    RenderTargetData -->|Render| Renderer[Renderer (quizml.renderer)]
     Renderer -->|Jinja2| TextFiles[Text Output (tex, csv, html)]
     Renderer -->|DocxTpl| WordFiles[Word Output (docx)]
     
-    CLI -->|Build Cmd| Build[External Build (latexmk)]
-    Build --> Final[Final Artifacts (pdf)]
+    Builder -->|Post-Build Cmds| ExternalBuild[Build Tools (latexmk)]
+    ExternalBuild --> FinalArtifacts[Final Output (pdf)]
 ```
 
-## 4. Key Functions Reference
+## 5. Key Functions Reference
 
 | Component | Function | Description |
 | :--- | :--- | :--- |
-| **Loader** | `loader.load(path, validate=True)` | Main entry to load, validate, and coerce YAML data. |
-| **Loader** | `loader.DefaultFillingValidator` | Custom class combining defaults filling and type coercion. |
-| **Markdown** | `markdown.MarkdownTranscoder.transcode_target(target)` | Pre-renders all Markdown fields for a specific target format. |
-| **HTML** | `html_renderer.build_eq_dict_SVG(eq_list, opts)` | Compiles LaTeX equations to SVG for HTML embedding. |
-| **LaTeX** | `latex_renderer.resolve_image_path(src)` | Handles SVG->PDF conversion for LaTeX compatibility. |
-| **Renderer** | `renderer.render(data, template)` | Selects between Jinja2 (text) and DocxTpl (Word) rendering. |
-| **CLI** | `compile.compile(args)` | Orchestrates the entire loading, transcoding, rendering, and building process. |
+| **Ingestion** | `quizmlyaml.load(path, validate=True)` | Ingests, resolves `_include`, validates, and coerces QuizML document. |
+| **Ingestion** | `quizmlyaml.loads(text, validate=True)` | Parses QuizML text from a string into document dict. |
+| **Transcoder** | `transcoder.transcode(doc, target)` | Transcodes Markdown fields in document to HTML or LaTeX. |
+| **Renderer** | `renderer.render(doc, template)` | Renders document through Jinja2 or Word template. |
+| **Builder** | `builder.compile_quiz(yaml_file, targets=...)` | Compiles targets via TopologicalSorter DAG scheduler. |
+| **Tools** | `tools.format_file(path, in_place=True)` | Formats YAML indentation and renumbers question comments. |
+| **Tools** | `tools.cleanup_build(dir_path)` | Scans and deletes generated targets and LaTeX artifacts. |
+| **Tools** | `tools.compare_quiz_files(ref, others)` | Detects duplicated/similar questions across exams. |
+

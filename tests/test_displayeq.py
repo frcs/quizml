@@ -77,8 +77,8 @@ def test_math_regex():
 def test_math_display_token_parsing():
     import mistletoe as mt
 
-    from quizml.markdown.extensions import MathDisplay
-    from quizml.markdown.markdown import _setup_mistletoe_tokens
+    from quizml.transcoder.tokens import MathDisplay
+    from quizml.transcoder.transcoder import _setup_mistletoe_tokens
 
     _setup_mistletoe_tokens()
 

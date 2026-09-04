@@ -1,55 +1,30 @@
-"""
-Markdown classes requried by mistletoe for parsing
-
-"""
+"""Markdown AST Transcoder for HTML and LaTeX compilation targets."""
 
 import os
 
 import mistletoe as mt
 
-import quizml.markdown.extensions as mte
-from quizml.utils import get_md_list_from_yaml, transcode_md_in_yaml
-
-from .html_renderer import get_html_dict
-from .latex_renderer import get_latex_dict
-
-"""
- MarkdownTranscoder 
-
- This modules defines the MarkdownTranscoder class, that can be
- used to render markdown entries in a YAML struct into HTML or LaTeX
- targets.
-
- Example:
-
-    import quizml.markdown as md
-    import quizml.loader as loader
-
-    yaml_data = loader.load("test.yaml", schema=True)
-    
-    transcoder = md.MarkdownTranscoder(yaml_data)
-
-    target = {'fmt': 'html',
-              'html_css': user_html_css,
-              'html_pre': user_html_pre}
-    yaml_transcoded = transcoder.transcode_target(target)
-
-"""
+from quizml.transcoder.html import get_html_dict
+from quizml.transcoder.latex import get_latex_dict
+from quizml.transcoder.nodes import get_md_list_from_yaml, transcode_md_in_yaml
+from quizml.transcoder.tokens import ImageWithWidth, MathDisplay, MathInline
 
 
 def _setup_mistletoe_tokens():
     """Ensure mistletoe has required block and span tokens without duplicates."""
-    if mte.MathInline not in mt.span_token._token_types:
+    if MathInline not in mt.span_token._token_types:
         mt.block_token.remove_token(mt.block_token.Paragraph)
         mt.block_token.remove_token(mt.block_token.BlockCode)
-        mt.block_token.add_token(mte.MathDisplay)
+        mt.block_token.add_token(MathDisplay)
         mt.block_token.add_token(mt.block_token.HTMLBlock)
         mt.block_token.add_token(mt.block_token.Paragraph, 10)
-        mt.span_token.add_token(mte.MathInline)
-        mt.span_token.add_token(mte.ImageWithWidth)
+        mt.span_token.add_token(MathInline)
+        mt.span_token.add_token(ImageWithWidth)
 
 
 class MarkdownTranscoder:
+    """Renders markdown entries in a QuizML YAML structure into HTML or LaTeX targets."""
+
     def __init__(self, yaml_data, schema=None, base_dir=None):
         self.yaml_data = yaml_data
         self.schema = schema
@@ -86,41 +61,26 @@ class MarkdownTranscoder:
             else:
                 self.search_dirs.append(os.path.normpath(os.path.abspath(p)))
 
-        # the dictionary of rendered entries will be cached
         self.cache_dict = {}
-
-        # read yaml_data and collect all MD entries into a single list
         self.md_list = get_md_list_from_yaml(yaml_data)
-        
+
         if not self.md_list:
             self.ast_dict = {}
             return
 
         _setup_mistletoe_tokens()
 
-        # Parse each unique markdown string into its own isolated AST Document
         unique_md = list(dict.fromkeys(self.md_list))
         self.ast_dict = {txt: mt.Document(txt) for txt in unique_md}
 
     def html_dict(self, opts=None):
-        """Returns a HTML dictionary of all MD entries in the YAML data
-
-        Note:
-            the rendered HTML dictionary is cached
-
-        Args:
-            opts (:dict): passing optional val for 'html_pre' and 'html_css'
-
-        Returns:
-            a dictionary where each key corresponds to the MD string
-            and the value is the rendered HTML
-        """
+        """Returns an HTML dictionary of all MD entries in the YAML data."""
         if not self.md_list:
             return {}
 
         if opts is None:
             opts = {}
-            
+
         html_pre = opts.get("html_pre", "")
         html_css = opts.get("html_css", "")
         key = opts.get("fmt", "html") + ":PRE:" + html_pre + "CSS:" + html_css
@@ -133,23 +93,13 @@ class MarkdownTranscoder:
         return d
 
     def latex_dict(self, opts=None):
-        """Returns a LaTeX dictionary of all MD entries in the YAML data
-
-        Note:
-            the rendered LaTeX dictionary is cached
-
-        Args:
-
-        Returns:
-            a dictionary where each key corresponds to the MD string
-            and the value is the rendered LaTeX
-        """
+        """Returns a LaTeX dictionary of all MD entries in the YAML data."""
         if not self.md_list:
             return {}
 
         if opts is None:
             opts = {}
-        
+
         key = opts.get("fmt", "latex")
         if key in self.cache_dict:
             return self.cache_dict[key]
@@ -160,34 +110,18 @@ class MarkdownTranscoder:
         return d
 
     def get_dict(self, opts=None):
-        """Returns a dictionary of all transcoded MD entries in the YAML data
-
-        Args:
-            opts (:dict): target format with opts['fmt'] = 'html' or 'latex'
-
-        Returns:
-            the dictionary where each key corresponds to found MD strings
-            and its value is the corresponding rendered HTML or LaTeX
-        """
-
+        """Returns a dictionary of all transcoded MD entries for the target format."""
         if opts is None:
             opts = {}
-        
-        if opts["fmt"].startswith("html"):
+
+        if opts.get("fmt", "html").startswith("html"):
             return self.html_dict(opts)
-        elif opts["fmt"] == "latex":
+        elif opts.get("fmt") == "latex":
             return self.latex_dict(opts)
+        return {}
 
     def transcode_target(self, target=None):
-        """transcodes MD entries in YAML struct
-
-        Args:
-            target (:dict): target format with target['fmt'] = 'html' or 'latex'
-            with also optional keys for each render.
-        Returns:
-            a YAML struct where each MD string has been replaced with its HTML
-            or laTeX equivalent.
-        """
+        """Transcodes MD entries in the YAML document into target format representations."""
         if target is None:
             target = {}
 

@@ -111,6 +111,12 @@ def main():
     )
 
     parser.add_argument(
+        "--ingest",
+        help="parse and validate the quiz YAML, then print the coerced JSON intermediate representation (IR) to stdout",
+        action="store_true",
+    )
+
+    parser.add_argument(
         "-C",
         "--cleanup",
         help="deletes build artefacts from all yaml files in dir",
@@ -251,6 +257,15 @@ def main():
 
         if not args.yaml_filename:
             parser.error("a yaml file is required")
+
+        if args.ingest:
+            import json
+
+            from quizml import quizmlyaml
+
+            doc, _ = quizmlyaml.load(args.yaml_filename)
+            sys.stdout.write(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
+            return
 
         if args.diff:
             import quizml.cli.diff

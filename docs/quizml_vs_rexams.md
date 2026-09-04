@@ -37,7 +37,7 @@ QuizML treats the **entire exam as a single coherent document** (`quiz.yaml`):
 - All questions, header metadata, mark allocations, and layout instructions live in one place.
 - You can review the entire exam sequentially in seconds.
 - QuizML provides `--format` to automatically format YAML indentation and sequentially renumber question comments (`<Q1>`, `<Q2>`).
-- For question banking, QuizML supports the `include` directive: you can still modularize questions into separate files and splice them into an exam when desired.
+- For question banking, QuizML supports the `_include` directive: you can still modularize questions into separate topic files and splice them into an exam when desired.
 
 ---
 

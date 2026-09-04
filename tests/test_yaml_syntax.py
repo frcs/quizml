@@ -1,6 +1,6 @@
 import os
 
-from quizml.loader import load
+from quizml.quizmlyaml import load
 
 
 def test_yaml_syntax():
@@ -60,7 +60,7 @@ def test_yaml_syntax():
 
 
 def test_horizontal_rule_in_markdown_question():
-    from quizml.loader import loads
+    from quizml.quizmlyaml import loads
 
     quiz_yaml = """title: Math Quiz
 ---

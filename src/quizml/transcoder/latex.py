@@ -1,3 +1,5 @@
+"""LaTeX Mistletoe renderer for QuizML markdown AST."""
+
 import logging
 import os
 import shutil
@@ -6,17 +8,14 @@ import subprocess
 from mistletoe.block_token import HTMLBlock
 from mistletoe.latex_renderer import LaTeXRenderer
 
-from .extensions import ImageWithWidth, MathDisplay, MathInline
+from quizml.transcoder.tokens import ImageWithWidth, MathDisplay, MathInline
 
 
 def convert_svg_to_pdf(svg_path, pdf_path):
-    """
-    Converts an SVG file to PDF using rsvg-convert or inkscape.
-    """
+    """Converts an SVG file to PDF using rsvg-convert or inkscape."""
     if shutil.which("rsvg-convert"):
         cmd = ["rsvg-convert", "-f", "pdf", "-o", pdf_path, svg_path]
     elif shutil.which("inkscape"):
-        # Inkscape 1.0+ CLI
         cmd = ["inkscape", svg_path, "--export-filename=" + pdf_path]
     else:
         logging.warning(
@@ -33,11 +32,10 @@ def convert_svg_to_pdf(svg_path, pdf_path):
 
 
 def resolve_image_path(src, base_dir=None, search_dirs=None):
-    """
-    Resolves the image path for LaTeX.
-    Prioritizes PDF > PNG > JPG/JPEG.
-    If SVG is provided and no compatible format is found, attempts conversion
-    if tools are available.
+    """Resolves the image path for LaTeX.
+
+    Prioritizes PDF > PNG > JPG/JPEG. If SVG is provided and no
+    compatible format is found, attempts conversion if tools are available.
     """
     actual_src = src
     found_in_search_dirs = False
@@ -49,7 +47,6 @@ def resolve_image_path(src, base_dir=None, search_dirs=None):
         if base_dir:
             dirs_to_check.append((base_dir, False))
 
-    # 1. Try finding the exact file first
     for d, is_search_dir in dirs_to_check:
         candidate = os.path.normpath(os.path.join(d, src))
         if os.path.exists(candidate):
@@ -57,13 +54,11 @@ def resolve_image_path(src, base_dir=None, search_dirs=None):
             found_in_search_dirs = is_search_dir
             break
 
-    # If not SVG, return if found or check cwd
     if not src.lower().endswith(".svg"):
         if found_in_search_dirs:
             return src
         return actual_src
 
-    # For SVG, check for existing compatible formats in candidate dirs
     src_base_name = os.path.splitext(src)[0]
     for ext in [".pdf", ".png", ".jpg", ".jpeg"]:
         if found_in_search_dirs:
@@ -75,7 +70,6 @@ def resolve_image_path(src, base_dir=None, search_dirs=None):
             if os.path.exists(candidate):
                 return src_base_name + ext if is_search_dir else candidate
 
-    # If no compatible format exists, try converting the SVG if found
     if os.path.exists(actual_src):
         base = os.path.splitext(actual_src)[0]
         pdf_path = base + ".pdf"
@@ -86,9 +80,9 @@ def resolve_image_path(src, base_dir=None, search_dirs=None):
 
 
 class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
-    """
-    customised mistletoe renderer for LaTeX
-    implements render for custom spans MathInline, MathDisplay, ImageWithWidth
+    """Customised mistletoe renderer for LaTeX.
+
+    Implements render for custom spans MathInline, MathDisplay, ImageWithWidth.
     """
 
     def __init__(self, base_dir=None, search_dirs=None):
@@ -97,8 +91,6 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
         super().__init__(MathInline, MathDisplay, ImageWithWidth, HTMLBlock)
 
     def render_document(self, token):
-        # we need to redefine this to strip out
-        # \begin{document} ... \end{document}
         return self.render_inner(token)
 
     def render_math_inline(self, token):
@@ -114,28 +106,22 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
     def render_html_block(self, token):
         return ""
 
-    # fixing some default behaviour
     def render_table(self, token):
         return "\n\\medskip\n" + super().render_table(token) + "\n\\medskip\n"
 
-    # fixing some default behaviour
     def render_image(self, token):
         token.src = resolve_image_path(token.src, self.base_dir, self.search_dirs)
         s = super().render_image(token)
         return s[1:-1]
 
-    # fixing some default behaviour
     def render_figure(self, token):
         s = self.render_inner(token)
-
         if self.caption:
             return s[1:-1]
 
 
 def get_latex_dict(ast_dict, base_dir=None, search_dirs=None):
-    """
-    Renders LaTeX for markdown entries from discrete AST documents.
-    """
+    """Renders LaTeX for markdown entries from discrete AST documents."""
     md_dict = {}
     with QuizMLYamlLaTeXRenderer(base_dir=base_dir, search_dirs=search_dirs) as renderer:
         for txt, doc in ast_dict.items():

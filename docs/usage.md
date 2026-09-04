@@ -36,7 +36,7 @@ quizml -t bb quiz.yaml
 
 ```bash
 Usage: quizml [-h] [-w] [-t TARGET] [--target-list] [--init-local] [--init-user]
-              [--config CONFIGFILE] [--build] [--diff] [--format] [-C] [--info]
+              [--config CONFIGFILE] [--build] [--diff] [--format] [--ingest] [-C] [--info]
               [--shell-completion {bash,zsh,fish}] [--no-pager] [--docs [TOPIC]] [-v]
               [--debug] [--verbose] [--quiet]
               [quiz.yaml] [otherfiles ...]
@@ -62,6 +62,7 @@ Converts a questions in a YAML/markdown format into a Blackboard test or a LaTeX
 * `--build`: compiles all targets and run all post-compilation commands
 * `--diff`: compares questions from first yaml file to rest of files
 * `--format`: formats and renumbers questions in the yaml file
+* `--ingest`: parse and validate the quiz YAML, then print the coerced JSON intermediate representation (IR) to stdout
 * `-C`, `--cleanup`: deletes build artefacts from yaml files in directory (or matching the specified YAML file)
 * `--info`: print configuration info and paths as json
 * `--shell-completion {bash,zsh,fish}`: print shell completion script for the specified shell

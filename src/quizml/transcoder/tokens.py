@@ -1,3 +1,5 @@
+"""Mistletoe AST extension tokens for Math and enhanced Images."""
+
 import re
 
 from mistletoe.block_token import BlockToken
@@ -41,7 +43,7 @@ class MathDisplay(BlockToken):
             close_pattern = r"\]"
         elif envname:
             close_pattern = r"\end{" + envname + envstar + "}"
-            if close_pattern in stripped[match_obj.end():]:
+            if close_pattern in stripped[match_obj.end() :]:
                 return [first_line]
         else:
             return [first_line]
@@ -71,7 +73,6 @@ class ImageWithWidth(SpanToken):
 
     parse_group = 1
     parse_inner = False
-    #    precedence = 6
     pattern = re.compile(
         r"""
         !\[([^\]]*)\]\(([^\)]*)\)\{\s*width\s*=([^\}]*)\}
@@ -89,7 +90,6 @@ class MathInline(SpanToken):
     content = ""
     parse_group = 1
     parse_inner = False
-    #    precedence = 6
     pattern = re.compile(
         r"""
         (?<!\\)    # negative look-behind to make sure start is not escaped 

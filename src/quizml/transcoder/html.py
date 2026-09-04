@@ -8,12 +8,11 @@ from bs4 import BeautifulSoup
 from mistletoe import span_token
 from mistletoe.html_renderer import HTMLRenderer
 
-from ..cache import compute_hash, get_from_cache, save_to_cache
-from ..exceptions import LatexCompilationError, MarkdownAttributeError
-from .extensions import ImageWithWidth, MathDisplay, MathInline
-from .image_embedding import embed_base64
-from .latextools import LatexRunner
-from .utils import append_unique
+from quizml.cache import compute_hash, get_from_cache, save_to_cache
+from quizml.exceptions import LatexCompilationError, MarkdownAttributeError
+from quizml.transcoder.images import append_unique, embed_base64
+from quizml.transcoder.latextools import LatexRunner
+from quizml.transcoder.tokens import ImageWithWidth, MathDisplay, MathInline
 
 
 def get_eq_list_from_doc(doc):

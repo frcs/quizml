@@ -7,7 +7,7 @@ from quizml.cli.config import get_target_list
 
 @pytest.fixture
 def mock_dependencies():
-    with patch('quizml.cli.config.filelocator.locate.path') as mock_path, \
+    with patch('quizml.builder.config.locate.path') as mock_path, \
          patch('pathlib.Path.read_text') as mock_read:
         mock_path.side_effect = lambda x: f"/abs/{x}"
         mock_read.return_value = "content"
