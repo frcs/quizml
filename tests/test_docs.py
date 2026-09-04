@@ -5,9 +5,11 @@ import pytest
 
 from quizml.cli.cli import main
 from quizml.cli.docs import (
+    get_all_topics,
     get_docs_dir,
     get_llms_file,
     handle_docs,
+    page_content,
     parse_sidebar,
 )
 
@@ -78,13 +80,28 @@ def test_handle_docs_all_non_tty(capsys):
     assert len(captured.out.splitlines()) > 500
 
 
+def test_get_all_topics():
+    topics = get_all_topics()
+    assert "all" in topics
+    assert "quickstart" in topics
+    assert "usage" in topics
+    assert "syntax_yaml" in topics or "yaml" in topics
+
+
 def test_handle_docs_default_piped_is_all(capsys):
     # When piped (non-tty) without topic, defaults to dumping full documentation
     with patch("sys.stdout.isatty", return_value=False):
-        handle_docs("overview")
+        handle_docs("")
     captured = capsys.readouterr()
     assert "<!-- Section:" in captured.out
     assert "targets.md" in captured.out
+
+
+def test_handle_docs_overview_non_tty(capsys):
+    with patch("sys.stdout.isatty", return_value=False):
+        handle_docs("overview")
+    captured = capsys.readouterr()
+    assert "QuizML" in captured.out
 
 
 def test_handle_docs_llms_non_tty(capsys):
@@ -95,11 +112,34 @@ def test_handle_docs_llms_non_tty(capsys):
     assert "Core Philosophy" in captured.out
 
 
-def test_handle_docs_tty(capsys):
+def test_handle_docs_tty_no_pager(capsys):
     with patch("sys.stdout.isatty", return_value=True):
-        handle_docs("targets")
+        handle_docs("targets", no_pager=True)
     captured = capsys.readouterr()
     assert "targets" in captured.out.lower()
+
+
+def test_page_content_invokes_pager():
+    from unittest.mock import MagicMock
+
+    from rich.markdown import Markdown
+
+    mock_proc = MagicMock()
+    with patch("subprocess.Popen", return_value=mock_proc) as mock_popen:
+        page_content(Markdown("# Test Header"))
+        assert mock_popen.called
+        assert mock_proc.communicate.called
+        called_input = mock_proc.communicate.call_args[1].get("input", "")
+        assert "Test Header" in called_input
+
+
+def test_page_content_cat_fallback(capsys):
+    from rich.markdown import Markdown
+
+    with patch.dict("os.environ", {"PAGER": "cat"}):
+        page_content(Markdown("# Heading in Cat"))
+    captured = capsys.readouterr()
+    assert "Heading in Cat" in captured.out
 
 
 def test_handle_docs_unknown_topic(capsys):
@@ -114,6 +154,14 @@ def test_handle_docs_unknown_topic(capsys):
 def test_cli_docs_integration(capsys):
     with patch.object(sys, "argv", ["quizml", "--docs", "quickstart"]):
         with patch("sys.stdout.isatty", return_value=False):
+            main()
+    captured = capsys.readouterr()
+    assert "Quick Start" in captured.out
+
+
+def test_cli_docs_no_pager_integration(capsys):
+    with patch.object(sys, "argv", ["quizml", "--docs", "quickstart", "--no-pager"]):
+        with patch("sys.stdout.isatty", return_value=True):
             main()
     captured = capsys.readouterr()
     assert "Quick Start" in captured.out

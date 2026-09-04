@@ -128,9 +128,15 @@ def main():
     )
 
     parser.add_argument(
+        "--no-pager",
+        help="disable pager for documentation output",
+        action="store_true",
+    )
+
+    parser.add_argument(
         "--docs",
         nargs="?",
-        const="overview",
+        const="",
         metavar="TOPIC",
         help="display documentation topics or full guide (e.g. 'all', 'questions', 'targets'). TTY-aware.",
     )
@@ -206,7 +212,7 @@ def main():
         if args.docs is not None:
             import quizml.cli.docs
 
-            quizml.cli.docs.handle_docs(args.docs)
+            quizml.cli.docs.handle_docs(args.docs, no_pager=args.no_pager)
             return
 
         if args.cleanup:

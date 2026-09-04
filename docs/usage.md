@@ -37,7 +37,7 @@ quizml -t bb quiz.yaml
 ```bash
 Usage: quizml [-h] [-w] [-t TARGET] [--target-list] [--init-local] [--init-user]
               [--config CONFIGFILE] [--build] [--diff] [--format] [-C] [--info]
-              [--shell-completion {bash,zsh,fish}] [--docs [TOPIC]] [-v]
+              [--shell-completion {bash,zsh,fish}] [--no-pager] [--docs [TOPIC]] [-v]
               [--debug] [--verbose] [--quiet]
               [quiz.yaml] [otherfiles ...]
 ```
@@ -65,7 +65,8 @@ Converts a questions in a YAML/markdown format into a Blackboard test or a LaTeX
 * `-C`, `--cleanup`: deletes build artefacts from yaml files in directory (or matching the specified YAML file)
 * `--info`: print configuration info and paths as json
 * `--shell-completion {bash,zsh,fish}`: print shell completion script for the specified shell
-* `--docs [TOPIC]`: display documentation topic (e.g. 'quickstart', 'questions', 'targets') or full guide ('all'). TTY-aware: renders styled markdown in terminal, or plain text when piped
+* `--no-pager`: disable pager for documentation output
+* `--docs [TOPIC]`: display documentation topic (e.g. 'quickstart', 'questions', 'targets') or full guide ('all'). TTY-aware: renders in full-screen pager, launches interactive topic browser if run with no topic in an interactive terminal, or outputs plain markdown when piped.
 * `-v`, `--version`: show program's version number and exit
 * `--debug`: Print lots of debugging statements
 * `--verbose`: set verbose on

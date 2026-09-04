@@ -1,4 +1,9 @@
+import curses
+import io
+import os
 import re
+import shutil
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -124,6 +129,25 @@ def build_topic_map(doc_items: list[DocItem]) -> dict[str, DocItem]:
     return topic_map
 
 
+def get_all_topics(docs_dir: Path | None = None) -> list[str]:
+    """Returns a deduplicated list of all recognized topic slugs and aliases."""
+    if docs_dir is None:
+        try:
+            docs_dir = get_docs_dir()
+        except FileNotFoundError:
+            return ["all", "list", "overview", "llm", "llms", "quickstart", "usage"]
+
+    doc_items = parse_sidebar(docs_dir)
+    builtins = ["all", "list", "overview", "llm", "llms"]
+    topics = list(builtins)
+    for item in doc_items:
+        for a in item.aliases:
+            low = a.lower()
+            if low not in topics:
+                topics.append(low)
+    return topics
+
+
 def get_full_documentation(doc_items: list[DocItem]) -> str:
     """Concatenates all documentation sections into a single markdown stream."""
     docs = []
@@ -165,7 +189,228 @@ def print_topics_table(doc_items: list[DocItem], console: Console) -> None:
     )
 
 
-def handle_docs(topic: str | None = None) -> None:
+def page_content(renderable, console: Console | None = None) -> None:
+    """Renders Rich content with ANSI styling and pages it via less -RF (or $PAGER)."""
+    if console is None:
+        console = Console()
+
+    width = console.size.width or 80
+    buf = io.StringIO()
+    buf_console = Console(
+        file=buf,
+        force_terminal=True,
+        color_system=console.color_system or "truecolor",
+        width=width,
+    )
+    buf_console.print(renderable)
+    rendered_text = buf.getvalue()
+
+    pager_cmd = os.environ.get("PAGER")
+    env = os.environ.copy()
+    if "LESS" not in env:
+        env["LESS"] = "-RF"
+
+    if not pager_cmd:
+        less_path = shutil.which("less")
+        if less_path:
+            pager_cmd = f"{less_path} -RF"
+        else:
+            pager_cmd = shutil.which("more")
+
+    if not pager_cmd or pager_cmd == "cat":
+        console.print(renderable)
+        return
+
+    try:
+        proc = subprocess.Popen(
+            pager_cmd,
+            shell=True,
+            stdin=subprocess.PIPE,
+            text=True,
+            env=env,
+        )
+        proc.communicate(input=rendered_text)
+    except (OSError, KeyboardInterrupt):
+        pass
+
+
+def run_interactive_browser(
+    doc_items: list[DocItem], docs_dir: Path, console: Console
+) -> None:
+    """Launches a full-screen interactive topic browser using curses."""
+    entries: list[dict] = []
+
+    # 1. Overview
+    readme_path = docs_dir / "README.md"
+    if readme_path.is_file():
+        entries.append(
+            {
+                "category": "General",
+                "title": "Overview (README)",
+                "path": readme_path,
+            }
+        )
+
+    # 2. Doc items
+    for item in doc_items:
+        entries.append(
+            {
+                "category": item.category,
+                "title": item.title,
+                "path": item.path,
+            }
+        )
+
+    # 3. LLM Guidelines
+    llms_path = get_llms_file()
+    if llms_path:
+        entries.append(
+            {
+                "category": "Reference",
+                "title": "LLM Guidelines (LLMS.md)",
+                "path": llms_path,
+            }
+        )
+
+    # 4. Full Guide
+    entries.append(
+        {
+            "category": "Reference",
+            "title": "Complete Documentation Guide (All)",
+            "path": None,
+        }
+    )
+
+    def _menu(stdscr) -> None:
+        curses.curs_set(0)
+        stdscr.keypad(True)
+        try:
+            curses.use_default_colors()
+        except curses.error:
+            pass
+
+        has_color = curses.has_colors()
+        if has_color:
+            try:
+                curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)  # Selected
+                curses.init_pair(2, curses.COLOR_CYAN, -1)  # Category
+                curses.init_pair(3, curses.COLOR_WHITE, -1)  # Normal
+                curses.init_pair(4, curses.COLOR_YELLOW, -1)  # Header help
+            except curses.error:
+                pass
+
+        selected = 0
+        top_line = 0
+
+        while True:
+            stdscr.clear()
+            h, w = stdscr.getmaxyx()
+            if h < 6 or w < 20:
+                stdscr.addstr(0, 0, "Window too small")
+                stdscr.refresh()
+                key = stdscr.getch()
+                if key in (ord("q"), ord("Q"), 27):
+                    break
+                continue
+
+            # Header
+            title = "QuizML Documentation Browser"
+            stdscr.addstr(
+                0, max(0, (w - len(title)) // 2), title[: w - 1], curses.A_BOLD
+            )
+            help_line = "↑/↓, j/k: Navigate | Enter: Read | q: Quit"
+            attr_help = curses.color_pair(4) if has_color else curses.A_DIM
+            stdscr.addstr(
+                1, max(0, (w - len(help_line)) // 2), help_line[: w - 1], attr_help
+            )
+
+            try:
+                stdscr.hline(2, 0, curses.ACS_HLINE, w)
+            except curses.error:
+                pass
+
+            available_rows = h - 4
+            if selected < top_line:
+                top_line = selected
+            elif selected >= top_line + available_rows:
+                top_line = selected - available_rows + 1
+
+            for i in range(top_line, min(len(entries), top_line + available_rows)):
+                row = 3 + (i - top_line)
+                entry = entries[i]
+                is_sel = i == selected
+
+                prefix = " ▸ " if is_sel else "   "
+                cat_tag = f"[{entry['category']}] "
+                text = f"{prefix}{cat_tag}{entry['title']}"
+                text = text[: w - 1].ljust(w - 1)
+
+                if is_sel:
+                    attr = (
+                        curses.color_pair(1) | curses.A_BOLD
+                        if has_color
+                        else curses.A_REVERSE
+                    )
+                else:
+                    attr = curses.color_pair(3) if has_color else curses.A_NORMAL
+
+                try:
+                    stdscr.addstr(row, 0, text, attr)
+                except curses.error:
+                    pass
+
+            # Footer
+            footer = f" Topic {selected + 1} of {len(entries)} "
+            try:
+                stdscr.addstr(h - 1, 0, footer[: w - 1], curses.A_DIM)
+            except curses.error:
+                pass
+
+            stdscr.refresh()
+
+            key = stdscr.getch()
+
+            if key in (curses.KEY_UP, ord("k"), ord("K")):
+                selected = (selected - 1) % len(entries)
+            elif key in (curses.KEY_DOWN, ord("j"), ord("J")):
+                selected = (selected + 1) % len(entries)
+            elif key == curses.KEY_PPAGE:
+                selected = max(0, selected - available_rows)
+            elif key == curses.KEY_NPAGE:
+                selected = min(len(entries) - 1, selected + available_rows)
+            elif key in (curses.KEY_HOME, ord("g")):
+                selected = 0
+            elif key in (curses.KEY_END, ord("G")):
+                selected = len(entries) - 1
+            elif key in (ord("q"), ord("Q"), 27):
+                break
+            elif key in (curses.KEY_ENTER, 10, 13):
+                target_entry = entries[selected]
+                if target_entry["path"] is not None:
+                    content = target_entry["path"].read_text(encoding="utf-8")
+                else:
+                    content = get_full_documentation(doc_items)
+
+                curses.def_prog_mode()
+                curses.endwin()
+                try:
+                    page_content(Markdown(content), console)
+                finally:
+                    curses.reset_prog_mode()
+                    stdscr.clear()
+                    stdscr.refresh()
+
+    try:
+        curses.wrapper(_menu)
+    except curses.error:
+        # Fallback if curses fails to initialize
+        if readme_path.is_file():
+            console.print(Markdown(readme_path.read_text(encoding="utf-8")))
+            console.print("\n---\n")
+        print_topics_table(doc_items, console)
+
+
+def handle_docs(topic: str | None = None, no_pager: bool = False) -> None:
     """CLI entry point for displaying documentation."""
     try:
         docs_dir = get_docs_dir()
@@ -185,10 +430,12 @@ def handle_docs(topic: str | None = None) -> None:
         llms_path = get_llms_file()
         if llms_path:
             content = llms_path.read_text(encoding="utf-8")
-            if is_tty:
+            if not is_tty:
+                sys.stdout.write(content + "\n")
+            elif no_pager:
                 console.print(Markdown(content))
             else:
-                sys.stdout.write(content + "\n")
+                page_content(Markdown(content), console)
             return
 
     if query == "list":
@@ -202,26 +449,47 @@ def handle_docs(topic: str | None = None) -> None:
             sys.stdout.write("\n".join(lines) + "\n")
         return
 
-    if (
-        query == "all"
-        or (not query and not is_tty)
-        or (query == "overview" and not is_tty)
-    ):
+    if query == "all":
         full_doc = get_full_documentation(doc_items)
-        if is_tty:
-            with console.pager(styles=True):
-                console.print(Markdown(full_doc))
-        else:
+        if not is_tty:
             sys.stdout.write(full_doc + "\n")
+        elif no_pager:
+            console.print(Markdown(full_doc))
+        else:
+            page_content(Markdown(full_doc), console)
         return
 
-    if not query or query == "overview":
+    if not query:
+        # No topic provided (e.g. `quizml --docs`)
+        if not is_tty:
+            full_doc = get_full_documentation(doc_items)
+            sys.stdout.write(full_doc + "\n")
+            return
+
+        if no_pager or not sys.stdin.isatty():
+            readme_path = docs_dir / "README.md"
+            if readme_path.is_file():
+                console.print(Markdown(readme_path.read_text(encoding="utf-8")))
+                console.print("\n---\n")
+            print_topics_table(doc_items, console)
+            return
+
+        run_interactive_browser(doc_items, docs_dir, console)
+        return
+
+    if query == "overview":
         readme_path = docs_dir / "README.md"
-        if readme_path.is_file():
-            content = readme_path.read_text(encoding="utf-8")
+        content = (
+            readme_path.read_text(encoding="utf-8") if readme_path.is_file() else ""
+        )
+        if not is_tty:
+            sys.stdout.write(content + "\n")
+        elif no_pager:
             console.print(Markdown(content))
             console.print("\n---\n")
-        print_topics_table(doc_items, console)
+            print_topics_table(doc_items, console)
+        else:
+            page_content(Markdown(content), console)
         return
 
     matched_item = topic_map.get(query)
@@ -238,16 +506,12 @@ def handle_docs(topic: str | None = None) -> None:
 
     if matched_item:
         content = matched_item.path.read_text(encoding="utf-8")
-        if is_tty:
-            line_count = len(content.splitlines())
-            terminal_height = console.size.height or 24
-            if line_count > terminal_height:
-                with console.pager(styles=True):
-                    console.print(Markdown(content))
-            else:
-                console.print(Markdown(content))
-        else:
+        if not is_tty:
             sys.stdout.write(content + "\n")
+        elif no_pager:
+            console.print(Markdown(content))
+        else:
+            page_content(Markdown(content), console)
         return
 
     err_msg = f"Unknown documentation topic '{topic}'.\n\nAvailable topics:\n"
