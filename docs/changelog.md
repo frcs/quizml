@@ -9,10 +9,16 @@
 **Refactors:**
 *   Replaced shadow document concatenation with a discrete AST parsing pipeline in `MarkdownTranscoder`, fixing heading truncation in question statements.
 *   Made `MathDisplay` stateless, removing mutable class-level parsing variables.
+*   Implemented document-relative asset resolution, enabling exams with relative figures to compile accurately from any directory.
+*   Implemented topological sorting (`graphlib.TopologicalSorter`) for target dependencies, ensuring dependencies always build before dependents and detecting circular dependencies.
+*   Made `FileLocator` dynamic and context-aware, preventing stale CWD paths and providing informative missing-file errors.
+*   Cached configured `jinja2.Environment` in `renderer.py` to eliminate redundant environment re-creations.
+*   Removed obsolete code (~400 lines), dead functions (`_parse_yaml_fragment`, `print_doc`), and unused schema parameters.
+*   Deduplicated template initialization logic in `quizml.cli.init`.
 
 **Fixes:**
 *   Fixed single-line `MathDisplay` block equations (`$$E=mc^2$$`) greedily consuming subsequent paragraphs.
-*   Restricted `quizml --cleanup` strictly to known targets and LaTeX build artifacts to protect authored files (`.py`, `.md`, `.png`, etc.).
+*   Restricted `quizml --cleanup` strictly to known targets and LaTeX build artifacts, and enabled targeted cleanup for specific YAML files or directories.
 *   Fixed tuple unpacking on `load()` in the `quizml --diff` CLI command.
 *   Prevented process CWD mutation and tempdir leaks in `embed_pdf`.
 *   Supported `viewBox`-only SVG dimensions and SVGs with `height` before `width`.

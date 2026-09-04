@@ -4,16 +4,31 @@ The core objective is to keep the central mechanism as lean as possible,
 allowing users to extend the system through custom templates and user-defined
 YAML structures.
 
-# Git 
+# Git Conventions
 
-The commit messages have been standardised to the "Type: Subject" format.  The
-  types include Feat, Fix, Docs, Refactor, Chore, Test, Style.
-  
-For example:
-- Feat: Adding --target-list as feature
-- Docs: Using docsify.js
-- Fix: Fix loader and sets default schema
-- Refactor: Rename project structure to quizml
+### 1. Atomic Commits
+Every commit should represent a single logical change or concern. Do not bundle multiple unrelated refactorings, features, or fixes into one commit. Each commit must leave the test suite (`uv run pytest`) passing.
+
+### 2. Commit Message Format
+Commit messages follow the "Type: Subject" format.
+Types include: `Feat`, `Fix`, `Docs`, `Refactor`, `Chore`, `Test`, `Style`, `Perf`.
+
+For non-trivial changes, structure the commit body to explain the architectural rationale:
+
+```text
+Type: Short imperative summary (under 50 chars)
+
+Problem:
+Explain the limitation, architectural flaw, or bug that existed.
+Why was the current code problematic?
+
+Solution:
+Explain the chosen design and how it solves the problem.
+Why was this approach chosen over alternatives?
+
+Impact:
+Explain the benefits, guarantees, and verification.
+```
 
 # Releasing
 

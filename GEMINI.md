@@ -27,13 +27,11 @@ need to present the proposed changes, the commit message and ask for permission 
 
 ### 4. Git Conventions
 - **Main Branch:** `main`
+- **Atomic Commits:** Every commit should represent a single logical change or concern. Do not bundle multiple features/fixes together.
 - **Commit Messages:** Use the "Type: Subject" format.
-  - Types: `Feat`, `Fix`, `Docs`, `Refactor`, `Chore`, `Test`, `Style`.
-  - Example: `Feat: Adding --target-list as feature`
-
-- NEVER commit without an explicit confirmation. This means that you first need
-  to present the proposed changes, the commit message and ask for permission to
-  commit.
+  - Types: `Feat`, `Fix`, `Docs`, `Refactor`, `Chore`, `Test`, `Style`, `Perf`.
+  - For non-trivial changes, structure the body with Problem, Solution, and Impact paragraphs.
+- **Confirmation:** NEVER commit without an explicit confirmation. This means that you first need to present the proposed changes, the commit message and ask for permission to commit.
 
 
 ### 5. Comments Policy
