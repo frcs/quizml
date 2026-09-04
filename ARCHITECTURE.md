@@ -109,6 +109,7 @@ Institutional layouts, grading guidelines, and university templates remain compl
     *   Uses `rich_argparse` and `rich` tables/panels for terminal output.
     *   Supports `--watch` with LiveReload server (`livereload.py`).
     *   Exports JSON Intermediate Representation via `--ingest`.
+    *   Exposes pipeline stages directly for Unix composability: `--transcode <fmt>` and `--render <template>`.
 
 ---
 

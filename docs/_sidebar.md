@@ -19,6 +19,9 @@
   - [Writing Targets](targets.md)
   - [Writing Templates](writing_templates.md)
   - [Schema Validation](schema_validation.md)
+
+- Developer & API
+  - [Python API & Pipelines](python_api.md)
   
 - [Changelog](changelog.md)
 

@@ -36,7 +36,8 @@ quizml -t bb quiz.yaml
 
 ```bash
 Usage: quizml [-h] [-w] [-t TARGET] [--target-list] [--init-local] [--init-user]
-              [--config CONFIGFILE] [--build] [--diff] [--format] [--ingest] [-C] [--info]
+              [--config CONFIGFILE] [--build] [--diff] [--format] [--ingest]
+              [--transcode FMT] [--render TEMPLATE] [-C] [--info]
               [--shell-completion {bash,zsh,fish}] [--no-pager] [--docs [TOPIC]] [-v]
               [--debug] [--verbose] [--quiet]
               [quiz.yaml] [otherfiles ...]
@@ -46,7 +47,7 @@ Converts a questions in a YAML/markdown format into a Blackboard test or a LaTeX
 
 ### Positional Arguments
 
-* `quiz.yaml`: path to the quiz in a yaml format
+* `quiz.yaml`: path to the quiz in a yaml format (or `-` / omit to read from stdin)
 * `otherfiles`: other yaml files (only used with diff command)
 
 ### Optional Arguments
@@ -63,6 +64,8 @@ Converts a questions in a YAML/markdown format into a Blackboard test or a LaTeX
 * `--diff`: compares questions from first yaml file to rest of files
 * `--format`: formats and renumbers questions in the yaml file
 * `--ingest`: parse and validate the quiz YAML, then print the coerced JSON intermediate representation (IR) to stdout
+* `--transcode FMT`: transcode markdown fields to target format (e.g. 'html', 'latex') and print JSON IR to stdout
+* `--render TEMPLATE`: render document using the specified Jinja2 or Word template and print output to stdout
 * `-C`, `--cleanup`: deletes build artefacts from yaml files in directory (or matching the specified YAML file)
 * `--info`: print configuration info and paths as json
 * `--shell-completion {bash,zsh,fish}`: print shell completion script for the specified shell
@@ -72,6 +75,26 @@ Converts a questions in a YAML/markdown format into a Blackboard test or a LaTeX
 * `--debug`: Print lots of debugging statements
 * `--verbose`: set verbose on
 * `--quiet`: turn off info statements
+
+### Unix Pipeline Composability
+
+QuizML supports both all-in-one execution and modular Unix pipe composition:
+
+* **Direct Template Render:**
+  ```bash
+  quizml exam.yaml --render tcd-exam.tex.j2 > exam.tex
+  ```
+
+* **Inspect Transcoded IR as JSON:**
+  ```bash
+  quizml exam.yaml --transcode latex > exam.latex.json
+  quizml exam.yaml --transcode html > exam.html.json
+  ```
+
+* **Full 3-Stage Unix Pipe:**
+  ```bash
+  cat exam.yaml | quizml --ingest | quizml --transcode latex | quizml --render tcd-exam.tex.j2 > exam.tex
+  ```
 
 
 ### Examples

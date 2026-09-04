@@ -85,5 +85,27 @@ In the example above we default to quizml's default which is
 !> Note that the new version of BlackBoard tests strip out any CSS information.
 
 #### `template` 
+ 
+filename/path for the jinja template used.
 
-filename/path for the jinja template used
+---
+
+### Standalone Rendering without Target Configuration
+
+You do not need to configure targets in `quizml.cfg` to render a template. You can render any Jinja2 template or Word (`.docx`) template on demand using the CLI:
+
+```bash
+quizml exam.yaml --render tcd-exam.tex.j2 > exam.tex
+```
+
+Or programmatically in Python:
+
+```python
+import quizml
+
+doc = quizml.load_quiz("exam.yaml")
+doc_latex = quizml.transcode(doc, fmt="latex")
+output_tex = quizml.render(doc_latex, "tcd-exam.tex.j2")
+```
+
+When rendering directly, QuizML automatically searches for the template in the current directory, the local `quizml-templates/` directory, the user configuration directory, and package-provided templates.

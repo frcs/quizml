@@ -56,5 +56,30 @@ and this is what the rendered outputs look like:
 
 <img src="figures/demo-output-carousel.gif" width="800px" />
 
+---
 
+## Unix Pipeline Composability
 
+QuizML can be composed into standard Unix pipelines via `--ingest`, `--transcode`, and `--render`:
+
+```bash
+# Render directly from a YAML file or stdin
+quizml quiz1.yaml --render tcd-exam.tex.j2 > exam.tex
+
+# Pipe across stages using JSON intermediate representation (IR)
+cat quiz1.yaml | quizml --ingest | quizml --transcode latex | quizml --render tcd-exam.tex.j2 > exam.tex
+```
+
+## Python Library
+
+QuizML is also a modular Python package:
+
+```python
+import quizml
+
+doc = quizml.load_quiz("quiz1.yaml")
+doc_latex = quizml.transcode(doc, fmt="latex")
+output_tex = quizml.render(doc_latex, "tcd-exam.tex.j2")
+```
+
+See the [Python API & Pipelines guide](python_api.md) for complete details.

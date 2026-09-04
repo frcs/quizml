@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+**Features:**
+*   **Unix Pipeline Composability:** Added `--ingest`, `--transcode <FMT>`, and `--render <TEMPLATE>` CLI options with standard input (`-` or piped) and JSON IR output, enabling composable multi-stage pipelines (`cat exam.yaml | quizml --ingest | quizml --transcode latex | quizml --render tcd-exam.tex.j2`).
+*   **Public Python API:** Exposed clean library API at top-level `quizml` (`load_quiz`, `transcode`, `render`, `build_targets`).
+*   **Idempotent Transcoding:** Embedded format tracking (`_transcoded: <fmt>`) into transcoded document headers to guarantee idempotency across pipeline stages.
+*   **Direct Template Resolution:** Templates specified via `--render` or `quizml.render()` automatically resolve paths against the working directory, `quizml-templates/`, user config directory, and packaged templates.
+
+**Refactors:**
+*   Decoupled QuizML into 6 independent subpackages (`quizmlyaml`, `transcoder`, `renderer`, `builder`, `tools`, `cli`) with zero circular dependencies.
+
 <a name="0.12.0"></a>
 
 ### [0.12.0]() (2026-09-03)
