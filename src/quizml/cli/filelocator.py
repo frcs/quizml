@@ -16,33 +16,49 @@ class FileLocator:
         """
         sets up default directories to search
         """
-
         self.pkg_template_dir = os.path.join(os.path.dirname(__file__), "../templates")
         self.app_dir = appdirs.user_config_dir(appname="quizml", appauthor="frcs")
         self.user_template_dir = os.path.join(self.app_dir, "templates")
-        self.cw_dir = os.getcwd()
-        self.local_template_dir = os.path.join(self.cw_dir, "quizml-templates")
-        self.dirlist = [
+
+    @property
+    def cw_dir(self):
+        return os.getcwd()
+
+    @property
+    def local_template_dir(self):
+        return os.path.join(self.cw_dir, "quizml-templates")
+
+    @property
+    def dirlist(self):
+        return [
             self.cw_dir,
             self.local_template_dir,
             self.user_template_dir,
             self.pkg_template_dir,
         ]
 
-    def path(self, refpath):
+    def path(self, refpath, extra_search_dirs=None):
         """
-        finds file in list of directories to search. returns None
+        finds file in list of directories to search. returns absolute path or raises FileNotFoundError.
         """
-
         if os.path.isabs(refpath):
             if os.path.exists(refpath):
                 return refpath
-        else:
-            for d in self.dirlist:
-                abspath = os.path.realpath(os.path.expanduser(os.path.join(d, refpath)))
-                if os.path.exists(abspath):
-                    return abspath
-        raise FileNotFoundError
+            raise FileNotFoundError(f"Absolute file '{refpath}' does not exist.")
+
+        search_dirs = []
+        if extra_search_dirs:
+            search_dirs.extend(extra_search_dirs)
+        search_dirs.extend(self.dirlist)
+
+        for d in search_dirs:
+            abspath = os.path.realpath(os.path.expanduser(os.path.join(d, refpath)))
+            if os.path.exists(abspath):
+                return abspath
+
+        raise FileNotFoundError(
+            f"Could not find '{refpath}' in search paths: {search_dirs}"
+        )
 
 
 locate = FileLocator()
