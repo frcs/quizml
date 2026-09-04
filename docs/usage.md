@@ -61,7 +61,7 @@ Converts a questions in a YAML/markdown format into a Blackboard test or a LaTeX
 * `--build`: compiles all targets and run all post-compilation commands
 * `--diff`: compares questions from first yaml file to rest of files
 * `--format`: formats and renumbers questions in the yaml file
-* `-C`, `--cleanup`: deletes build artefacts from all yaml files in dir
+* `-C`, `--cleanup`: deletes build artefacts from yaml files in directory (or matching the specified YAML file)
 * `--info`: print configuration info and paths as json
 * `--shell-completion {bash,zsh,fish}`: print shell completion script for the specified shell
 * `-v`, `--version`: show program's version number and exit

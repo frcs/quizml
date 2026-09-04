@@ -195,9 +195,21 @@ def main():
             return
 
         if args.cleanup:
+            from pathlib import Path
+
             import quizml.cli.cleanup
 
-            quizml.cli.cleanup.cleanup_yaml_files()
+            if args.yaml_filename:
+                target_path = Path(args.yaml_filename)
+                if target_path.is_dir():
+                    quizml.cli.cleanup.cleanup_yaml_files(directory_path=str(target_path))
+                else:
+                    dir_path = target_path.parent if target_path.parent.name else Path(".")
+                    quizml.cli.cleanup.cleanup_yaml_files(
+                        directory_path=str(dir_path), target_stems={target_path.stem}
+                    )
+            else:
+                quizml.cli.cleanup.cleanup_yaml_files()
             return
 
         if args.init_user:

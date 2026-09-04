@@ -67,6 +67,22 @@ def test_cleanup_safety(tmp_path):
     for p in safe_files:
         assert p.exists(), f"Expected {p.name} to be preserved"
 
+
+def test_cleanup_specific_target_stem(tmp_path):
+    from quizml.cli.cleanup import cleanup_yaml_files
+
+    # Create two exams and their artifacts
+    (tmp_path / "exam1.html").write_text("artifact")
+    (tmp_path / "exam2.html").write_text("artifact")
+
+    # Only clean exam1
+    deleted_count = cleanup_yaml_files(str(tmp_path), target_stems={"exam1"})
+
+    assert deleted_count == 1
+    assert not (tmp_path / "exam1.html").exists()
+    assert (tmp_path / "exam2.html").exists()
+
+
 @patch('quizml.cli.init.init_local')
 def test_init_local(mock_init_local):
     with patch.object(sys, 'argv', ['quizml', '--init-local']):

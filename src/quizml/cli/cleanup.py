@@ -42,15 +42,16 @@ def get_cleanup_candidates(stem):
     return candidates
 
 
-def cleanup_yaml_files(directory_path=".", dry_run=False):
+def cleanup_yaml_files(directory_path=".", dry_run=False, target_stems=None):
     """
-    Looks at all .yaml files in a directory and deletes generated targets
-    and LaTeX build artifacts matching their base names.
+    Looks at all .yaml files in a directory (or specific target_stems) and deletes
+    generated targets and LaTeX build artifacts matching their base names.
     Non-target files (like .py, .md, .png, etc.) are never deleted.
 
     Args:
         directory_path (str): The directory to scan. Defaults to the current directory.
         dry_run (bool): If True, only prints files that would be deleted without deleting them.
+        target_stems (iterable): Optional set/list of specific YAML stems to clean up.
     """
     dir_path = Path(directory_path)
     if not dir_path.is_dir():
@@ -59,11 +60,14 @@ def cleanup_yaml_files(directory_path=".", dry_run=False):
 
     print(f"Scanning directory: {dir_path.resolve()}")
 
-    # 1. Identify all base names of .yaml files
-    yaml_stems = {
-        p.stem for p in dir_path.iterdir() if p.is_file() and p.suffix == ".yaml"
-    }
-    print(f"Found {len(yaml_stems)} unique YAML files to check.")
+    # 1. Identify base names of .yaml files to clean up
+    if target_stems:
+        yaml_stems = set(target_stems)
+    else:
+        yaml_stems = {
+            p.stem for p in dir_path.iterdir() if p.is_file() and p.suffix in (".yaml", ".yml")
+        }
+    print(f"Found {len(yaml_stems)} unique YAML stems to check.")
 
     # 2. Build set of allowed filenames to clean up
     allowed_to_delete = set()
