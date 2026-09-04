@@ -41,21 +41,6 @@ def get_docs_dir() -> Path:
     raise FileNotFoundError("Could not locate QuizML documentation directory.")
 
 
-def get_llms_file() -> Path | None:
-    """Finds LLMS.md if present at repository root, package level, or in docs/."""
-    base = Path(__file__).resolve().parent  # src/quizml/cli
-    repo_llms = base.parent.parent.parent / "LLMS.md"
-    if repo_llms.is_file():
-        return repo_llms
-    pkg_llms = base.parent / "LLMS.md"
-    if pkg_llms.is_file():
-        return pkg_llms
-    prompt_template = base.parent / "docs" / "llm_prompt_template.md"
-    if prompt_template.is_file():
-        return prompt_template
-    return None
-
-
 def parse_sidebar(docs_dir: Path) -> list[DocItem]:
     """Parses docs/_sidebar.md to extract reading order, categories, and titles."""
     sidebar_file = docs_dir / "_sidebar.md"
@@ -94,12 +79,33 @@ def parse_sidebar(docs_dir: Path) -> list[DocItem]:
             filename = match_link.group(2).strip()
             filepath = docs_dir / filename
             if filepath.is_file():
-                stem = filepath.stem
+                stem = filepath.stem.lower()
                 aliases = [stem, stem.replace("_", "-")]
+                if stem == "readme":
+                    aliases.extend(
+                        [
+                            "overview",
+                            "getting-started",
+                            "getting_started",
+                            "getting started",
+                            "readme",
+                        ]
+                    )
+                for part in stem.split("_"):
+                    if part and part not in aliases:
+                        aliases.append(part)
                 if stem.startswith("syntax_"):
                     aliases.append(stem.replace("syntax_", ""))
                 elif stem.startswith("config_"):
                     aliases.append(stem.replace("config_", ""))
+                elif stem.startswith("writing_"):
+                    aliases.append(stem.replace("writing_", ""))
+
+                title_clean = title.lower().strip()
+                if title_clean:
+                    aliases.append(title_clean)
+                    aliases.append(title_clean.replace(" ", "-"))
+                    aliases.append(title_clean.replace(" ", "_"))
 
                 items.append(
                     DocItem(
@@ -107,7 +113,7 @@ def parse_sidebar(docs_dir: Path) -> list[DocItem]:
                         title=title,
                         filename=filename,
                         path=filepath,
-                        aliases=aliases,
+                        aliases=list(dict.fromkeys(aliases)),
                     )
                 )
         else:
@@ -119,11 +125,12 @@ def parse_sidebar(docs_dir: Path) -> list[DocItem]:
 
 
 def build_topic_map(doc_items: list[DocItem]) -> dict[str, DocItem]:
-    """Creates a lookup dictionary mapping slugs and aliases to DocItem objects."""
+    """Creates a lookup dictionary mapping slugs, titles, and aliases to DocItem objects."""
     topic_map = {}
     for item in doc_items:
         topic_map[item.filename.lower()] = item
         topic_map[item.path.stem.lower()] = item
+        topic_map[item.title.lower()] = item
         for alias in item.aliases:
             topic_map[alias.lower()] = item
     return topic_map
@@ -135,10 +142,10 @@ def get_all_topics(docs_dir: Path | None = None) -> list[str]:
         try:
             docs_dir = get_docs_dir()
         except FileNotFoundError:
-            return ["all", "list", "overview", "llm", "llms", "quickstart", "usage"]
+            return ["all", "list", "overview", "quickstart", "usage"]
 
     doc_items = parse_sidebar(docs_dir)
-    builtins = ["all", "list", "overview", "llm", "llms"]
+    builtins = ["all", "list", "overview"]
     topics = list(builtins)
     for item in doc_items:
         for a in item.aliases:
@@ -208,12 +215,12 @@ def page_content(renderable, console: Console | None = None) -> None:
     pager_cmd = os.environ.get("PAGER")
     env = os.environ.copy()
     if "LESS" not in env:
-        env["LESS"] = "-RF"
+        env["LESS"] = "-R"
 
     if not pager_cmd:
         less_path = shutil.which("less")
         if less_path:
-            pager_cmd = f"{less_path} -RF"
+            pager_cmd = f"{less_path} -R"
         else:
             pager_cmd = shutil.which("more")
 
@@ -240,18 +247,7 @@ def run_interactive_browser(
     """Launches a full-screen interactive topic browser using curses."""
     entries: list[dict] = []
 
-    # 1. Overview
-    readme_path = docs_dir / "README.md"
-    if readme_path.is_file():
-        entries.append(
-            {
-                "category": "General",
-                "title": "Overview (README)",
-                "path": readme_path,
-            }
-        )
-
-    # 2. Doc items
+    # 1. Doc items
     for item in doc_items:
         entries.append(
             {
@@ -261,18 +257,7 @@ def run_interactive_browser(
             }
         )
 
-    # 3. LLM Guidelines
-    llms_path = get_llms_file()
-    if llms_path:
-        entries.append(
-            {
-                "category": "Reference",
-                "title": "LLM Guidelines (LLMS.md)",
-                "path": llms_path,
-            }
-        )
-
-    # 4. Full Guide
+    # 3. Full Guide
     entries.append(
         {
             "category": "Reference",
@@ -404,6 +389,7 @@ def run_interactive_browser(
         curses.wrapper(_menu)
     except curses.error:
         # Fallback if curses fails to initialize
+        readme_path = docs_dir / "README.md"
         if readme_path.is_file():
             console.print(Markdown(readme_path.read_text(encoding="utf-8")))
             console.print("\n---\n")
@@ -425,18 +411,6 @@ def handle_docs(topic: str | None = None, no_pager: bool = False) -> None:
     console = Console()
 
     query = (topic or "").strip().lower()
-
-    if query in ("llm", "llms", "prompt"):
-        llms_path = get_llms_file()
-        if llms_path:
-            content = llms_path.read_text(encoding="utf-8")
-            if not is_tty:
-                sys.stdout.write(content + "\n")
-            elif no_pager:
-                console.print(Markdown(content))
-            else:
-                page_content(Markdown(content), console)
-            return
 
     if query == "list":
         if is_tty:
@@ -475,21 +449,6 @@ def handle_docs(topic: str | None = None, no_pager: bool = False) -> None:
             return
 
         run_interactive_browser(doc_items, docs_dir, console)
-        return
-
-    if query == "overview":
-        readme_path = docs_dir / "README.md"
-        content = (
-            readme_path.read_text(encoding="utf-8") if readme_path.is_file() else ""
-        )
-        if not is_tty:
-            sys.stdout.write(content + "\n")
-        elif no_pager:
-            console.print(Markdown(content))
-            console.print("\n---\n")
-            print_topics_table(doc_items, console)
-        else:
-            page_content(Markdown(content), console)
         return
 
     matched_item = topic_map.get(query)

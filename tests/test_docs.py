@@ -7,7 +7,6 @@ from quizml.cli.cli import main
 from quizml.cli.docs import (
     get_all_topics,
     get_docs_dir,
-    get_llms_file,
     handle_docs,
     page_content,
     parse_sidebar,
@@ -18,13 +17,6 @@ def test_get_docs_dir():
     docs_dir = get_docs_dir()
     assert docs_dir.is_dir()
     assert (docs_dir / "_sidebar.md").is_file()
-
-
-def test_get_llms_file():
-    llms_file = get_llms_file()
-    assert llms_file is not None
-    assert llms_file.is_file()
-    assert "QuizML" in llms_file.read_text(encoding="utf-8")
 
 
 def test_parse_sidebar():
@@ -70,6 +62,27 @@ def test_handle_docs_alias_non_tty(capsys):
     assert "Test File Syntax" in captured.out or "yaml" in captured.out.lower()
 
 
+def test_handle_docs_header_topic(capsys):
+    with patch("sys.stdout.isatty", return_value=False):
+        handle_docs("header")
+    captured = capsys.readouterr()
+    assert "The Header Section" in captured.out
+
+
+def test_handle_docs_getting_started_topic(capsys):
+    with patch("sys.stdout.isatty", return_value=False):
+        handle_docs("getting started")
+    captured = capsys.readouterr()
+    assert "QuizML" in captured.out
+
+
+def test_handle_docs_layout_topic(capsys):
+    with patch("sys.stdout.isatty", return_value=False):
+        handle_docs("layout")
+    captured = capsys.readouterr()
+    assert "Question Layout" in captured.out
+
+
 def test_handle_docs_all_non_tty(capsys):
     with patch("sys.stdout.isatty", return_value=False):
         handle_docs("all")
@@ -102,14 +115,6 @@ def test_handle_docs_overview_non_tty(capsys):
         handle_docs("overview")
     captured = capsys.readouterr()
     assert "QuizML" in captured.out
-
-
-def test_handle_docs_llms_non_tty(capsys):
-    with patch("sys.stdout.isatty", return_value=False):
-        handle_docs("llms")
-    captured = capsys.readouterr()
-    assert "QuizML Project Context for LLMs" in captured.out
-    assert "Core Philosophy" in captured.out
 
 
 def test_handle_docs_tty_no_pager(capsys):

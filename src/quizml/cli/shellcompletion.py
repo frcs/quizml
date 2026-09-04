@@ -4,7 +4,7 @@ def _get_docs_topics() -> str:
 
         return " ".join(sorted(get_all_topics()))
     except Exception:
-        return "all list overview llms quickstart usage syntax_yaml syntax_questions targets"
+        return "all list overview quickstart usage syntax_yaml syntax_questions targets"
 
 
 def bash(parser):
