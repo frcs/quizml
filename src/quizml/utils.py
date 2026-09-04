@@ -185,7 +185,7 @@ def coerce_data(yaml_data, schema):
 
 # --- Markdown Processing ---
 
-def get_md_list_from_yaml(yaml_data, schema=None):
+def get_md_list_from_yaml(yaml_data):
     """
     List all Markdown entries in the yaml file.
     Uses MarkdownString type for questions, and legacy logic for headers.
@@ -215,7 +215,7 @@ def get_md_list_from_yaml(yaml_data, schema=None):
     return md_list
 
 
-def transcode_md_in_yaml(yaml_data, md_dict, schema=None):
+def transcode_md_in_yaml(yaml_data, md_dict):
     """
     translate all strings in md_dict into their transcribed text
     """

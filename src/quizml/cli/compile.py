@@ -130,7 +130,8 @@ def compile(args):
     # load all markdown entries into a list
     # and build dictionaries of their HTML and LaTeX translations
     try:
-        transcoder = md.MarkdownTranscoder(yaml_data, schema)
+        base_dir = os.path.dirname(os.path.abspath(args.yaml_filename))
+        transcoder = md.MarkdownTranscoder(yaml_data, schema, base_dir=base_dir)
     except (LatexEqError, MarkdownError, FileNotFoundError) as err:
         print_error(str(err), title="Error")
         return

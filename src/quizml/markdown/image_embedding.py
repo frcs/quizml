@@ -12,10 +12,14 @@ from PIL import Image
 from ..exceptions import MarkdownImageError
 
 
-def embed_pdf(pdf_filename):
+def embed_pdf(pdf_filename, base_dir=None):
     """returns a base64 string of a PDF file. The PDF is first converted to
     a PNG file using ghostscript (gs).
     """
+    if base_dir and not os.path.isabs(pdf_filename):
+        candidate = os.path.join(base_dir, pdf_filename)
+        if os.path.exists(candidate):
+            pdf_filename = candidate
 
     pdf_abspath = os.path.abspath(pdf_filename)
     if not os.path.exists(pdf_abspath):
@@ -48,10 +52,15 @@ def embed_pdf(pdf_filename):
         return embed_base64(png_path)
 
 
-def embed_base64(pathname):
+def embed_base64(pathname, base_dir=None):
     """returns a base64 string of an image file."""
 
     path = Path(pathname)
+    if base_dir and not path.is_absolute():
+        candidate = Path(base_dir) / pathname
+        if candidate.exists():
+            path = candidate
+
     suffix = path.suffix.lower()
 
     if suffix == ".svg":
@@ -61,7 +70,7 @@ def embed_base64(pathname):
     elif suffix == ".jpeg" or suffix == ".jpg":
         ext = "jpeg"
     elif suffix == ".pdf":
-        return embed_pdf(pathname)
+        return embed_pdf(str(path), base_dir=base_dir)
     else:
         raise MarkdownImageError(
             f"unsupported image format '{suffix}'. Supported formats: .png, .svg, .jpg, .jpeg, .pdf"

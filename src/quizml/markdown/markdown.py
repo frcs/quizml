@@ -3,6 +3,8 @@ Markdown classes requried by mistletoe for parsing
 
 """
 
+import os
+
 import mistletoe as mt
 
 import quizml.markdown.extensions as mte
@@ -48,15 +50,28 @@ def _setup_mistletoe_tokens():
 
 
 class MarkdownTranscoder:
-    def __init__(self, yaml_data, schema=None):
+    def __init__(self, yaml_data, schema=None, base_dir=None):
         self.yaml_data = yaml_data
         self.schema = schema
+
+        if base_dir is None:
+            inputbasename = (
+                yaml_data.get("header", {}).get("inputbasename", "")
+                if isinstance(yaml_data, dict)
+                else ""
+            )
+            if inputbasename:
+                self.base_dir = os.path.dirname(os.path.abspath(inputbasename))
+            else:
+                self.base_dir = None
+        else:
+            self.base_dir = os.path.abspath(base_dir)
 
         # the dictionary of rendered entries will be cached
         self.cache_dict = {}
 
         # read yaml_data and collect all MD entries into a single list
-        self.md_list = get_md_list_from_yaml(yaml_data, schema)
+        self.md_list = get_md_list_from_yaml(yaml_data)
         
         if not self.md_list:
             self.ast_dict = {}
@@ -92,7 +107,7 @@ class MarkdownTranscoder:
         key = opts.get("fmt", "html") + ":PRE:" + html_pre + "CSS:" + html_css
         if key in self.cache_dict:
             return self.cache_dict[key]
-        d = get_html_dict(self.ast_dict, opts)
+        d = get_html_dict(self.ast_dict, opts, base_dir=self.base_dir)
         self.cache_dict[key] = d
         return d
 
@@ -117,7 +132,7 @@ class MarkdownTranscoder:
         key = opts.get("fmt", "latex")
         if key in self.cache_dict:
             return self.cache_dict[key]
-        d = get_latex_dict(self.ast_dict)
+        d = get_latex_dict(self.ast_dict, base_dir=self.base_dir)
         self.cache_dict[key] = d
         return d
 
@@ -157,4 +172,4 @@ class MarkdownTranscoder:
             return self.yaml_data
 
         target_dict = self.get_dict(opts=target)
-        return transcode_md_in_yaml(self.yaml_data, target_dict, self.schema)
+        return transcode_md_in_yaml(self.yaml_data, target_dict)

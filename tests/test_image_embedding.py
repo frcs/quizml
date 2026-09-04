@@ -75,3 +75,21 @@ def test_embed_base64_errors(tmp_path):
     bad_svg.write_text("<svg><path d='M0 0'/></svg>")
     with pytest.raises(MarkdownImageError, match="missing width and viewBox"):
         get_SVG_info(bad_svg.read_text())
+
+
+def test_embed_base64_with_base_dir(tmp_path):
+    sub_dir = tmp_path / "nested"
+    sub_dir.mkdir()
+    img_file = sub_dir / "diagram.png"
+    
+    # Create a simple 10x10 PNG
+    from PIL import Image
+    im = Image.new("RGB", (10, 10), color="blue")
+    im.save(str(img_file))
+
+    # Passing relative path with base_dir resolves successfully
+    w, h, data64 = embed_base64("diagram.png", base_dir=str(sub_dir))
+    assert w == 10
+    assert h == 10
+    assert data64.startswith("data:image/png;base64,")
+

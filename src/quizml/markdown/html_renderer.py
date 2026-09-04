@@ -395,9 +395,10 @@ class QuizMLYamlHTMLRenderer(HTMLRenderer):
 
     """
 
-    def __init__(self, eq_dict):
+    def __init__(self, eq_dict, base_dir=None):
         super().__init__(MathInline, MathDisplay, ImageWithWidth)
         self.eq_dict = eq_dict
+        self.base_dir = base_dir
 
     def render_math_inline(self, token):
         return self.eq_dict["##Inline##" + token.content]
@@ -411,11 +412,11 @@ class QuizMLYamlHTMLRenderer(HTMLRenderer):
             title = f' title="{html.escape(token.title)}"'
         else:
             title = ""
-        [w, h, data64] = embed_base64(token.src)
+        [w, h, data64] = embed_base64(token.src, base_dir=self.base_dir)
         return template.format(data64, self.render_to_plain(token), title)
 
     def render_image_with_width(self, token) -> str:
-        [w, h, data64_img] = embed_base64(token.src)
+        [w, h, data64_img] = embed_base64(token.src, base_dir=self.base_dir)
 
         width_attr_str = token.width.strip()
 
@@ -500,7 +501,7 @@ def inline_css(html_content, opts):
     return soup.body.decode_contents() if soup.body else out
 
 
-def get_html_dict(ast_dict, opts=None):
+def get_html_dict(ast_dict, opts=None, base_dir=None):
     """
     Renders HTML for markdown entries from discrete AST documents.
     """
@@ -523,7 +524,7 @@ def get_html_dict(ast_dict, opts=None):
 
     # 3. Render each document and inline CSS
     md_dict = {}
-    with QuizMLYamlHTMLRenderer(eq_dict) as renderer:
+    with QuizMLYamlHTMLRenderer(eq_dict, base_dir=base_dir) as renderer:
         for txt, doc in ast_dict.items():
             html_raw = renderer.render(doc)
             html_inlined = inline_css(html_raw, opts)
