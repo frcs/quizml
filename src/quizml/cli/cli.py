@@ -16,6 +16,7 @@ from ..exceptions import QuizMLError
 install(show_locals=False)
 # from rich import print
 
+
 def main():
     RichHelpFormatter.styles = {
         "argparse.args": "cyan",
@@ -126,6 +127,14 @@ def main():
         help="print shell completion script for the specified shell",
     )
 
+    parser.add_argument(
+        "--docs",
+        nargs="?",
+        const="overview",
+        metavar="TOPIC",
+        help="display documentation topics or full guide (e.g. 'all', 'questions', 'targets'). TTY-aware.",
+    )
+
     parser.add_argument("-v", "--version", action="version", version=version("quizml"))
 
     parser.add_argument(
@@ -194,6 +203,12 @@ def main():
             sys.stdout.write(completion_func(parser) + "\n")
             return
 
+        if args.docs is not None:
+            import quizml.cli.docs
+
+            quizml.cli.docs.handle_docs(args.docs)
+            return
+
         if args.cleanup:
             from pathlib import Path
 
@@ -202,9 +217,13 @@ def main():
             if args.yaml_filename:
                 target_path = Path(args.yaml_filename)
                 if target_path.is_dir():
-                    quizml.cli.cleanup.cleanup_yaml_files(directory_path=str(target_path))
+                    quizml.cli.cleanup.cleanup_yaml_files(
+                        directory_path=str(target_path)
+                    )
                 else:
-                    dir_path = target_path.parent if target_path.parent.name else Path(".")
+                    dir_path = (
+                        target_path.parent if target_path.parent.name else Path(".")
+                    )
                     quizml.cli.cleanup.cleanup_yaml_files(
                         directory_path=str(dir_path), target_stems={target_path.stem}
                     )

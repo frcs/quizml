@@ -114,8 +114,9 @@ def test_embed_base64_with_search_dirs(tmp_path):
 
 
 def test_resolve_image_path_with_search_dirs(tmp_path):
-    from quizml.markdown.latex_renderer import resolve_image_path
     from PIL import Image
+
+    from quizml.markdown.latex_renderer import resolve_image_path
 
     shared_dir = tmp_path / "figures-quiz"
     shared_dir.mkdir()

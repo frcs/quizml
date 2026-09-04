@@ -170,8 +170,9 @@ def test_inputbasename_with_underscore_not_escaped():
 
 
 def test_latex_template_graphicspath():
-    from quizml import renderer
     import os
+
+    from quizml import renderer
 
     template_path = os.path.join(
         os.path.dirname(__file__), "../src/quizml/templates/tcd-exam.tex.j2"
