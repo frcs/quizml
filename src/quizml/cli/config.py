@@ -1,6 +1,7 @@
 import logging
 import os
 import pathlib
+from graphlib import CycleError, TopologicalSorter
 from string import Template
 
 from ruamel.yaml import YAML
@@ -41,24 +42,77 @@ def get_config(args):
 def get_required_target_names_set(name, targets):
     """resolves the set of the names of the required targets"""
     if not name:
-        return {}
+        return set()
 
     if isinstance(name, list):
-        input_set = set(name)
+        pending = list(name)
     else:
-        input_set = {name}
-    required_set = input_set
+        pending = [name]
+
+    dep_map = {}
     for target in targets:
-        if (target.get("name", "") in input_set) and ("dep" in target):
-            dep_set = get_required_target_names_set(target["dep"], targets)
-            required_set = required_set.union(dep_set)
+        t_name = target.get("name", "")
+        if t_name and "dep" in target:
+            deps = target["dep"]
+            dep_map[t_name] = deps if isinstance(deps, list) else [deps]
+
+    required_set = set(pending)
+    visited = set()
+
+    while pending:
+        curr = pending.pop()
+        if curr in visited:
+            continue
+        visited.add(curr)
+        for dep in dep_map.get(curr, []):
+            required_set.add(dep)
+            pending.append(dep)
 
     return required_set
+
+
+def sort_targets_topologically(targets, required_names=None):
+    """
+    Sorts target configs topologically according to their 'dep' attribute.
+    Guarantees dependencies are compiled before dependents.
+    """
+    target_by_name = {}
+    for t in targets:
+        name = t.get("name")
+        if name:
+            if required_names is None or name in required_names:
+                target_by_name[name] = t
+
+    graph = {}
+    for name, t in target_by_name.items():
+        dep = t.get("dep")
+        if not dep:
+            graph[name] = set()
+        elif isinstance(dep, list):
+            graph[name] = {d for d in dep if d in target_by_name}
+        else:
+            graph[name] = {dep} if dep in target_by_name else set()
+
+    try:
+        ts = TopologicalSorter(graph)
+        sorted_names = list(ts.static_order())
+    except CycleError as err:
+        raise QuizMLConfigError(f"Circular dependency detected among targets: {err}") from err
+
+    ordered = [target_by_name[n] for n in sorted_names if n in target_by_name]
+
+    # Preserve any anonymous targets without a name
+    for t in targets:
+        if "name" not in t and required_names is None:
+            ordered.append(t)
+
+    return ordered
 
 
 def get_target_list(args, config, yaml_data):
     """
     gets the list of target templates from config['targets'] and
+      * resolves dependencies topologically
       * resolves the absolute path of each template
       * also resolves $inputbasename
     """
@@ -83,14 +137,13 @@ def get_target_list(args, config, yaml_data):
         logging.info(f"requested target list:{target_names}")
         logging.info(f"required target list:{required_target_names_set}")
 
+    ordered_targets = sort_targets_topologically(
+        config["targets"], required_target_names_set if required_target_names_set else None
+    )
+
     target_list = []
 
-    for t in config["targets"]:
-        t_name = t.get("name", "")
-
-        if required_target_names_set and t_name not in required_target_names_set:
-            continue
-
+    for t in ordered_targets:
         target = {}
 
         # resolves $inputbasename

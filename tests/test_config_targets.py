@@ -94,8 +94,26 @@ def test_get_target_list_defaults_with_dependencies(mock_dependencies):
     
     targets = get_target_list(args, config, yaml_data)
     # logic: get_required_target_names_set(['t1']) -> {'t1', 't2'}
-    # So both should be returned.
-    
-    assert len(targets) == 2
-    names = sorted([t['name'] for t in targets])
-    assert names == ['t1', 't2']
+    # And topological order ensures dependency t2 precedes t1
+    assert [t['name'] for t in targets] == ['t2', 't1']
+
+
+def test_get_target_list_circular_dependency(mock_dependencies):
+    from quizml.exceptions import QuizMLConfigError
+
+    args = MagicMock()
+    args.target = ['t1']
+    args.yaml_filename = "test.yaml"
+
+    config = {
+        'yaml_filename': 'test.yaml',
+        'targets': [
+            {'name': 't1', 'template': 't1.jinja', 'descr': 'Target 1', 'dep': 't2'},
+            {'name': 't2', 'template': 't2.jinja', 'descr': 'Target 2', 'dep': 't1'},
+        ]
+    }
+    yaml_data = {'header': {}}
+
+    with pytest.raises(QuizMLConfigError, match="Circular dependency"):
+        get_target_list(args, config, yaml_data)
+
