@@ -5,10 +5,8 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
-
 import quizml
-from quizml import builder, quizmlyaml, renderer, tools, transcoder
+from quizml import builder, tools
 from quizml.cli.cli import main
 
 
@@ -213,3 +211,98 @@ def test_cli_ingest(tmp_path: Path, monkeypatch, capsys):
     captured2 = capsys.readouterr()
     data2 = json.loads(captured2.out)
     assert data2 == data
+
+
+def test_cli_transcode(tmp_path: Path, monkeypatch, capsys):
+    """Test CLI --transcode produces transcoded JSON IR."""
+    yaml_file = tmp_path / "transcode_test.yaml"
+    yaml_file.write_text(
+        """title: Transcode Test
+---
+- type: essay
+  marks: 5
+  question: "Explain **backprop** in $O(N)$."
+  answer: "Gradient method."
+""",
+        encoding="utf-8",
+    )
+
+    # 1. Transcode to LaTeX
+    monkeypatch.setattr(
+        sys, "argv", ["quizml", str(yaml_file), "--transcode", "latex"]
+    )
+    main()
+    captured_latex = capsys.readouterr()
+    data_latex = json.loads(captured_latex.out)
+    q_latex = data_latex["questions"][0]["question"]
+    assert "\\textbf{backprop}" in q_latex
+    assert "$O(N)$" in q_latex
+
+    # 2. Transcode to HTML
+    monkeypatch.setattr(sys, "argv", ["quizml", "--transcode", "html", str(yaml_file)])
+    main()
+    captured_html = capsys.readouterr()
+    data_html = json.loads(captured_html.out)
+    q_html = data_html["questions"][0]["question"]
+    assert "<strong>backprop</strong>" in q_html
+
+
+def test_cli_render(tmp_path: Path, monkeypatch, capsys):
+    """Test CLI --render produces final rendered document."""
+    yaml_file = tmp_path / "render_test.yaml"
+    yaml_file.write_text(
+        """title: Direct Render Test
+---
+- type: tf
+  marks: 2
+  question: "Is this rendered directly?"
+  answer: true
+""",
+        encoding="utf-8",
+    )
+
+    # Render LaTeX template directly from YAML (auto-infers latex format)
+    monkeypatch.setattr(
+        sys, "argv", ["quizml", str(yaml_file), "--render", "tcd-exam.tex.j2"]
+    )
+    main()
+    captured = capsys.readouterr()
+    assert "\\documentclass{tcdexams}" in captured.out
+    assert "Direct Render Test" in captured.out
+
+
+def test_cli_piped_flow(tmp_path: Path, monkeypatch, capsys):
+    """Test 3-stage pipe: ingest -> transcode -> render across separate invocations via stdin."""
+    yaml_file = tmp_path / "pipe_test.yaml"
+    yaml_file.write_text(
+        """title: Pipe Assessment
+---
+- type: essay
+  marks: 10
+  question: "Discuss **Transformers** in deep learning."
+  answer: "Attention is all you need."
+""",
+        encoding="utf-8",
+    )
+
+    # Stage 1: Ingest
+    monkeypatch.setattr(sys, "argv", ["quizml", "--ingest", str(yaml_file)])
+    main()
+    ingest_json = capsys.readouterr().out
+
+    # Stage 2: Transcode via stdin
+    monkeypatch.setattr(sys, "stdin", io.StringIO(ingest_json))
+    monkeypatch.setattr(sys, "argv", ["quizml", "-", "--transcode", "latex"])
+    main()
+    transcode_json = capsys.readouterr().out
+    assert "\\textbf{Transformers}" in transcode_json
+
+    # Stage 3: Render via stdin
+    monkeypatch.setattr(sys, "stdin", io.StringIO(transcode_json))
+    monkeypatch.setattr(sys, "argv", ["quizml", "-", "--render", "tcd-exam.tex.j2"])
+    main()
+    rendered_tex = capsys.readouterr().out
+    assert "\\documentclass{tcdexams}" in rendered_tex
+    assert "Pipe Assessment" in rendered_tex
+    assert "\\textbf{Transformers}" in rendered_tex
+

@@ -1,7 +1,6 @@
 """CLI command handler for quiz diffing and duplicate question detection."""
 
 import os
-from pathlib import Path
 
 from rich import print
 from rich.console import Console

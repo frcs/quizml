@@ -37,7 +37,7 @@ def compile_cmd_target(target: dict) -> tuple[bool, str | None]:
     except subprocess.CalledProcessError as e:
         err_out = e.output.decode("utf-8", errors="replace") if e.output else str(e)
         return False, err_out
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         return False, f"Command not found: {command[0]}"
 
 

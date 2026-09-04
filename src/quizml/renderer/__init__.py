@@ -28,6 +28,14 @@ def render(
         context.update(extra_context)
 
     template_str = str(template_path)
+    if not Path(template_str).exists():
+        from quizml.filelocator import locate
+
+        try:
+            template_str = locate.path(template_str)
+        except FileNotFoundError:
+            pass
+
     if template_str.endswith(".docx"):
         return render_docx(context, template_str)
 

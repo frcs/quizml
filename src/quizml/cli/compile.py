@@ -11,6 +11,8 @@ from watchdog.observers import Observer
 
 from quizml.builder.scheduler import (
     compile_cmd_target as _builder_cmd_target,
+)
+from quizml.builder.scheduler import (
     compile_render_target as _builder_render_target,
 )
 from quizml.cli.config import get_config, get_target_list
@@ -30,7 +32,6 @@ from quizml.exceptions import (
     LatexEqError,
     MarkdownError,
     QuizMLConfigError,
-    QuizMLError,
 )
 from quizml.filelocator import locate
 from quizml.quizmlyaml import QuizMLYamlSyntaxError, load

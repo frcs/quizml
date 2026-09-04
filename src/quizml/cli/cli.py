@@ -14,7 +14,58 @@ from rich_argparse import RawDescriptionRichHelpFormatter, RichHelpFormatter
 from ..exceptions import QuizMLError
 
 install(show_locals=False)
-# from rich import print
+
+
+def _load_cli_document(filename: str | None) -> tuple[dict, str]:
+    """Loads a QuizML document from a file or stdin (auto-detecting JSON or YAML).
+
+    Returns (doc, base_dir).
+    """
+    import json
+    import os
+    from pathlib import Path
+
+    from quizml import quizmlyaml
+
+    if filename and filename != "-":
+        path = Path(filename).resolve()
+        if not path.is_file():
+            raise QuizMLError(f"File not found: {filename}")
+        content = path.read_text(encoding="utf-8")
+        base_dir = str(path.parent)
+        basename = os.path.splitext(filename)[0]
+    else:
+        if sys.stdin.isatty():
+            raise QuizMLError("A quiz YAML/JSON file or stdin pipe is required.")
+        content = sys.stdin.read()
+        base_dir = os.getcwd()
+        basename = "quiz"
+
+    from quizml.quizmlyaml.schema import load_schema
+
+    schema = load_schema()
+
+    content_trimmed = content.strip()
+    if content_trimmed.startswith("{"):
+        try:
+            doc = json.loads(content_trimmed)
+        except json.JSONDecodeError as err:
+            raise QuizMLError(f"Invalid JSON input: {err}") from err
+        if isinstance(doc, dict) and not doc.get("header", {}).get("_transcoded"):
+            doc = quizmlyaml.coerce_data(doc, schema)
+    else:
+        doc, _ = quizmlyaml.loads(
+            content, validate=True, schema=schema, base_dir=base_dir
+        )
+
+    if not isinstance(doc, dict):
+        raise QuizMLError("Invalid document structure: expected a dictionary.")
+
+    doc.setdefault("header", {})
+    if "inputbasename" not in doc["header"]:
+        doc["header"]["inputbasename"] = basename
+
+    return doc, base_dir
 
 
 def main():
@@ -114,6 +165,18 @@ def main():
         "--ingest",
         help="parse and validate the quiz YAML, then print the coerced JSON intermediate representation (IR) to stdout",
         action="store_true",
+    )
+
+    parser.add_argument(
+        "--transcode",
+        metavar="FMT",
+        help="transcode markdown fields to target format (e.g. 'html', 'latex') and print JSON IR to stdout",
+    )
+
+    parser.add_argument(
+        "--render",
+        metavar="TEMPLATE",
+        help="render document using the specified Jinja2 or Word template and print output to stdout",
     )
 
     parser.add_argument(
@@ -255,17 +318,67 @@ def main():
             quizml.cli.init.init_local()
             return
 
-        if not args.yaml_filename:
-            parser.error("a yaml file is required")
+        if args.render:
+            from quizml import renderer, transcoder
+            from quizml.filelocator import locate
+
+            template_arg = args.render
+            try:
+                template_path = locate.path(template_arg)
+            except FileNotFoundError as err:
+                raise QuizMLError(f"Template not found: {template_arg}") from err
+
+            doc, base_dir = _load_cli_document(args.yaml_filename)
+
+            # Auto-infer format if not already specified
+            fmt = args.transcode
+            if not fmt:
+                tpl_lower = str(template_path).lower()
+                if tpl_lower.endswith(".tex.j2") or tpl_lower.endswith(".tex"):
+                    fmt = "latex"
+                else:
+                    fmt = "html"
+
+            if doc.get("header", {}).get("_transcoded") != fmt:
+                doc_transcoded = transcoder.transcode(
+                    doc, target=fmt, base_dir=base_dir
+                )
+                doc_transcoded.setdefault("header", {})["_transcoded"] = fmt
+            else:
+                doc_transcoded = doc
+
+            rendered = renderer.render(doc_transcoded, template_path)
+
+            if isinstance(rendered, bytes):
+                sys.stdout.buffer.write(rendered)
+            else:
+                sys.stdout.write(rendered)
+            return
+
+        if args.transcode:
+            import json
+
+            from quizml import transcoder
+
+            doc, base_dir = _load_cli_document(args.yaml_filename)
+            doc_transcoded = transcoder.transcode(
+                doc, target=args.transcode, base_dir=base_dir
+            )
+            doc_transcoded.setdefault("header", {})["_transcoded"] = args.transcode
+            sys.stdout.write(
+                json.dumps(doc_transcoded, indent=2, ensure_ascii=False) + "\n"
+            )
+            return
 
         if args.ingest:
             import json
 
-            from quizml import quizmlyaml
-
-            doc, _ = quizmlyaml.load(args.yaml_filename)
+            doc, _ = _load_cli_document(args.yaml_filename)
             sys.stdout.write(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
             return
+
+        if not args.yaml_filename:
+            parser.error("a yaml file is required")
 
         if args.diff:
             import quizml.cli.diff
