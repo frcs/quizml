@@ -166,83 +166,7 @@ def test_circular_include_detected(tmp_path: Path):
     assert "Circular include detected" in str(exc_info.value)
 
 
-def test_include_sampling_with_count_and_seed(tmp_path: Path):
-    bank_yaml = tmp_path / "bank.yaml"
-    questions_yaml = "\n".join(
-        f"- type: essay\n  marks: 1\n  question: Q{i}\n  answer: A{i}"
-        for i in range(10)
-    )
-    bank_yaml.write_text(questions_yaml, encoding="utf-8")
 
-    main_yaml = tmp_path / "exam.yaml"
-    main_yaml.write_text(
-        """
----
-- _include: bank.yaml
-  count: 3
-  seed: 42
-""",
-        encoding="utf-8",
-    )
-
-    doc1, _ = load(str(main_yaml), validate=False)
-    doc2, _ = load(str(main_yaml), validate=False)
-
-    assert len(doc1["questions"]) == 3
-    assert len(doc2["questions"]) == 3
-    # With seed: 42, sampling should be deterministic
-    q_titles_1 = [q["question"] for q in doc1["questions"]]
-    q_titles_2 = [q["question"] for q in doc2["questions"]]
-    assert q_titles_1 == q_titles_2
-
-
-def test_include_count_larger_than_pool(tmp_path: Path):
-    bank_yaml = tmp_path / "bank.yaml"
-    bank_yaml.write_text(
-        """
-- type: essay
-  marks: 1
-  question: Q1
-  answer: A1
-""",
-        encoding="utf-8",
-    )
-
-    main_yaml = tmp_path / "exam.yaml"
-    main_yaml.write_text(
-        """
----
-- _include: bank.yaml
-  count: 5
-""",
-        encoding="utf-8",
-    )
-
-    doc, _ = load(str(main_yaml), validate=False)
-    # If count > total items, return all available items without error
-    assert len(doc["questions"]) == 1
-
-
-def test_include_invalid_count(tmp_path: Path):
-    bank_yaml = tmp_path / "bank.yaml"
-    bank_yaml.write_text(
-        "- type: essay\n  marks: 1\n  question: Q1\n  answer: A1\n",
-        encoding="utf-8",
-    )
-
-    main_yaml = tmp_path / "exam.yaml"
-    main_yaml.write_text(
-        """
----
-- _include: bank.yaml
-  count: -2
-""",
-        encoding="utf-8",
-    )
-
-    with pytest.raises(QuizMLYamlSyntaxError) as exc_info:
-        load(str(main_yaml), validate=False)
-    assert "Include 'count' cannot be negative" in str(exc_info.value)
 
 
 def test_include_with_loads_and_base_dir(tmp_path: Path):
@@ -344,13 +268,9 @@ def test_count_included_questions(tmp_path: Path):
         encoding="utf-8",
     )
 
-    # Without count
+    # Included questions count
     item = {"_include": "bank.yaml"}
     assert count_included_questions(item, base_dir=tmp_path) == 3
-
-    # With count
-    item_sampled = {"_include": "bank.yaml", "count": 2}
-    assert count_included_questions(item_sampled, base_dir=tmp_path) == 2
 
     # Nonexistent file fallback
     item_missing = {"_include": "nonexistent.yaml"}

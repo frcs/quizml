@@ -124,23 +124,15 @@ title: Midterm Exam
   question: Introduce yourself and state your student ID.
   answer: Model answer
 
-# Include all questions from a topic file
+# Include all questions from topic files
 - _include: topics/calculus.yaml
-
-# Include a random sample from a large question bank
-- _include: banks/linear_algebra.yaml
-  count: 3
-  seed: 42
+- _include: topics/linear_algebra.yaml
 ```
 
 #### Relative Paths & Nesting
 - **Document-relative**: Included paths are resolved relative to the directory of the file referencing them.
 - **Recursive**: Included files can themselves include further sub-files. Cycle detection automatically prevents circular inclusions.
 - **Sub-file structure**: Included files can either be a standalone question list or contain their own header document; only questions are imported into the parent exam.
-
-#### Random Sampling (`count` & `seed`)
-- `count`: (Optional) Extracts a random sample of `count` questions from the target file without replacement.
-- `seed`: (Optional) Provides an integer or string seed for reproducible pseudo-random sampling across repeated builds or exam variations.
 
 #### Figures & Image Paths in Included Files
 When including a file from a different directory that contains images (e.g. `![](fig/diagram.png)`), QuizML automatically handles figure resolution:

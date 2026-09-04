@@ -20,7 +20,6 @@ Typical usage example:
 
 import json
 import os
-import random
 from pathlib import Path
 
 from jsonschema import Draft7Validator, validators
@@ -128,13 +127,70 @@ def _to_plain_python(data):
     return data
 
 
+def _parse_yaml_docs(
+    yaml_text: str, filename: str = "<string>"
+) -> tuple[dict, list]:
+    """Parses QuizML YAML text into a (header_dict, questions_list) tuple.
+
+    Uses StringConstructor so scalar values are loaded as strings for jsonschema.
+    Filters empty/blank documents and validates that there are at most 2 documents
+    (header + questions).
+    """
+    yaml = YAML()
+    yaml.Constructor = StringConstructor
+    try:
+        raw_docs = list(yaml.load_all(yaml_text))
+    except Exception as err:
+        line = -1
+        if hasattr(err, "problem_mark"):
+            line = err.problem_mark.line
+        raise QuizMLYamlSyntaxError(
+            f"YAML parsing error in {filename} near line {line}:\n{err}"
+        ) from err
+
+    docs = [
+        d
+        for d in raw_docs
+        if d is not None and not (isinstance(d, str) and not d.strip())
+    ]
+
+    if len(docs) > 2:
+        raise QuizMLYamlSyntaxError(
+            f"YAML file {filename} cannot have more than 2 documents: "
+            "one for the header and one for the questions."
+            if filename != "<string>"
+            else "YAML file cannot have more than 2 documents: "
+            "one for the header and one for the questions."
+        )
+
+    if not docs:
+        return {}, []
+
+    if len(docs) == 1:
+        if isinstance(docs[0], list):
+            return {}, docs[0]
+        elif isinstance(docs[0], dict):
+            return docs[0], []
+        else:
+            return {}, []
+
+    header, questions = docs[0], docs[1]
+    if not isinstance(questions, list):
+        raise QuizMLYamlSyntaxError(
+            f"Questions in {filename} must be a YAML list."
+            if filename != "<string>"
+            else "Questions must be a YAML list."
+        )
+    return header if isinstance(header, dict) else {}, questions
+
+
 def count_included_questions(
     item: dict, base_dir: Path, visited: set[Path] | None = None
 ) -> int:
     """Calculates the number of questions contributed by an _include item.
 
-    Accounts for 'count' sampling and recursively counts nested _include items.
-    Falls back gracefully if the file cannot be accessed.
+    Recursively counts nested _include items.
+    Falls back gracefully to 1 if the file cannot be accessed.
     """
     if visited is None:
         visited = set()
@@ -150,37 +206,13 @@ def count_included_questions(
     )
 
     if not inc_path.is_file() or inc_path in visited:
-        if "count" in item:
-            try:
-                return max(0, int(item["count"]))
-            except (ValueError, TypeError):
-                pass
         return 1
 
     try:
         inc_text = inc_path.read_text(encoding="utf-8")
-        inc_yaml = YAML()
-        raw_docs = list(inc_yaml.load_all(inc_text))
+        _, sub_questions = _parse_yaml_docs(inc_text, filename=str(inc_path))
     except Exception:
-        if "count" in item:
-            try:
-                return max(0, int(item["count"]))
-            except (ValueError, TypeError):
-                pass
         return 1
-
-    sub_docs = [
-        d
-        for d in raw_docs
-        if d is not None and not (isinstance(d, str) and not d.strip())
-    ]
-    if not sub_docs:
-        return 0
-
-    if len(sub_docs) == 1:
-        sub_questions = sub_docs[0] if isinstance(sub_docs[0], list) else []
-    else:
-        sub_questions = sub_docs[1] if isinstance(sub_docs[1], list) else []
 
     if not isinstance(sub_questions, list):
         return 0
@@ -192,13 +224,6 @@ def count_included_questions(
             total += count_included_questions(q, inc_path.parent, new_visited)
         else:
             total += 1
-
-    if "count" in item:
-        try:
-            sample_count = max(0, int(item["count"]))
-            return min(sample_count, total)
-        except (ValueError, TypeError):
-            pass
 
     return total
 
@@ -212,7 +237,6 @@ def _resolve_includes(
 ) -> list:
     """Recursively resolves '- _include: filename.yaml' directives in the questions list.
 
-    Supports optional 'count' (for sampling) and 'seed' (for reproducible sampling).
     Detects circular includes using the visited set.
     Accumulates figure search directories relative to root_dir.
     """
@@ -252,40 +276,13 @@ def _resolve_includes(
                     f"Error reading included file '{inc_path}': {err}"
                 ) from err
 
-            inc_yaml = YAML()
-            inc_yaml.Constructor = StringConstructor
-            try:
-                raw_docs = list(inc_yaml.load_all(inc_text))
-            except Exception as err:
-                raise QuizMLYamlSyntaxError(
-                    f"YAML parsing error in included file {inc_path}: {err}"
-                ) from err
+            sub_header, sub_questions = _parse_yaml_docs(
+                inc_text, filename=str(inc_path)
+            )
 
-            sub_docs = [
-                d
-                for d in raw_docs
-                if d is not None and not (isinstance(d, str) and not d.strip())
-            ]
-
-            if not sub_docs:
-                sub_questions = []
-            elif len(sub_docs) == 1:
-                sub_questions = sub_docs[0] if isinstance(sub_docs[0], list) else []
-            elif len(sub_docs) == 2:
-                sub_questions = sub_docs[1] if isinstance(sub_docs[1], list) else []
-            else:
-                raise QuizMLYamlSyntaxError(
-                    f"Included file {inc_path} cannot have more than 2 documents."
-                )
-
-            if not isinstance(sub_questions, list):
-                raise QuizMLYamlSyntaxError(
-                    f"Questions in included file {inc_path} must be a YAML list."
-                )
-
-            # Accumulate figure paths from sub-file
-            if len(sub_docs) == 2 and isinstance(sub_docs[0], dict):
-                sub_figures = sub_docs[0].get("_figures_path", [])
+            # Accumulate figure paths from sub-file header
+            if sub_header:
+                sub_figures = sub_header.get("_figures_path", [])
                 if isinstance(sub_figures, str):
                     sub_figures = [sub_figures]
                 elif not isinstance(sub_figures, list):
@@ -316,25 +313,6 @@ def _resolve_includes(
                 accumulated_figure_dirs,
             )
 
-            # Optional sampling
-            if "count" in item:
-                try:
-                    count = int(item["count"])
-                except (ValueError, TypeError) as err:
-                    raise QuizMLYamlSyntaxError(
-                        f"Include 'count' must be an integer, got '{item['count']}'"
-                    ) from err
-
-                if count < 0:
-                    raise QuizMLYamlSyntaxError(
-                        f"Include 'count' cannot be negative, got {count}"
-                    )
-
-                seed = item.get("seed")
-                rng = random.Random(seed) if seed is not None else random.Random()
-                if count < len(sub_questions):
-                    sub_questions = rng.sample(sub_questions, count)
-
             resolved.extend(sub_questions)
         else:
             resolved.append(item)
@@ -352,44 +330,10 @@ def loads(
     """Parses a QuizML string.
 
     Identifies header and questions documents using native YAML multi-doc parsing,
-    resolves any '- include: file.yaml' directives, validates questions against
+    resolves any '- _include: file.yaml' directives, validates questions against
     the schema, and returns the data structure.
     """
-    yaml = YAML()
-    yaml.Constructor = StringConstructor
-    try:
-        raw_docs = list(yaml.load_all(quizmlyaml_txt))
-    except Exception as err:
-        line = -1
-        if hasattr(err, "problem_mark"):
-            line = err.problem_mark.line
-        raise QuizMLYamlSyntaxError(
-            f"YAML parsing error in {filename} near line {line}:\n{err}"
-        ) from err
-
-    # Filter out empty/None documents (e.g. from leading/trailing ---)
-    yamldocs = [
-        d
-        for d in raw_docs
-        if d is not None and not (isinstance(d, str) and not d.strip())
-    ]
-
-    if len(yamldocs) > 2:
-        raise QuizMLYamlSyntaxError(
-            "YAML file cannot have more than 2 documents: "
-            "one for the header and one for the questions."
-        )
-
-    if not yamldocs:
-        return {"header": {}, "questions": []}, schema
-
-    if len(yamldocs) == 1:
-        if isinstance(yamldocs[0], list):
-            header_data, questions_data = {}, yamldocs[0]
-        else:
-            header_data, questions_data = yamldocs[0], []
-    else:
-        header_data, questions_data = yamldocs[0], yamldocs[1]
+    header_data, questions_data = _parse_yaml_docs(quizmlyaml_txt, filename=filename)
 
     if base_dir is None:
         if filename and filename != "<string>":

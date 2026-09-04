@@ -157,33 +157,3 @@ def test_format_with_include(tmp_path, monkeypatch):
     assert formatted == formatted_again
 
 
-def test_format_with_include_sampled(tmp_path, monkeypatch):
-    bank_file = tmp_path / "bank.yaml"
-    bank_file.write_text("""- type: mc
-  question: Bank Q1
-- type: mc
-  question: Bank Q2
-- type: mc
-  question: Bank Q3
-- type: mc
-  question: Bank Q4
-""")
-
-    main_file = tmp_path / "exam.yaml"
-    main_file.write_text("""title: Exam
----
-- type: essay
-  question: First question
-- _include: bank.yaml
-  count: 2
-- type: essay
-  question: Last question
-""")
-
-    monkeypatch.setattr(sys, "argv", ["quizml", "--format", str(main_file)])
-    main()
-
-    formatted = main_file.read_text()
-    assert "- # <Q1>" in formatted
-    assert "- # <Q2>, <Q3>" in formatted
-    assert "- # <Q4>" in formatted
