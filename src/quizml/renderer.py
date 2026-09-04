@@ -1,3 +1,4 @@
+import functools
 import math
 import pathlib
 
@@ -7,6 +8,22 @@ from quizml.exceptions import Jinja2SyntaxError
 from quizml.utils import msg_context, text_wrap
 
 
+@functools.lru_cache(maxsize=1)
+def get_jinja_env():
+    """Returns a configured Jinja2 Environment with QuizML custom delimiters."""
+    env = jinja2.Environment(
+        extensions=["jinja2.ext.do"],
+        comment_start_string="<#",
+        comment_end_string="#>",
+        block_start_string="<|",
+        block_end_string="|>",
+        variable_start_string="<<",
+        variable_end_string=">>",
+    )
+    env.globals["math"] = math
+    return env
+
+
 def render_template(context, template_filename):
     if not template_filename:
         msg = "Template filename is missing, can't render jinja."
@@ -14,16 +31,7 @@ def render_template(context, template_filename):
 
     try:
         template_src = pathlib.Path(template_filename).read_text(encoding="utf-8")
-        env = jinja2.Environment(
-            extensions=["jinja2.ext.do"],
-            comment_start_string="<#",
-            comment_end_string="#>",
-            block_start_string="<|",
-            block_end_string="|>",
-            variable_start_string="<<",
-            variable_end_string=">>",
-        )
-        env.globals["math"] = math
+        env = get_jinja_env()
         template = env.from_string(template_src)
         render_content = template.render(context)
 
