@@ -93,7 +93,7 @@
             "marks": { "type": "number", "default": "4" },
             "comments": { "$ref": "#/definitions/markdown" },
             "question": { "$ref": "#/definitions/markdown" },
-            "answer": { "type": "string" }
+            "answer": { "$ref": "#/definitions/markdown" }
           },
           "required": ["question"]
         }

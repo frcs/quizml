@@ -306,3 +306,45 @@ def test_cli_piped_flow(tmp_path: Path, monkeypatch, capsys):
     assert "Pipe Assessment" in rendered_tex
     assert "\\textbf{Transformers}" in rendered_tex
 
+
+def test_essay_answer_markdown_transcoding(tmp_path: Path):
+    """Test that essay answer field supports Markdown formatting and code blocks."""
+    from quizml.quizmlyaml.validator import MarkdownString
+
+    yaml_file = tmp_path / "essay_code.yaml"
+    yaml_file.write_text(
+        """title: Essay Code Test
+---
+- type: essay
+  marks: 8
+  question: "Design an auto-encoder."
+  answer: |
+    Here is a model using CNN:
+
+    ```
+    model = keras.Sequential([
+        layers.Input(shape=(x_train.shape[1], x_train.shape[2])),
+        layers.Conv1D(filters=32)
+    ])
+    ```
+""",
+        encoding="utf-8",
+    )
+
+    doc, schema = quizml.load(yaml_file, validate=True)
+    q = doc["questions"][0]
+    assert isinstance(q["answer"], MarkdownString)
+
+    # Transcode to LaTeX
+    doc_latex = quizml.transcode(doc, target="latex")
+    answer_latex = doc_latex["questions"][0]["answer"]
+    assert "\\begin{lstlisting}" in answer_latex
+    assert "layers.Input(shape=(x_train.shape[1], x_train.shape[2]))" in answer_latex
+    assert "\\end{lstlisting}" in answer_latex
+
+    # Transcode to HTML
+    doc_html = quizml.transcode(doc, target="html")
+    answer_html = doc_html["questions"][0]["answer"]
+    assert "<pre" in answer_html and "<code" in answer_html
+
+

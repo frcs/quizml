@@ -28,17 +28,24 @@ class TargetResult:
     is_build_cmd: bool = False
 
 
-def compile_cmd_target(target: dict) -> tuple[bool, str | None]:
+def compile_cmd_target(
+    target: dict, cwd: str | None = None
+) -> tuple[bool, str | None]:
     """Executes external command line script for post-compilation build targets."""
     command = shlex.split(target["build_cmd"])
+    if cwd is None and target.get("out"):
+        out_parent = pathlib.Path(target["out"]).parent
+        if out_parent.exists():
+            cwd = str(out_parent.resolve())
     try:
-        subprocess.check_output(command, stderr=subprocess.STDOUT)
+        subprocess.check_output(command, stderr=subprocess.STDOUT, cwd=cwd)
         return True, None
     except subprocess.CalledProcessError as e:
         err_out = e.output.decode("utf-8", errors="replace") if e.output else str(e)
         return False, err_out
     except FileNotFoundError:
         return False, f"Command not found: {command[0]}"
+
 
 
 def compile_render_target(
