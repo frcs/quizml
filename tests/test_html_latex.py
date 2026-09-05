@@ -135,3 +135,30 @@ def test_build_eq_dict_hybrid(mock_build_mathml, mock_build_png):
     assert "##Display##$$E=mc^2$$" in res
     assert "<img" in res["##Display##$$E=mc^2$$"]
 
+
+def test_build_eq_dict_mathml_with_macros():
+    from quizml.transcoder.html import build_eq_dict_MathML
+
+    eq_list = [
+        create_mock_inline(r"$\bx \in \R^d$"),
+        create_mock_display(r"$$\norm{\bx} \le 1$$"),
+    ]
+    opts = {
+        "fmt": "html-mathml",
+        "html_pre": (
+            "\\newcommand{\\R}{\\mathbb{R}}\n"
+            "\\newcommand{\\bx}{\\mathbf{x}}\n"
+            "\\newcommand{\\norm}[1]{\\left\\|#1\\right\\|}\n"
+        ),
+    }
+    res = build_eq_dict_MathML(eq_list, opts)
+    assert len(res) == 2
+    q1_math = res[r"##Inline##$\bx \in \R^d$"]
+    assert "<math" in q1_math
+    assert "display=\"inline\"" in q1_math
+
+    q2_math = res[r"##Display##$$\norm{\bx} \le 1$$"]
+    assert "<math" in q2_math
+    assert "display=\"block\"" in q2_math
+
+

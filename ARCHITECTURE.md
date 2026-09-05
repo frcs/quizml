@@ -67,7 +67,7 @@ Institutional layouts, grading guidelines, and university templates remain compl
     *   `MathInline`: Handles `$ ... $`, `\( ... \)`.
     *   `ImageWithWidth`: Handles `![alt](src){width=...}`.
 *   **HTML Rendering (`html.py`):**
-    *   Converts LaTeX math to images (PNG/SVG) or MathML using external tools (`pdflatex`, `gs`, `dvisvgm`, `make4ht`).
+    *   Converts LaTeX math to images (PNG/SVG) using external tools (`pdflatex`, `gs`, `dvisvgm`) or MathML using `latex2mathml` with recursive macro expansion.
     *   Embeds images as Base64 strings for self-contained HTML.
 *   **LaTeX Rendering (`latex.py`):**
     *   Converts `ImageWithWidth` tokens to `\includegraphics`.

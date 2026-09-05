@@ -1,0 +1,2113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LaTeX to MathML Comparison: make4ht vs Pandoc vs latex2mathml</title>
+<style>
+  :root {
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --border-color: #e2e8f0;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --primary: #2563eb;
+    --primary-bg: #eff6ff;
+    --make4ht-color: #d97706;
+    --make4ht-bg: #fef3c7;
+    --pandoc-color: #059669;
+    --pandoc-bg: #ecfdf5;
+    --l2m-color: #7c3aed;
+    --l2m-bg: #f5f3ff;
+  }
+  
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem 1.5rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    line-height: 1.6;
+  }
+
+  .container {
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+
+  header {
+    background: var(--bg-card);
+    padding: 2.5rem 2rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+
+  header h1 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-main);
+  }
+
+  header p {
+    margin: 0 0 1.5rem 0;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    max-width: 900px;
+  }
+
+  .engine-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .engine-badge {
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    flex: 1;
+    min-width: 260px;
+  }
+  .badge-make4ht { background: var(--make4ht-bg); border-left: 4px solid var(--make4ht-color); }
+  .badge-pandoc { background: var(--pandoc-bg); border-left: 4px solid var(--pandoc-color); }
+  .badge-l2m { background: var(--l2m-bg); border-left: 4px solid var(--l2m-color); }
+
+  .engine-badge strong { display: block; font-size: 1rem; margin-bottom: 0.25rem; }
+  .engine-badge span { font-size: 0.85rem; color: #475569; }
+
+  /* Navigation tabs */
+  .tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 0.5rem;
+  }
+  .tab-btn {
+    padding: 0.6rem 1.25rem;
+    border: none;
+    background: transparent;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    border-radius: 6px;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+  }
+  .tab-btn.active {
+    background: var(--primary-bg);
+    color: var(--primary);
+  }
+  .tab-btn:hover:not(.active) {
+    background: #f1f5f9;
+  }
+
+  /* Full Paragraph In-Context Section */
+  .section-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+
+  .section-card h2 {
+    margin-top: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.6rem;
+    border-radius: 9999px;
+    text-transform: uppercase;
+  }
+  .tag-inline { background: #e0f2fe; color: #0369a1; }
+  .tag-display { background: #fef3c7; color: #b45309; }
+
+  .para-comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .para-box {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+  }
+  .para-box.m4ht { border-top: 4px solid var(--make4ht-color); }
+  .para-box.pdc { border-top: 4px solid var(--pandoc-color); }
+  .para-box.l2m { border-top: 4px solid var(--l2m-color); }
+
+  .para-box h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .para-content {
+    font-size: 1rem;
+    line-height: 1.8;
+    color: #1e293b;
+  }
+
+  /* Equation Comparison Cards */
+  .eq-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    margin-bottom: 1.75rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+
+  .eq-header {
+    padding: 1rem 1.5rem;
+    background: #f8fafc;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .eq-header h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+
+  .latex-source-bar {
+    padding: 0.75rem 1.5rem;
+    background: #f1f5f9;
+    border-bottom: 1px solid var(--border-color);
+    font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.95rem;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .latex-source-bar strong {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .render-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    divide-x: 1px solid var(--border-color);
+  }
+  @media (max-width: 960px) {
+    .render-grid { grid-template-columns: 1fr; }
+  }
+
+  .render-col {
+    padding: 1.5rem;
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+  }
+  .render-col:last-child { border-right: none; }
+
+  .col-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .col-title.m4ht { color: var(--make4ht-color); }
+  .col-title.pdc { color: var(--pandoc-color); }
+  .col-title.l2m { color: var(--l2m-color); }
+
+  .render-stage {
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: #fafafa;
+    border: 1px dashed #e2e8f0;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    font-size: 1.15rem;
+  }
+
+  .xml-details {
+    margin-top: auto;
+    font-size: 0.8rem;
+  }
+
+  .xml-details summary {
+    cursor: pointer;
+    color: var(--primary);
+    user-select: none;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .xml-code {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.72rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    max-height: 220px;
+  }
+
+  .char-count {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: normal;
+  }
+
+  /* Math styling fine-tuning */
+  math {
+    font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math", math;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>LaTeX to MathML Engine Comparison</h1>
+    <p>
+      An interactive side-by-side evaluation of <strong>make4ht</strong> (TeXLive), 
+      <strong>Pandoc</strong> (Haskell/texmath), and <strong>latex2mathml</strong> (Pure Python)
+      rendering native MathML across browser layout, typographical precision, XML bloat, and execution latency.
+    </p>
+
+    <div class="engine-badges">
+      <div class="engine-badge badge-make4ht">
+        <strong>1. make4ht (TeX4ht / TeXLive)</strong>
+        <span>Runs full TeXLive engine. Supports preambles/macros. Outputs Presentation MathML 2/3 with TeX4ht comments and CSS classes. ~1.5s/batch.</span>
+      </div>
+      <div class="engine-badge badge-pandoc">
+        <strong>2. Pandoc (texmath CLI)</strong>
+        <span>Industry document standard. Generates modern MathML Core with accessible LaTeX &lt;annotation&gt;. Supports OMML for Word. ~0.03s/eq.</span>
+      </div>
+      <div class="engine-badge badge-l2m">
+        <strong>3. latex2mathml (Pure Python)</strong>
+        <span>Zero external dependencies. Compact, standards-compliant Presentation MathML. Instantaneous execution (~0.0002s/eq).</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- In-Context Paragraph Section -->
+  <div class="section-card">
+    <h2>
+      <span>In-Context Exam Question (Paragraph Text Flow)</span>
+      <span class="tag tag-inline">Mixed Inline &amp; Display</span>
+    </h2>
+    <p style="color: var(--text-muted); margin-top: 0;">
+      Notice how each engine handles vertical baselines, operator sizing, inline paragraph flow, and display equation alignment.
+    </p>
+
+    <div class="para-comparison-grid">
+      <!-- make4ht paragraph -->
+      <div class="para-box m4ht">
+        <h3>
+          <span style="color: var(--make4ht-color)">make4ht</span>
+          <span class="char-count">7418 chars</span>
+        </h3>
+        <div class="para-content">
+          <!--l. 6--><p class="noindent" >Consider a binary linear classifier with decision boundary
+<!--l. 6--><math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="inline" ><mrow 
+><mi 
+>f</mi><mo 
+class="MathClass-open">(</mo><mstyle mathvariant="bold"><mi 
+>x</mi></mstyle><mo 
+class="MathClass-close">)</mo> <mo 
+class="MathClass-rel">=</mo> <mstyle mathvariant="bold"><mi 
+>w</mi><msup><mrow 
+></mstyle></mrow><mrow 
+><mi 
+>T</mi></mrow></msup 
+><mstyle mathvariant="bold"><mi 
+>x</mi></mstyle> <mo 
+class="MathClass-bin">+</mo> <mi 
+>b</mi></mrow></math> where the weight
+vector is <!--l. 6--><math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="inline" ><mrow 
+><mstyle mathvariant="bold"><mi 
+>w</mi></mstyle> <mo 
+class="MathClass-rel">∈</mo> <msup><mrow 
+><mi 
+>ℝ</mi></mrow><mrow 
+><mi 
+>d</mi></mrow></msup 
+></mrow></math> and the
+bias is <!--l. 6--><math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="inline" ><mrow 
+><mi 
+>b</mi> <mo 
+class="MathClass-rel">∈</mo> <mi 
+>ℝ</mi></mrow></math>. Given a
+training set of <!--l. 6--><math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="inline" ><mrow 
+><mi 
+>n</mi></mrow></math>
+independent and identically distributed samples
+<!--l. 6--><math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="inline" ><mrow 
+><mi 
+mathvariant="bold-script">𝒟</mi> <mo 
+class="MathClass-rel">=</mo> <msubsup><mrow 
+><mo 
+class="MathClass-open">{</mo><mo 
+class="MathClass-open">(</mo><mstyle mathvariant="bold"><mi 
+>x</mi><msub><mrow 
+></mstyle></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+><mo 
+class="MathClass-punc">,</mo><msub><mrow 
+><mi 
+>y</mi></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+><mo 
+class="MathClass-close">)</mo><mo 
+class="MathClass-close">}</mo></mrow><mrow 
+><mi 
+>i</mi><mo 
+class="MathClass-rel">=</mo><mn>1</mn></mrow><mrow 
+><mi 
+>n</mi></mrow></msubsup 
+></mrow></math> with
+labels <!--l. 6--><math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="inline" ><mrow 
+><msub><mrow 
+><mi 
+>y</mi></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+> <mo 
+class="MathClass-rel">∈</mo><mo 
+class="MathClass-open">{</mo><mo 
+class="MathClass-bin">−</mo><mn>1</mn><mo 
+class="MathClass-punc">,</mo><mo 
+class="MathClass-bin">+</mo><mn>1</mn><mo 
+class="MathClass-close">}</mo></mrow></math>,
+the geometric margin for any correctly classified point is given by
+<!--l. 6--><math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="inline" ><mrow 
+><msub><mrow 
+><mi 
+>γ</mi></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+> <mo 
+class="MathClass-rel">=</mo> <mfrac><mrow 
+><msub><mrow 
+><mi 
+>y</mi></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+><mo 
+class="MathClass-open">(</mo><mstyle mathvariant="bold"><mi 
+>w</mi><msup><mrow 
+></mstyle></mrow><mrow 
+><mi 
+>T</mi></mrow></msup 
+><mstyle mathvariant="bold"><mi 
+>x</mi><msub><mrow 
+></mstyle></mrow><mrow 
+>
+<mi 
+>i</mi></mrow></msub 
+><mo 
+class="MathClass-bin">+</mo><mi 
+>b</mi><mo 
+class="MathClass-close">)</mo></mrow> 
+     <mrow 
+><mo 
+class="MathClass-rel">∥</mo><mstyle mathvariant="bold"><mi 
+>w</mi></mstyle><msub><mrow 
+><mo 
+class="MathClass-rel">∥</mo></mrow><mrow 
+><mn>2</mn></mrow></msub 
+></mrow></mfrac>       <mo 
+class="MathClass-rel">≥</mo> <mi 
+>γ</mi></mrow></math>. To
+achieve maximum margin separation while allowing soft-margin slack variables
+<!--l. 6--><math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="inline" ><mrow 
+><msub><mrow 
+><mi 
+>ξ</mi></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+> <mo 
+class="MathClass-rel">≥</mo> <mn>0</mn></mrow></math>, we
+solve the following convex quadratic optimization problem:
+</p>
+   <table class="equation-star"><tr><td>
+<!--l. 8--><math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="block" class="equation">
+   <munder class="msub"><mrow 
+><mi class="qopname">min</mi><mo> &ApplyFunction;<!--FUNCTION APPLICATION--> </mo></mrow><mrow 
+><mstyle mathvariant="bold"><mi 
+>w</mi></mstyle><mo 
+class="MathClass-punc">,</mo><mi 
+>b</mi><mo 
+class="MathClass-punc">,</mo><mstyle mathvariant="bold-italic"><mi 
+>ξ</mi></mstyle></mrow></munder 
+><mfrac><mrow 
+><mn>1</mn></mrow> 
+<mrow 
+><mn>2</mn></mrow></mfrac><mo 
+class="MathClass-rel">∥</mo><mstyle mathvariant="bold"><mi 
+>w</mi></mstyle><msubsup><mrow 
+><mo 
+class="MathClass-rel">∥</mo></mrow><mrow 
+><mn>2</mn></mrow><mrow 
+><mn>2</mn></mrow></msubsup 
+> <mo 
+class="MathClass-bin">+</mo> <mi 
+>C</mi><munderover accentunder="false" accent="false"><mrow  
+><mo  
+>∑</mo>
+  </mrow><mrow 
+><mi 
+>i</mi><mo 
+class="MathClass-rel">=</mo><mn>1</mn></mrow><mrow 
+><mi 
+>n</mi></mrow></munderover 
+><msub><mrow 
+><mi 
+>ξ</mi></mrow><mrow 
+>
+<mi 
+>i</mi></mrow></msub 
+><mspace width="1em" class="quad"/><mstyle 
+class="text"><mtext  >subject to </mtext></mstyle><msub><mrow 
+><mi 
+>y</mi></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+><mo 
+class="MathClass-open">(</mo><mstyle mathvariant="bold"><mi 
+>w</mi><msup><mrow 
+></mstyle></mrow><mrow 
+><mi 
+>T</mi></mrow></msup 
+><mstyle mathvariant="bold"><mi 
+>x</mi><msub><mrow 
+></mstyle></mrow><mrow 
+>
+<mi 
+>i</mi></mrow></msub 
+> <mo 
+class="MathClass-bin">+</mo> <mi 
+>b</mi><mo 
+class="MathClass-close">)</mo> <mo 
+class="MathClass-rel">≥</mo> <mn>1</mn> <mo 
+class="MathClass-bin">−</mo> <msub><mrow 
+><mi 
+>ξ</mi></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+><mo 
+class="MathClass-punc">,</mo><mspace width="1em" class="quad"/><msub><mrow 
+><mi 
+>ξ</mi></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+> <mo 
+class="MathClass-rel">≥</mo> <mn>0</mn>
+</math></td></tr></table>
+<!--l. 10--><p class="indent" >   By applying the Karush-Kuhn-Tucker (KKT) conditions,
+the dual formulation reduces to finding Lagrange multipliers
+<!--l. 10--><math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="inline" ><mrow 
+><msub><mrow 
+><mi 
+>α</mi></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+></mrow></math> satisfying
+<!--l. 10--><math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="inline" ><mrow 
+><mn>0</mn> <mo 
+class="MathClass-rel">≤</mo> <msub><mrow 
+><mi 
+>α</mi></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+> <mo 
+class="MathClass-rel">≤</mo> <mi 
+>C</mi></mrow></math> such
+that the final support vector expansion is:
+</p>
+   <table class="equation-star"><tr><td>
+
+<!--l. 12--><math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="block" class="equation">
+          <mstyle mathvariant="bold"><mi 
+>w</mi><msup><mrow 
+></mstyle></mrow><mrow 
+><mo 
+class="MathClass-bin">∗</mo></mrow></msup 
+> <mo 
+class="MathClass-rel">=</mo><munderover accentunder="false" accent="false"><mrow  
+><mo  
+> ∑</mo>
+  </mrow><mrow 
+><mi 
+>i</mi><mo 
+class="MathClass-rel">=</mo><mn>1</mn></mrow><mrow 
+><mi 
+>n</mi></mrow></munderover 
+><msub><mrow 
+><mi 
+>α</mi></mrow><mrow 
+>
+<mi 
+>i</mi></mrow></msub 
+><msub><mrow 
+><mi 
+>y</mi></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+><mstyle mathvariant="bold"><mi 
+>x</mi><msub><mrow 
+></mstyle></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+><mspace width="1em" class="quad"/><mstyle 
+class="text"><mtext  >with constraint </mtext></mstyle><munderover accentunder="false" accent="false"><mrow  
+><mo  
+>∑</mo>
+  </mrow><mrow 
+><mi 
+>i</mi><mo 
+class="MathClass-rel">=</mo><mn>1</mn></mrow><mrow 
+><mi 
+>n</mi></mrow></munderover 
+><msub><mrow 
+><mi 
+>α</mi></mrow><mrow 
+>
+<mi 
+>i</mi></mrow></msub 
+><msub><mrow 
+><mi 
+>y</mi></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+> <mo 
+class="MathClass-rel">=</mo> <mn>0</mn><mo 
+class="MathClass-punc">.</mo>
+</math></td></tr></table>
+        </div>
+      </div>
+
+      <!-- pandoc paragraph -->
+      <div class="para-box pdc">
+        <h3>
+          <span style="color: var(--pandoc-color)">Pandoc</span>
+          <span class="char-count">6613 chars</span>
+        </h3>
+        <div class="para-content">
+          <p>Consider a binary linear classifier with decision boundary <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi><mrow><mo stretchy="true" form="prefix">(</mo><mstyle mathvariant="bold"><mi>𝐱</mi></mstyle><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><msup><mstyle mathvariant="bold"><mi>𝐰</mi></mstyle><mi>T</mi></msup><mstyle mathvariant="bold"><mi>𝐱</mi></mstyle><mo>+</mo><mi>b</mi></mrow><annotation encoding="application/x-tex">f(\mathbf{x}) = \mathbf{w}^T \mathbf{x} + b</annotation></semantics></math> where the weight vector is <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mstyle mathvariant="bold"><mi>𝐰</mi></mstyle><mo>∈</mo><msup><mstyle mathvariant="double-struck"><mi>ℝ</mi></mstyle><mi>d</mi></msup></mrow><annotation encoding="application/x-tex">\mathbf{w} \in \mathbb{R}^d</annotation></semantics></math> and the bias is <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>b</mi><mo>∈</mo><mstyle mathvariant="double-struck"><mi>ℝ</mi></mstyle></mrow><annotation encoding="application/x-tex">b \in \mathbb{R}</annotation></semantics></math>. Given a training set of <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math> independent and identically distributed samples <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mstyle mathvariant="script"><mi>𝒟</mi></mstyle><mo>=</mo><mo stretchy="false" form="prefix">{</mo><mrow><mo stretchy="true" form="prefix">(</mo><msub><mstyle mathvariant="bold"><mi>𝐱</mi></mstyle><mi>i</mi></msub><mo>,</mo><msub><mi>y</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><msubsup><mo stretchy="false" form="postfix">}</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></msubsup></mrow><annotation encoding="application/x-tex">\mathcal{D} = \{ (\mathbf{x}_i, y_i) \}_{i=1}^n</annotation></semantics></math> with labels <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mi>i</mi></msub><mo>∈</mo><mo stretchy="false" form="prefix">{</mo><mo>−</mo><mn>1</mn><mo>,</mo><mo>+</mo><mn>1</mn><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">y_i \in \{-1, +1\}</annotation></semantics></math>, the geometric margin for any correctly classified point is given by <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>γ</mi><mi>i</mi></msub><mo>=</mo><mfrac><mrow><msub><mi>y</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msup><mstyle mathvariant="bold"><mi>𝐰</mi></mstyle><mi>T</mi></msup><msub><mstyle mathvariant="bold"><mi>𝐱</mi></mstyle><mi>i</mi></msub><mo>+</mo><mi>b</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><mrow><mo stretchy="false" form="postfix">∥</mo><mstyle mathvariant="bold"><mi>𝐰</mi></mstyle><msub><mo stretchy="false" form="postfix">∥</mo><mn>2</mn></msub></mrow></mfrac><mo>≥</mo><mi>γ</mi></mrow><annotation encoding="application/x-tex">\gamma_i = \frac{y_i (\mathbf{w}^T \mathbf{x}_i + b)}{\|\mathbf{w}\|_2} \ge \gamma</annotation></semantics></math>. To achieve maximum margin separation while allowing soft-margin slack variables <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>ξ</mi><mi>i</mi></msub><mo>≥</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\xi_i \ge 0</annotation></semantics></math>, we solve the following convex quadratic optimization problem:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><munder><mo>min</mo><mrow><mstyle mathvariant="bold"><mi>𝐰</mi></mstyle><mo>,</mo><mi>b</mi><mo>,</mo><mstyle mathvariant="bold"><mi>𝛏</mi></mstyle></mrow></munder><mfrac><mn>1</mn><mn>2</mn></mfrac><mo stretchy="false" form="postfix">∥</mo><mstyle mathvariant="bold"><mi>𝐰</mi></mstyle><msubsup><mo stretchy="false" form="postfix">∥</mo><mn>2</mn><mn>2</mn></msubsup><mo>+</mo><mi>C</mi><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><msub><mi>ξ</mi><mi>i</mi></msub><mspace width="1.0em"></mspace><mrow><mtext mathvariant="normal">subject to </mtext><mspace width="0.333em"></mspace></mrow><msub><mi>y</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msup><mstyle mathvariant="bold"><mi>𝐰</mi></mstyle><mi>T</mi></msup><msub><mstyle mathvariant="bold"><mi>𝐱</mi></mstyle><mi>i</mi></msub><mo>+</mo><mi>b</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>≥</mo><mn>1</mn><mo>−</mo><msub><mi>ξ</mi><mi>i</mi></msub><mo>,</mo><mspace width="1.0em"></mspace><msub><mi>ξ</mi><mi>i</mi></msub><mo>≥</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\min_{\mathbf{w}, b, \boldsymbol{\xi}} \frac{1}{2} \|\mathbf{w}\|_2^2 + C \sum_{i=1}^n \xi_i \quad \text{subject to } y_i(\mathbf{w}^T \mathbf{x}_i + b) \ge 1 - \xi_i, \quad \xi_i \ge 0</annotation></semantics></math></p>
+<p>By applying the Karush-Kuhn-Tucker (KKT) conditions, the dual formulation reduces to finding Lagrange multipliers <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>α</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\alpha_i</annotation></semantics></math> satisfying <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn><mo>≤</mo><msub><mi>α</mi><mi>i</mi></msub><mo>≤</mo><mi>C</mi></mrow><annotation encoding="application/x-tex">0 \le \alpha_i \le C</annotation></semantics></math> such that the final support vector expansion is:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mstyle mathvariant="bold"><mi>𝐰</mi></mstyle><mo>*</mo></msup><mo>=</mo><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><msub><mi>α</mi><mi>i</mi></msub><msub><mi>y</mi><mi>i</mi></msub><msub><mstyle mathvariant="bold"><mi>𝐱</mi></mstyle><mi>i</mi></msub><mspace width="1.0em"></mspace><mrow><mtext mathvariant="normal">with constraint </mtext><mspace width="0.333em"></mspace></mrow><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><msub><mi>α</mi><mi>i</mi></msub><msub><mi>y</mi><mi>i</mi></msub><mo>=</mo><mn>0</mn><mi>.</mi></mrow><annotation encoding="application/x-tex">\mathbf{w}^* = \sum_{i=1}^n \alpha_i y_i \mathbf{x}_i \quad \text{with constraint } \sum_{i=1}^n \alpha_i y_i = 0.</annotation></semantics></math></p>
+        </div>
+      </div>
+
+      <!-- latex2mathml paragraph -->
+      <div class="para-box l2m">
+        <h3>
+          <span style="color: var(--l2m-color)">latex2mathml</span>
+          <span class="char-count">4806 chars</span>
+        </h3>
+        <div class="para-content">
+          <p>Consider a binary linear classifier with decision boundary <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>f</mi><mo stretchy="false">&#x00028;</mo><mi>&#x1D431;</mi><mo stretchy="false">&#x00029;</mo><mo>&#x0003D;</mo><msup><mi>&#x1D430;</mi><mi>T</mi></msup><mi>&#x1D431;</mi><mo>&#x0002B;</mo><mi>b</mi></mrow></math> where the weight vector is <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>&#x1D430;</mi><mo>&#x02208;</mo><msup><mi>&#x0211D;</mi><mi>d</mi></msup></mrow></math> and the bias is <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>b</mi><mo>&#x02208;</mo><mi>&#x0211D;</mi></mrow></math>. Given a training set of <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>n</mi></mrow></math> independent and identically distributed samples <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>&#x1D49F;</mi><mo>&#x0003D;</mo><mo stretchy="false">&#x0007B;</mo><mo stretchy="false">&#x00028;</mo><msub><mi>&#x1D431;</mi><mi>i</mi></msub><mo>&#x0002C;</mo><msub><mi>y</mi><mi>i</mi></msub><mo stretchy="false">&#x00029;</mo><msubsup><mo stretchy="false">&#x0007D;</mo><mrow><mi>i</mi><mo>&#x0003D;</mo><mn>1</mn></mrow><mi>n</mi></msubsup></mrow></math> with labels <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>y</mi><mi>i</mi></msub><mo>&#x02208;</mo><mo stretchy="false">&#x0007B;</mo><mo>&#x02212;</mo><mn>1</mn><mo>&#x0002C;</mo><mo>&#x0002B;</mo><mn>1</mn><mo stretchy="false">&#x0007D;</mo></mrow></math>, the geometric margin for any correctly classified point is given by <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>&#x003B3;</mi><mi>i</mi></msub><mo>&#x0003D;</mo><mfrac><mrow><msub><mi>y</mi><mi>i</mi></msub><mo stretchy="false">&#x00028;</mo><msup><mi>&#x1D430;</mi><mi>T</mi></msup><msub><mi>&#x1D431;</mi><mi>i</mi></msub><mo>&#x0002B;</mo><mi>b</mi><mo stretchy="false">&#x00029;</mo></mrow><mrow><mo fence="false" stretchy="false">&#x02016;</mo><mi>&#x1D430;</mi><msub><mo fence="false" stretchy="false">&#x02016;</mo><mn>2</mn></msub></mrow></mfrac><mo>&#x02265;</mo><mi>&#x003B3;</mi></mrow></math>. To achieve maximum margin separation while allowing soft-margin slack variables <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>&#x003BE;</mi><mi>i</mi></msub><mo>&#x02265;</mo><mn>0</mn></mrow></math>, we solve the following convex quadratic optimization problem:</p>
+
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mo>min</mo><mrow><mi>&#x1D430;</mi><mo>&#x0002C;</mo><mi>b</mi><mo>&#x0002C;</mo><mrow><mi mathvariant="bold-italic">&#x003BE;</mi></mrow></mrow></msub><mfrac><mrow><mn>1</mn></mrow><mrow><mn>2</mn></mrow></mfrac><mo fence="false" stretchy="false">&#x02016;</mo><mi>&#x1D430;</mi><msubsup><mo fence="false" stretchy="false">&#x02016;</mo><mn>2</mn><mn>2</mn></msubsup><mo>&#x0002B;</mo><mi>C</mi><munderover><mo>&#x02211;</mo><mrow><mi>i</mi><mo>&#x0003D;</mo><mn>1</mn></mrow><mi>n</mi></munderover><msub><mi>&#x003BE;</mi><mi>i</mi></msub><mspace width="1em" /><mtext>subject&#x000A0;to&#x000A0;</mtext><msub><mi>y</mi><mi>i</mi></msub><mo stretchy="false">&#x00028;</mo><msup><mi>&#x1D430;</mi><mi>T</mi></msup><msub><mi>&#x1D431;</mi><mi>i</mi></msub><mo>&#x0002B;</mo><mi>b</mi><mo stretchy="false">&#x00029;</mo><mo>&#x02265;</mo><mn>1</mn><mo>&#x02212;</mo><msub><mi>&#x003BE;</mi><mi>i</mi></msub><mo>&#x0002C;</mo><mspace width="1em" /><msub><mi>&#x003BE;</mi><mi>i</mi></msub><mo>&#x02265;</mo><mn>0</mn></mrow></math>
+
+<p>By applying the Karush-Kuhn-Tucker (KKT) conditions, the dual formulation reduces to finding Lagrange multipliers <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>&#x003B1;</mi><mi>i</mi></msub></mrow></math> satisfying <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>0</mn><mo>&#x02264;</mo><msub><mi>&#x003B1;</mi><mi>i</mi></msub><mo>&#x02264;</mo><mi>C</mi></mrow></math> such that the final support vector expansion is:</p>
+
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msup><mi>&#x1D430;</mi><mo>&#x0002A;</mo></msup><mo>&#x0003D;</mo><munderover><mo>&#x02211;</mo><mrow><mi>i</mi><mo>&#x0003D;</mo><mn>1</mn></mrow><mi>n</mi></munderover><msub><mi>&#x003B1;</mi><mi>i</mi></msub><msub><mi>y</mi><mi>i</mi></msub><msub><mi>&#x1D431;</mi><mi>i</mi></msub><mspace width="1em" /><mtext>with&#x000A0;constraint&#x000A0;</mtext><munderover><mo>&#x02211;</mo><mrow><mi>i</mi><mo>&#x0003D;</mo><mn>1</mn></mrow><mi>n</mi></munderover><msub><mi>&#x003B1;</mi><mi>i</mi></msub><msub><mi>y</mi><mi>i</mi></msub><mo>&#x0003D;</mo><mn>0</mn><mo>&#x0002E;</mo></mrow></math>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Comparison Table -->
+  <div class="section-card" style="margin-top: 2rem;">
+    <h2><span>Engine Feature &amp; Performance Breakdown</span></h2>
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--border-color); background: #f8fafc;">
+            <th style="padding: 0.75rem 1rem;">Feature / Metric</th>
+            <th style="padding: 0.75rem 1rem; color: var(--make4ht-color);">make4ht (TeXLive)</th>
+            <th style="padding: 0.75rem 1rem; color: var(--pandoc-color);">Pandoc (texmath CLI)</th>
+            <th style="padding: 0.75rem 1rem; color: var(--l2m-color);">latex2mathml (Python)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.75rem 1rem; font-weight: 600;">Engine Architecture</td>
+            <td style="padding: 0.75rem 1rem;">TeXLive / LuaTeX pipeline</td>
+            <td style="padding: 0.75rem 1rem;">Haskell binary (texmath parser)</td>
+            <td style="padding: 0.75rem 1rem;">Pure Python library</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.75rem 1rem; font-weight: 600;">External Dependencies</td>
+            <td style="padding: 0.75rem 1rem;">Full TeXLive (~4GB)</td>
+            <td style="padding: 0.75rem 1rem;">Pandoc CLI (~100MB)</td>
+            <td style="padding: 0.75rem 1rem;">None (pip package)</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.75rem 1rem; font-weight: 600;">Execution Speed</td>
+            <td style="padding: 0.75rem 1rem;">~1.4s per batch compile</td>
+            <td style="padding: 0.75rem 1rem;">~0.04s per equation</td>
+            <td style="padding: 0.75rem 1rem;"><strong>~0.001s</strong> (instantaneous)</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.75rem 1rem; font-weight: 600;">MathML Dialect</td>
+            <td style="padding: 0.75rem 1rem;">Presentation MathML 2/3</td>
+            <td style="padding: 0.75rem 1rem;">Modern MathML Core</td>
+            <td style="padding: 0.75rem 1rem;">Clean Presentation MathML</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.75rem 1rem; font-weight: 600;">Code Cleanliness</td>
+            <td style="padding: 0.75rem 1rem; color: #dc2626;">Heavy (HTML comments, TeX4ht classes, &lt;table&gt; wraps)</td>
+            <td style="padding: 0.75rem 1rem; color: #16a34a;"><strong>Pristine</strong> (clean tags, unicode glyphs)</td>
+            <td style="padding: 0.75rem 1rem; color: #16a34a;"><strong>Very Clean</strong> (compact XML, no comments)</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.75rem 1rem; font-weight: 600;">LaTeX Source Preservation</td>
+            <td style="padding: 0.75rem 1rem;">No (stripped)</td>
+            <td style="padding: 0.75rem 1rem; color: #16a34a;"><strong>Yes</strong> (via <code>&lt;annotation encoding="application/x-tex"&gt;</code>)</td>
+            <td style="padding: 0.75rem 1rem;">No (stripped)</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.75rem 1rem; font-weight: 600;">Blackboard Ultra Quill Compatibility</td>
+            <td style="padding: 0.75rem 1rem; color: #dc2626;">Fair (comments &amp; classes can break Quill)</td>
+            <td style="padding: 0.75rem 1rem; color: #16a34a;"><strong>Excellent</strong></td>
+            <td style="padding: 0.75rem 1rem; color: #16a34a;"><strong>Excellent</strong></td>
+          </tr>
+          <tr>
+            <td style="padding: 0.75rem 1rem; font-weight: 600;">Custom LaTeX Macros (
+ewcommand)</td>
+            <td style="padding: 0.75rem 1rem; color: #16a34a;"><strong>Full</strong> (evaluates preamble)</td>
+            <td style="padding: 0.75rem 1rem;">Partial (supports \def, 
+ewcommand in text)</td>
+            <td style="padding: 0.75rem 1rem; color: #dc2626;">None (standard LaTeX math only)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Equation by Equation Section -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin: 2.5rem 0 1rem 0; flex-wrap: wrap; gap: 1rem;">
+    <h2 style="margin: 0; font-size: 1.5rem;">Equation-by-Equation Benchmark Matrix</h2>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <button class="tab-btn active" onclick="filterCategory('all', this)">All (11)</button>
+      <button class="tab-btn" onclick="filterCategory('inline', this)">Inline Only</button>
+      <button class="tab-btn" onclick="filterCategory('display', this)">Display Only</button>
+      <button class="tab-btn" onclick="toggleAllXml()" style="border: 1px solid var(--border-color); background: #ffffff;">Toggle All XML</button>
+    </div>
+  </div>
+
+  <div class="eq-card" data-category="inline">
+    <div class="eq-header">
+      <div>
+        <h3>Greek Symbols & Basic Arithmetic</h3>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Testing standard Greek letters and binary operators in inline flow.</span>
+      </div>
+      <div><span class="tag tag-inline">Inline Math</span></div>
+    </div>
+
+    <div class="latex-source-bar">
+      <strong>LaTeX Source:</strong>
+      <code>\phi \cdot \alpha + \beta = \gamma</code>
+    </div>
+
+    <div class="render-grid">
+      <!-- Column 1: make4ht -->
+      <div class="render-col">
+        <div class="col-title m4ht">
+          <span>make4ht</span>
+          <span class="char-count">231 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="inline" ><mi 
+>ϕ</mi> <mo 
+class="MathClass-bin">⋅</mo> <mi 
+>α</mi> <mo 
+class="MathClass-bin">+</mo> <mi 
+>β</mi> <mo 
+class="MathClass-rel">=</mo> <mi 
+>γ</mi></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math 
+ xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;  
+display=&quot;inline&quot; &gt;&lt;mi 
+&gt;ϕ&lt;/mi&gt; &lt;mo 
+class=&quot;MathClass-bin&quot;&gt;⋅&lt;/mo&gt; &lt;mi 
+&gt;α&lt;/mi&gt; &lt;mo 
+class=&quot;MathClass-bin&quot;&gt;+&lt;/mo&gt; &lt;mi 
+&gt;β&lt;/mi&gt; &lt;mo 
+class=&quot;MathClass-rel&quot;&gt;=&lt;/mo&gt; &lt;mi 
+&gt;γ&lt;/mi&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 2: pandoc -->
+      <div class="render-col">
+        <div class="col-title pdc">
+          <span>Pandoc</span>
+          <span class="char-count">267 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ϕ</mi><mo>⋅</mo><mi>α</mi><mo>+</mo><mi>β</mi><mo>=</mo><mi>γ</mi></mrow><annotation encoding="application/x-tex">\phi \cdot \alpha + \beta = \gamma</annotation></semantics></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math display=&quot;inline&quot; xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;semantics&gt;&lt;mrow&gt;&lt;mi&gt;ϕ&lt;/mi&gt;&lt;mo&gt;⋅&lt;/mo&gt;&lt;mi&gt;α&lt;/mi&gt;&lt;mo&gt;+&lt;/mo&gt;&lt;mi&gt;β&lt;/mi&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mi&gt;γ&lt;/mi&gt;&lt;/mrow&gt;&lt;annotation encoding=&quot;application/x-tex&quot;&gt;\phi \cdot \alpha + \beta = \gamma&lt;/annotation&gt;&lt;/semantics&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 3: latex2mathml -->
+      <div class="render-col">
+        <div class="col-title l2m">
+          <span>latex2mathml</span>
+          <span class="char-count">212 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>&#x003D5;</mi><mi>&#x000B7;</mi><mi>&#x003B1;</mi><mo>&#x0002B;</mo><mi>&#x003B2;</mi><mo>&#x0003D;</mo><mi>&#x003B3;</mi></mrow></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot; display=&quot;inline&quot;&gt;&lt;mrow&gt;&lt;mi&gt;&amp;#x003D5;&lt;/mi&gt;&lt;mi&gt;&amp;#x000B7;&lt;/mi&gt;&lt;mi&gt;&amp;#x003B1;&lt;/mi&gt;&lt;mo&gt;&amp;#x0002B;&lt;/mo&gt;&lt;mi&gt;&amp;#x003B2;&lt;/mi&gt;&lt;mo&gt;&amp;#x0003D;&lt;/mo&gt;&lt;mi&gt;&amp;#x003B3;&lt;/mi&gt;&lt;/mrow&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <div class="eq-card" data-category="inline">
+    <div class="eq-header">
+      <div>
+        <h3>Fractions, Subscripts & Superscripts</h3>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Evaluating vertical alignment, fraction bar, and superscript scaling.</span>
+      </div>
+      <div><span class="tag tag-inline">Inline Math</span></div>
+    </div>
+
+    <div class="latex-source-bar">
+      <strong>LaTeX Source:</strong>
+      <code>\frac{1}{2} x_1^2 + x_2^2 \le r^2</code>
+    </div>
+
+    <div class="render-grid">
+      <!-- Column 1: make4ht -->
+      <div class="render-col">
+        <div class="col-title m4ht">
+          <span>make4ht</span>
+          <span class="char-count">478 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="inline" ><mfrac><mrow 
+><mn>1</mn></mrow>
+<mrow 
+><mn>2</mn></mrow></mfrac><msubsup><mrow 
+><mi 
+>x</mi></mrow><mrow 
+><mn>1</mn></mrow><mrow 
+><mn>2</mn></mrow></msubsup 
+> <mo 
+class="MathClass-bin">+</mo> <msubsup><mrow 
+><mi 
+>x</mi></mrow><mrow 
+>
+<mn>2</mn></mrow><mrow 
+><mn>2</mn></mrow></msubsup 
+> <mo 
+class="MathClass-rel">≤</mo> <msup><mrow 
+><mi 
+>r</mi></mrow><mrow 
+><mn>2</mn></mrow></msup 
+></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math 
+ xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;  
+display=&quot;inline&quot; &gt;&lt;mfrac&gt;&lt;mrow 
+&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt;
+&lt;mrow 
+&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;msubsup&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;x&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/mrow&gt;&lt;/msubsup 
+&gt; &lt;mo 
+class=&quot;MathClass-bin&quot;&gt;+&lt;/mo&gt; &lt;msubsup&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;x&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;
+&lt;mn&gt;2&lt;/mn&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/mrow&gt;&lt;/msubsup 
+&gt; &lt;mo 
+class=&quot;MathClass-rel&quot;&gt;≤&lt;/mo&gt; &lt;msup&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;r&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/mrow&gt;&lt;/msup 
+&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 2: pandoc -->
+      <div class="render-col">
+        <div class="col-title pdc">
+          <span>Pandoc</span>
+          <span class="char-count">382 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><msubsup><mi>x</mi><mn>1</mn><mn>2</mn></msubsup><mo>+</mo><msubsup><mi>x</mi><mn>2</mn><mn>2</mn></msubsup><mo>≤</mo><msup><mi>r</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">\frac{1}{2} x_1^2 + x_2^2 \le r^2</annotation></semantics></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math display=&quot;inline&quot; xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;semantics&gt;&lt;mrow&gt;&lt;mfrac&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/mfrac&gt;&lt;msubsup&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msubsup&gt;&lt;mo&gt;+&lt;/mo&gt;&lt;msubsup&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msubsup&gt;&lt;mo&gt;≤&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;r&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;/mrow&gt;&lt;annotation encoding=&quot;application/x-tex&quot;&gt;\frac{1}{2} x_1^2 + x_2^2 \le r^2&lt;/annotation&gt;&lt;/semantics&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 3: latex2mathml -->
+      <div class="render-col">
+        <div class="col-title l2m">
+          <span>latex2mathml</span>
+          <span class="char-count">314 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mfrac><mrow><mn>1</mn></mrow><mrow><mn>2</mn></mrow></mfrac><msubsup><mi>x</mi><mn>1</mn><mn>2</mn></msubsup><mo>&#x0002B;</mo><msubsup><mi>x</mi><mn>2</mn><mn>2</mn></msubsup><mo>&#x02264;</mo><msup><mi>r</mi><mn>2</mn></msup></mrow></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot; display=&quot;inline&quot;&gt;&lt;mrow&gt;&lt;mfrac&gt;&lt;mrow&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt;&lt;mrow&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;msubsup&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msubsup&gt;&lt;mo&gt;&amp;#x0002B;&lt;/mo&gt;&lt;msubsup&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msubsup&gt;&lt;mo&gt;&amp;#x02264;&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;r&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;/mrow&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <div class="eq-card" data-category="inline">
+    <div class="eq-header">
+      <div>
+        <h3>Set Theory & Vectors</h3>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Testing blackboard bold (\mathbb), calligraphic (\mathcal), and set braces.</span>
+      </div>
+      <div><span class="tag tag-inline">Inline Math</span></div>
+    </div>
+
+    <div class="latex-source-bar">
+      <strong>LaTeX Source:</strong>
+      <code>\mathbf{w} \in \mathbb{R}^d, \quad \mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^n</code>
+    </div>
+
+    <div class="render-grid">
+      <!-- Column 1: make4ht -->
+      <div class="render-col">
+        <div class="col-title m4ht">
+          <span>make4ht</span>
+          <span class="char-count">849 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="inline" ><mstyle mathvariant="bold"><mi 
+>w</mi></mstyle> <mo 
+class="MathClass-rel">∈</mo> <msup><mrow 
+><mi 
+>ℝ</mi></mrow><mrow 
+><mi 
+>d</mi></mrow></msup 
+><mo 
+class="MathClass-punc">,</mo><mspace width="1em" class="quad"/><mi 
+mathvariant="bold-script">𝒟</mi> <mo 
+class="MathClass-rel">=</mo> <msubsup><mrow 
+><mo 
+class="MathClass-open">{</mo><mo 
+class="MathClass-open">(</mo><mstyle mathvariant="bold"><mi 
+>x</mi><msub><mrow 
+></mstyle></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+><mo 
+class="MathClass-punc">,</mo><msub><mrow 
+><mi 
+>y</mi></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+><mo 
+class="MathClass-close">)</mo><mo 
+class="MathClass-close">}</mo></mrow><mrow 
+><mi 
+>i</mi><mo 
+class="MathClass-rel">=</mo><mn>1</mn></mrow><mrow 
+><mi 
+>n</mi></mrow></msubsup 
+></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math 
+ xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;  
+display=&quot;inline&quot; &gt;&lt;mstyle mathvariant=&quot;bold&quot;&gt;&lt;mi 
+&gt;w&lt;/mi&gt;&lt;/mstyle&gt; &lt;mo 
+class=&quot;MathClass-rel&quot;&gt;∈&lt;/mo&gt; &lt;msup&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;ℝ&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;d&lt;/mi&gt;&lt;/mrow&gt;&lt;/msup 
+&gt;&lt;mo 
+class=&quot;MathClass-punc&quot;&gt;,&lt;/mo&gt;&lt;mspace width=&quot;1em&quot; class=&quot;quad&quot;/&gt;&lt;mi 
+mathvariant=&quot;bold-script&quot;&gt;𝒟&lt;/mi&gt; &lt;mo 
+class=&quot;MathClass-rel&quot;&gt;=&lt;/mo&gt; &lt;msubsup&gt;&lt;mrow 
+&gt;&lt;mo 
+class=&quot;MathClass-open&quot;&gt;{&lt;/mo&gt;&lt;mo 
+class=&quot;MathClass-open&quot;&gt;(&lt;/mo&gt;&lt;mstyle mathvariant=&quot;bold&quot;&gt;&lt;mi 
+&gt;x&lt;/mi&gt;&lt;msub&gt;&lt;mrow 
+&gt;&lt;/mstyle&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;i&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub 
+&gt;&lt;mo 
+class=&quot;MathClass-punc&quot;&gt;,&lt;/mo&gt;&lt;msub&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;y&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;i&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub 
+&gt;&lt;mo 
+class=&quot;MathClass-close&quot;&gt;)&lt;/mo&gt;&lt;mo 
+class=&quot;MathClass-close&quot;&gt;}&lt;/mo&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;i&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-rel&quot;&gt;=&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;n&lt;/mi&gt;&lt;/mrow&gt;&lt;/msubsup 
+&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 2: pandoc -->
+      <div class="render-col">
+        <div class="col-title pdc">
+          <span>Pandoc</span>
+          <span class="char-count">837 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mstyle mathvariant="bold"><mi>𝐰</mi></mstyle><mo>∈</mo><msup><mstyle mathvariant="double-struck"><mi>ℝ</mi></mstyle><mi>d</mi></msup><mo>,</mo><mspace width="1.0em"></mspace><mstyle mathvariant="script"><mi>𝒟</mi></mstyle><mo>=</mo><mo stretchy="false" form="prefix">{</mo><mrow><mo stretchy="true" form="prefix">(</mo><msub><mstyle mathvariant="bold"><mi>𝐱</mi></mstyle><mi>i</mi></msub><mo>,</mo><msub><mi>y</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><msubsup><mo stretchy="false" form="postfix">}</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></msubsup></mrow><annotation encoding="application/x-tex">\mathbf{w} \in \mathbb{R}^d, \quad \mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^n</annotation></semantics></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math display=&quot;inline&quot; xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;semantics&gt;&lt;mrow&gt;&lt;mstyle mathvariant=&quot;bold&quot;&gt;&lt;mi&gt;𝐰&lt;/mi&gt;&lt;/mstyle&gt;&lt;mo&gt;∈&lt;/mo&gt;&lt;msup&gt;&lt;mstyle mathvariant=&quot;double-struck&quot;&gt;&lt;mi&gt;ℝ&lt;/mi&gt;&lt;/mstyle&gt;&lt;mi&gt;d&lt;/mi&gt;&lt;/msup&gt;&lt;mo&gt;,&lt;/mo&gt;&lt;mspace width=&quot;1.0em&quot;&gt;&lt;/mspace&gt;&lt;mstyle mathvariant=&quot;script&quot;&gt;&lt;mi&gt;𝒟&lt;/mi&gt;&lt;/mstyle&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mo stretchy=&quot;false&quot; form=&quot;prefix&quot;&gt;{&lt;/mo&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;prefix&quot;&gt;(&lt;/mo&gt;&lt;msub&gt;&lt;mstyle mathvariant=&quot;bold&quot;&gt;&lt;mi&gt;𝐱&lt;/mi&gt;&lt;/mstyle&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;/msub&gt;&lt;mo&gt;,&lt;/mo&gt;&lt;msub&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;/msub&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;msubsup&gt;&lt;mo stretchy=&quot;false&quot; form=&quot;postfix&quot;&gt;}&lt;/mo&gt;&lt;mrow&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt;&lt;mi&gt;n&lt;/mi&gt;&lt;/msubsup&gt;&lt;/mrow&gt;&lt;annotation encoding=&quot;application/x-tex&quot;&gt;\mathbf{w} \in \mathbb{R}^d, \quad \mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^n&lt;/annotation&gt;&lt;/semantics&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 3: latex2mathml -->
+      <div class="render-col">
+        <div class="col-title l2m">
+          <span>latex2mathml</span>
+          <span class="char-count">551 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>&#x1D430;</mi><mo>&#x02208;</mo><msup><mi>&#x0211D;</mi><mi>d</mi></msup><mo>&#x0002C;</mo><mspace width="1em" /><mi>&#x1D49F;</mi><mo>&#x0003D;</mo><mo stretchy="false">&#x0007B;</mo><mo stretchy="false">&#x00028;</mo><msub><mi>&#x1D431;</mi><mi>i</mi></msub><mo>&#x0002C;</mo><msub><mi>y</mi><mi>i</mi></msub><mo stretchy="false">&#x00029;</mo><msubsup><mo stretchy="false">&#x0007D;</mo><mrow><mi>i</mi><mo>&#x0003D;</mo><mn>1</mn></mrow><mi>n</mi></msubsup></mrow></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot; display=&quot;inline&quot;&gt;&lt;mrow&gt;&lt;mi&gt;&amp;#x1D430;&lt;/mi&gt;&lt;mo&gt;&amp;#x02208;&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;&amp;#x0211D;&lt;/mi&gt;&lt;mi&gt;d&lt;/mi&gt;&lt;/msup&gt;&lt;mo&gt;&amp;#x0002C;&lt;/mo&gt;&lt;mspace width=&quot;1em&quot; /&gt;&lt;mi&gt;&amp;#x1D49F;&lt;/mi&gt;&lt;mo&gt;&amp;#x0003D;&lt;/mo&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x0007B;&lt;/mo&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00028;&lt;/mo&gt;&lt;msub&gt;&lt;mi&gt;&amp;#x1D431;&lt;/mi&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;/msub&gt;&lt;mo&gt;&amp;#x0002C;&lt;/mo&gt;&lt;msub&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;/msub&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00029;&lt;/mo&gt;&lt;msubsup&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x0007D;&lt;/mo&gt;&lt;mrow&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;mo&gt;&amp;#x0003D;&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt;&lt;mi&gt;n&lt;/mi&gt;&lt;/msubsup&gt;&lt;/mrow&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <div class="eq-card" data-category="display">
+    <div class="eq-header">
+      <div>
+        <h3>Quadratic Formula</h3>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Display fraction with plus-minus symbol and radical square root over grouped terms.</span>
+      </div>
+      <div><span class="tag tag-display">Display Math</span></div>
+    </div>
+
+    <div class="latex-source-bar">
+      <strong>LaTeX Source:</strong>
+      <code>x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}</code>
+    </div>
+
+    <div class="render-grid">
+      <!-- Column 1: make4ht -->
+      <div class="render-col">
+        <div class="col-title m4ht">
+          <span>make4ht</span>
+          <span class="char-count">474 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="block" >
+                        <mi 
+>x</mi> <mo 
+class="MathClass-rel">=</mo> <mfrac><mrow 
+> <mo 
+class="MathClass-bin">−</mo> <mi 
+>b</mi> <mo 
+class="MathClass-bin">±</mo><msqrt><mrow><msup><mrow 
+><mi 
+>b</mi></mrow><mrow 
+><mn>2</mn> </mrow> </msup 
+> <mo 
+class="MathClass-bin">−</mo> <mn>4</mn><mi 
+>a</mi><mi 
+>c</mi></mrow></msqrt></mrow> 
+        <mrow 
+><mn>2</mn><mi 
+>a</mi></mrow></mfrac>
+</math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math 
+ xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;  
+display=&quot;block&quot; &gt;
+                        &lt;mi 
+&gt;x&lt;/mi&gt; &lt;mo 
+class=&quot;MathClass-rel&quot;&gt;=&lt;/mo&gt; &lt;mfrac&gt;&lt;mrow 
+&gt; &lt;mo 
+class=&quot;MathClass-bin&quot;&gt;−&lt;/mo&gt; &lt;mi 
+&gt;b&lt;/mi&gt; &lt;mo 
+class=&quot;MathClass-bin&quot;&gt;±&lt;/mo&gt;&lt;msqrt&gt;&lt;mrow&gt;&lt;msup&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;b&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mn&gt;2&lt;/mn&gt; &lt;/mrow&gt; &lt;/msup 
+&gt; &lt;mo 
+class=&quot;MathClass-bin&quot;&gt;−&lt;/mo&gt; &lt;mn&gt;4&lt;/mn&gt;&lt;mi 
+&gt;a&lt;/mi&gt;&lt;mi 
+&gt;c&lt;/mi&gt;&lt;/mrow&gt;&lt;/msqrt&gt;&lt;/mrow&gt; 
+        &lt;mrow 
+&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;mi 
+&gt;a&lt;/mi&gt;&lt;/mrow&gt;&lt;/mfrac&gt;
+&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 2: pandoc -->
+      <div class="render-col">
+        <div class="col-title pdc">
+          <span>Pandoc</span>
+          <span class="char-count">412 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>=</mo><mfrac><mrow><mo>−</mo><mi>b</mi><mo>±</mo><msqrt><mrow><msup><mi>b</mi><mn>2</mn></msup><mo>−</mo><mn>4</mn><mi>a</mi><mi>c</mi></mrow></msqrt></mrow><mrow><mn>2</mn><mi>a</mi></mrow></mfrac></mrow><annotation encoding="application/x-tex">x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}</annotation></semantics></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math display=&quot;block&quot; xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;semantics&gt;&lt;mrow&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mfrac&gt;&lt;mrow&gt;&lt;mo&gt;−&lt;/mo&gt;&lt;mi&gt;b&lt;/mi&gt;&lt;mo&gt;±&lt;/mo&gt;&lt;msqrt&gt;&lt;mrow&gt;&lt;msup&gt;&lt;mi&gt;b&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mo&gt;−&lt;/mo&gt;&lt;mn&gt;4&lt;/mn&gt;&lt;mi&gt;a&lt;/mi&gt;&lt;mi&gt;c&lt;/mi&gt;&lt;/mrow&gt;&lt;/msqrt&gt;&lt;/mrow&gt;&lt;mrow&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;mi&gt;a&lt;/mi&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;/mrow&gt;&lt;annotation encoding=&quot;application/x-tex&quot;&gt;x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}&lt;/annotation&gt;&lt;/semantics&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 3: latex2mathml -->
+      <div class="render-col">
+        <div class="col-title l2m">
+          <span>latex2mathml</span>
+          <span class="char-count">329 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>x</mi><mo>&#x0003D;</mo><mfrac><mrow><mo>&#x02212;</mo><mi>b</mi><mi>&#x000B1;</mi><msqrt><mrow><msup><mi>b</mi><mn>2</mn></msup><mo>&#x02212;</mo><mn>4</mn><mi>a</mi><mi>c</mi></mrow></msqrt></mrow><mrow><mn>2</mn><mi>a</mi></mrow></mfrac></mrow></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot; display=&quot;block&quot;&gt;&lt;mrow&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mo&gt;&amp;#x0003D;&lt;/mo&gt;&lt;mfrac&gt;&lt;mrow&gt;&lt;mo&gt;&amp;#x02212;&lt;/mo&gt;&lt;mi&gt;b&lt;/mi&gt;&lt;mi&gt;&amp;#x000B1;&lt;/mi&gt;&lt;msqrt&gt;&lt;mrow&gt;&lt;msup&gt;&lt;mi&gt;b&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mo&gt;&amp;#x02212;&lt;/mo&gt;&lt;mn&gt;4&lt;/mn&gt;&lt;mi&gt;a&lt;/mi&gt;&lt;mi&gt;c&lt;/mi&gt;&lt;/mrow&gt;&lt;/msqrt&gt;&lt;/mrow&gt;&lt;mrow&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;mi&gt;a&lt;/mi&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;/mrow&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <div class="eq-card" data-category="display">
+    <div class="eq-header">
+      <div>
+        <h3>Definite Integral with Infinite Limits</h3>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Evaluating integral symbol sizing, sub/superscript limit positioning, and spacing.</span>
+      </div>
+      <div><span class="tag tag-display">Display Math</span></div>
+    </div>
+
+    <div class="latex-source-bar">
+      <strong>LaTeX Source:</strong>
+      <code>\int_{-\infty}^{\infty} e^{-x^2} \, dx = \sqrt{\pi}</code>
+    </div>
+
+    <div class="render-grid">
+      <!-- Column 1: make4ht -->
+      <div class="render-col">
+        <div class="col-title m4ht">
+          <span>make4ht</span>
+          <span class="char-count">576 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="block" >
+                        <msubsup><mrow 
+><mo  
+>∫
+ <!--nolimits--></mo><!--nolimits--></mrow><mrow 
+><mo 
+class="MathClass-bin">−</mo><mi 
+>∞</mi></mrow><mrow 
+><mi 
+>∞</mi></mrow></msubsup 
+><msup><mrow 
+><mi 
+>e</mi></mrow><mrow 
+><mo 
+class="MathClass-bin">−</mo><msup><mrow 
+><mi 
+>x</mi></mrow><mrow 
+><mn>2</mn></mrow></msup 
+>
+      </mrow></msup 
+><mspace width="0.17em" class="thinspace"/><mi 
+>d</mi><mi 
+>x</mi> <mo 
+class="MathClass-rel">=</mo> <msqrt><mrow><mi 
+>π</mi></mrow></msqrt>
+</math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math 
+ xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;  
+display=&quot;block&quot; &gt;
+                        &lt;msubsup&gt;&lt;mrow 
+&gt;&lt;mo  
+&gt;∫
+ &lt;!--nolimits--&gt;&lt;/mo&gt;&lt;!--nolimits--&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mo 
+class=&quot;MathClass-bin&quot;&gt;−&lt;/mo&gt;&lt;mi 
+&gt;∞&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;∞&lt;/mi&gt;&lt;/mrow&gt;&lt;/msubsup 
+&gt;&lt;msup&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;e&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mo 
+class=&quot;MathClass-bin&quot;&gt;−&lt;/mo&gt;&lt;msup&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;x&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/mrow&gt;&lt;/msup 
+&gt;
+      &lt;/mrow&gt;&lt;/msup 
+&gt;&lt;mspace width=&quot;0.17em&quot; class=&quot;thinspace&quot;/&gt;&lt;mi 
+&gt;d&lt;/mi&gt;&lt;mi 
+&gt;x&lt;/mi&gt; &lt;mo 
+class=&quot;MathClass-rel&quot;&gt;=&lt;/mo&gt; &lt;msqrt&gt;&lt;mrow&gt;&lt;mi 
+&gt;π&lt;/mi&gt;&lt;/mrow&gt;&lt;/msqrt&gt;
+&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 2: pandoc -->
+      <div class="render-col">
+        <div class="col-title pdc">
+          <span>Pandoc</span>
+          <span class="char-count">452 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mo>∫</mo><mrow><mo>−</mo><mi>∞</mi></mrow><mi>∞</mi></msubsup><msup><mi>e</mi><mrow><mo>−</mo><msup><mi>x</mi><mn>2</mn></msup></mrow></msup><mspace width="0.167em"></mspace><mi>d</mi><mi>x</mi><mo>=</mo><msqrt><mi>π</mi></msqrt></mrow><annotation encoding="application/x-tex">\int_{-\infty}^{\infty} e^{-x^2} \, dx = \sqrt{\pi}</annotation></semantics></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math display=&quot;block&quot; xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;semantics&gt;&lt;mrow&gt;&lt;msubsup&gt;&lt;mo&gt;∫&lt;/mo&gt;&lt;mrow&gt;&lt;mo&gt;−&lt;/mo&gt;&lt;mi&gt;∞&lt;/mi&gt;&lt;/mrow&gt;&lt;mi&gt;∞&lt;/mi&gt;&lt;/msubsup&gt;&lt;msup&gt;&lt;mi&gt;e&lt;/mi&gt;&lt;mrow&gt;&lt;mo&gt;−&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;/mrow&gt;&lt;/msup&gt;&lt;mspace width=&quot;0.167em&quot;&gt;&lt;/mspace&gt;&lt;mi&gt;d&lt;/mi&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;msqrt&gt;&lt;mi&gt;π&lt;/mi&gt;&lt;/msqrt&gt;&lt;/mrow&gt;&lt;annotation encoding=&quot;application/x-tex&quot;&gt;\int_{-\infty}^{\infty} e^{-x^2} \, dx = \sqrt{\pi}&lt;/annotation&gt;&lt;/semantics&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 3: latex2mathml -->
+      <div class="render-col">
+        <div class="col-title l2m">
+          <span>latex2mathml</span>
+          <span class="char-count">399 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msubsup><mo>&#x0222B;</mo><mrow><mo>&#x02212;</mo><mo>&#x0221E;</mo></mrow><mrow><mo>&#x0221E;</mo></mrow></msubsup><msup><mi>e</mi><mrow><mo>&#x02212;</mo><msup><mi>x</mi><mn>2</mn></msup></mrow></msup><mspace width="0.167em" /><mi>d</mi><mi>x</mi><mo>&#x0003D;</mo><msqrt><mrow><mi>&#x003C0;</mi></mrow></msqrt></mrow></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot; display=&quot;block&quot;&gt;&lt;mrow&gt;&lt;msubsup&gt;&lt;mo&gt;&amp;#x0222B;&lt;/mo&gt;&lt;mrow&gt;&lt;mo&gt;&amp;#x02212;&lt;/mo&gt;&lt;mo&gt;&amp;#x0221E;&lt;/mo&gt;&lt;/mrow&gt;&lt;mrow&gt;&lt;mo&gt;&amp;#x0221E;&lt;/mo&gt;&lt;/mrow&gt;&lt;/msubsup&gt;&lt;msup&gt;&lt;mi&gt;e&lt;/mi&gt;&lt;mrow&gt;&lt;mo&gt;&amp;#x02212;&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;/mrow&gt;&lt;/msup&gt;&lt;mspace width=&quot;0.167em&quot; /&gt;&lt;mi&gt;d&lt;/mi&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mo&gt;&amp;#x0003D;&lt;/mo&gt;&lt;msqrt&gt;&lt;mrow&gt;&lt;mi&gt;&amp;#x003C0;&lt;/mi&gt;&lt;/mrow&gt;&lt;/msqrt&gt;&lt;/mrow&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <div class="eq-card" data-category="display">
+    <div class="eq-header">
+      <div>
+        <h3>Limits & Trigonometry</h3>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Testing operator under-limit layout and upright function name (\sin).</span>
+      </div>
+      <div><span class="tag tag-display">Display Math</span></div>
+    </div>
+
+    <div class="latex-source-bar">
+      <strong>LaTeX Source:</strong>
+      <code>\lim_{x \to 0} \frac{\sin(x)}{x} = 1</code>
+    </div>
+
+    <div class="render-grid">
+      <!-- Column 1: make4ht -->
+      <div class="render-col">
+        <div class="col-title m4ht">
+          <span>make4ht</span>
+          <span class="char-count">590 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="block" >
+                         <munder class="msub"><mrow 
+><mi class="qopname">lim</mi><mo> &ApplyFunction;<!--FUNCTION APPLICATION--> </mo></mrow><mrow 
+><mi 
+>x</mi><mo 
+class="MathClass-rel">→</mo><mn>0</mn></mrow></munder 
+><mfrac><mrow 
+><mi class="qopname"> sin</mi><mo> &ApplyFunction;<!--FUNCTION APPLICATION--> </mo><!--nolimits--><mo 
+class="MathClass-open">(</mo><mi 
+>x</mi><mo 
+class="MathClass-close">)</mo></mrow> 
+   <mrow 
+><mi 
+>x</mi></mrow></mfrac>    <mo 
+class="MathClass-rel">=</mo> <mn>1</mn>
+</math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math 
+ xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;  
+display=&quot;block&quot; &gt;
+                         &lt;munder class=&quot;msub&quot;&gt;&lt;mrow 
+&gt;&lt;mi class=&quot;qopname&quot;&gt;lim&lt;/mi&gt;&lt;mo&gt; &amp;ApplyFunction;&lt;!--FUNCTION APPLICATION--&gt; &lt;/mo&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;x&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-rel&quot;&gt;→&lt;/mo&gt;&lt;mn&gt;0&lt;/mn&gt;&lt;/mrow&gt;&lt;/munder 
+&gt;&lt;mfrac&gt;&lt;mrow 
+&gt;&lt;mi class=&quot;qopname&quot;&gt; sin&lt;/mi&gt;&lt;mo&gt; &amp;ApplyFunction;&lt;!--FUNCTION APPLICATION--&gt; &lt;/mo&gt;&lt;!--nolimits--&gt;&lt;mo 
+class=&quot;MathClass-open&quot;&gt;(&lt;/mo&gt;&lt;mi 
+&gt;x&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-close&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt; 
+   &lt;mrow 
+&gt;&lt;mi 
+&gt;x&lt;/mi&gt;&lt;/mrow&gt;&lt;/mfrac&gt;    &lt;mo 
+class=&quot;MathClass-rel&quot;&gt;=&lt;/mo&gt; &lt;mn&gt;1&lt;/mn&gt;
+&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 2: pandoc -->
+      <div class="render-col">
+        <div class="col-title pdc">
+          <span>Pandoc</span>
+          <span class="char-count">444 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><munder><mo>lim</mo><mrow><mi>x</mi><mo>→</mo><mn>0</mn></mrow></munder><mfrac><mrow><mo>sin</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>x</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><mi>x</mi></mfrac><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\lim_{x \to 0} \frac{\sin(x)}{x} = 1</annotation></semantics></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math display=&quot;block&quot; xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;semantics&gt;&lt;mrow&gt;&lt;munder&gt;&lt;mo&gt;lim&lt;/mo&gt;&lt;mrow&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mo&gt;→&lt;/mo&gt;&lt;mn&gt;0&lt;/mn&gt;&lt;/mrow&gt;&lt;/munder&gt;&lt;mfrac&gt;&lt;mrow&gt;&lt;mo&gt;sin&lt;/mo&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;prefix&quot;&gt;(&lt;/mo&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;/mrow&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;/mfrac&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt;&lt;annotation encoding=&quot;application/x-tex&quot;&gt;\lim_{x \to 0} \frac{\sin(x)}{x} = 1&lt;/annotation&gt;&lt;/semantics&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 3: latex2mathml -->
+      <div class="render-col">
+        <div class="col-title l2m">
+          <span>latex2mathml</span>
+          <span class="char-count">332 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mo>lim</mo><mrow><mi>x</mi><mo>&#x02192;</mo><mn>0</mn></mrow></msub><mfrac><mrow><mi>sin</mi><mo stretchy="false">&#x00028;</mo><mi>x</mi><mo stretchy="false">&#x00029;</mo></mrow><mrow><mi>x</mi></mrow></mfrac><mo>&#x0003D;</mo><mn>1</mn></mrow></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot; display=&quot;block&quot;&gt;&lt;mrow&gt;&lt;msub&gt;&lt;mo&gt;lim&lt;/mo&gt;&lt;mrow&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mo&gt;&amp;#x02192;&lt;/mo&gt;&lt;mn&gt;0&lt;/mn&gt;&lt;/mrow&gt;&lt;/msub&gt;&lt;mfrac&gt;&lt;mrow&gt;&lt;mi&gt;sin&lt;/mi&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00028;&lt;/mo&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00029;&lt;/mo&gt;&lt;/mrow&gt;&lt;mrow&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;mo&gt;&amp;#x0003D;&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <div class="eq-card" data-category="display">
+    <div class="eq-header">
+      <div>
+        <h3>Normal Distribution Probability Density Function</h3>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Testing nested fractions, exponential with stretchy outer parentheses \left( ... \right).</span>
+      </div>
+      <div><span class="tag tag-display">Display Math</span></div>
+    </div>
+
+    <div class="latex-source-bar">
+      <strong>LaTeX Source:</strong>
+      <code>f(x \mid \mu, \sigma^2) = \frac{1}{\sigma \sqrt{2\pi}} \exp\left( -\frac{(x-\mu)^2}{2\sigma^2} \right)</code>
+    </div>
+
+    <div class="render-grid">
+      <!-- Column 1: make4ht -->
+      <div class="render-col">
+        <div class="col-title m4ht">
+          <span>make4ht</span>
+          <span class="char-count">1040 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="block" >
+                  <mi 
+>f</mi><mo 
+class="MathClass-open">(</mo><mi 
+>x</mi><mo 
+class="MathClass-rel">∣</mo><mi 
+>μ</mi><mo 
+class="MathClass-punc">,</mo><msup><mrow 
+><mi 
+>σ</mi></mrow><mrow 
+><mn>2</mn></mrow></msup 
+><mo 
+class="MathClass-close">)</mo> <mo 
+class="MathClass-rel">=</mo>    <mfrac><mrow 
+><mn>1</mn></mrow> 
+<mrow 
+><mi 
+>σ</mi><msqrt><mrow><mn>2</mn><mi 
+>π</mi></mrow></msqrt></mrow></mfrac><mi class="qopname">exp</mi><mo> &ApplyFunction;<!--FUNCTION APPLICATION--> </mo><!--nolimits--> <mrow><mo fence="true" form="prefix"> (</mo><mrow><mo 
+class="MathClass-bin">−</mo><mfrac><mrow 
+><msup><mrow 
+><mo 
+class="MathClass-open">(</mo><mi 
+>x</mi> <mo 
+class="MathClass-bin">−</mo> <mi 
+>μ</mi><mo 
+class="MathClass-close">)</mo></mrow><mrow 
+><mn>2</mn></mrow></msup 
+></mrow>
+    <mrow 
+><mn>2</mn><msup><mrow 
+><mi 
+>σ</mi></mrow><mrow 
+><mn>2</mn></mrow></msup 
+></mrow></mfrac>     </mrow><mo fence="true" form="postfix">)</mo></mrow>
+</math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math 
+ xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;  
+display=&quot;block&quot; &gt;
+                  &lt;mi 
+&gt;f&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-open&quot;&gt;(&lt;/mo&gt;&lt;mi 
+&gt;x&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-rel&quot;&gt;∣&lt;/mo&gt;&lt;mi 
+&gt;μ&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-punc&quot;&gt;,&lt;/mo&gt;&lt;msup&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;σ&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/mrow&gt;&lt;/msup 
+&gt;&lt;mo 
+class=&quot;MathClass-close&quot;&gt;)&lt;/mo&gt; &lt;mo 
+class=&quot;MathClass-rel&quot;&gt;=&lt;/mo&gt;    &lt;mfrac&gt;&lt;mrow 
+&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt; 
+&lt;mrow 
+&gt;&lt;mi 
+&gt;σ&lt;/mi&gt;&lt;msqrt&gt;&lt;mrow&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;mi 
+&gt;π&lt;/mi&gt;&lt;/mrow&gt;&lt;/msqrt&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;mi class=&quot;qopname&quot;&gt;exp&lt;/mi&gt;&lt;mo&gt; &amp;ApplyFunction;&lt;!--FUNCTION APPLICATION--&gt; &lt;/mo&gt;&lt;!--nolimits--&gt; &lt;mrow&gt;&lt;mo fence=&quot;true&quot; form=&quot;prefix&quot;&gt; (&lt;/mo&gt;&lt;mrow&gt;&lt;mo 
+class=&quot;MathClass-bin&quot;&gt;−&lt;/mo&gt;&lt;mfrac&gt;&lt;mrow 
+&gt;&lt;msup&gt;&lt;mrow 
+&gt;&lt;mo 
+class=&quot;MathClass-open&quot;&gt;(&lt;/mo&gt;&lt;mi 
+&gt;x&lt;/mi&gt; &lt;mo 
+class=&quot;MathClass-bin&quot;&gt;−&lt;/mo&gt; &lt;mi 
+&gt;μ&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-close&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/mrow&gt;&lt;/msup 
+&gt;&lt;/mrow&gt;
+    &lt;mrow 
+&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;msup&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;σ&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/mrow&gt;&lt;/msup 
+&gt;&lt;/mrow&gt;&lt;/mfrac&gt;     &lt;/mrow&gt;&lt;mo fence=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;
+&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 2: pandoc -->
+      <div class="render-col">
+        <div class="col-title pdc">
+          <span>Pandoc</span>
+          <span class="char-count">881 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>x</mi><mo>∣</mo><mi>μ</mi><mo>,</mo><msup><mi>σ</mi><mn>2</mn></msup><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mfrac><mn>1</mn><mrow><mi>σ</mi><msqrt><mrow><mn>2</mn><mi>π</mi></mrow></msqrt></mrow></mfrac><mo>exp</mo><mrow><mo stretchy="true" form="prefix">(</mo><mo>−</mo><mfrac><msup><mrow><mo stretchy="true" form="prefix">(</mo><mi>x</mi><mo>−</mo><mi>μ</mi><mo stretchy="true" form="postfix">)</mo></mrow><mn>2</mn></msup><mrow><mn>2</mn><msup><mi>σ</mi><mn>2</mn></msup></mrow></mfrac><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">f(x \mid \mu, \sigma^2) = \frac{1}{\sigma \sqrt{2\pi}} \exp\left( -\frac{(x-\mu)^2}{2\sigma^2} \right)</annotation></semantics></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math display=&quot;block&quot; xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;semantics&gt;&lt;mrow&gt;&lt;mi&gt;f&lt;/mi&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;prefix&quot;&gt;(&lt;/mo&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mo&gt;∣&lt;/mo&gt;&lt;mi&gt;μ&lt;/mi&gt;&lt;mo&gt;,&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;σ&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mfrac&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;mrow&gt;&lt;mi&gt;σ&lt;/mi&gt;&lt;msqrt&gt;&lt;mrow&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;mi&gt;π&lt;/mi&gt;&lt;/mrow&gt;&lt;/msqrt&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;mo&gt;exp&lt;/mo&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;prefix&quot;&gt;(&lt;/mo&gt;&lt;mo&gt;−&lt;/mo&gt;&lt;mfrac&gt;&lt;msup&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;prefix&quot;&gt;(&lt;/mo&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mo&gt;−&lt;/mo&gt;&lt;mi&gt;μ&lt;/mi&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mrow&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;msup&gt;&lt;mi&gt;σ&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;/mrow&gt;&lt;annotation encoding=&quot;application/x-tex&quot;&gt;f(x \mid \mu, \sigma^2) = \frac{1}{\sigma \sqrt{2\pi}} \exp\left( -\frac{(x-\mu)^2}{2\sigma^2} \right)&lt;/annotation&gt;&lt;/semantics&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 3: latex2mathml -->
+      <div class="render-col">
+        <div class="col-title l2m">
+          <span>latex2mathml</span>
+          <span class="char-count">810 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>f</mi><mo stretchy="false">&#x00028;</mo><mi>x</mi><mo>&#x02223;</mo><mi>&#x003BC;</mi><mo>&#x0002C;</mo><msup><mi>&#x003C3;</mi><mn>2</mn></msup><mo stretchy="false">&#x00029;</mo><mo>&#x0003D;</mo><mfrac><mrow><mn>1</mn></mrow><mrow><mi>&#x003C3;</mi><msqrt><mrow><mn>2</mn><mi>&#x003C0;</mi></mrow></msqrt></mrow></mfrac><mi>exp</mi><mrow><mo stretchy="true" fence="true" form="prefix">&#x00028;</mo><mo>&#x02212;</mo><mfrac><mrow><mo stretchy="false">&#x00028;</mo><mi>x</mi><mo>&#x02212;</mo><mi>&#x003BC;</mi><msup><mo stretchy="false">&#x00029;</mo><mn>2</mn></msup></mrow><mrow><mn>2</mn><msup><mi>&#x003C3;</mi><mn>2</mn></msup></mrow></mfrac><mo stretchy="true" fence="true" form="postfix">&#x00029;</mo></mrow></mrow></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot; display=&quot;block&quot;&gt;&lt;mrow&gt;&lt;mi&gt;f&lt;/mi&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00028;&lt;/mo&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mo&gt;&amp;#x02223;&lt;/mo&gt;&lt;mi&gt;&amp;#x003BC;&lt;/mi&gt;&lt;mo&gt;&amp;#x0002C;&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;&amp;#x003C3;&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00029;&lt;/mo&gt;&lt;mo&gt;&amp;#x0003D;&lt;/mo&gt;&lt;mfrac&gt;&lt;mrow&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt;&lt;mrow&gt;&lt;mi&gt;&amp;#x003C3;&lt;/mi&gt;&lt;msqrt&gt;&lt;mrow&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;mi&gt;&amp;#x003C0;&lt;/mi&gt;&lt;/mrow&gt;&lt;/msqrt&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;mi&gt;exp&lt;/mi&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; fence=&quot;true&quot; form=&quot;prefix&quot;&gt;&amp;#x00028;&lt;/mo&gt;&lt;mo&gt;&amp;#x02212;&lt;/mo&gt;&lt;mfrac&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00028;&lt;/mo&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mo&gt;&amp;#x02212;&lt;/mo&gt;&lt;mi&gt;&amp;#x003BC;&lt;/mi&gt;&lt;msup&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00029;&lt;/mo&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;/mrow&gt;&lt;mrow&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;msup&gt;&lt;mi&gt;&amp;#x003C3;&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;mo stretchy=&quot;true&quot; fence=&quot;true&quot; form=&quot;postfix&quot;&gt;&amp;#x00029;&lt;/mo&gt;&lt;/mrow&gt;&lt;/mrow&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <div class="eq-card" data-category="display">
+    <div class="eq-header">
+      <div>
+        <h3>Machine Learning: Softmax Function</h3>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Testing bold vector notation, summation index bounds, and embedded \text{...}.</span>
+      </div>
+      <div><span class="tag tag-display">Display Math</span></div>
+    </div>
+
+    <div class="latex-source-bar">
+      <strong>LaTeX Source:</strong>
+      <code>\sigma(\mathbf{z})_i = \frac{e^{z_i}}{\sum_{j=1}^K e^{z_j}} \quad \text{for } i = 1, \dots, K</code>
+    </div>
+
+    <div class="render-grid">
+      <!-- Column 1: make4ht -->
+      <div class="render-col">
+        <div class="col-title m4ht">
+          <span>make4ht</span>
+          <span class="char-count">1123 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="block" >
+                   <mi 
+>σ</mi><msub><mrow 
+><mo 
+class="MathClass-open">(</mo><mstyle mathvariant="bold"><mi 
+>z</mi></mstyle><mo 
+class="MathClass-close">)</mo></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+> <mo 
+class="MathClass-rel">=</mo>       <mfrac><mrow 
+><msup><mrow 
+><mi 
+>e</mi></mrow><mrow 
+><msub><mrow 
+><mi 
+>z</mi></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+></mrow></msup 
+></mrow> 
+<mrow 
+><munderover accentunder="false" accent="false"><mrow  
+><mo  
+> ∑</mo>
+  </mrow><mrow 
+><mi 
+>j</mi><mo 
+class="MathClass-rel">=</mo><mn>1</mn></mrow><mrow 
+><mi 
+>K</mi></mrow></munderover 
+><msup><mrow 
+><mi 
+>e</mi></mrow><mrow 
+><msub><mrow 
+><mi 
+>z</mi></mrow><mrow 
+><mi 
+>j</mi></mrow></msub 
+></mrow></msup 
+></mrow></mfrac><mspace width="1em" class="quad"/><mstyle 
+class="text"><mtext  >for </mtext></mstyle><mi 
+>i</mi> <mo 
+class="MathClass-rel">=</mo> <mn>1</mn><mo 
+class="MathClass-punc">,</mo><mi 
+class="MathClass-op">…</mi><mo> &ApplyFunction;<!--FUNCTION APPLICATION--></mo><mo 
+class="MathClass-punc">,</mo><mi 
+>K</mi>
+</math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math 
+ xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;  
+display=&quot;block&quot; &gt;
+                   &lt;mi 
+&gt;σ&lt;/mi&gt;&lt;msub&gt;&lt;mrow 
+&gt;&lt;mo 
+class=&quot;MathClass-open&quot;&gt;(&lt;/mo&gt;&lt;mstyle mathvariant=&quot;bold&quot;&gt;&lt;mi 
+&gt;z&lt;/mi&gt;&lt;/mstyle&gt;&lt;mo 
+class=&quot;MathClass-close&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;i&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub 
+&gt; &lt;mo 
+class=&quot;MathClass-rel&quot;&gt;=&lt;/mo&gt;       &lt;mfrac&gt;&lt;mrow 
+&gt;&lt;msup&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;e&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;msub&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;z&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;i&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub 
+&gt;&lt;/mrow&gt;&lt;/msup 
+&gt;&lt;/mrow&gt; 
+&lt;mrow 
+&gt;&lt;munderover accentunder=&quot;false&quot; accent=&quot;false&quot;&gt;&lt;mrow  
+&gt;&lt;mo  
+&gt; ∑&lt;/mo&gt;
+  &lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;j&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-rel&quot;&gt;=&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;K&lt;/mi&gt;&lt;/mrow&gt;&lt;/munderover 
+&gt;&lt;msup&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;e&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;msub&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;z&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;j&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub 
+&gt;&lt;/mrow&gt;&lt;/msup 
+&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;mspace width=&quot;1em&quot; class=&quot;quad&quot;/&gt;&lt;mstyle 
+class=&quot;text&quot;&gt;&lt;mtext  &gt;for &lt;/mtext&gt;&lt;/mstyle&gt;&lt;mi 
+&gt;i&lt;/mi&gt; &lt;mo 
+class=&quot;MathClass-rel&quot;&gt;=&lt;/mo&gt; &lt;mn&gt;1&lt;/mn&gt;&lt;mo 
+class=&quot;MathClass-punc&quot;&gt;,&lt;/mo&gt;&lt;mi 
+class=&quot;MathClass-op&quot;&gt;…&lt;/mi&gt;&lt;mo&gt; &amp;ApplyFunction;&lt;!--FUNCTION APPLICATION--&gt;&lt;/mo&gt;&lt;mo 
+class=&quot;MathClass-punc&quot;&gt;,&lt;/mo&gt;&lt;mi 
+&gt;K&lt;/mi&gt;
+&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 2: pandoc -->
+      <div class="render-col">
+        <div class="col-title pdc">
+          <span>Pandoc</span>
+          <span class="char-count">853 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><msub><mrow><mo stretchy="true" form="prefix">(</mo><mstyle mathvariant="bold"><mi>𝐳</mi></mstyle><mo stretchy="true" form="postfix">)</mo></mrow><mi>i</mi></msub><mo>=</mo><mfrac><msup><mi>e</mi><msub><mi>z</mi><mi>i</mi></msub></msup><mrow><munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><mi>K</mi></munderover><msup><mi>e</mi><msub><mi>z</mi><mi>j</mi></msub></msup></mrow></mfrac><mspace width="1.0em"></mspace><mrow><mtext mathvariant="normal">for </mtext><mspace width="0.333em"></mspace></mrow><mi>i</mi><mo>=</mo><mn>1</mn><mo>,</mo><mi>…</mi><mo>,</mo><mi>K</mi></mrow><annotation encoding="application/x-tex">\sigma(\mathbf{z})_i = \frac{e^{z_i}}{\sum_{j=1}^K e^{z_j}} \quad \text{for } i = 1, \dots, K</annotation></semantics></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math display=&quot;block&quot; xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;semantics&gt;&lt;mrow&gt;&lt;mi&gt;σ&lt;/mi&gt;&lt;msub&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;prefix&quot;&gt;(&lt;/mo&gt;&lt;mstyle mathvariant=&quot;bold&quot;&gt;&lt;mi&gt;𝐳&lt;/mi&gt;&lt;/mstyle&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;/msub&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mfrac&gt;&lt;msup&gt;&lt;mi&gt;e&lt;/mi&gt;&lt;msub&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;/msub&gt;&lt;/msup&gt;&lt;mrow&gt;&lt;munderover&gt;&lt;mo&gt;∑&lt;/mo&gt;&lt;mrow&gt;&lt;mi&gt;j&lt;/mi&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt;&lt;mi&gt;K&lt;/mi&gt;&lt;/munderover&gt;&lt;msup&gt;&lt;mi&gt;e&lt;/mi&gt;&lt;msub&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;mi&gt;j&lt;/mi&gt;&lt;/msub&gt;&lt;/msup&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;mspace width=&quot;1.0em&quot;&gt;&lt;/mspace&gt;&lt;mrow&gt;&lt;mtext mathvariant=&quot;normal&quot;&gt;for &lt;/mtext&gt;&lt;mspace width=&quot;0.333em&quot;&gt;&lt;/mspace&gt;&lt;/mrow&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;mo&gt;,&lt;/mo&gt;&lt;mi&gt;…&lt;/mi&gt;&lt;mo&gt;,&lt;/mo&gt;&lt;mi&gt;K&lt;/mi&gt;&lt;/mrow&gt;&lt;annotation encoding=&quot;application/x-tex&quot;&gt;\sigma(\mathbf{z})_i = \frac{e^{z_i}}{\sum_{j=1}^K e^{z_j}} \quad \text{for } i = 1, \dots, K&lt;/annotation&gt;&lt;/semantics&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 3: latex2mathml -->
+      <div class="render-col">
+        <div class="col-title l2m">
+          <span>latex2mathml</span>
+          <span class="char-count">660 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>&#x003C3;</mi><mo stretchy="false">&#x00028;</mo><mi>&#x1D433;</mi><msub><mo stretchy="false">&#x00029;</mo><mi>i</mi></msub><mo>&#x0003D;</mo><mfrac><mrow><msup><mi>e</mi><mrow><msub><mi>z</mi><mi>i</mi></msub></mrow></msup></mrow><mrow><msubsup><mo>&#x02211;</mo><mrow><mi>j</mi><mo>&#x0003D;</mo><mn>1</mn></mrow><mi>K</mi></msubsup><msup><mi>e</mi><mrow><msub><mi>z</mi><mi>j</mi></msub></mrow></msup></mrow></mfrac><mspace width="1em" /><mtext>for&#x000A0;</mtext><mi>i</mi><mo>&#x0003D;</mo><mn>1</mn><mo>&#x0002C;</mo><mo>&#x02026;</mo><mo>&#x0002C;</mo><mi>K</mi></mrow></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot; display=&quot;block&quot;&gt;&lt;mrow&gt;&lt;mi&gt;&amp;#x003C3;&lt;/mi&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00028;&lt;/mo&gt;&lt;mi&gt;&amp;#x1D433;&lt;/mi&gt;&lt;msub&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00029;&lt;/mo&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;/msub&gt;&lt;mo&gt;&amp;#x0003D;&lt;/mo&gt;&lt;mfrac&gt;&lt;mrow&gt;&lt;msup&gt;&lt;mi&gt;e&lt;/mi&gt;&lt;mrow&gt;&lt;msub&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;/msub&gt;&lt;/mrow&gt;&lt;/msup&gt;&lt;/mrow&gt;&lt;mrow&gt;&lt;msubsup&gt;&lt;mo&gt;&amp;#x02211;&lt;/mo&gt;&lt;mrow&gt;&lt;mi&gt;j&lt;/mi&gt;&lt;mo&gt;&amp;#x0003D;&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt;&lt;mi&gt;K&lt;/mi&gt;&lt;/msubsup&gt;&lt;msup&gt;&lt;mi&gt;e&lt;/mi&gt;&lt;mrow&gt;&lt;msub&gt;&lt;mi&gt;z&lt;/mi&gt;&lt;mi&gt;j&lt;/mi&gt;&lt;/msub&gt;&lt;/mrow&gt;&lt;/msup&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;mspace width=&quot;1em&quot; /&gt;&lt;mtext&gt;for&amp;#x000A0;&lt;/mtext&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;mo&gt;&amp;#x0003D;&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;mo&gt;&amp;#x0002C;&lt;/mo&gt;&lt;mo&gt;&amp;#x02026;&lt;/mo&gt;&lt;mo&gt;&amp;#x0002C;&lt;/mo&gt;&lt;mi&gt;K&lt;/mi&gt;&lt;/mrow&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <div class="eq-card" data-category="display">
+    <div class="eq-header">
+      <div>
+        <h3>Machine Learning: Binary Cross-Entropy Loss</h3>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Hat accents (\hat{y}), logarithmic functions, and stretchy square brackets.</span>
+      </div>
+      <div><span class="tag tag-display">Display Math</span></div>
+    </div>
+
+    <div class="latex-source-bar">
+      <strong>LaTeX Source:</strong>
+      <code>\mathcal{L}(y, \hat{y}) = -\frac{1}{N} \sum_{i=1}^N \left[ y_i \log(\hat{y}_i) + (1 - y_i) \log(1 - \hat{y}_i) \right]</code>
+    </div>
+
+    <div class="render-grid">
+      <!-- Column 1: make4ht -->
+      <div class="render-col">
+        <div class="col-title m4ht">
+          <span>make4ht</span>
+          <span class="char-count">1482 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="block" >
+        <mi 
+mathvariant="bold-script">ℒ</mi><mo 
+class="MathClass-open">(</mo><mi 
+>y</mi><mo 
+class="MathClass-punc">,</mo><mi 
+>ŷ</mi><mo 
+class="MathClass-close">)</mo> <mo 
+class="MathClass-rel">=</mo> <mo 
+class="MathClass-bin">−</mo><mfrac><mrow 
+><mn>1</mn></mrow>
+<mrow 
+><mi 
+>N</mi></mrow></mfrac><munderover accentunder="false" accent="false"><mrow  
+><mo  
+>∑</mo>
+  </mrow><mrow 
+><mi 
+>i</mi><mo 
+class="MathClass-rel">=</mo><mn>1</mn></mrow><mrow 
+><mi 
+>N</mi></mrow></munderover 
+> <mrow><mo fence="true" form="prefix"> [</mo><mrow><msub><mrow 
+><mi 
+>y</mi></mrow><mrow 
+>
+<mi 
+>i</mi></mrow></msub 
+><mi class="qopname"> log</mi><mo> &ApplyFunction;<!--FUNCTION APPLICATION--> </mo><!--nolimits--><mo 
+class="MathClass-open">(</mo><msub><mrow 
+><mi 
+>ŷ</mi></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+><mo 
+class="MathClass-close">)</mo> <mo 
+class="MathClass-bin">+</mo> <mo 
+class="MathClass-open">(</mo><mn>1</mn> <mo 
+class="MathClass-bin">−</mo> <msub><mrow 
+><mi 
+>y</mi></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+><mo 
+class="MathClass-close">)</mo><mi class="qopname">log</mi><mo> &ApplyFunction;<!--FUNCTION APPLICATION--> </mo><!--nolimits--><mo 
+class="MathClass-open">(</mo><mn>1</mn> <mo 
+class="MathClass-bin">−</mo><msub><mrow 
+><mi 
+>ŷ</mi></mrow><mrow 
+><mi 
+>i</mi></mrow></msub 
+><mo 
+class="MathClass-close">)</mo></mrow><mo fence="true" form="postfix">]</mo></mrow>
+</math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math 
+ xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;  
+display=&quot;block&quot; &gt;
+        &lt;mi 
+mathvariant=&quot;bold-script&quot;&gt;ℒ&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-open&quot;&gt;(&lt;/mo&gt;&lt;mi 
+&gt;y&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-punc&quot;&gt;,&lt;/mo&gt;&lt;mi 
+&gt;ŷ&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-close&quot;&gt;)&lt;/mo&gt; &lt;mo 
+class=&quot;MathClass-rel&quot;&gt;=&lt;/mo&gt; &lt;mo 
+class=&quot;MathClass-bin&quot;&gt;−&lt;/mo&gt;&lt;mfrac&gt;&lt;mrow 
+&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt;
+&lt;mrow 
+&gt;&lt;mi 
+&gt;N&lt;/mi&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;munderover accentunder=&quot;false&quot; accent=&quot;false&quot;&gt;&lt;mrow  
+&gt;&lt;mo  
+&gt;∑&lt;/mo&gt;
+  &lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;i&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-rel&quot;&gt;=&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;N&lt;/mi&gt;&lt;/mrow&gt;&lt;/munderover 
+&gt; &lt;mrow&gt;&lt;mo fence=&quot;true&quot; form=&quot;prefix&quot;&gt; [&lt;/mo&gt;&lt;mrow&gt;&lt;msub&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;y&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;
+&lt;mi 
+&gt;i&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub 
+&gt;&lt;mi class=&quot;qopname&quot;&gt; log&lt;/mi&gt;&lt;mo&gt; &amp;ApplyFunction;&lt;!--FUNCTION APPLICATION--&gt; &lt;/mo&gt;&lt;!--nolimits--&gt;&lt;mo 
+class=&quot;MathClass-open&quot;&gt;(&lt;/mo&gt;&lt;msub&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;ŷ&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;i&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub 
+&gt;&lt;mo 
+class=&quot;MathClass-close&quot;&gt;)&lt;/mo&gt; &lt;mo 
+class=&quot;MathClass-bin&quot;&gt;+&lt;/mo&gt; &lt;mo 
+class=&quot;MathClass-open&quot;&gt;(&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt; &lt;mo 
+class=&quot;MathClass-bin&quot;&gt;−&lt;/mo&gt; &lt;msub&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;y&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;i&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub 
+&gt;&lt;mo 
+class=&quot;MathClass-close&quot;&gt;)&lt;/mo&gt;&lt;mi class=&quot;qopname&quot;&gt;log&lt;/mi&gt;&lt;mo&gt; &amp;ApplyFunction;&lt;!--FUNCTION APPLICATION--&gt; &lt;/mo&gt;&lt;!--nolimits--&gt;&lt;mo 
+class=&quot;MathClass-open&quot;&gt;(&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt; &lt;mo 
+class=&quot;MathClass-bin&quot;&gt;−&lt;/mo&gt;&lt;msub&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;ŷ&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;i&lt;/mi&gt;&lt;/mrow&gt;&lt;/msub 
+&gt;&lt;mo 
+class=&quot;MathClass-close&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mo fence=&quot;true&quot; form=&quot;postfix&quot;&gt;]&lt;/mo&gt;&lt;/mrow&gt;
+&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 2: pandoc -->
+      <div class="render-col">
+        <div class="col-title pdc">
+          <span>Pandoc</span>
+          <span class="char-count">1294 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mstyle mathvariant="script"><mi>ℒ</mi></mstyle><mrow><mo stretchy="true" form="prefix">(</mo><mi>y</mi><mo>,</mo><mover><mi>y</mi><mo accent="true">̂</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mo>−</mo><mfrac><mn>1</mn><mi>N</mi></mfrac><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></munderover><mrow><mo stretchy="true" form="prefix">[</mo><msub><mi>y</mi><mi>i</mi></msub><mo>log</mo><mrow><mo stretchy="true" form="prefix">(</mo><msub><mover><mi>y</mi><mo accent="true">̂</mo></mover><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>+</mo><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>y</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>log</mo><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mover><mi>y</mi><mo accent="true">̂</mo></mover><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo stretchy="true" form="postfix">]</mo></mrow></mrow><annotation encoding="application/x-tex">\mathcal{L}(y, \hat{y}) = -\frac{1}{N} \sum_{i=1}^N \left[ y_i \log(\hat{y}_i) + (1 - y_i) \log(1 - \hat{y}_i) \right]</annotation></semantics></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math display=&quot;block&quot; xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;semantics&gt;&lt;mrow&gt;&lt;mstyle mathvariant=&quot;script&quot;&gt;&lt;mi&gt;ℒ&lt;/mi&gt;&lt;/mstyle&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;prefix&quot;&gt;(&lt;/mo&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mo&gt;,&lt;/mo&gt;&lt;mover&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mo accent=&quot;true&quot;&gt;̂&lt;/mo&gt;&lt;/mover&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mo&gt;−&lt;/mo&gt;&lt;mfrac&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;mi&gt;N&lt;/mi&gt;&lt;/mfrac&gt;&lt;munderover&gt;&lt;mo&gt;∑&lt;/mo&gt;&lt;mrow&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt;&lt;mi&gt;N&lt;/mi&gt;&lt;/munderover&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;prefix&quot;&gt;[&lt;/mo&gt;&lt;msub&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;/msub&gt;&lt;mo&gt;log&lt;/mo&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;prefix&quot;&gt;(&lt;/mo&gt;&lt;msub&gt;&lt;mover&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mo accent=&quot;true&quot;&gt;̂&lt;/mo&gt;&lt;/mover&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;/msub&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mo&gt;+&lt;/mo&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;prefix&quot;&gt;(&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;mo&gt;−&lt;/mo&gt;&lt;msub&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;/msub&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mo&gt;log&lt;/mo&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;prefix&quot;&gt;(&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;mo&gt;−&lt;/mo&gt;&lt;msub&gt;&lt;mover&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mo accent=&quot;true&quot;&gt;̂&lt;/mo&gt;&lt;/mover&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;/msub&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;postfix&quot;&gt;]&lt;/mo&gt;&lt;/mrow&gt;&lt;/mrow&gt;&lt;annotation encoding=&quot;application/x-tex&quot;&gt;\mathcal{L}(y, \hat{y}) = -\frac{1}{N} \sum_{i=1}^N \left[ y_i \log(\hat{y}_i) + (1 - y_i) \log(1 - \hat{y}_i) \right]&lt;/annotation&gt;&lt;/semantics&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 3: latex2mathml -->
+      <div class="render-col">
+        <div class="col-title l2m">
+          <span>latex2mathml</span>
+          <span class="char-count">1161 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>&#x02112;</mi><mo stretchy="false">&#x00028;</mo><mi>y</mi><mo>&#x0002C;</mo><mover><mrow><mi>y</mi></mrow><mo stretchy="false">&#x0005E;</mo></mover><mo stretchy="false">&#x00029;</mo><mo>&#x0003D;</mo><mo>&#x02212;</mo><mfrac><mrow><mn>1</mn></mrow><mrow><mi>N</mi></mrow></mfrac><munderover><mo>&#x02211;</mo><mrow><mi>i</mi><mo>&#x0003D;</mo><mn>1</mn></mrow><mi>N</mi></munderover><mrow><mo stretchy="true" fence="true" form="prefix">[</mo><msub><mi>y</mi><mi>i</mi></msub><mi>log</mi><mo stretchy="false">&#x00028;</mo><msub><mover><mrow><mi>y</mi></mrow><mo stretchy="false">&#x0005E;</mo></mover><mi>i</mi></msub><mo stretchy="false">&#x00029;</mo><mo>&#x0002B;</mo><mo stretchy="false">&#x00028;</mo><mn>1</mn><mo>&#x02212;</mo><msub><mi>y</mi><mi>i</mi></msub><mo stretchy="false">&#x00029;</mo><mi>log</mi><mo stretchy="false">&#x00028;</mo><mn>1</mn><mo>&#x02212;</mo><msub><mover><mrow><mi>y</mi></mrow><mo stretchy="false">&#x0005E;</mo></mover><mi>i</mi></msub><mo stretchy="false">&#x00029;</mo><mo stretchy="true" fence="true" form="postfix">]</mo></mrow></mrow></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot; display=&quot;block&quot;&gt;&lt;mrow&gt;&lt;mi&gt;&amp;#x02112;&lt;/mi&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00028;&lt;/mo&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mo&gt;&amp;#x0002C;&lt;/mo&gt;&lt;mover&gt;&lt;mrow&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;/mrow&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x0005E;&lt;/mo&gt;&lt;/mover&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00029;&lt;/mo&gt;&lt;mo&gt;&amp;#x0003D;&lt;/mo&gt;&lt;mo&gt;&amp;#x02212;&lt;/mo&gt;&lt;mfrac&gt;&lt;mrow&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt;&lt;mrow&gt;&lt;mi&gt;N&lt;/mi&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;munderover&gt;&lt;mo&gt;&amp;#x02211;&lt;/mo&gt;&lt;mrow&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;mo&gt;&amp;#x0003D;&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;/mrow&gt;&lt;mi&gt;N&lt;/mi&gt;&lt;/munderover&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; fence=&quot;true&quot; form=&quot;prefix&quot;&gt;[&lt;/mo&gt;&lt;msub&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;/msub&gt;&lt;mi&gt;log&lt;/mi&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00028;&lt;/mo&gt;&lt;msub&gt;&lt;mover&gt;&lt;mrow&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;/mrow&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x0005E;&lt;/mo&gt;&lt;/mover&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;/msub&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00029;&lt;/mo&gt;&lt;mo&gt;&amp;#x0002B;&lt;/mo&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00028;&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;mo&gt;&amp;#x02212;&lt;/mo&gt;&lt;msub&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;/msub&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00029;&lt;/mo&gt;&lt;mi&gt;log&lt;/mi&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00028;&lt;/mo&gt;&lt;mn&gt;1&lt;/mn&gt;&lt;mo&gt;&amp;#x02212;&lt;/mo&gt;&lt;msub&gt;&lt;mover&gt;&lt;mrow&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;/mrow&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x0005E;&lt;/mo&gt;&lt;/mover&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;/msub&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00029;&lt;/mo&gt;&lt;mo stretchy=&quot;true&quot; fence=&quot;true&quot; form=&quot;postfix&quot;&gt;]&lt;/mo&gt;&lt;/mrow&gt;&lt;/mrow&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <div class="eq-card" data-category="display">
+    <div class="eq-header">
+      <div>
+        <h3>Bayes' Theorem with Conditional Probability</h3>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Testing vertical conditioning bar (\mid) with proper relational operator spacing.</span>
+      </div>
+      <div><span class="tag tag-display">Display Math</span></div>
+    </div>
+
+    <div class="latex-source-bar">
+      <strong>LaTeX Source:</strong>
+      <code>P(A \mid B) = \frac{P(B \mid A) P(A)}{P(B)}</code>
+    </div>
+
+    <div class="render-grid">
+      <!-- Column 1: make4ht -->
+      <div class="render-col">
+        <div class="col-title m4ht">
+          <span>make4ht</span>
+          <span class="char-count">650 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="block" >
+                      <mi 
+>P</mi><mo 
+class="MathClass-open">(</mo><mi 
+>A</mi><mo 
+class="MathClass-rel">∣</mo><mi 
+>B</mi><mo 
+class="MathClass-close">)</mo> <mo 
+class="MathClass-rel">=</mo> <mfrac><mrow 
+><mi 
+>P</mi><mo 
+class="MathClass-open">(</mo><mi 
+>B</mi><mo 
+class="MathClass-rel">∣</mo><mi 
+>A</mi><mo 
+class="MathClass-close">)</mo><mi 
+>P</mi><mo 
+class="MathClass-open">(</mo><mi 
+>A</mi><mo 
+class="MathClass-close">)</mo></mrow> 
+     <mrow 
+><mi 
+>P</mi><mo 
+class="MathClass-open">(</mo><mi 
+>B</mi><mo 
+class="MathClass-close">)</mo></mrow></mfrac>
+</math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math 
+ xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;  
+display=&quot;block&quot; &gt;
+                      &lt;mi 
+&gt;P&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-open&quot;&gt;(&lt;/mo&gt;&lt;mi 
+&gt;A&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-rel&quot;&gt;∣&lt;/mo&gt;&lt;mi 
+&gt;B&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-close&quot;&gt;)&lt;/mo&gt; &lt;mo 
+class=&quot;MathClass-rel&quot;&gt;=&lt;/mo&gt; &lt;mfrac&gt;&lt;mrow 
+&gt;&lt;mi 
+&gt;P&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-open&quot;&gt;(&lt;/mo&gt;&lt;mi 
+&gt;B&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-rel&quot;&gt;∣&lt;/mo&gt;&lt;mi 
+&gt;A&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-close&quot;&gt;)&lt;/mo&gt;&lt;mi 
+&gt;P&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-open&quot;&gt;(&lt;/mo&gt;&lt;mi 
+&gt;A&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-close&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt; 
+     &lt;mrow 
+&gt;&lt;mi 
+&gt;P&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-open&quot;&gt;(&lt;/mo&gt;&lt;mi 
+&gt;B&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-close&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;/mfrac&gt;
+&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 2: pandoc -->
+      <div class="render-col">
+        <div class="col-title pdc">
+          <span>Pandoc</span>
+          <span class="char-count">752 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>A</mi><mo>∣</mo><mi>B</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mfrac><mrow><mi>P</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>B</mi><mo>∣</mo><mi>A</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>P</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>A</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><mrow><mi>P</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>B</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow></mfrac></mrow><annotation encoding="application/x-tex">P(A \mid B) = \frac{P(B \mid A) P(A)}{P(B)}</annotation></semantics></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math display=&quot;block&quot; xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;semantics&gt;&lt;mrow&gt;&lt;mi&gt;P&lt;/mi&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;prefix&quot;&gt;(&lt;/mo&gt;&lt;mi&gt;A&lt;/mi&gt;&lt;mo&gt;∣&lt;/mo&gt;&lt;mi&gt;B&lt;/mi&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mfrac&gt;&lt;mrow&gt;&lt;mi&gt;P&lt;/mi&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;prefix&quot;&gt;(&lt;/mo&gt;&lt;mi&gt;B&lt;/mi&gt;&lt;mo&gt;∣&lt;/mo&gt;&lt;mi&gt;A&lt;/mi&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mi&gt;P&lt;/mi&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;prefix&quot;&gt;(&lt;/mo&gt;&lt;mi&gt;A&lt;/mi&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;/mrow&gt;&lt;mrow&gt;&lt;mi&gt;P&lt;/mi&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;prefix&quot;&gt;(&lt;/mo&gt;&lt;mi&gt;B&lt;/mi&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;/mrow&gt;&lt;annotation encoding=&quot;application/x-tex&quot;&gt;P(A \mid B) = \frac{P(B \mid A) P(A)}{P(B)}&lt;/annotation&gt;&lt;/semantics&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 3: latex2mathml -->
+      <div class="render-col">
+        <div class="col-title l2m">
+          <span>latex2mathml</span>
+          <span class="char-count">560 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>P</mi><mo stretchy="false">&#x00028;</mo><mi>A</mi><mo>&#x02223;</mo><mi>B</mi><mo stretchy="false">&#x00029;</mo><mo>&#x0003D;</mo><mfrac><mrow><mi>P</mi><mo stretchy="false">&#x00028;</mo><mi>B</mi><mo>&#x02223;</mo><mi>A</mi><mo stretchy="false">&#x00029;</mo><mi>P</mi><mo stretchy="false">&#x00028;</mo><mi>A</mi><mo stretchy="false">&#x00029;</mo></mrow><mrow><mi>P</mi><mo stretchy="false">&#x00028;</mo><mi>B</mi><mo stretchy="false">&#x00029;</mo></mrow></mfrac></mrow></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot; display=&quot;block&quot;&gt;&lt;mrow&gt;&lt;mi&gt;P&lt;/mi&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00028;&lt;/mo&gt;&lt;mi&gt;A&lt;/mi&gt;&lt;mo&gt;&amp;#x02223;&lt;/mo&gt;&lt;mi&gt;B&lt;/mi&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00029;&lt;/mo&gt;&lt;mo&gt;&amp;#x0003D;&lt;/mo&gt;&lt;mfrac&gt;&lt;mrow&gt;&lt;mi&gt;P&lt;/mi&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00028;&lt;/mo&gt;&lt;mi&gt;B&lt;/mi&gt;&lt;mo&gt;&amp;#x02223;&lt;/mo&gt;&lt;mi&gt;A&lt;/mi&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00029;&lt;/mo&gt;&lt;mi&gt;P&lt;/mi&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00028;&lt;/mo&gt;&lt;mi&gt;A&lt;/mi&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00029;&lt;/mo&gt;&lt;/mrow&gt;&lt;mrow&gt;&lt;mi&gt;P&lt;/mi&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00028;&lt;/mo&gt;&lt;mi&gt;B&lt;/mi&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00029;&lt;/mo&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;/mrow&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <div class="eq-card" data-category="display">
+    <div class="eq-header">
+      <div>
+        <h3>Linear Algebra: 2x2 Matrix & Determinant</h3>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Testing pmatrix grid environment, cell alignment, and determinant function.</span>
+      </div>
+      <div><span class="tag tag-display">Display Math</span></div>
+    </div>
+
+    <div class="latex-source-bar">
+      <strong>LaTeX Source:</strong>
+      <code>\mathbf{A} = \begin{pmatrix} a &amp; b \\ c &amp; d \end{pmatrix}, \quad \det(\mathbf{A}) = ad - bc</code>
+    </div>
+
+    <div class="render-grid">
+      <!-- Column 1: make4ht -->
+      <div class="render-col">
+        <div class="col-title m4ht">
+          <span>make4ht</span>
+          <span class="char-count">1174 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math 
+ xmlns="http://www.w3.org/1998/Math/MathML"  
+display="block" >
+<mstyle mathvariant="bold"><mi 
+>A</mi></mstyle> <mo 
+class="MathClass-rel">=</mo>  <mrow><mo fence="true" form="prefix"> (</mo><mrow><mtable  align="axis" style=""  
+equalrows="false" columnlines="none none none none none none none none none" equalcolumns="false" class="array"><mtr><mtd 
+class="array"  columnalign="center"><mi 
+>a</mi></mtd><mtd 
+class="array"  columnalign="center"><mi 
+>b</mi></mtd></mtr> <mtr><mtd 
+class="array"  columnalign="center"><mi 
+>c</mi></mtd> <mtd 
+class="array"  columnalign="center"><mi 
+>d</mi></mtd></mtr> <!--*\c@MaxMatrixCols c--></mtable>                                                                                  </mrow><mo fence="true" form="postfix">)</mo></mrow><mo 
+class="MathClass-punc">,</mo><mspace width="1em" class="quad"/><mi class="qopname">det</mi><mo> &ApplyFunction;<!--FUNCTION APPLICATION--> </mo><mo 
+class="MathClass-open">(</mo><mstyle mathvariant="bold"><mi 
+>A</mi></mstyle><mo 
+class="MathClass-close">)</mo> <mo 
+class="MathClass-rel">=</mo> <mi 
+>a</mi><mi 
+>d</mi><mo 
+class="MathClass-bin">−</mo><mi 
+>b</mi><mi 
+>c</mi>
+</math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math 
+ xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;  
+display=&quot;block&quot; &gt;
+&lt;mstyle mathvariant=&quot;bold&quot;&gt;&lt;mi 
+&gt;A&lt;/mi&gt;&lt;/mstyle&gt; &lt;mo 
+class=&quot;MathClass-rel&quot;&gt;=&lt;/mo&gt;  &lt;mrow&gt;&lt;mo fence=&quot;true&quot; form=&quot;prefix&quot;&gt; (&lt;/mo&gt;&lt;mrow&gt;&lt;mtable  align=&quot;axis&quot; style=&quot;&quot;  
+equalrows=&quot;false&quot; columnlines=&quot;none none none none none none none none none&quot; equalcolumns=&quot;false&quot; class=&quot;array&quot;&gt;&lt;mtr&gt;&lt;mtd 
+class=&quot;array&quot;  columnalign=&quot;center&quot;&gt;&lt;mi 
+&gt;a&lt;/mi&gt;&lt;/mtd&gt;&lt;mtd 
+class=&quot;array&quot;  columnalign=&quot;center&quot;&gt;&lt;mi 
+&gt;b&lt;/mi&gt;&lt;/mtd&gt;&lt;/mtr&gt; &lt;mtr&gt;&lt;mtd 
+class=&quot;array&quot;  columnalign=&quot;center&quot;&gt;&lt;mi 
+&gt;c&lt;/mi&gt;&lt;/mtd&gt; &lt;mtd 
+class=&quot;array&quot;  columnalign=&quot;center&quot;&gt;&lt;mi 
+&gt;d&lt;/mi&gt;&lt;/mtd&gt;&lt;/mtr&gt; &lt;!--*\c@MaxMatrixCols c--&gt;&lt;/mtable&gt;                                                                                  &lt;/mrow&gt;&lt;mo fence=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mo 
+class=&quot;MathClass-punc&quot;&gt;,&lt;/mo&gt;&lt;mspace width=&quot;1em&quot; class=&quot;quad&quot;/&gt;&lt;mi class=&quot;qopname&quot;&gt;det&lt;/mi&gt;&lt;mo&gt; &amp;ApplyFunction;&lt;!--FUNCTION APPLICATION--&gt; &lt;/mo&gt;&lt;mo 
+class=&quot;MathClass-open&quot;&gt;(&lt;/mo&gt;&lt;mstyle mathvariant=&quot;bold&quot;&gt;&lt;mi 
+&gt;A&lt;/mi&gt;&lt;/mstyle&gt;&lt;mo 
+class=&quot;MathClass-close&quot;&gt;)&lt;/mo&gt; &lt;mo 
+class=&quot;MathClass-rel&quot;&gt;=&lt;/mo&gt; &lt;mi 
+&gt;a&lt;/mi&gt;&lt;mi 
+&gt;d&lt;/mi&gt;&lt;mo 
+class=&quot;MathClass-bin&quot;&gt;−&lt;/mo&gt;&lt;mi 
+&gt;b&lt;/mi&gt;&lt;mi 
+&gt;c&lt;/mi&gt;
+&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 2: pandoc -->
+      <div class="render-col">
+        <div class="col-title pdc">
+          <span>Pandoc</span>
+          <span class="char-count">871 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mstyle mathvariant="bold"><mi>𝐀</mi></mstyle><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><mtable><mtr><mtd columnalign="center"><mi>a</mi></mtd><mtd columnalign="center"><mi>b</mi></mtd></mtr><mtr><mtd columnalign="center"><mi>c</mi></mtd><mtd columnalign="center"><mi>d</mi></mtd></mtr></mtable><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo><mspace width="1.0em"></mspace><mo>det</mo><mrow><mo stretchy="true" form="prefix">(</mo><mstyle mathvariant="bold"><mi>𝐀</mi></mstyle><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mi>a</mi><mi>d</mi><mo>−</mo><mi>b</mi><mi>c</mi></mrow><annotation encoding="application/x-tex">\mathbf{A} = \begin{pmatrix} a &amp; b \\ c &amp; d \end{pmatrix}, \quad \det(\mathbf{A}) = ad - bc</annotation></semantics></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math display=&quot;block&quot; xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;semantics&gt;&lt;mrow&gt;&lt;mstyle mathvariant=&quot;bold&quot;&gt;&lt;mi&gt;𝐀&lt;/mi&gt;&lt;/mstyle&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;prefix&quot;&gt;(&lt;/mo&gt;&lt;mtable&gt;&lt;mtr&gt;&lt;mtd columnalign=&quot;center&quot;&gt;&lt;mi&gt;a&lt;/mi&gt;&lt;/mtd&gt;&lt;mtd columnalign=&quot;center&quot;&gt;&lt;mi&gt;b&lt;/mi&gt;&lt;/mtd&gt;&lt;/mtr&gt;&lt;mtr&gt;&lt;mtd columnalign=&quot;center&quot;&gt;&lt;mi&gt;c&lt;/mi&gt;&lt;/mtd&gt;&lt;mtd columnalign=&quot;center&quot;&gt;&lt;mi&gt;d&lt;/mi&gt;&lt;/mtd&gt;&lt;/mtr&gt;&lt;/mtable&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mo&gt;,&lt;/mo&gt;&lt;mspace width=&quot;1.0em&quot;&gt;&lt;/mspace&gt;&lt;mo&gt;det&lt;/mo&gt;&lt;mrow&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;prefix&quot;&gt;(&lt;/mo&gt;&lt;mstyle mathvariant=&quot;bold&quot;&gt;&lt;mi&gt;𝐀&lt;/mi&gt;&lt;/mstyle&gt;&lt;mo stretchy=&quot;true&quot; form=&quot;postfix&quot;&gt;)&lt;/mo&gt;&lt;/mrow&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mi&gt;a&lt;/mi&gt;&lt;mi&gt;d&lt;/mi&gt;&lt;mo&gt;−&lt;/mo&gt;&lt;mi&gt;b&lt;/mi&gt;&lt;mi&gt;c&lt;/mi&gt;&lt;/mrow&gt;&lt;annotation encoding=&quot;application/x-tex&quot;&gt;\mathbf{A} = \begin{pmatrix} a &amp;amp; b \\ c &amp;amp; d \end{pmatrix}, \quad \det(\mathbf{A}) = ad - bc&lt;/annotation&gt;&lt;/semantics&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+
+      <!-- Column 3: latex2mathml -->
+      <div class="render-col">
+        <div class="col-title l2m">
+          <span>latex2mathml</span>
+          <span class="char-count">517 bytes</span>
+        </div>
+        <div class="render-stage">
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>&#x1D400;</mi><mo>&#x0003D;</mo><mo>&#x00028;</mo><mtable><mtr><mtd><mi>a</mi></mtd><mtd><mi>b</mi></mtd></mtr><mtr><mtd><mi>c</mi></mtd><mtd><mi>d</mi></mtd></mtr></mtable><mo>&#x00029;</mo><mo>&#x0002C;</mo><mspace width="1em" /><mo movablelimits="true">det</mo><mo stretchy="false">&#x00028;</mo><mi>&#x1D400;</mi><mo stretchy="false">&#x00029;</mo><mo>&#x0003D;</mo><mi>a</mi><mi>d</mi><mo>&#x02212;</mo><mi>b</mi><mi>c</mi></mrow></math>
+        </div>
+        <details class="xml-details">
+          <summary>View MathML XML</summary>
+          <pre class="xml-code">&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot; display=&quot;block&quot;&gt;&lt;mrow&gt;&lt;mi&gt;&amp;#x1D400;&lt;/mi&gt;&lt;mo&gt;&amp;#x0003D;&lt;/mo&gt;&lt;mo&gt;&amp;#x00028;&lt;/mo&gt;&lt;mtable&gt;&lt;mtr&gt;&lt;mtd&gt;&lt;mi&gt;a&lt;/mi&gt;&lt;/mtd&gt;&lt;mtd&gt;&lt;mi&gt;b&lt;/mi&gt;&lt;/mtd&gt;&lt;/mtr&gt;&lt;mtr&gt;&lt;mtd&gt;&lt;mi&gt;c&lt;/mi&gt;&lt;/mtd&gt;&lt;mtd&gt;&lt;mi&gt;d&lt;/mi&gt;&lt;/mtd&gt;&lt;/mtr&gt;&lt;/mtable&gt;&lt;mo&gt;&amp;#x00029;&lt;/mo&gt;&lt;mo&gt;&amp;#x0002C;&lt;/mo&gt;&lt;mspace width=&quot;1em&quot; /&gt;&lt;mo movablelimits=&quot;true&quot;&gt;det&lt;/mo&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00028;&lt;/mo&gt;&lt;mi&gt;&amp;#x1D400;&lt;/mi&gt;&lt;mo stretchy=&quot;false&quot;&gt;&amp;#x00029;&lt;/mo&gt;&lt;mo&gt;&amp;#x0003D;&lt;/mo&gt;&lt;mi&gt;a&lt;/mi&gt;&lt;mi&gt;d&lt;/mi&gt;&lt;mo&gt;&amp;#x02212;&lt;/mo&gt;&lt;mi&gt;b&lt;/mi&gt;&lt;mi&gt;c&lt;/mi&gt;&lt;/mrow&gt;&lt;/math&gt;</pre>
+        </details>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function filterCategory(cat, btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const cards = document.querySelectorAll('.eq-card');
+    cards.forEach(card => {
+      if (cat === 'all' || card.dataset.category === cat) {
+        card.style.display = 'block';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  let xmlExpanded = false;
+  function toggleAllXml() {
+    xmlExpanded = !xmlExpanded;
+    document.querySelectorAll('details.xml-details').forEach(d => {
+      d.open = xmlExpanded;
+    });
+  }
+</script>
+</body>
+</html>

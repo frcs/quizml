@@ -4,6 +4,7 @@ import logging
 import re
 
 import css_inline
+import latex2mathml.converter
 from bs4 import BeautifulSoup
 from mistletoe import span_token
 from mistletoe.html_renderer import HTMLRenderer
@@ -12,6 +13,7 @@ from quizml.cache import compute_hash, get_from_cache, save_to_cache
 from quizml.exceptions import LatexCompilationError, MarkdownAttributeError
 from quizml.transcoder.images import append_unique, embed_base64
 from quizml.transcoder.latextools import LatexRunner
+from quizml.transcoder.macros import LatexMacroExpander
 from quizml.transcoder.tokens import ImageWithWidth, MathDisplay, MathInline
 
 
@@ -309,10 +311,24 @@ def build_eq_dict_SVG(eq_list, opts):
     return eq_dict
 
 
+def strip_math_delimiters(content: str) -> str:
+    r"""Strips outer math delimiters ($...$, $$...$$, \(...\), \[...\])."""
+    s = content.strip()
+    if s.startswith("$$") and s.endswith("$$") and len(s) >= 4:
+        return s[2:-2].strip()
+    if s.startswith(r"\[") and s.endswith(r"\]") and len(s) >= 4:
+        return s[2:-2].strip()
+    if s.startswith("$") and s.endswith("$") and len(s) >= 2:
+        return s[1:-1].strip()
+    if s.startswith(r"\(") and s.endswith(r"\)") and len(s) >= 4:
+        return s[2:-2].strip()
+    return s
+
+
 def build_eq_dict_MathML(eq_list, opts):
     """returns a dictionary of MATHML eqs from a list of LaTeX equations.
 
-    LaTeX equations are compiled into MATHML using make4ht.
+    LaTeX equations are converted to MathML using latex2mathml with in-memory macro expansion.
     """
     eq_dict = {}
 
@@ -321,66 +337,39 @@ def build_eq_dict_MathML(eq_list, opts):
 
     template_latex_preamble = opts.get("html_pre", "\\usepackage{amsmath}\n")
     user_latex_preamble = opts.get("user_pre", "")
+    full_preamble = template_latex_preamble + "\n" + user_latex_preamble
 
-    latex_preamble = (
-        "\\documentclass{article}\n"
-        + template_latex_preamble
-        + user_latex_preamble
-        + "\\begin{document}\n"
-    )
-
-    settings_str = latex_preamble + "MathML"
-    to_compile = []
+    settings_str = full_preamble + "MathML-latex2mathml"
+    expander = LatexMacroExpander(full_preamble)
 
     for eq in eq_list:
         h = compute_hash(eq.content, settings_str)
         cached_html = get_from_cache(h)
-        if isinstance(eq, MathInline):
-            key = "##Inline##" + eq.content
-        else:
-            key = "##Display##" + eq.content
+        is_inline = isinstance(eq, MathInline)
+        key = ("##Inline##" if is_inline else "##Display##") + eq.content
 
         if cached_html:
             eq_dict[key] = cached_html
         else:
-            to_compile.append(eq)
-
-    if not to_compile:
-        return eq_dict
-
-    latex_body = "\n".join(eq.content for eq in to_compile)
-    latex_content = latex_preamble + latex_body + "\n\\end{document}\n"
-
-    try:
-        with LatexRunner() as latex_runner:
-            html_path = latex_runner.run_make4ht_mathml(latex_content)
-            make4ht_out = html_path.read_text(encoding="utf-8", errors="replace")
-
-            regex = r"(<math.*?<\/math>)"
-            eq_list_str = re.findall(regex, make4ht_out, re.DOTALL)
-
-            if len(eq_list_str) != len(to_compile):
+            clean_latex = strip_math_delimiters(eq.content)
+            expanded_latex = expander.expand(clean_latex)
+            disp_mode = "inline" if is_inline else "block"
+            try:
+                mathml = latex2mathml.converter.convert(
+                    expanded_latex, display=disp_mode
+                )
+            except Exception as err:
                 raise LatexCompilationError(
-                    "Mismatch between number of equations and make4ht output.\n"
-                    f"Expected {len(to_compile)}, got {len(eq_list_str)}."
+                    f"latex2mathml failed on equation: {eq.content}\n"
+                    f"Expanded: {expanded_latex}\nError: {err}"
                 )
 
-            for i, eq in enumerate(to_compile):
-                mathml = eq_list_str[i]
-                h = compute_hash(eq.content, settings_str)
-                save_to_cache(h, mathml)
-
-                if isinstance(eq, MathInline):
-                    key = "##Inline##" + eq.content
-                    logging.debug(f"[eq-inline] '{mathml}'")
-                    eq_dict[key] = mathml
-                else:
-                    key = "##Display##" + eq.content
-                    logging.debug(f"[eq-display] '{mathml}'")
-                    eq_dict[key] = mathml
-
-    except LatexCompilationError as e:
-        raise e
+            save_to_cache(h, mathml)
+            if is_inline:
+                logging.debug(f"[eq-inline] '{mathml}'")
+            else:
+                logging.debug(f"[eq-display] '{mathml}'")
+            eq_dict[key] = mathml
 
     return eq_dict
 
