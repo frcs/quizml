@@ -1,8 +1,15 @@
+
+
 def _get_docs_topics() -> str:
     try:
-        from quizml.cli.docs import get_all_topics
+        from quizml.cli.docs import get_docs_dir, parse_sidebar
 
-        return " ".join(sorted(get_all_topics()))
+        docs_dir = get_docs_dir()
+        items = parse_sidebar(docs_dir)
+        topics = ["all", "list", "overview"]
+        for item in items:
+            topics.append(item.path.stem.lower())
+        return " ".join(sorted(set(topics)))
     except Exception:
         return "all list overview quickstart usage syntax_yaml syntax_questions targets"
 
@@ -74,7 +81,7 @@ def fish(parser):
 
 
 def zsh(parser):
-    txt = "function _quizml(){\n  _arguments\\\n"
+    txt = "#compdef quizml\n\nfunction _quizml(){\n  _arguments\\\n"
     docs_topics = _get_docs_topics()
 
     for a in parser._action_groups[1]._group_actions:
@@ -83,7 +90,7 @@ def zsh(parser):
             if b == "--docs":
                 txt = (
                     txt
-                    + f"    '--docs[display documentation topics]::topic:({docs_topics})' \\\n"
+                    + f"    '--docs[display documentation topics]:topic:({docs_topics})' \\\n"
                 )
             elif b == "--shell-completion":
                 txt = (
@@ -93,5 +100,14 @@ def zsh(parser):
             else:
                 txt = txt + f"    '{b}[{help}]' \\\n"
 
-    txt = txt + r"    '*:yaml file:_files -g \*.\(yml\|yaml\)'" + "\n}\n"
+    txt = (
+        txt
+        + r"    '*:yaml file:_files -g \*.\(yml\|yaml\)'"
+        + "\n}\n\n"
+        + 'if [ "$funcstack[1]" = "_quizml" ]; then\n'
+        + '    _quizml "$@"\n'
+        + "else\n"
+        + "    compdef _quizml quizml\n"
+        + "fi\n"
+    )
     return txt

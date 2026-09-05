@@ -35,11 +35,20 @@ def test_bash_completion():
 def test_zsh_completion():
     parser = _build_dummy_parser()
     script = zsh(parser)
+    assert script.startswith("#compdef quizml")
     assert "function _quizml(){" in script
-    assert "--docs[display documentation topics]::topic:(" in script
+    assert "--docs[display documentation topics]:topic:(" in script
     assert "quickstart" in script
     assert "--shell-completion" in script
     assert "--no-pager" in script
+    assert 'if [ "$funcstack[1]" = "_quizml" ]; then' in script
+    assert "compdef _quizml quizml" in script
+
+    # Ensure topic list contains no shell metacharacters like & or /
+    topics_part = script.split(":topic:(")[1].split(")")[0]
+    for topic in topics_part.split():
+        assert "&" not in topic
+        assert "/" not in topic
 
 
 def test_fish_completion():

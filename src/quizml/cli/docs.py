@@ -104,8 +104,11 @@ def parse_sidebar(docs_dir: Path) -> list[DocItem]:
                 title_clean = title.lower().strip()
                 if title_clean:
                     aliases.append(title_clean)
-                    aliases.append(title_clean.replace(" ", "-"))
-                    aliases.append(title_clean.replace(" ", "_"))
+                    slug_base = re.sub(r"[^\w\s-]", " ", title_clean)
+                    slug_parts = slug_base.split()
+                    if slug_parts:
+                        aliases.append("-".join(slug_parts))
+                        aliases.append("_".join(slug_parts))
 
                 items.append(
                     DocItem(
