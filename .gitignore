@@ -38,3 +38,4 @@ dist
 *~
 localtest/
 scratch/
+tmp-*/

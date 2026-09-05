@@ -56,6 +56,13 @@ Custom delimiters are used to avoid conflicts with LaTeX:
 - **Internal:** `ruamel.yaml`, `rich`, `jinja2`, `docxtpl`, `latex2mathml`, `mistletoe`.
 - **External:** Requires a LaTeX installation (TeXLive/MacTeX) with `gs`, `dvisvgm`, `dvipdfmx`.
 
+### LMS Target Verification Status
+- **Moodle XML (`moodle`):** Verified with live Moodle Question Bank import.
+- **IMS QTI 2.1 (`qti21`):** Verified with live Blackboard Ultra Question Bank import.
+- **IMS QTI 1.2 (`qti` / `qti12`):** Implemented to spec, but has NOT yet been verified in a live Canvas/LMS environment.
+- **Blackboard Text (`bb`):** Verified with Blackboard Learn and Ultra CSV import.
+
 ## General Requirements
 - If requirements are ambiguous, ask the user for clarification before assuming.
 - Prefer modular architecture changes.
+
