@@ -56,14 +56,15 @@ path of the generated rendered BlackBoard test.
 
 
 #### `fmt` 
-This can be set to `latex`, `html`, `html-svg`, `html-mathml`. It is the format
+This can be set to `latex`, `html`, `html-svg`, `html-mathml`, or `html-math-hybrid`. It is the format
 that markdown gets converted to.
 
 
 In the example above BlackBoard format requires HTML code. You have then the
-choice between `html`, `html-svg` and `html-mathml`, depending on whether you
-wish to convert LaTeX equations into PNG images, SVG graphics, or MathML tags.
-We recommend using `html-svg` for BlackBoard.
+choice between `html`, `html-svg`, `html-mathml`, and `html-math-hybrid`, depending on whether you
+wish to convert LaTeX equations into PNG images, SVG graphics, MathML tags, or a hybrid
+(MathML for inline math to prevent broken lines, and PNG for crisp display equations).
+We recommend using `html-mathml` for Blackboard Ultra QTI 2.1 imports.
 
 !> Note that `html-svg` is best suited for the new version of BlackBoard.
 

@@ -22,6 +22,11 @@
   </metadata>
   <organizations/>
   <resources>
+<| for res in all_media_resources |>
+    <resource identifier="<< res.identifier >>" type="webcontent" href="<< res.filename >>">
+      <file href="<< res.filename >>"/>
+    </resource>
+<| endfor |>
     <resource identifier="assessment_test" type="imsqti_test_xmlv2p1" href="assessment.xml">
       <file href="assessment.xml"/>
 <| for q in questions |>
@@ -40,14 +45,9 @@
         </imsmd:lom>
       </metadata>
       <file href="items/item_<< loop.index >>.xml"/>
-<| for mf in q.media_files |>
-      <file href="<< mf >>"/>
+<| for dep in q.media_dependencies |>
+      <dependency identifierref="<< dep >>"/>
 <| endfor |>
-    </resource>
-<| endfor |>
-<| for mf in all_media_files |>
-    <resource identifier="res_media_<< loop.index >>" type="webcontent" href="<< mf >>">
-      <file href="<< mf >>"/>
     </resource>
 <| endfor |>
   </resources>

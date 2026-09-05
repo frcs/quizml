@@ -45,7 +45,7 @@ def test_zsh_completion():
     assert "_quizml_templates" in script
     assert "--docs[display documentation topics]:topic:(" in script
     assert "--render[render template]:template:_quizml_templates" in script
-    assert "--transcode[transcode format]:format:(latex html html-svg html-mathml)" in script
+    assert "--transcode[transcode format]:format:(latex html html-svg html-mathml html-math-hybrid)" in script
     assert "quickstart" in script
     assert "tcd-exam.tex.j2" in script
     assert "--shell-completion" in script

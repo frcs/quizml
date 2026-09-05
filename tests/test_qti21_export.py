@@ -283,15 +283,15 @@ def test_qti21_export_with_image_and_html_tables(tmp_path):
         # Choice 3 (1x1) is correct
         assert "<value>choice_3</value>" in q1_xml
 
-        # Check item 2 has externalized image file (no base64 data URIs)
+        # Check item 2 renders image with relative package root path
         q2_xml = zf.read("items/item_2.xml").decode("utf-8")
-        assert "data:image" not in q2_xml
-        assert "images/img_" in q2_xml
-        assert any(n.startswith("images/img_") for n in names)
+        assert 'src="../img_' in q2_xml
+        assert any(n.startswith("img_") for n in names)
 
-        # Check imsmanifest.xml declares the media file
+        # Check imsmanifest.xml declares ccres webcontent and item dependency
         manifest_xml = zf.read("imsmanifest.xml").decode("utf-8")
-        assert "images/img_" in manifest_xml
+        assert "ccres00001" in manifest_xml
+
 
 
 def test_qti21_table_and_media_cleaning():
@@ -307,7 +307,9 @@ def test_qti21_table_and_media_cleaning():
         '<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" width="10.0" height="10.0"/></p>'
     )
     media_store = {}
-    cleaned, media = _process_qti_html(html_with_table_and_data_uri, media_store)
+    cleaned, media = _process_qti_html(
+        html_with_table_and_data_uri, media_store, qti_version="2.1"
+    )
 
     # Tables should have divs and thead/tbody unwrapped, and inline styles stripped
     assert "<div" not in cleaned
@@ -318,11 +320,20 @@ def test_qti21_table_and_media_cleaning():
     assert "<th>Header</th>" in cleaned
     assert "<td>Cell</td>" in cleaned
 
-    # Data URIs should be converted to external image paths with integer dimensions
-    assert "data:image" not in cleaned
-    assert 'src="images/img_' in cleaned
+    # QTI 2.1 rewrites <img> to point to relative package root "../img_xxxx.png"
+    assert '<img' in cleaned
+    assert 'src="../img_' in cleaned
     assert 'width="10"' in cleaned
     assert 'height="10"' in cleaned
     assert len(media) == 1
     assert media[0] in media_store
     assert len(media_store[media[0]]) > 0
+
+    # QTI 1.2 keeps <img> with external image paths
+    media_store_12 = {}
+    cleaned_12, _ = _process_qti_html(
+        html_with_table_and_data_uri, media_store_12, qti_version="1.2"
+    )
+    assert '<img' in cleaned_12
+    assert 'src="images/img_' in cleaned_12
+    assert 'width="10"' in cleaned_12

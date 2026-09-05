@@ -385,6 +385,28 @@ def build_eq_dict_MathML(eq_list, opts):
     return eq_dict
 
 
+def build_eq_dict_hybrid(eq_list, opts):
+    """Builds equation dictionary using MathML for inline math and PNG for display math.
+
+    Ensures inline equations do not break paragraph text flow in LMS editors like
+    Blackboard Ultra (which wrap any inline <img> into a block-level attachment container),
+    while preserving high-quality standalone PNG renderings for display equations.
+    """
+    eq_dict = {}
+    if not eq_list:
+        return eq_dict
+
+    inline_eqs = [eq for eq in eq_list if isinstance(eq, MathInline)]
+    display_eqs = [eq for eq in eq_list if isinstance(eq, MathDisplay)]
+
+    if inline_eqs:
+        eq_dict.update(build_eq_dict_MathML(inline_eqs, opts))
+    if display_eqs:
+        eq_dict.update(build_eq_dict_PNG(display_eqs, opts))
+
+    return eq_dict
+
+
 class QuizMLYamlHTMLRenderer(HTMLRenderer):
     """customised mistletoe renderer for HTML
 
@@ -466,6 +488,8 @@ def get_html(doc, opts):
         eq_dict = build_eq_dict_SVG(eq_list, opts)
     elif opts.get("fmt", "") == "html-mathml":
         eq_dict = build_eq_dict_MathML(eq_list, opts)
+    elif opts.get("fmt", "") in ("html-math-hybrid", "html-hybrid"):
+        eq_dict = build_eq_dict_hybrid(eq_list, opts)
     else:
         eq_dict = build_eq_dict_PNG(eq_list, opts)
 
@@ -523,6 +547,8 @@ def get_html_dict(ast_dict, opts=None, base_dir=None, search_dirs=None):
         eq_dict = build_eq_dict_SVG(eq_list, opts)
     elif fmt == "html-mathml":
         eq_dict = build_eq_dict_MathML(eq_list, opts)
+    elif fmt in ("html-math-hybrid", "html-hybrid"):
+        eq_dict = build_eq_dict_hybrid(eq_list, opts)
     else:
         eq_dict = build_eq_dict_PNG(eq_list, opts)
 

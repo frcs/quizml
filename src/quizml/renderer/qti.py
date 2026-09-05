@@ -131,16 +131,20 @@ def _clean_choice_text(val) -> str:
     return _ensure_xhtml(s)
 
 
-def _process_qti_html(html_str: str, media_store: dict) -> tuple[str, list[str]]:
-    """Sanitizes HTML for QTI: cleans tables and extracts data URI images into assets.
+def _process_qti_html(
+    html_str: str, media_store: dict, qti_version: str = "1.2"
+) -> tuple[str, list[str]]:
+    """Sanitizes HTML for QTI: cleans tables and handles media assets.
 
     LMSs like Blackboard Ultra flatten HTML tables when nested in <div>, using
     <thead>/<tbody>, or when burdened with complex inline CSS styles.
-    Similarly, LMS QTI importers fail on base64 data URIs and require external files
-    declared in imsmanifest.xml.
+    Similarly, Blackboard Ultra intercepts <img src="..."> tags during QTI 2.1
+    question bank import and rewrites them to broken WebDAV paths (//bbcswebdavnull).
+    Per Anthology documentation, HTML object tags (<object>) are imported natively.
 
     :param html_str: Raw XHTML / HTML string.
     :param media_store: Dict collecting {relative_filename: bytes}.
+    :param qti_version: "1.2" or "2.1"
     :return: (cleaned_xhtml, list_of_referenced_media_files)
     """
     if not html_str:
@@ -150,7 +154,10 @@ def _process_qti_html(html_str: str, media_store: dict) -> tuple[str, list[str]]
     soup = BeautifulSoup(str(html_str), "html.parser")
     referenced_media = []
 
-    # 1. Clean tables for LMS compatibility
+    # 1. Clean tables and styles for LMS compatibility
+    for s in soup.find_all("style"):
+        s.decompose()
+
     for div in soup.find_all("div"):
         div.unwrap()
 
@@ -163,7 +170,7 @@ def _process_qti_html(html_str: str, media_store: dict) -> tuple[str, list[str]]
         for cell in table.find_all(["th", "td"]):
             cell.attrs = {}
 
-    # 2. Extract embedded images (data URIs) into external media assets
+    # 2. Extract embedded images (data URIs) and normalize tags
     for img in soup.find_all("img"):
         src = img.get("src", "")
         if not src.startswith("data:image/"):
@@ -171,6 +178,8 @@ def _process_qti_html(html_str: str, media_store: dict) -> tuple[str, list[str]]
 
         img_bytes = None
         ext = "png"
+        mime_type = "image/png"
+        data_uri = src
         if src.startswith("data:image/svg+xml;base64,"):
             b64_str = src.split(",", 1)[1]
             try:
@@ -181,27 +190,40 @@ def _process_qti_html(html_str: str, media_store: dict) -> tuple[str, list[str]]
                 )
                 if m:
                     ext = "jpg" if m.group(1) == "jpeg" else m.group(1)
+                    mime_type = f"image/{ext}"
                     img_bytes = base64.b64decode(m.group(2))
+                    data_uri = f"data:{mime_type};base64,{m.group(2)}"
                 else:
                     ext = "svg"
+                    mime_type = "image/svg+xml"
                     img_bytes = raw_svg.encode("utf-8")
+                    data_uri = src
             except Exception:
                 continue
         else:
             m = re.match(r"data:image/([^;]+);base64,(.+)", src)
             if m:
                 ext = "jpg" if m.group(1) == "jpeg" else m.group(1)
+                mime_type = f"image/{ext}"
                 try:
                     img_bytes = base64.b64decode(m.group(2))
+                    data_uri = src
                 except Exception:
                     continue
 
         if img_bytes:
             img_hash = hashlib.md5(img_bytes).hexdigest()[:10]
-            fname = f"images/img_{img_hash}.{ext}"
+            if qti_version == "2.1":
+                # Blackboard QTI 2.1 expects bare filenames at package root (e.g. img_xxxx.png)
+                # and items under items/ reference them via relative "../img_xxxx.png".
+                fname = f"img_{img_hash}.{ext}"
+                img["src"] = f"../{fname}"
+            else:
+                fname = f"images/img_{img_hash}.{ext}"
+                img["src"] = fname
+
             media_store[fname] = img_bytes
             referenced_media.append(fname)
-            img["src"] = fname
 
             if img.has_attr("width"):
                 try:
@@ -219,7 +241,9 @@ def _process_qti_html(html_str: str, media_store: dict) -> tuple[str, list[str]]
     return cleaned_str, referenced_media
 
 
-def _process_questions_for_qti(questions: list, media_store: dict) -> list:
+def _process_questions_for_qti(
+    questions: list, media_store: dict, qti_version: str = "1.2"
+) -> list:
     """Processes question text, choices, and feedback for tables and media extraction."""
     processed = []
     for q in questions:
@@ -227,7 +251,9 @@ def _process_questions_for_qti(questions: list, media_store: dict) -> list:
         item_media = []
         for field in ["question", "feedback", "feedback_correct", "feedback_incorrect"]:
             if field in item_q and item_q[field]:
-                cleaned, media = _process_qti_html(item_q[field], media_store)
+                cleaned, media = _process_qti_html(
+                    item_q[field], media_store, qti_version=qti_version
+                )
                 item_q[field] = cleaned
                 item_media.extend(media)
 
@@ -240,26 +266,30 @@ def _process_questions_for_qti(questions: list, media_store: dict) -> list:
                         c_dict.get("x") or c_dict.get("o") or c_dict.get("text") or ""
                     )
                     cleaned_text, media = _process_qti_html(
-                        _clean_choice_text(raw_text), media_store
+                        _clean_choice_text(raw_text), media_store, qti_version=qti_version
                     )
                     c_dict["choice_text"] = cleaned_text
                     item_media.extend(media)
                     if "A" in c_dict:
                         cleaned_a, media = _process_qti_html(
-                            _ensure_xhtml(c_dict["A"]), media_store
+                            _ensure_xhtml(c_dict["A"]),
+                            media_store,
+                            qti_version=qti_version,
                         )
                         c_dict["A"] = cleaned_a
                         item_media.extend(media)
                     if "B" in c_dict:
                         cleaned_b, media = _process_qti_html(
-                            _ensure_xhtml(c_dict["B"]), media_store
+                            _ensure_xhtml(c_dict["B"]),
+                            media_store,
+                            qti_version=qti_version,
                         )
                         c_dict["B"] = cleaned_b
                         item_media.extend(media)
                     cleaned_choices.append(c_dict)
                 else:
                     cleaned_c, media = _process_qti_html(
-                        _clean_choice_text(c), media_store
+                        _clean_choice_text(c), media_store, qti_version=qti_version
                     )
                     cleaned_choices.append(cleaned_c)
                     item_media.extend(media)
@@ -275,7 +305,7 @@ def _render_qti12(qti_ctx: dict, tdir: Path) -> bytes:
     media_store: dict[str, bytes] = {}
     render_ctx = dict(qti_ctx)
     render_ctx["questions"] = _process_questions_for_qti(
-        qti_ctx.get("questions", []), media_store
+        qti_ctx.get("questions", []), media_store, qti_version="1.2"
     )
     render_ctx["all_media_files"] = list(media_store.keys())
 
@@ -298,12 +328,28 @@ def _render_qti21(qti_ctx: dict, tdir: Path) -> bytes:
     """Renders a QTI 2.1 package directory into an in-memory ZIP archive."""
     media_store: dict[str, bytes] = {}
     processed_questions = _process_questions_for_qti(
-        qti_ctx.get("questions", []), media_store
+        qti_ctx.get("questions", []), media_store, qti_version="2.1"
     )
+
+    media_resources = []
+    fname_to_ccres = {}
+    for idx, fname in enumerate(media_store.keys(), start=1):
+        ccres_id = f"ccres{idx:05d}"
+        fname_to_ccres[fname] = ccres_id
+        media_resources.append({
+            "identifier": ccres_id,
+            "filename": fname,
+        })
+
+    for q in processed_questions:
+        q["media_dependencies"] = [
+            fname_to_ccres[f] for f in q.get("media_files", []) if f in fname_to_ccres
+        ]
 
     render_ctx = dict(qti_ctx)
     render_ctx["questions"] = processed_questions
     render_ctx["all_media_files"] = list(media_store.keys())
+    render_ctx["all_media_resources"] = media_resources
 
     manifest_xml = render_template(render_ctx, tdir / "imsmanifest.xml.j2")
     assessment_xml = (
@@ -326,10 +372,11 @@ def _render_qti21(qti_ctx: dict, tdir: Path) -> bytes:
             item_xml = render_template(item_ctx, item_template)
             zf.writestr(f"items/item_{idx}.xml", item_xml.encode("utf-8"))
 
-        # Write media assets to both images/ and items/images/ for maximum LMS compatibility
+        # Write media assets to root, items/, and images/ for maximum LMS compatibility
         for fname, bdata in media_store.items():
             zf.writestr(fname, bdata)
             zf.writestr(f"items/{fname}", bdata)
+            zf.writestr(f"images/{fname}", bdata)
 
     return buf.getvalue()
 

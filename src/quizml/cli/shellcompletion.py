@@ -70,7 +70,7 @@ def bash(parser):
     fi
 
     if [[ ${{prev}} == "--transcode" ]] ; then
-        COMPREPLY=( $(compgen -W "latex html html-svg html-mathml" -- ${{cur}}) )
+        COMPREPLY=( $(compgen -W "latex html html-svg html-mathml html-math-hybrid" -- ${{cur}}) )
         return 0
     fi
 
@@ -153,7 +153,8 @@ function __fish_quizml_transcode_formats
         latex "LaTeX markup" \\
         html "HTML markup" \\
         html-svg "HTML with SVG equations" \\
-        html-mathml "HTML with MathML equations"
+        html-mathml "HTML with MathML equations" \\
+        html-math-hybrid "HTML with hybrid math (MathML inline, PNG display)"
 end
 
 function __fish_quizml_docs
@@ -274,7 +275,7 @@ function _quizml(){{
             elif b == "--transcode":
                 txt = (
                     txt
-                    + f"    '--transcode[{help}]:format:(latex html html-svg html-mathml)' \\\n"
+                    + f"    '--transcode[{help}]:format:(latex html html-svg html-mathml html-math-hybrid)' \\\n"
                 )
             else:
                 txt = txt + f"    '{b}[{help}]' \\\n"

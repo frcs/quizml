@@ -109,3 +109,29 @@ def test_build_eq_dict_png_latex_error(MockLatexRunner, mock_get_from_cache):
     # 4. Assert that gs was not called
     mock_latex_runner_instance.run_gs_png.assert_not_called()
 
+
+@patch("quizml.transcoder.html.build_eq_dict_PNG")
+@patch("quizml.transcoder.html.build_eq_dict_MathML")
+def test_build_eq_dict_hybrid(mock_build_mathml, mock_build_png):
+    from quizml.transcoder.html import build_eq_dict_hybrid
+
+    mock_build_mathml.return_value = {
+        "##Inline##$\\phi$": "<math display='inline'><mi>ϕ</mi></math>"
+    }
+    mock_build_png.return_value = {
+        "##Display##$$E=mc^2$$": "<img src='data:image/png;base64,mock' />"
+    }
+
+    eq_list = [
+        create_mock_inline(r"$\phi$"),
+        create_mock_display(r"$$E=mc^2$$"),
+    ]
+    opts = {"fmt": "html-math-hybrid"}
+    res = build_eq_dict_hybrid(eq_list, opts)
+
+    assert len(res) == 2
+    assert "##Inline##$\\phi$" in res
+    assert "<math" in res["##Inline##$\\phi$"]
+    assert "##Display##$$E=mc^2$$" in res
+    assert "<img" in res["##Display##$$E=mc^2$$"]
+

@@ -45,6 +45,13 @@ def render(
 
         return render_qti(context, p)
 
+    if "blackboard" in p.name:
+        from quizml.renderer.blackboard import process_questions_for_blackboard
+
+        context["questions"] = process_questions_for_blackboard(
+            context.get("questions", [])
+        )
+
     return render_template(context, template_str)
 
 

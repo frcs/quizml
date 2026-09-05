@@ -45,6 +45,7 @@ Transforms Markdown text within question statements, choices, and explanations i
     * `"html"`: Converts Markdown to HTML with default math handling.
     * `"html-svg"`: Renders LaTeX equations as embedded SVG graphics.
     * `"html-mathml"`: Converts LaTeX equations to native MathML elements.
+    * `"html-math-hybrid"`: Uses MathML for inline math and PNG images for display equations (optimal for LMS editors like Blackboard Ultra).
   * `preamble_file` (`str | Path | None`, optional): Path to LaTeX preamble for equation rendering.
   * `css_file` (`str | Path | None`, optional): Path to CSS file for inline HTML styling.
 * **Returns:**
@@ -102,7 +103,7 @@ cat exam.yaml | quizml --ingest > exam.ir.json
 ```
 
 ### 2. Transcode Stage (`--transcode <FMT>`)
-Reads either raw YAML or ingested JSON IR from a file or `stdin`, transcodes markdown fields to `<FMT>` (`latex`, `html`, `html-svg`, `html-mathml`), and outputs the transcoded JSON IR:
+Reads either raw YAML or ingested JSON IR from a file or `stdin`, transcodes markdown fields to `<FMT>` (`latex`, `html`, `html-svg`, `html-mathml`, `html-math-hybrid`), and outputs the transcoded JSON IR:
 
 ```bash
 quizml exam.yaml --transcode latex > exam.latex.json
