@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<assessmentItem xmlns="http://www.imsglobal.org/xsd/imsqti_v2p1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqti_v2p1 http://www.imsglobal.org/xsd/qti/qtiv2p1/imsqti_v2p1p2.xsd"
+  identifier="item_<< item_index >>"
+  title="<< q.title | default("Question " ~ item_index) | e >>"
+  adaptive="false"
+  timeDependent="false">
+
+<| if q.type in ['mc', 'tf'] |>
+  <responseDeclaration identifier="RESPONSE" cardinality="single" baseType="identifier">
+    <correctResponse>
+<| if q.type == 'tf' |>
+      <value><< 'true' if (q.answer|string|lower == 'true') else 'false' >></value>
+<| else |>
+<| for c in q.choices |>
+<| if c.x is defined or c.correct == true |>
+      <value>choice_<< loop.index0 >></value>
+<| endif |>
+<| endfor |>
+<| endif |>
+    </correctResponse>
+  </responseDeclaration>
+
+<| elif q.type == 'ma' |>
+  <responseDeclaration identifier="RESPONSE" cardinality="multiple" baseType="identifier">
+    <correctResponse>
+<| for c in q.choices |>
+<| if c.x is defined or c.correct == true |>
+      <value>choice_<< loop.index0 >></value>
+<| endif |>
+<| endfor |>
+    </correctResponse>
+  </responseDeclaration>
+
+<| elif q.type == 'essay' |>
+  <responseDeclaration identifier="RESPONSE" cardinality="single" baseType="string"/>
+
+<| elif q.type == 'fill' |>
+  <responseDeclaration identifier="RESPONSE" cardinality="single" baseType="string">
+    <correctResponse>
+<| for ans in q.answers |>
+      <value><< ans | e >></value>
+<| endfor |>
+    </correctResponse>
+  </responseDeclaration>
+
+<| elif q.type == 'num' |>
+  <responseDeclaration identifier="RESPONSE" cardinality="single" baseType="float">
+    <correctResponse>
+      <value><< q.answer >></value>
+    </correctResponse>
+  </responseDeclaration>
+
+<| elif q.type == 'matching' |>
+  <responseDeclaration identifier="RESPONSE" cardinality="multiple" baseType="directedPair">
+    <correctResponse>
+<| for c in q.choices |>
+      <value>match_A_<< loop.index >> match_B_<< loop.index >></value>
+<| endfor |>
+    </correctResponse>
+  </responseDeclaration>
+
+<| elif q.type == 'ordering' |>
+  <responseDeclaration identifier="RESPONSE" cardinality="ordered" baseType="identifier">
+    <correctResponse>
+<| for c in q.choices |>
+      <value>choice_<< loop.index0 >></value>
+<| endfor |>
+    </correctResponse>
+  </responseDeclaration>
+<| endif |>
+
+  <outcomeDeclaration identifier="SCORE" cardinality="single" baseType="float">
+    <defaultValue>
+      <value>0</value>
+    </defaultValue>
+  </outcomeDeclaration>
+
+<| if q.feedback or q.feedback_correct or q.feedback_incorrect |>
+  <outcomeDeclaration identifier="FEEDBACK" cardinality="single" baseType="identifier"/>
+<| endif |>
+
+  <itemBody>
+<| if q.type in ['mc', 'tf', 'ma'] |>
+    <choiceInteraction responseIdentifier="RESPONSE" shuffle="<< (q.shuffle | default(false) | lower) if q.shuffle is defined else ('false' if q.type == 'tf' else (qti.shuffle_answers | lower)) >>" maxChoices="<< 0 if q.type == 'ma' else 1 >>">
+      <prompt><![CDATA[<< q.question >>]]></prompt>
+<| if q.type == 'tf' |>
+      <simpleChoice identifier="true"><![CDATA[<p>True</p>]]></simpleChoice>
+      <simpleChoice identifier="false"><![CDATA[<p>False</p>]]></simpleChoice>
+<| else |>
+<| for c in q.choices |>
+      <simpleChoice identifier="choice_<< loop.index0 >>"><![CDATA[<< c.x if c.x is defined else (c.o if c.o is defined else c.text) >>]]></simpleChoice>
+<| endfor |>
+<| endif |>
+    </choiceInteraction>
+
+<| elif q.type == 'essay' |>
+    <extendedTextInteraction responseIdentifier="RESPONSE" expectedLength="500" expectedLines="8">
+      <prompt><![CDATA[<< q.question >>]]></prompt>
+    </extendedTextInteraction>
+
+<| elif q.type in ['fill', 'num'] |>
+    <div class="qtext">
+      <![CDATA[<< q.question >>]]>
+    </div>
+    <p>
+      Answer: <textEntryInteraction responseIdentifier="RESPONSE" expectedLength="<< 15 if q.type == 'num' else 25 >>"/>
+    </p>
+
+<| elif q.type == 'matching' |>
+    <matchInteraction responseIdentifier="RESPONSE" shuffle="<< (q.shuffle | default(true) | lower) if q.shuffle is defined else 'true' >>" maxAssociations="<< q.choices | length >>">
+      <prompt><![CDATA[<< q.question >>]]></prompt>
+      <simpleMatchSet>
+<| for c in q.choices |>
+        <simpleAssociableChoice identifier="match_A_<< loop.index >>" matchMax="1"><![CDATA[<< c.A >>]]></simpleAssociableChoice>
+<| endfor |>
+      </simpleMatchSet>
+      <simpleMatchSet>
+<| for c in q.choices |>
+        <simpleAssociableChoice identifier="match_B_<< loop.index >>" matchMax="<< q.choices | length >>"><![CDATA[<< c.B >>]]></simpleAssociableChoice>
+<| endfor |>
+      </simpleMatchSet>
+    </matchInteraction>
+
+<| elif q.type == 'ordering' |>
+    <orderInteraction responseIdentifier="RESPONSE" shuffle="<< (q.shuffle | default(true) | lower) if q.shuffle is defined else 'true' >>">
+      <prompt><![CDATA[<< q.question >>]]></prompt>
+<| for c in q.choices |>
+      <simpleChoice identifier="choice_<< loop.index0 >>"><![CDATA[<< c >>]]></simpleChoice>
+<| endfor |>
+    </orderInteraction>
+<| endif |>
+  </itemBody>
+
+<| if q.type != 'essay' |>
+  <responseProcessing template="http://www.imsglobal.org/question/qti_v2p1/rptemplates/match_correct"/>
+<| endif |>
+
+<| if q.feedback_correct |>
+  <modalFeedback outcomeIdentifier="FEEDBACK" identifier="correct" showHide="show">
+    <p><![CDATA[<< q.feedback_correct >>]]></p>
+  </modalFeedback>
+<| endif |>
+<| if q.feedback_incorrect |>
+  <modalFeedback outcomeIdentifier="FEEDBACK" identifier="incorrect" showHide="show">
+    <p><![CDATA[<< q.feedback_incorrect >>]]></p>
+  </modalFeedback>
+<| endif |>
+<| if q.feedback |>
+  <modalFeedback outcomeIdentifier="FEEDBACK" identifier="general" showHide="show">
+    <p><![CDATA[<< q.feedback >>]]></p>
+  </modalFeedback>
+<| endif |>
+</assessmentItem>

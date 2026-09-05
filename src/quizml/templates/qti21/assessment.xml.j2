@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<assessmentTest identifier="<< qti.assessment_ident >>"
+  title="<< qti.title | e >>"
+  xmlns="http://www.imsglobal.org/xsd/imsqti_v2p1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqti_v2p1 http://www.imsglobal.org/xsd/qti/qtiv2p1/imsqti_v2p1p2.xsd">
+  <outcomeDeclaration identifier="SCORE" cardinality="single" baseType="float">
+    <defaultValue>
+      <value>0</value>
+    </defaultValue>
+  </outcomeDeclaration>
+  <testPart identifier="test_part_1" navigationMode="<< 'linear' if qti.cant_go_back else 'nonlinear' >>" submissionMode="individual">
+    <assessmentSection identifier="section_1" title="<< qti.title | e >>" visible="true">
+<| for q in questions |>
+      <assessmentItemRef identifier="item_ref_<< loop.index >>" href="items/item_<< loop.index >>.xml"/>
+<| endfor |>
+    </assessmentSection>
+  </testPart>
+</assessmentTest>

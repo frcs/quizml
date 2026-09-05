@@ -61,7 +61,7 @@ Converts a questions in a YAML/markdown format into a Blackboard test or a LaTeX
 
 * `-h`, `--help`: show this help message and exit
 * `-w`, `--watch`: continuously compiles the document on file change
-* `-t`, `--target TARGET`: target names (e.g. 'pdf', 'html-preview')
+* `-t`, `--target TARGET`: target names (e.g. 'pdf', 'html-preview', 'qti', 'qti21')
 * `--target-list`: list all targets in config file
 * `--init-local`: create a local directory 'quizml-templates' with all config files
 * `--init-user`: create the user app directory with all its config files

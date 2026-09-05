@@ -104,22 +104,12 @@ def prepare_qti_context(context: dict) -> dict:
     return qti_context
 
 
-def render_qti(context: dict, template_dir: Path | str) -> bytes:
-    """Renders a multi-file QTI 1.2 package directory into an in-memory ZIP archive (bytes).
-
-    :param context: Render context containing 'header' and 'questions'.
-    :param template_dir: Path to directory containing quiz.xml.j2, imsmanifest.xml.j2, assessment_meta.xml.j2.
-    :return: Binary zip archive content.
-    """
-    tdir = Path(template_dir)
-    qti_ctx = prepare_qti_context(context)
-
-    # 1. Render each XML file via Jinja2
+def _render_qti12(qti_ctx: dict, tdir: Path) -> bytes:
+    """Renders a QTI 1.2 package directory into an in-memory ZIP archive."""
     quiz_xml = render_template(qti_ctx, tdir / "quiz.xml.j2")
     manifest_xml = render_template(qti_ctx, tdir / "imsmanifest.xml.j2")
     meta_xml = render_template(qti_ctx, tdir / "assessment_meta.xml.j2")
 
-    # 2. Package into in-memory ZIP
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("quiz.xml", quiz_xml.encode("utf-8"))
@@ -127,3 +117,51 @@ def render_qti(context: dict, template_dir: Path | str) -> bytes:
         zf.writestr("assessment_meta.xml", meta_xml.encode("utf-8"))
 
     return buf.getvalue()
+
+
+def _render_qti21(qti_ctx: dict, tdir: Path) -> bytes:
+    """Renders a QTI 2.1 package directory into an in-memory ZIP archive."""
+    manifest_xml = render_template(qti_ctx, tdir / "imsmanifest.xml.j2")
+    assessment_xml = (
+        render_template(qti_ctx, tdir / "assessment.xml.j2")
+        if (tdir / "assessment.xml.j2").exists()
+        else None
+    )
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("imsmanifest.xml", manifest_xml.encode("utf-8"))
+        if assessment_xml:
+            zf.writestr("assessment.xml", assessment_xml.encode("utf-8"))
+
+        item_template = tdir / "item.xml.j2"
+        questions = qti_ctx.get("questions", [])
+        for idx, q in enumerate(questions, start=1):
+            item_ctx = dict(qti_ctx)
+            item_ctx["q"] = q
+            item_ctx["item_index"] = idx
+            item_xml = render_template(item_ctx, item_template)
+            zf.writestr(f"items/item_{idx}.xml", item_xml.encode("utf-8"))
+
+    return buf.getvalue()
+
+
+def render_qti(context: dict, template_dir: Path | str) -> bytes:
+    """Renders a multi-file QTI (1.2 or 2.1) package directory into an in-memory ZIP archive (bytes).
+
+    :param context: Render context containing 'header' and 'questions'.
+    :param template_dir: Path to directory containing QTI templates.
+    :return: Binary zip archive content.
+    """
+    tdir = Path(template_dir)
+    qti_ctx = prepare_qti_context(context)
+
+    if (tdir / "quiz.xml.j2").exists():
+        return _render_qti12(qti_ctx, tdir)
+    elif (tdir / "item.xml.j2").exists():
+        return _render_qti21(qti_ctx, tdir)
+    else:
+        raise FileNotFoundError(
+            f"No recognizable QTI template found in {tdir} (expected quiz.xml.j2 or item.xml.j2)"
+        )
+

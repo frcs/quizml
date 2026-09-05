@@ -71,19 +71,19 @@ _qti:
   feedback_correct: "Well done!"
   feedback_incorrect: "Try again."
   choices:
-  - x: "3"
-  - o: "4"
-  - x: "5"
+  - o: "3"
+  - x: "4"
+  - o: "5"
 
 - type: ma
   title: "Multi Choice Q2"
   marks: 4.0
   question: "Select prime numbers:"
   choices:
-  - o: "2"
-  - o: "3"
-  - x: "4"
-  - o: "5"
+  - x: "2"
+  - x: "3"
+  - o: "4"
+  - x: "5"
 
 - type: tf
   marks: 1.0

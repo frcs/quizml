@@ -40,7 +40,7 @@ def render(
         return render_docx(context, template_str)
 
     p = Path(template_str)
-    if p.is_dir() or "qti12" in p.name:
+    if p.is_dir() or "qti" in p.name:
         from quizml.renderer.qti import render_qti
 
         return render_qti(context, p)

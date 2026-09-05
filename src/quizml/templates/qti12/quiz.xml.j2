@@ -71,7 +71,7 @@
         <resprocessing>
           <outcomes><decvar varname="SCORE" vartype="Decimal" defaultval="0" minvalue="0" maxvalue="<< marks >>"/></outcomes>
 <| for c in q.choices |>
-<| if c.o is defined |>
+<| if c.x is defined or c.correct == true |>
 <| set correct_id = item_id ~ "_choice_" ~ loop.index |>
           <respcondition continue="No">
             <conditionvar><varequal respident="response1"><< correct_id >></varequal></conditionvar>
@@ -108,7 +108,7 @@
 
 <| elif q.type == 'ma' |>
 <| set num_correct = namespace(n=0) |>
-<| for c in q.choices if c.o is defined |><| set num_correct.n = num_correct.n + 1 |><| endfor |>
+<| for c in q.choices if (c.x is defined or c.correct == true) |><| set num_correct.n = num_correct.n + 1 |><| endfor |>
 <| set unit_score = (marks / num_correct.n) if num_correct.n > 0 else marks |>
       <item ident="<< item_id >>" title="<< item_title | e >>">
         <itemmetadata>
@@ -134,7 +134,7 @@
           <outcomes><decvar varname="SCORE" vartype="Decimal" defaultval="0" minvalue="0" maxvalue="<< marks >>"/></outcomes>
 <| for c in q.choices |>
 <| set c_id = item_id ~ "_choice_" ~ loop.index |>
-<| if c.o is defined |>
+<| if c.x is defined or c.correct == true |>
           <respcondition continue="Yes">
             <conditionvar><varequal respident="response1"><< c_id >></varequal></conditionvar>
             <setvar varname="SCORE" action="Add"><< unit_score | round(4) >></setvar>
