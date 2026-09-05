@@ -1,10 +1,17 @@
 # Changelog
 
-## [Unreleased]
+<a name="0.13.0"></a>
+
+### [0.13.0]() (2026-09-05)
 
 **Features:**
 *   **Unix Pipeline Composability:** Added `--ingest`, `--transcode <FMT>`, and `--render <TEMPLATE>` CLI options with standard input (`-` or piped) and JSON IR output, enabling composable multi-stage pipelines (`cat exam.yaml | quizml --ingest | quizml --transcode latex | quizml --render tcd-exam.tex.j2`).
 *   **Public Python API:** Exposed clean library API at top-level `quizml` (`load_quiz`, `transcode`, `render`, `build_targets`).
+*   **Interactive Documentation Browser:** Added `quizml --docs [TOPIC]` with TTY-aware color markdown rendering and pager integration.
+*   **Cross-Shell Autocompletion:** Added native autocompletion scripts for Zsh, Bash, and Fish via `quizml --shell-completion [SHELL]` with dynamic discovery of templates, transcode formats, and doc topics.
+*   **Question Banking (`_include`):** Added support for question modularity via `_include` directives in YAML quizzes.
+*   **Essay Answers Markdown & Code Blocks:** Supported full Markdown transcoding and code block syntax (`lstlisting` / `<pre><code>`) in essay question answers.
+*   **Document-Relative Command Execution:** Build commands (e.g. `latexmk`) run relative to the target document's directory.
 *   **Idempotent Transcoding:** Embedded format tracking (`_transcoded: <fmt>`) into transcoded document headers to guarantee idempotency across pipeline stages.
 *   **Direct Template Resolution:** Templates specified via `--render` or `quizml.render()` automatically resolve paths against the working directory, `quizml-templates/`, user config directory, and packaged templates.
 
