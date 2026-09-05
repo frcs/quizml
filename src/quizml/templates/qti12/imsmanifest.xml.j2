@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="MANIFEST_<< qti.assessment_ident >>"
+          xmlns="http://www.imsglobal.org/xsd/imscp_v1p1"
+          xmlns:imsmd="http://www.imsglobal.org/xsd/imsmd_v1p2"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 http://www.imsglobal.org/xsd/imscp_v1p1.xsd">
+  <metadata>
+    <schema>IMS Content</schema>
+    <schemaversion>1.1.4</schemaversion>
+    <imsmd:lom>
+      <imsmd:general>
+        <imsmd:title>
+          <imsmd:string><< qti.title | e >></imsmd:string>
+        </imsmd:title>
+<| if qti.description |>
+        <imsmd:description>
+          <imsmd:string><< qti.description | e >></imsmd:string>
+        </imsmd:description>
+<| endif |>
+      </imsmd:general>
+    </imsmd:lom>
+  </metadata>
+  <organizations/>
+  <resources>
+    <resource identifier="<< qti.assessment_ident >>" type="imsqti_xmlv1p2" href="quiz.xml">
+      <file href="quiz.xml"/>
+      <dependency identifierref="<< qti.assessment_ident >>_meta"/>
+    </resource>
+    <resource identifier="<< qti.assessment_ident >>_meta" type="associatedcontent/imscc_xmlv1p1/learning-application-resource" href="assessment_meta.xml">
+      <file href="assessment_meta.xml"/>
+    </resource>
+  </resources>
+</manifest>

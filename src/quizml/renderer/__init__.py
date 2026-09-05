@@ -39,6 +39,12 @@ def render(
     if template_str.endswith(".docx"):
         return render_docx(context, template_str)
 
+    p = Path(template_str)
+    if p.is_dir() or "qti12" in p.name:
+        from quizml.renderer.qti import render_qti
+
+        return render_qti(context, p)
+
     return render_template(context, template_str)
 
 
@@ -46,5 +52,6 @@ __all__ = [
     "render",
     "render_template",
     "render_docx",
+    "render_qti",
     "get_jinja_env",
 ]

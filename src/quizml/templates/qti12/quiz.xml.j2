@@ -1,0 +1,526 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<questestinterop xmlns="http://www.imsglobal.org/xsd/ims_qtiasiv1p2"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xsi:schemaLocation="http://www.imsglobal.org/xsd/ims_qtiasiv1p2 http://www.imsglobal.org/xsd/ims_qtiasiv1p2p1.xsd">
+  <assessment ident="<< qti.assessment_ident >>" title="<< qti.title | e >>">
+    <qtimetadata>
+      <qtimetadatafield>
+        <fieldlabel>qmd_assessmenttype</fieldlabel>
+        <fieldentry>Examination</fieldentry>
+      </qtimetadatafield>
+<| if qti.time_limit is not none |>
+      <qtimetadatafield>
+        <fieldlabel>qmd_timelimit</fieldlabel>
+        <fieldentry><< qti.time_limit >></fieldentry>
+      </qtimetadatafield>
+<| endif |>
+      <qtimetadatafield>
+        <fieldlabel>cc_maxattempts</fieldlabel>
+        <fieldentry><< qti.allowed_attempts >></fieldentry>
+      </qtimetadatafield>
+      <qtimetadatafield>
+        <fieldlabel>feedback_delivery</fieldlabel>
+        <fieldentry><< qti.release_solutions >></fieldentry>
+      </qtimetadatafield>
+      <qtimetadatafield>
+        <fieldlabel>show_score</fieldlabel>
+        <fieldentry><< qti.release_score >></fieldentry>
+      </qtimetadatafield>
+<| if qti.release_date |>
+      <qtimetadatafield>
+        <fieldlabel>feedback_delivery_date</fieldlabel>
+        <fieldentry><< qti.release_date >></fieldentry>
+      </qtimetadatafield>
+<| endif |>
+    </qtimetadata>
+    <section ident="root_section">
+<| for q in questions |>
+<| set item_index = loop.index |>
+<| set item_id = "q_" ~ item_index |>
+<| set item_title = q.title if q.title else "Question " ~ item_index |>
+<| set marks = q.marks | float if q.marks is defined else 2.5 |>
+
+<| if q.type == 'part' |>
+    </section>
+    <section ident="section_<< item_index >>" title="<< q.title | e >>">
+<| if q.question |>
+      <rubric><material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material></rubric>
+<| endif |>
+
+<| elif q.type == 'mc' |>
+      <item ident="<< item_id >>" title="<< item_title | e >>">
+        <itemmetadata>
+          <qtimetadata>
+            <qtimetadatafield><fieldlabel>question_type</fieldlabel><fieldentry>multiple_choice_question</fieldentry></qtimetadatafield>
+            <qtimetadatafield><fieldlabel>points_possible</fieldlabel><fieldentry><< marks >></fieldentry></qtimetadatafield>
+          </qtimetadata>
+        </itemmetadata>
+        <presentation>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+          <response_lid ident="response1" rcardinality="Single">
+            <render_choice<| if q.shuffle is defined and (q.shuffle == false or q.shuffle|lower == 'false') |> shuffle="No"<| elif qti.shuffle_answers |> shuffle="Yes"<| endif |>>
+<| for c in q.choices |>
+<| set c_id = item_id ~ "_choice_" ~ loop.index |>
+              <response_label ident="<< c_id >>">
+                <material><mattext texttype="text/html"><![CDATA[<< c.x if c.x is defined else c.o >>]]></mattext></material>
+              </response_label>
+<| endfor |>
+            </render_choice>
+          </response_lid>
+        </presentation>
+        <resprocessing>
+          <outcomes><decvar varname="SCORE" vartype="Decimal" defaultval="0" minvalue="0" maxvalue="<< marks >>"/></outcomes>
+<| for c in q.choices |>
+<| if c.o is defined |>
+<| set correct_id = item_id ~ "_choice_" ~ loop.index |>
+          <respcondition continue="No">
+            <conditionvar><varequal respident="response1"><< correct_id >></varequal></conditionvar>
+            <setvar varname="SCORE" action="Set"><< marks >></setvar>
+<| if q.feedback_correct |>
+            <displayfeedback feedbacktype="Response" linkrefid="correct_fb"/>
+<| endif |>
+          </respcondition>
+<| endif |>
+<| endfor |>
+<| if q.feedback_incorrect |>
+          <respcondition continue="Yes">
+            <conditionvar><other/></conditionvar>
+            <displayfeedback feedbacktype="Response" linkrefid="incorrect_fb"/>
+          </respcondition>
+<| endif |>
+<| if q.feedback |>
+          <respcondition continue="Yes">
+            <conditionvar><other/></conditionvar>
+            <displayfeedback feedbacktype="Response" linkrefid="general_fb"/>
+          </respcondition>
+<| endif |>
+        </resprocessing>
+<| if q.feedback |>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+<| endif |>
+<| if q.feedback_correct |>
+        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct >>]]></mattext></material></itemfeedback>
+<| endif |>
+<| if q.feedback_incorrect |>
+        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect >>]]></mattext></material></itemfeedback>
+<| endif |>
+      </item>
+
+<| elif q.type == 'ma' |>
+<| set num_correct = namespace(n=0) |>
+<| for c in q.choices if c.o is defined |><| set num_correct.n = num_correct.n + 1 |><| endfor |>
+<| set unit_score = (marks / num_correct.n) if num_correct.n > 0 else marks |>
+      <item ident="<< item_id >>" title="<< item_title | e >>">
+        <itemmetadata>
+          <qtimetadata>
+            <qtimetadatafield><fieldlabel>question_type</fieldlabel><fieldentry>multiple_answers_question</fieldentry></qtimetadatafield>
+            <qtimetadatafield><fieldlabel>points_possible</fieldlabel><fieldentry><< marks >></fieldentry></qtimetadatafield>
+          </qtimetadata>
+        </itemmetadata>
+        <presentation>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+          <response_lid ident="response1" rcardinality="Multiple">
+            <render_choice<| if q.shuffle is defined and (q.shuffle == false or q.shuffle|lower == 'false') |> shuffle="No"<| elif qti.shuffle_answers |> shuffle="Yes"<| endif |>>
+<| for c in q.choices |>
+<| set c_id = item_id ~ "_choice_" ~ loop.index |>
+              <response_label ident="<< c_id >>">
+                <material><mattext texttype="text/html"><![CDATA[<< c.x if c.x is defined else c.o >>]]></mattext></material>
+              </response_label>
+<| endfor |>
+            </render_choice>
+          </response_lid>
+        </presentation>
+        <resprocessing>
+          <outcomes><decvar varname="SCORE" vartype="Decimal" defaultval="0" minvalue="0" maxvalue="<< marks >>"/></outcomes>
+<| for c in q.choices |>
+<| set c_id = item_id ~ "_choice_" ~ loop.index |>
+<| if c.o is defined |>
+          <respcondition continue="Yes">
+            <conditionvar><varequal respident="response1"><< c_id >></varequal></conditionvar>
+            <setvar varname="SCORE" action="Add"><< unit_score | round(4) >></setvar>
+          </respcondition>
+<| else |>
+          <respcondition continue="Yes">
+            <conditionvar><varequal respident="response1"><< c_id >></varequal></conditionvar>
+            <setvar varname="SCORE" action="Subtract"><< unit_score | round(4) >></setvar>
+          </respcondition>
+<| endif |>
+<| endfor |>
+<| if q.feedback |>
+          <respcondition continue="Yes">
+            <conditionvar><other/></conditionvar>
+            <displayfeedback feedbacktype="Response" linkrefid="general_fb"/>
+          </respcondition>
+<| endif |>
+        </resprocessing>
+<| if q.feedback |>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+<| endif |>
+<| if q.feedback_correct |>
+        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct >>]]></mattext></material></itemfeedback>
+<| endif |>
+<| if q.feedback_incorrect |>
+        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect >>]]></mattext></material></itemfeedback>
+<| endif |>
+      </item>
+
+<| elif q.type == 'tf' |>
+<| set correct_choice = item_id ~ ("_true" if (q.answer == true or q.answer|lower == 'true') else "_false") |>
+      <item ident="<< item_id >>" title="<< item_title | e >>">
+        <itemmetadata>
+          <qtimetadata>
+            <qtimetadatafield><fieldlabel>question_type</fieldlabel><fieldentry>true_false_question</fieldentry></qtimetadatafield>
+            <qtimetadatafield><fieldlabel>points_possible</fieldlabel><fieldentry><< marks >></fieldentry></qtimetadatafield>
+          </qtimetadata>
+        </itemmetadata>
+        <presentation>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+          <response_lid ident="response1" rcardinality="Single">
+            <render_choice shuffle="No">
+              <response_label ident="<< item_id >>_true">
+                <material><mattext texttype="text/html">True</mattext></material>
+              </response_label>
+              <response_label ident="<< item_id >>_false">
+                <material><mattext texttype="text/html">False</mattext></material>
+              </response_label>
+            </render_choice>
+          </response_lid>
+        </presentation>
+        <resprocessing>
+          <outcomes><decvar varname="SCORE" vartype="Decimal" defaultval="0" minvalue="0" maxvalue="<< marks >>"/></outcomes>
+          <respcondition continue="No">
+            <conditionvar><varequal respident="response1"><< correct_choice >></varequal></conditionvar>
+            <setvar varname="SCORE" action="Set"><< marks >></setvar>
+<| if q.feedback_correct |>
+            <displayfeedback feedbacktype="Response" linkrefid="correct_fb"/>
+<| endif |>
+          </respcondition>
+<| if q.feedback_incorrect |>
+          <respcondition continue="Yes">
+            <conditionvar><other/></conditionvar>
+            <displayfeedback feedbacktype="Response" linkrefid="incorrect_fb"/>
+          </respcondition>
+<| endif |>
+<| if q.feedback |>
+          <respcondition continue="Yes">
+            <conditionvar><other/></conditionvar>
+            <displayfeedback feedbacktype="Response" linkrefid="general_fb"/>
+          </respcondition>
+<| endif |>
+        </resprocessing>
+<| if q.feedback |>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+<| endif |>
+<| if q.feedback_correct |>
+        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct >>]]></mattext></material></itemfeedback>
+<| endif |>
+<| if q.feedback_incorrect |>
+        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect >>]]></mattext></material></itemfeedback>
+<| endif |>
+      </item>
+
+<| elif q.type == 'num' |>
+<| set tol = q.tolerance | float if q.tolerance is defined else 0.0 |>
+<| set ans_val = q.answer | float |>
+<| if q.tolerance_type == 'relative' |>
+<|   set min_val = ans_val * (1.0 - tol / 100.0) |>
+<|   set max_val = ans_val * (1.0 + tol / 100.0) |>
+<| else |>
+<|   set min_val = ans_val - tol |>
+<|   set max_val = ans_val + tol |>
+<| endif |>
+      <item ident="<< item_id >>" title="<< item_title | e >>">
+        <itemmetadata>
+          <qtimetadata>
+            <qtimetadatafield><fieldlabel>question_type</fieldlabel><fieldentry>numerical_question</fieldentry></qtimetadatafield>
+            <qtimetadatafield><fieldlabel>points_possible</fieldlabel><fieldentry><< marks >></fieldentry></qtimetadatafield>
+          </qtimetadata>
+        </itemmetadata>
+        <presentation>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+          <response_num ident="response1" rcardinality="Single" numtype="Decimal">
+            <render_fib>
+              <response_label ident="answer1"/>
+            </render_fib>
+          </response_num>
+        </presentation>
+        <resprocessing>
+          <outcomes><decvar varname="SCORE" vartype="Decimal" defaultval="0" minvalue="0" maxvalue="<< marks >>"/></outcomes>
+          <respcondition continue="No">
+            <conditionvar>
+              <vargte respident="response1"><< min_val | round(6) >></vargte>
+              <varlte respident="response1"><< max_val | round(6) >></varlte>
+            </conditionvar>
+            <setvar varname="SCORE" action="Set"><< marks >></setvar>
+<| if q.feedback_correct |>
+            <displayfeedback feedbacktype="Response" linkrefid="correct_fb"/>
+<| endif |>
+          </respcondition>
+<| if q.feedback_incorrect |>
+          <respcondition continue="Yes">
+            <conditionvar><other/></conditionvar>
+            <displayfeedback feedbacktype="Response" linkrefid="incorrect_fb"/>
+          </respcondition>
+<| endif |>
+<| if q.feedback |>
+          <respcondition continue="Yes">
+            <conditionvar><other/></conditionvar>
+            <displayfeedback feedbacktype="Response" linkrefid="general_fb"/>
+          </respcondition>
+<| endif |>
+        </resprocessing>
+<| if q.feedback |>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+<| endif |>
+<| if q.feedback_correct |>
+        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct >>]]></mattext></material></itemfeedback>
+<| endif |>
+<| if q.feedback_incorrect |>
+        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect >>]]></mattext></material></itemfeedback>
+<| endif |>
+      </item>
+
+<| elif q.type == 'fill' |>
+      <item ident="<< item_id >>" title="<< item_title | e >>">
+        <itemmetadata>
+          <qtimetadata>
+            <qtimetadatafield><fieldlabel>question_type</fieldlabel><fieldentry>short_answer_question</fieldentry></qtimetadatafield>
+            <qtimetadatafield><fieldlabel>points_possible</fieldlabel><fieldentry><< marks >></fieldentry></qtimetadatafield>
+          </qtimetadata>
+        </itemmetadata>
+        <presentation>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+          <response_str ident="response1" rcardinality="Single">
+            <render_fib>
+              <response_label ident="answer1"/>
+            </render_fib>
+          </response_str>
+        </presentation>
+        <resprocessing>
+          <outcomes><decvar varname="SCORE" vartype="Decimal" defaultval="0" minvalue="0" maxvalue="<< marks >>"/></outcomes>
+<| for ans in q.answers |>
+          <respcondition continue="No">
+            <conditionvar>
+              <varequal respident="response1" case="<< 'Yes' if (q.case_sensitive == true or q.case_sensitive|lower == 'true') else 'No' >>"><< ans | e >></varequal>
+            </conditionvar>
+            <setvar varname="SCORE" action="Set"><< marks >></setvar>
+<| if q.feedback_correct |>
+            <displayfeedback feedbacktype="Response" linkrefid="correct_fb"/>
+<| endif |>
+          </respcondition>
+<| endfor |>
+<| if q.feedback_incorrect |>
+          <respcondition continue="Yes">
+            <conditionvar><other/></conditionvar>
+            <displayfeedback feedbacktype="Response" linkrefid="incorrect_fb"/>
+          </respcondition>
+<| endif |>
+<| if q.feedback |>
+          <respcondition continue="Yes">
+            <conditionvar><other/></conditionvar>
+            <displayfeedback feedbacktype="Response" linkrefid="general_fb"/>
+          </respcondition>
+<| endif |>
+        </resprocessing>
+<| if q.feedback |>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+<| endif |>
+<| if q.feedback_correct |>
+        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct >>]]></mattext></material></itemfeedback>
+<| endif |>
+<| if q.feedback_incorrect |>
+        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect >>]]></mattext></material></itemfeedback>
+<| endif |>
+      </item>
+
+<| elif q.type == 'mfill' |>
+<| set num_blanks = q.answers.keys() | list | length |>
+<| set unit_marks = (marks / num_blanks) if num_blanks > 0 else marks |>
+      <item ident="<< item_id >>" title="<< item_title | e >>">
+        <itemmetadata>
+          <qtimetadata>
+            <qtimetadatafield><fieldlabel>question_type</fieldlabel><fieldentry>fill_in_multiple_blanks_question</fieldentry></qtimetadatafield>
+            <qtimetadatafield><fieldlabel>points_possible</fieldlabel><fieldentry><< marks >></fieldentry></qtimetadatafield>
+          </qtimetadata>
+        </itemmetadata>
+        <presentation>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+<| for blank_key in q.answers.keys() |>
+          <response_str ident="response_<< blank_key >>" rcardinality="Single">
+            <render_fib prompt="<< blank_key | e >>">
+              <response_label ident="answer_<< blank_key >>"/>
+            </render_fib>
+          </response_str>
+<| endfor |>
+        </presentation>
+        <resprocessing>
+          <outcomes><decvar varname="SCORE" vartype="Decimal" defaultval="0" minvalue="0" maxvalue="<< marks >>"/></outcomes>
+<| for blank_key, synonyms in q.answers.items() |>
+<| for syn in synonyms |>
+          <respcondition continue="Yes">
+            <conditionvar>
+              <varequal respident="response_<< blank_key >>" case="<< 'Yes' if (q.case_sensitive == true or q.case_sensitive|lower == 'true') else 'No' >>"><< syn | e >></varequal>
+            </conditionvar>
+            <setvar varname="SCORE" action="Add"><< unit_marks | round(4) >></setvar>
+          </respcondition>
+<| endfor |>
+<| endfor |>
+<| if q.feedback |>
+          <respcondition continue="Yes">
+            <conditionvar><other/></conditionvar>
+            <displayfeedback feedbacktype="Response" linkrefid="general_fb"/>
+          </respcondition>
+<| endif |>
+        </resprocessing>
+<| if q.feedback |>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+<| endif |>
+<| if q.feedback_correct |>
+        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct >>]]></mattext></material></itemfeedback>
+<| endif |>
+<| if q.feedback_incorrect |>
+        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect >>]]></mattext></material></itemfeedback>
+<| endif |>
+      </item>
+
+<| elif q.type == 'essay' |>
+      <item ident="<< item_id >>" title="<< item_title | e >>">
+        <itemmetadata>
+          <qtimetadata>
+            <qtimetadatafield><fieldlabel>question_type</fieldlabel><fieldentry>essay_question</fieldentry></qtimetadatafield>
+            <qtimetadatafield><fieldlabel>points_possible</fieldlabel><fieldentry><< marks >></fieldentry></qtimetadatafield>
+          </qtimetadata>
+        </itemmetadata>
+        <presentation>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+          <response_str ident="response1" rcardinality="Single">
+            <render_fib rows="8">
+              <response_label ident="answer1"/>
+            </render_fib>
+          </response_str>
+        </presentation>
+        <resprocessing>
+          <outcomes><decvar varname="SCORE" vartype="Decimal" defaultval="0" minvalue="0" maxvalue="<< marks >>"/></outcomes>
+        </resprocessing>
+<| if q.answer |>
+        <itemfeedback ident="rubric"><material><mattext texttype="text/html"><![CDATA[<< q.answer >>]]></mattext></material></itemfeedback>
+<| endif |>
+<| if q.feedback |>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+<| endif |>
+      </item>
+
+<| elif q.type == 'matching' |>
+<| set num_matches = q.choices | length |>
+<| set unit_marks = (marks / num_matches) if num_matches > 0 else marks |>
+      <item ident="<< item_id >>" title="<< item_title | e >>">
+        <itemmetadata>
+          <qtimetadata>
+            <qtimetadatafield><fieldlabel>question_type</fieldlabel><fieldentry>matching_question</fieldentry></qtimetadatafield>
+            <qtimetadatafield><fieldlabel>points_possible</fieldlabel><fieldentry><< marks >></fieldentry></qtimetadatafield>
+          </qtimetadata>
+        </itemmetadata>
+        <presentation>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+<| for c in q.choices |>
+<| set match_index = loop.index |>
+          <response_lid ident="response_<< match_index >>" rcardinality="Single">
+            <material><mattext texttype="text/html"><![CDATA[<< c.A >>]]></mattext></material>
+            <render_choice<| if q.shuffle is defined and (q.shuffle == false or q.shuffle|lower == 'false') |> shuffle="No"<| elif qti.shuffle_answers |> shuffle="Yes"<| endif |>>
+<| for opt in q.choices |>
+              <response_label ident="match_choice_<< loop.index >>">
+                <material><mattext texttype="text/html"><![CDATA[<< opt.B >>]]></mattext></material>
+              </response_label>
+<| endfor |>
+            </render_choice>
+          </response_lid>
+<| endfor |>
+        </presentation>
+        <resprocessing>
+          <outcomes><decvar varname="SCORE" vartype="Decimal" defaultval="0" minvalue="0" maxvalue="<< marks >>"/></outcomes>
+<| for c in q.choices |>
+<| set match_index = loop.index |>
+          <respcondition continue="Yes">
+            <conditionvar>
+              <varequal respident="response_<< match_index >>">match_choice_<< match_index >></varequal>
+            </conditionvar>
+            <setvar varname="SCORE" action="Add"><< unit_marks | round(4) >></setvar>
+          </respcondition>
+<| endfor |>
+<| if q.feedback |>
+          <respcondition continue="Yes">
+            <conditionvar><other/></conditionvar>
+            <displayfeedback feedbacktype="Response" linkrefid="general_fb"/>
+          </respcondition>
+<| endif |>
+        </resprocessing>
+<| if q.feedback |>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+<| endif |>
+<| if q.feedback_correct |>
+        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct >>]]></mattext></material></itemfeedback>
+<| endif |>
+<| if q.feedback_incorrect |>
+        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect >>]]></mattext></material></itemfeedback>
+<| endif |>
+      </item>
+
+<| elif q.type == 'ordering' |>
+<| set num_items = q.choices | length |>
+<| set unit_marks = (marks / num_items) if num_items > 0 else marks |>
+      <item ident="<< item_id >>" title="<< item_title | e >>">
+        <itemmetadata>
+          <qtimetadata>
+            <qtimetadatafield><fieldlabel>question_type</fieldlabel><fieldentry>matching_question</fieldentry></qtimetadatafield>
+            <qtimetadatafield><fieldlabel>points_possible</fieldlabel><fieldentry><< marks >></fieldentry></qtimetadatafield>
+          </qtimetadata>
+        </itemmetadata>
+        <presentation>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+<| for c in q.choices |>
+<| set order_pos = loop.index |>
+          <response_lid ident="response_pos_<< order_pos >>" rcardinality="Single">
+            <material><mattext texttype="text/html"><![CDATA[Position << order_pos >>]]></mattext></material>
+            <render_choice<| if q.shuffle is defined and (q.shuffle == false or q.shuffle|lower == 'false') |> shuffle="No"<| elif qti.shuffle_answers |> shuffle="Yes"<| endif |>>
+<| for opt in q.choices |>
+              <response_label ident="item_choice_<< loop.index >>">
+                <material><mattext texttype="text/html"><![CDATA[<< opt >>]]></mattext></material>
+              </response_label>
+<| endfor |>
+            </render_choice>
+          </response_lid>
+<| endfor |>
+        </presentation>
+        <resprocessing>
+          <outcomes><decvar varname="SCORE" vartype="Decimal" defaultval="0" minvalue="0" maxvalue="<< marks >>"/></outcomes>
+<| for c in q.choices |>
+<| set order_pos = loop.index |>
+          <respcondition continue="Yes">
+            <conditionvar>
+              <varequal respident="response_pos_<< order_pos >>">item_choice_<< order_pos >></varequal>
+            </conditionvar>
+            <setvar varname="SCORE" action="Add"><< unit_marks | round(4) >></setvar>
+          </respcondition>
+<| endfor |>
+<| if q.feedback |>
+          <respcondition continue="Yes">
+            <conditionvar><other/></conditionvar>
+            <displayfeedback feedbacktype="Response" linkrefid="general_fb"/>
+          </respcondition>
+<| endif |>
+        </resprocessing>
+<| if q.feedback |>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+<| endif |>
+<| if q.feedback_correct |>
+        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct >>]]></mattext></material></itemfeedback>
+<| endif |>
+<| if q.feedback_incorrect |>
+        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect >>]]></mattext></material></itemfeedback>
+<| endif |>
+      </item>
+<| endif |>
+<| endfor |>
+    </section>
+  </assessment>
+</questestinterop>

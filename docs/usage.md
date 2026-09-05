@@ -30,6 +30,13 @@ quizml --build quiz.yaml
 quizml -t bb quiz.yaml
 ```
 
+* Export an IMS QTI 1.2 ZIP package (Canvas, Blackboard Ultra/Learn, Moodle, Brightspace):
+
+```bash
+quizml -t qti quiz.yaml
+```
+
+
 
 ### Syntax
 

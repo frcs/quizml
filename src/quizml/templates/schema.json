@@ -24,8 +24,15 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
+            "notes": { "$ref": "#/definitions/markdown" },
+            "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
+            "shuffle": { "type": "boolean" },
+            "partial_credit": { "type": "boolean" },
             "cols": { "type": "integer", "default": "1" },
             "question": { "$ref": "#/definitions/markdown" },
             "figure": { "$ref": "#/definitions/markdown" },
@@ -49,8 +56,14 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
+            "notes": { "$ref": "#/definitions/markdown" },
+            "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
+            "shuffle": { "type": "boolean" },
             "cols": { "type": "integer", "default": "1" },
             "question": { "$ref": "#/definitions/markdown" },
             "figure": { "$ref": "#/definitions/markdown" },
@@ -74,11 +87,15 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
+            "notes": { "$ref": "#/definitions/markdown" },
+            "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
             "question": { "$ref": "#/definitions/markdown" },
             "figure": { "$ref": "#/definitions/markdown" },
-
             "figure-split": { "type": "number" },
             "answer": { "type": "boolean" }
           },
@@ -90,8 +107,13 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "4" },
             "comments": { "$ref": "#/definitions/markdown" },
+            "notes": { "$ref": "#/definitions/markdown" },
+            "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
             "question": { "$ref": "#/definitions/markdown" },
             "answer": { "$ref": "#/definitions/markdown" }
           },
@@ -103,8 +125,14 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
+            "notes": { "$ref": "#/definitions/markdown" },
+            "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
+            "shuffle": { "type": "boolean" },
             "question": { "$ref": "#/definitions/markdown" },
             "figure": { "$ref": "#/definitions/markdown" },
             "figure-split": { "type": "number" },
@@ -128,8 +156,14 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
+            "notes": { "$ref": "#/definitions/markdown" },
+            "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
+            "shuffle": { "type": "boolean" },
             "cols": { "type": "integer", "default": "1" },
             "question": { "$ref": "#/definitions/markdown" },
             "figure": { "$ref": "#/definitions/markdown" },
@@ -147,8 +181,14 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
+            "notes": { "$ref": "#/definitions/markdown" },
+            "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
+            "case_sensitive": { "type": "boolean" },
             "question": { "$ref": "#/definitions/markdown" },
             "figure": { "$ref": "#/definitions/markdown" },
             "figure-split": { "type": "number" },
@@ -165,8 +205,15 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
+            "notes": { "$ref": "#/definitions/markdown" },
+            "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
+            "partial_credit": { "type": "boolean" },
+            "case_sensitive": { "type": "boolean" },
             "question": { "$ref": "#/definitions/markdown" },
             "figure": { "$ref": "#/definitions/markdown" },
             "figure-split": { "type": "number" },
@@ -186,8 +233,14 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
+            "notes": { "$ref": "#/definitions/markdown" },
+            "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
+            "tolerance_type": { "type": "string", "enum": ["absolute", "relative"] },
             "question": { "$ref": "#/definitions/markdown" },
             "figure": { "$ref": "#/definitions/markdown" },
             "figure-split": { "type": "number" },
