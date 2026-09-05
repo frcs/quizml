@@ -1,10 +1,14 @@
 """IMS QTI 1.2 package renderer and ZIP packager."""
 
+import base64
 import hashlib
 import io
 import re
+import warnings
 import zipfile
 from pathlib import Path
+
+from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
 
 from quizml.renderer.jinja import render_template
 
@@ -35,7 +39,9 @@ def _strip_html(text: str) -> str:
 def prepare_qti_context(context: dict) -> dict:
     """Normalizes document header metadata into structured QTI properties."""
     header = context.get("header", {})
-    qti_opts = dict(header.get("_qti", {})) if isinstance(header.get("_qti"), dict) else {}
+    qti_opts = (
+        dict(header.get("_qti", {})) if isinstance(header.get("_qti"), dict) else {}
+    )
 
     title = (
         qti_opts.get("title")
@@ -67,7 +73,10 @@ def prepare_qti_context(context: dict) -> dict:
 
     # Canvas mapping for result release
     show_correct_answers_at = qti_opts.get("show_correct_answers_at")
-    if show_correct_answers_at is None and release_solutions in ("after_due_date", "after_deadline"):
+    if show_correct_answers_at is None and release_solutions in (
+        "after_due_date",
+        "after_deadline",
+    ):
         show_correct_answers_at = due_at
     elif show_correct_answers_at is None and release_solutions == "on_date":
         show_correct_answers_at = release_date
@@ -104,21 +113,6 @@ def prepare_qti_context(context: dict) -> dict:
     return qti_context
 
 
-def _render_qti12(qti_ctx: dict, tdir: Path) -> bytes:
-    """Renders a QTI 1.2 package directory into an in-memory ZIP archive."""
-    quiz_xml = render_template(qti_ctx, tdir / "quiz.xml.j2")
-    manifest_xml = render_template(qti_ctx, tdir / "imsmanifest.xml.j2")
-    meta_xml = render_template(qti_ctx, tdir / "assessment_meta.xml.j2")
-
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("quiz.xml", quiz_xml.encode("utf-8"))
-        zf.writestr("imsmanifest.xml", manifest_xml.encode("utf-8"))
-        zf.writestr("assessment_meta.xml", meta_xml.encode("utf-8"))
-
-    return buf.getvalue()
-
-
 def _ensure_xhtml(html_str: str) -> str:
     """Ensures HTML void tags (br, hr, img) are XML self-closing and well-formed."""
     if not html_str:
@@ -137,11 +131,183 @@ def _clean_choice_text(val) -> str:
     return _ensure_xhtml(s)
 
 
+def _process_qti_html(html_str: str, media_store: dict) -> tuple[str, list[str]]:
+    """Sanitizes HTML for QTI: cleans tables and extracts data URI images into assets.
+
+    LMSs like Blackboard Ultra flatten HTML tables when nested in <div>, using
+    <thead>/<tbody>, or when burdened with complex inline CSS styles.
+    Similarly, LMS QTI importers fail on base64 data URIs and require external files
+    declared in imsmanifest.xml.
+
+    :param html_str: Raw XHTML / HTML string.
+    :param media_store: Dict collecting {relative_filename: bytes}.
+    :return: (cleaned_xhtml, list_of_referenced_media_files)
+    """
+    if not html_str:
+        return "", []
+
+    warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
+    soup = BeautifulSoup(str(html_str), "html.parser")
+    referenced_media = []
+
+    # 1. Clean tables for LMS compatibility
+    for div in soup.find_all("div"):
+        div.unwrap()
+
+    for table in soup.find_all("table"):
+        for container in table.find_all(["thead", "tbody", "tfoot"]):
+            container.unwrap()
+        table.attrs = {"border": "1", "style": "border-collapse: collapse;"}
+        for tr in table.find_all("tr"):
+            tr.attrs = {}
+        for cell in table.find_all(["th", "td"]):
+            cell.attrs = {}
+
+    # 2. Extract embedded images (data URIs) into external media assets
+    for img in soup.find_all("img"):
+        src = img.get("src", "")
+        if not src.startswith("data:image/"):
+            continue
+
+        img_bytes = None
+        ext = "png"
+        if src.startswith("data:image/svg+xml;base64,"):
+            b64_str = src.split(",", 1)[1]
+            try:
+                raw_svg = base64.b64decode(b64_str).decode("utf-8", errors="replace")
+                m = re.search(
+                    r'<image[^>]*href="data:image/(png|jpeg|jpg);base64,([^"]+)"',
+                    raw_svg,
+                )
+                if m:
+                    ext = "jpg" if m.group(1) == "jpeg" else m.group(1)
+                    img_bytes = base64.b64decode(m.group(2))
+                else:
+                    ext = "svg"
+                    img_bytes = raw_svg.encode("utf-8")
+            except Exception:
+                continue
+        else:
+            m = re.match(r"data:image/([^;]+);base64,(.+)", src)
+            if m:
+                ext = "jpg" if m.group(1) == "jpeg" else m.group(1)
+                try:
+                    img_bytes = base64.b64decode(m.group(2))
+                except Exception:
+                    continue
+
+        if img_bytes:
+            img_hash = hashlib.md5(img_bytes).hexdigest()[:10]
+            fname = f"images/img_{img_hash}.{ext}"
+            media_store[fname] = img_bytes
+            referenced_media.append(fname)
+            img["src"] = fname
+
+            if img.has_attr("width"):
+                try:
+                    img["width"] = str(round(float(img["width"])))
+                except (ValueError, TypeError):
+                    pass
+            if img.has_attr("height"):
+                try:
+                    img["height"] = str(round(float(img["height"])))
+                except (ValueError, TypeError):
+                    pass
+
+    cleaned_str = str(soup)
+    cleaned_str = _ensure_xhtml(cleaned_str)
+    return cleaned_str, referenced_media
+
+
+def _process_questions_for_qti(questions: list, media_store: dict) -> list:
+    """Processes question text, choices, and feedback for tables and media extraction."""
+    processed = []
+    for q in questions:
+        item_q = dict(q)
+        item_media = []
+        for field in ["question", "feedback", "feedback_correct", "feedback_incorrect"]:
+            if field in item_q and item_q[field]:
+                cleaned, media = _process_qti_html(item_q[field], media_store)
+                item_q[field] = cleaned
+                item_media.extend(media)
+
+        if "choices" in item_q and isinstance(item_q["choices"], list):
+            cleaned_choices = []
+            for c in item_q["choices"]:
+                if isinstance(c, dict):
+                    c_dict = dict(c)
+                    raw_text = (
+                        c_dict.get("x") or c_dict.get("o") or c_dict.get("text") or ""
+                    )
+                    cleaned_text, media = _process_qti_html(
+                        _clean_choice_text(raw_text), media_store
+                    )
+                    c_dict["choice_text"] = cleaned_text
+                    item_media.extend(media)
+                    if "A" in c_dict:
+                        cleaned_a, media = _process_qti_html(
+                            _ensure_xhtml(c_dict["A"]), media_store
+                        )
+                        c_dict["A"] = cleaned_a
+                        item_media.extend(media)
+                    if "B" in c_dict:
+                        cleaned_b, media = _process_qti_html(
+                            _ensure_xhtml(c_dict["B"]), media_store
+                        )
+                        c_dict["B"] = cleaned_b
+                        item_media.extend(media)
+                    cleaned_choices.append(c_dict)
+                else:
+                    cleaned_c, media = _process_qti_html(
+                        _clean_choice_text(c), media_store
+                    )
+                    cleaned_choices.append(cleaned_c)
+                    item_media.extend(media)
+            item_q["choices"] = cleaned_choices
+
+        item_q["media_files"] = list(dict.fromkeys(item_media))
+        processed.append(item_q)
+    return processed
+
+
+def _render_qti12(qti_ctx: dict, tdir: Path) -> bytes:
+    """Renders a QTI 1.2 package directory into an in-memory ZIP archive."""
+    media_store: dict[str, bytes] = {}
+    render_ctx = dict(qti_ctx)
+    render_ctx["questions"] = _process_questions_for_qti(
+        qti_ctx.get("questions", []), media_store
+    )
+    render_ctx["all_media_files"] = list(media_store.keys())
+
+    quiz_xml = render_template(render_ctx, tdir / "quiz.xml.j2")
+    manifest_xml = render_template(render_ctx, tdir / "imsmanifest.xml.j2")
+    meta_xml = render_template(render_ctx, tdir / "assessment_meta.xml.j2")
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("quiz.xml", quiz_xml.encode("utf-8"))
+        zf.writestr("imsmanifest.xml", manifest_xml.encode("utf-8"))
+        zf.writestr("assessment_meta.xml", meta_xml.encode("utf-8"))
+        for fname, bdata in media_store.items():
+            zf.writestr(fname, bdata)
+
+    return buf.getvalue()
+
+
 def _render_qti21(qti_ctx: dict, tdir: Path) -> bytes:
     """Renders a QTI 2.1 package directory into an in-memory ZIP archive."""
-    manifest_xml = render_template(qti_ctx, tdir / "imsmanifest.xml.j2")
+    media_store: dict[str, bytes] = {}
+    processed_questions = _process_questions_for_qti(
+        qti_ctx.get("questions", []), media_store
+    )
+
+    render_ctx = dict(qti_ctx)
+    render_ctx["questions"] = processed_questions
+    render_ctx["all_media_files"] = list(media_store.keys())
+
+    manifest_xml = render_template(render_ctx, tdir / "imsmanifest.xml.j2")
     assessment_xml = (
-        render_template(qti_ctx, tdir / "assessment.xml.j2")
+        render_template(render_ctx, tdir / "assessment.xml.j2")
         if (tdir / "assessment.xml.j2").exists()
         else None
     )
@@ -153,38 +319,17 @@ def _render_qti21(qti_ctx: dict, tdir: Path) -> bytes:
             zf.writestr("assessment.xml", assessment_xml.encode("utf-8"))
 
         item_template = tdir / "item.xml.j2"
-        questions = qti_ctx.get("questions", [])
-        for idx, q in enumerate(questions, start=1):
-            item_q = dict(q)
-            if "question" in item_q:
-                item_q["question"] = _ensure_xhtml(item_q["question"])
-            if "feedback" in item_q:
-                item_q["feedback"] = _ensure_xhtml(item_q["feedback"])
-            if "feedback_correct" in item_q:
-                item_q["feedback_correct"] = _ensure_xhtml(item_q["feedback_correct"])
-            if "feedback_incorrect" in item_q:
-                item_q["feedback_incorrect"] = _ensure_xhtml(item_q["feedback_incorrect"])
-            if "choices" in item_q and isinstance(item_q["choices"], list):
-                cleaned_choices = []
-                for c in item_q["choices"]:
-                    if isinstance(c, dict):
-                        c_dict = dict(c)
-                        raw_text = c_dict.get("x") or c_dict.get("o") or c_dict.get("text") or ""
-                        c_dict["choice_text"] = _clean_choice_text(raw_text)
-                        if "A" in c_dict:
-                            c_dict["A"] = _ensure_xhtml(c_dict["A"])
-                        if "B" in c_dict:
-                            c_dict["B"] = _ensure_xhtml(c_dict["B"])
-                        cleaned_choices.append(c_dict)
-                    else:
-                        cleaned_choices.append(_clean_choice_text(c))
-                item_q["choices"] = cleaned_choices
-
-            item_ctx = dict(qti_ctx)
+        for idx, item_q in enumerate(processed_questions, start=1):
+            item_ctx = dict(render_ctx)
             item_ctx["q"] = item_q
             item_ctx["item_index"] = idx
             item_xml = render_template(item_ctx, item_template)
             zf.writestr(f"items/item_{idx}.xml", item_xml.encode("utf-8"))
+
+        # Write media assets to both images/ and items/images/ for maximum LMS compatibility
+        for fname, bdata in media_store.items():
+            zf.writestr(fname, bdata)
+            zf.writestr(f"items/{fname}", bdata)
 
     return buf.getvalue()
 
@@ -207,4 +352,3 @@ def render_qti(context: dict, template_dir: Path | str) -> bytes:
         raise FileNotFoundError(
             f"No recognizable QTI template found in {tdir} (expected quiz.xml.j2 or item.xml.j2)"
         )
-

@@ -24,10 +24,18 @@
   <resources>
     <resource identifier="<< qti.assessment_ident >>" type="imsqti_xmlv1p2" href="quiz.xml">
       <file href="quiz.xml"/>
+<| for mf in all_media_files |>
+      <file href="<< mf >>"/>
+<| endfor |>
       <dependency identifierref="<< qti.assessment_ident >>_meta"/>
     </resource>
     <resource identifier="<< qti.assessment_ident >>_meta" type="associatedcontent/imscc_xmlv1p1/learning-application-resource" href="assessment_meta.xml">
       <file href="assessment_meta.xml"/>
     </resource>
+<| for mf in all_media_files |>
+    <resource identifier="res_media_<< loop.index >>" type="webcontent" href="<< mf >>">
+      <file href="<< mf >>"/>
+    </resource>
+<| endfor |>
   </resources>
 </manifest>

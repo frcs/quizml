@@ -40,7 +40,16 @@
         </imsmd:lom>
       </metadata>
       <file href="items/item_<< loop.index >>.xml"/>
+<| for mf in q.media_files |>
+      <file href="<< mf >>"/>
+<| endfor |>
+    </resource>
+<| endfor |>
+<| for mf in all_media_files |>
+    <resource identifier="res_media_<< loop.index >>" type="webcontent" href="<< mf >>">
+      <file href="<< mf >>"/>
     </resource>
 <| endfor |>
   </resources>
 </manifest>
+

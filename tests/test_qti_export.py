@@ -5,12 +5,14 @@ import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
 
-import pytest
-
 from quizml.builder.config import load_config, resolve_targets
 from quizml.builder.scheduler import compile_render_target
 from quizml.quizmlyaml.parser import parse_yaml_docs
-from quizml.renderer.qti import _derive_duration_from_examtime, prepare_qti_context, render_qti
+from quizml.renderer.qti import (
+    _derive_duration_from_examtime,
+    prepare_qti_context,
+    render_qti,
+)
 from quizml.transcoder import MarkdownTranscoder
 
 
@@ -139,7 +141,9 @@ _qti:
     transcoder = MarkdownTranscoder(yaml_doc)
     yaml_transcoded = transcoder.transcode_target({"fmt": "html-mathml"})
 
-    pkg_template_dir = Path(__file__).parent.parent / "src" / "quizml" / "templates" / "qti12"
+    pkg_template_dir = (
+        Path(__file__).parent.parent / "src" / "quizml" / "templates" / "qti12"
+    )
     zip_bytes = render_qti(yaml_transcoded, pkg_template_dir)
 
     assert isinstance(zip_bytes, bytes)
@@ -165,17 +169,23 @@ _qti:
         assert quiz_root.tag.endswith("questestinterop")
 
         # Verify items in quiz.xml
-        items = quiz_root.findall(".//{http://www.imsglobal.org/xsd/ims_qtiasiv1p2}item")
+        items = quiz_root.findall(
+            ".//{http://www.imsglobal.org/xsd/ims_qtiasiv1p2}item"
+        )
         assert len(items) == 9
 
         # Verify Q1 (MC) has shuffle="No" because shuffle: false was specified
         mc_item = items[0]
-        render_choice = mc_item.find(".//{http://www.imsglobal.org/xsd/ims_qtiasiv1p2}render_choice")
+        render_choice = mc_item.find(
+            ".//{http://www.imsglobal.org/xsd/ims_qtiasiv1p2}render_choice"
+        )
         assert render_choice is not None
         assert render_choice.attrib.get("shuffle") == "No"
 
         # Verify feedback elements in Q1
-        feedbacks = mc_item.findall("{http://www.imsglobal.org/xsd/ims_qtiasiv1p2}itemfeedback")
+        feedbacks = mc_item.findall(
+            "{http://www.imsglobal.org/xsd/ims_qtiasiv1p2}itemfeedback"
+        )
         fb_idents = [f.attrib.get("ident") for f in feedbacks]
         assert "general_fb" in fb_idents
         assert "correct_fb" in fb_idents
@@ -183,7 +193,9 @@ _qti:
 
         # Verify essay rubric in Q7
         essay_item = items[6]
-        essay_fb = essay_item.findall("{http://www.imsglobal.org/xsd/ims_qtiasiv1p2}itemfeedback")
+        essay_fb = essay_item.findall(
+            "{http://www.imsglobal.org/xsd/ims_qtiasiv1p2}itemfeedback"
+        )
         essay_fb_idents = [f.attrib.get("ident") for f in essay_fb]
         assert "rubric" in essay_fb_idents
 
@@ -206,7 +218,9 @@ _qti:
     )
 
     config = load_config()
-    header, questions = parse_yaml_docs(quiz_file.read_text(encoding="utf-8"), str(quiz_file))
+    header, questions = parse_yaml_docs(
+        quiz_file.read_text(encoding="utf-8"), str(quiz_file)
+    )
     yaml_doc = {"header": header, "questions": questions}
 
     targets = resolve_targets(
@@ -262,7 +276,8 @@ def test_qti_export_with_image_and_backward_compatibility(tmp_path):
     with zipfile.ZipFile(out_zip, "r") as zf:
         quiz_xml = zf.read("quiz.xml").decode("utf-8")
         assert "<math" in quiz_xml  # MathML rendered
-        assert "data:image" in quiz_xml  # Base64 image embedded without metadata leakage
+        assert "images/img_" in quiz_xml  # Image bundled into package
+        assert any(n.startswith("images/img_") for n in zf.namelist())
         root = ET.fromstring(quiz_xml)
         items = root.findall(".//{http://www.imsglobal.org/xsd/ims_qtiasiv1p2}item")
         assert len(items) == 2
@@ -292,13 +307,16 @@ title: "Exam with Sections"
     transcoder = MarkdownTranscoder(yaml_doc)
     yaml_transcoded = transcoder.transcode_target({"fmt": "html-mathml"})
 
-    pkg_template_dir = Path(__file__).parent.parent / "src" / "quizml" / "templates" / "qti12"
+    pkg_template_dir = (
+        Path(__file__).parent.parent / "src" / "quizml" / "templates" / "qti12"
+    )
     zip_bytes = render_qti(yaml_transcoded, pkg_template_dir)
 
     with zipfile.ZipFile(io.BytesIO(zip_bytes), "r") as zf:
         quiz_xml = zf.read("quiz.xml")
         root = ET.fromstring(quiz_xml)
-        sections = root.findall(".//{http://www.imsglobal.org/xsd/ims_qtiasiv1p2}section")
+        sections = root.findall(
+            ".//{http://www.imsglobal.org/xsd/ims_qtiasiv1p2}section"
+        )
         # Should have root_section, section_1, and section_3
         assert len(sections) >= 2
-
