@@ -120,4 +120,5 @@ QuizML supports multiple LMS export formats:
 * **Blackboard Text (`bb`):** Produces a tab-delimited `.txt` file suitable for uploading directly into tests on Blackboard Learn and Blackboard Ultra via the `(+)` $\to$ *Upload questions from file* menu.
 * **IMS QTI 1.2 (`qti` / `qti12`):** Produces a `.qti.zip` package (containing `quiz.xml`, `imsmanifest.xml`, `assessment_meta.xml`) designed for **Canvas** quiz imports and classic LMS platforms.
 * **IMS QTI 2.1 (`qti21`):** Produces a `.qti21.zip` package conforming to IMS QTI 2.1 specifications (containing `imsmanifest.xml`, `assessment.xml`, and individual `items/item_N.xml` files). This is the exact format required by **Blackboard Ultra's Question Bank** importer (*Manage banks* $\to$ `(+)` $\to$ *Import from QTI 2.1 package*).
+* **Moodle XML (`moodle`):** Produces a self-contained `.xml` file conforming to the native **Moodle XML format**. Suitable for importing directly into Moodle courses via the *Question bank* $\to$ *Import* $\to$ *Moodle XML format* menu. Supports all QuizML question types, embedded MathML equations, and base64 images.
 

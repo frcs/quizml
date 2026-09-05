@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<quiz>
+<|- macro clean_choice(txt) -|>
+  <|- if txt.startswith('<p>') and txt.endswith('</p>') and txt.count('<p>') == 1 -|>
+    <<- txt[3:-4] | trim ->>
+  <|- else -|>
+    <<- txt | trim ->>
+  <|- endif -|>
+<|- endmacro -|>
+
+<| if header.title |>
+  <!-- Category -->
+  <question type="category">
+    <category>
+      <text>$course$/top/<< header.title | striptags | trim >></text>
+    </category>
+    <info format="html">
+      <text></text>
+    </info>
+    <idnumber></idnumber>
+  </question>
+<| endif |>
+
+<| for q in questions |>
+  <| set q_name = (q.title | striptags | trim) if q.title else ('Question ' ~ loop.index) |>
+  <# --- MULTIPLE CHOICE / MULTIPLE ANSWER --- #>
+  <| if q.type in ['mc', 'ma'] |>
+  <question type="multichoice">
+    <name>
+      <text><< q_name >></text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<< q.question | trim >>]]></text>
+    </questiontext>
+    <generalfeedback format="html">
+      <text><![CDATA[<< q.feedback | default('') | trim >>]]></text>
+    </generalfeedback>
+    <defaultgrade><< q.marks | default(1.0) >></defaultgrade>
+    <penalty><< q.penalty | default(0.3333333) >></penalty>
+    <hidden>0</hidden>
+    <idnumber><< q.id | default('') >></idnumber>
+    <single><< 'true' if q.type == 'mc' else 'false' >></single>
+    <shuffleanswers><< '0' if (q.shuffle is defined and (q.shuffle == false or q.shuffle|lower == 'false')) else '1' >></shuffleanswers>
+    <answernumbering>abc</answernumbering>
+    <showstandardinstruction>0</showstandardinstruction>
+    <correctfeedback format="html">
+      <text><![CDATA[<< q.feedback_correct | default('Your answer is correct.') | trim >>]]></text>
+    </correctfeedback>
+    <partiallycorrectfeedback format="html">
+      <text><![CDATA[Your answer is partially correct.]]></text>
+    </partiallycorrectfeedback>
+    <incorrectfeedback format="html">
+      <text><![CDATA[<< q.feedback_incorrect | default('Your answer is incorrect.') | trim >>]]></text>
+    </incorrectfeedback>
+    <shownumcorrect/>
+    <| if q.type == 'ma' |>
+      <| set num_corr = (q.choices | selectattr('x', 'defined') | list | length) |>
+      <| set num_inc = (q.choices | selectattr('o', 'defined') | list | length) |>
+      <| set pos_frac = (100.0 / num_corr) | round(5) if num_corr > 0 else 100.0 |>
+      <| set neg_frac = (-100.0 / num_inc) | round(5) if num_inc > 0 else 0.0 |>
+      <| for c in q.choices |>
+    <answer fraction="<< pos_frac if c.x is defined else neg_frac >>" format="html">
+      <text><![CDATA[<< clean_choice(c.x if c.x is defined else c.o) >>]]></text>
+      <feedback format="html">
+        <text><![CDATA[<< c.feedback | default('') | trim >>]]></text>
+      </feedback>
+    </answer>
+      <| endfor |>
+    <| else |>
+      <| for c in q.choices |>
+    <answer fraction="<< '100' if c.x is defined else '0' >>" format="html">
+      <text><![CDATA[<< clean_choice(c.x if c.x is defined else c.o) >>]]></text>
+      <feedback format="html">
+        <text><![CDATA[<< c.feedback | default('') | trim >>]]></text>
+      </feedback>
+    </answer>
+      <| endfor |>
+    <| endif |>
+  </question>
+
+  <# --- TRUE / FALSE --- #>
+  <| elif q.type == 'tf' |>
+  <question type="truefalse">
+    <name>
+      <text><< q_name >></text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<< q.question | trim >>]]></text>
+    </questiontext>
+    <generalfeedback format="html">
+      <text><![CDATA[<< q.feedback | default('') | trim >>]]></text>
+    </generalfeedback>
+    <defaultgrade><< q.marks | default(1.0) >></defaultgrade>
+    <penalty><< q.penalty | default(1.0) >></penalty>
+    <hidden>0</hidden>
+    <idnumber><< q.id | default('') >></idnumber>
+    <answer fraction="<< '100' if q.answer else '0' >>" format="html">
+      <text>true</text>
+      <feedback format="html">
+        <text><![CDATA[<< (q.feedback_correct if q.answer else q.feedback_incorrect) | default('') | trim >>]]></text>
+      </feedback>
+    </answer>
+    <answer fraction="<< '0' if q.answer else '100' >>" format="html">
+      <text>false</text>
+      <feedback format="html">
+        <text><![CDATA[<< (q.feedback_incorrect if q.answer else q.feedback_correct) | default('') | trim >>]]></text>
+      </feedback>
+    </answer>
+  </question>
+
+  <# --- NUMERICAL --- #>
+  <| elif q.type == 'num' |>
+  <question type="numerical">
+    <name>
+      <text><< q_name >></text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<< q.question | trim >>]]></text>
+    </questiontext>
+    <generalfeedback format="html">
+      <text><![CDATA[<< q.feedback | default('') | trim >>]]></text>
+    </generalfeedback>
+    <defaultgrade><< q.marks | default(1.0) >></defaultgrade>
+    <penalty><< q.penalty | default(0.3333333) >></penalty>
+    <hidden>0</hidden>
+    <idnumber><< q.id | default('') >></idnumber>
+    <answer fraction="100" format="moodle_auto_format">
+      <text><< q.answer >></text>
+      <feedback format="html">
+        <text><![CDATA[<< q.feedback_correct | default('Correct!') | trim >>]]></text>
+      </feedback>
+      <tolerance><< q.tolerance | default(0) >></tolerance>
+    </answer>
+  </question>
+
+  <# --- FILL IN THE BLANK (SHORT ANSWER) --- #>
+  <| elif q.type == 'fill' |>
+  <question type="shortanswer">
+    <name>
+      <text><< q_name >></text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<< q.question | trim >>]]></text>
+    </questiontext>
+    <generalfeedback format="html">
+      <text><![CDATA[<< q.feedback | default('') | trim >>]]></text>
+    </generalfeedback>
+    <defaultgrade><< q.marks | default(1.0) >></defaultgrade>
+    <penalty><< q.penalty | default(0.3333333) >></penalty>
+    <hidden>0</hidden>
+    <idnumber><< q.id | default('') >></idnumber>
+    <usecase><< '1' if q.case_sensitive else '0' >></usecase>
+    <| for a in q.answers |>
+    <answer fraction="100" format="moodle_auto_format">
+      <text><![CDATA[<< a | trim >>]]></text>
+      <feedback format="html">
+        <text><![CDATA[<< q.feedback_correct | default('Correct!') | trim >>]]></text>
+      </feedback>
+    </answer>
+    <| endfor |>
+  </question>
+
+  <# --- MULTI-FILL (CLOZE) --- #>
+  <| elif q.type == 'mfill' |>
+  <| set ns = namespace(text=q.question) |>
+  <| for key, vals in q.answers.items() |>
+    <| set pattern = '[' ~ key ~ ']' |>
+    <| set cloze_item = '{1:SHORTANSWER:=' ~ (vals | join('~=')) ~ '}' |>
+    <| set ns.text = ns.text.replace(pattern, cloze_item) |>
+  <| endfor |>
+  <question type="cloze">
+    <name>
+      <text><< q_name >></text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<< ns.text | trim >>]]></text>
+    </questiontext>
+    <generalfeedback format="html">
+      <text><![CDATA[<< q.feedback | default('') | trim >>]]></text>
+    </generalfeedback>
+    <defaultgrade><< q.marks | default(1.0) >></defaultgrade>
+    <penalty><< q.penalty | default(0.3333333) >></penalty>
+    <hidden>0</hidden>
+    <idnumber><< q.id | default('') >></idnumber>
+  </question>
+
+  <# --- MATCHING --- #>
+  <| elif q.type == 'matching' |>
+  <question type="match">
+    <name>
+      <text><< q_name >></text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<< q.question | trim >>]]></text>
+    </questiontext>
+    <generalfeedback format="html">
+      <text><![CDATA[<< q.feedback | default('') | trim >>]]></text>
+    </generalfeedback>
+    <defaultgrade><< q.marks | default(1.0) >></defaultgrade>
+    <penalty><< q.penalty | default(0.3333333) >></penalty>
+    <hidden>0</hidden>
+    <idnumber><< q.id | default('') >></idnumber>
+    <shuffleanswers><< '0' if (q.shuffle is defined and (q.shuffle == false or q.shuffle|lower == 'false')) else '1' >></shuffleanswers>
+    <| for c in q.choices |>
+    <subquestion format="html">
+      <text><![CDATA[<< clean_choice(c.A) >>]]></text>
+      <answer>
+        <text><![CDATA[<< clean_choice(c.B) >>]]></text>
+      </answer>
+    </subquestion>
+    <| endfor |>
+  </question>
+
+  <# --- ORDERING --- #>
+  <| elif q.type == 'ordering' |>
+  <question type="ordering">
+    <name>
+      <text><< q_name >></text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<< q.question | trim >>]]></text>
+    </questiontext>
+    <generalfeedback format="html">
+      <text><![CDATA[<< q.feedback | default('') | trim >>]]></text>
+    </generalfeedback>
+    <defaultgrade><< q.marks | default(1.0) >></defaultgrade>
+    <penalty><< q.penalty | default(0.3333333) >></penalty>
+    <hidden>0</hidden>
+    <idnumber><< q.id | default('') >></idnumber>
+    <layouttype>VERTICAL</layouttype>
+    <selecttype>ALL</selecttype>
+    <selectcount>0</selectcount>
+    <gradingtype>RELATIVE_ALL_PREVIOUS_AND_NEXT</gradingtype>
+    <showgrading>SHOW</showgrading>
+    <shuffleanswers><< '0' if (q.shuffle is defined and (q.shuffle == false or q.shuffle|lower == 'false')) else '1' >></shuffleanswers>
+    <| for c in q.choices |>
+    <answer fraction="1" format="html">
+      <text><![CDATA[<< clean_choice(c) >>]]></text>
+    </answer>
+    <| endfor |>
+  </question>
+
+  <# --- ESSAY --- #>
+  <| elif q.type == 'essay' |>
+  <question type="essay">
+    <name>
+      <text><< q_name >></text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<< q.question | trim >>]]></text>
+    </questiontext>
+    <generalfeedback format="html">
+      <text><![CDATA[<< q.feedback | default('') | trim >>]]></text>
+    </generalfeedback>
+    <defaultgrade><< q.marks | default(1.0) >></defaultgrade>
+    <penalty><< q.penalty | default(0.0) >></penalty>
+    <hidden>0</hidden>
+    <idnumber><< q.id | default('') >></idnumber>
+    <responseformat>editor</responseformat>
+    <responserequired>1</responserequired>
+    <responsefieldlines>15</responsefieldlines>
+    <attachments>0</attachments>
+    <attachmentsrequired>0</attachmentsrequired>
+    <graderinfo format="html">
+      <text><![CDATA[<< q.answer | default('') | trim >>]]></text>
+    </graderinfo>
+    <responsetemplate format="html">
+      <text></text>
+    </responsetemplate>
+  </question>
+
+  <# --- DESCRIPTION / INFO --- #>
+  <| elif q.type in ['description', 'info'] |>
+  <question type="description">
+    <name>
+      <text><< q.title | default('Information ' ~ loop.index) >></text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<< q.question | trim >>]]></text>
+    </questiontext>
+    <generalfeedback format="html">
+      <text></text>
+    </generalfeedback>
+    <defaultgrade>0.0</defaultgrade>
+    <penalty>0.0</penalty>
+    <hidden>0</hidden>
+    <idnumber><< q.id | default('') >></idnumber>
+  </question>
+  <| endif |>
+<| endfor |>
+</quiz>
