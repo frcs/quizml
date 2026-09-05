@@ -84,25 +84,25 @@
   <itemBody>
 <| if q.type in ['mc', 'tf', 'ma'] |>
     <choiceInteraction responseIdentifier="RESPONSE" shuffle="<< (q.shuffle | default(false) | lower) if q.shuffle is defined else ('false' if q.type == 'tf' else (qti.shuffle_answers | lower)) >>" maxChoices="<< 0 if q.type == 'ma' else 1 >>">
-      <prompt><![CDATA[<< q.question >>]]></prompt>
+      <prompt><< q.question >></prompt>
 <| if q.type == 'tf' |>
-      <simpleChoice identifier="true"><![CDATA[<p>True</p>]]></simpleChoice>
-      <simpleChoice identifier="false"><![CDATA[<p>False</p>]]></simpleChoice>
+      <simpleChoice identifier="true"><p>True</p></simpleChoice>
+      <simpleChoice identifier="false"><p>False</p></simpleChoice>
 <| else |>
 <| for c in q.choices |>
-      <simpleChoice identifier="choice_<< loop.index0 >>"><![CDATA[<< c.x if c.x is defined else (c.o if c.o is defined else c.text) >>]]></simpleChoice>
+      <simpleChoice identifier="choice_<< loop.index0 >>"><< c.choice_text if c.choice_text is defined else (c.x if c.x is defined else (c.o if c.o is defined else c.text)) >></simpleChoice>
 <| endfor |>
 <| endif |>
     </choiceInteraction>
 
 <| elif q.type == 'essay' |>
     <extendedTextInteraction responseIdentifier="RESPONSE" expectedLength="500" expectedLines="8">
-      <prompt><![CDATA[<< q.question >>]]></prompt>
+      <prompt><< q.question >></prompt>
     </extendedTextInteraction>
 
 <| elif q.type in ['fill', 'num'] |>
     <div class="qtext">
-      <![CDATA[<< q.question >>]]>
+      << q.question >>
     </div>
     <p>
       Answer: <textEntryInteraction responseIdentifier="RESPONSE" expectedLength="<< 15 if q.type == 'num' else 25 >>"/>
@@ -110,24 +110,24 @@
 
 <| elif q.type == 'matching' |>
     <matchInteraction responseIdentifier="RESPONSE" shuffle="<< (q.shuffle | default(true) | lower) if q.shuffle is defined else 'true' >>" maxAssociations="<< q.choices | length >>">
-      <prompt><![CDATA[<< q.question >>]]></prompt>
+      <prompt><< q.question >></prompt>
       <simpleMatchSet>
 <| for c in q.choices |>
-        <simpleAssociableChoice identifier="match_A_<< loop.index >>" matchMax="1"><![CDATA[<< c.A >>]]></simpleAssociableChoice>
+        <simpleAssociableChoice identifier="match_A_<< loop.index >>" matchMax="1"><< c.A >></simpleAssociableChoice>
 <| endfor |>
       </simpleMatchSet>
       <simpleMatchSet>
 <| for c in q.choices |>
-        <simpleAssociableChoice identifier="match_B_<< loop.index >>" matchMax="<< q.choices | length >>"><![CDATA[<< c.B >>]]></simpleAssociableChoice>
+        <simpleAssociableChoice identifier="match_B_<< loop.index >>" matchMax="<< q.choices | length >>"><< c.B >></simpleAssociableChoice>
 <| endfor |>
       </simpleMatchSet>
     </matchInteraction>
 
 <| elif q.type == 'ordering' |>
     <orderInteraction responseIdentifier="RESPONSE" shuffle="<< (q.shuffle | default(true) | lower) if q.shuffle is defined else 'true' >>">
-      <prompt><![CDATA[<< q.question >>]]></prompt>
+      <prompt><< q.question >></prompt>
 <| for c in q.choices |>
-      <simpleChoice identifier="choice_<< loop.index0 >>"><![CDATA[<< c >>]]></simpleChoice>
+      <simpleChoice identifier="choice_<< loop.index0 >>"><< c >></simpleChoice>
 <| endfor |>
     </orderInteraction>
 <| endif |>
@@ -139,17 +139,17 @@
 
 <| if q.feedback_correct |>
   <modalFeedback outcomeIdentifier="FEEDBACK" identifier="correct" showHide="show">
-    <p><![CDATA[<< q.feedback_correct >>]]></p>
+    <p><< q.feedback_correct >></p>
   </modalFeedback>
 <| endif |>
 <| if q.feedback_incorrect |>
   <modalFeedback outcomeIdentifier="FEEDBACK" identifier="incorrect" showHide="show">
-    <p><![CDATA[<< q.feedback_incorrect >>]]></p>
+    <p><< q.feedback_incorrect >></p>
   </modalFeedback>
 <| endif |>
 <| if q.feedback |>
   <modalFeedback outcomeIdentifier="FEEDBACK" identifier="general" showHide="show">
-    <p><![CDATA[<< q.feedback >>]]></p>
+    <p><< q.feedback >></p>
   </modalFeedback>
 <| endif |>
 </assessmentItem>

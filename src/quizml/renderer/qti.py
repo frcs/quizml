@@ -119,6 +119,24 @@ def _render_qti12(qti_ctx: dict, tdir: Path) -> bytes:
     return buf.getvalue()
 
 
+def _ensure_xhtml(html_str: str) -> str:
+    """Ensures HTML void tags (br, hr, img) are XML self-closing and well-formed."""
+    if not html_str:
+        return ""
+    cleaned = re.sub(r"<br\s*(?<!/)>", "<br/>", str(html_str), flags=re.IGNORECASE)
+    cleaned = re.sub(r"<hr\s*(?<!/)>", "<hr/>", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"(<img\b[^>]*?)(?<!/)>", r"\1/>", cleaned, flags=re.IGNORECASE)
+    return cleaned
+
+
+def _clean_choice_text(val) -> str:
+    """Strips outer paragraph tag from simple choice text if it's a single paragraph."""
+    s = str(val).strip()
+    if s.startswith("<p>") and s.endswith("</p>") and s.count("<p>") == 1:
+        s = s[3:-4].strip()
+    return _ensure_xhtml(s)
+
+
 def _render_qti21(qti_ctx: dict, tdir: Path) -> bytes:
     """Renders a QTI 2.1 package directory into an in-memory ZIP archive."""
     manifest_xml = render_template(qti_ctx, tdir / "imsmanifest.xml.j2")
@@ -137,8 +155,33 @@ def _render_qti21(qti_ctx: dict, tdir: Path) -> bytes:
         item_template = tdir / "item.xml.j2"
         questions = qti_ctx.get("questions", [])
         for idx, q in enumerate(questions, start=1):
+            item_q = dict(q)
+            if "question" in item_q:
+                item_q["question"] = _ensure_xhtml(item_q["question"])
+            if "feedback" in item_q:
+                item_q["feedback"] = _ensure_xhtml(item_q["feedback"])
+            if "feedback_correct" in item_q:
+                item_q["feedback_correct"] = _ensure_xhtml(item_q["feedback_correct"])
+            if "feedback_incorrect" in item_q:
+                item_q["feedback_incorrect"] = _ensure_xhtml(item_q["feedback_incorrect"])
+            if "choices" in item_q and isinstance(item_q["choices"], list):
+                cleaned_choices = []
+                for c in item_q["choices"]:
+                    if isinstance(c, dict):
+                        c_dict = dict(c)
+                        raw_text = c_dict.get("x") or c_dict.get("o") or c_dict.get("text") or ""
+                        c_dict["choice_text"] = _clean_choice_text(raw_text)
+                        if "A" in c_dict:
+                            c_dict["A"] = _ensure_xhtml(c_dict["A"])
+                        if "B" in c_dict:
+                            c_dict["B"] = _ensure_xhtml(c_dict["B"])
+                        cleaned_choices.append(c_dict)
+                    else:
+                        cleaned_choices.append(_clean_choice_text(c))
+                item_q["choices"] = cleaned_choices
+
             item_ctx = dict(qti_ctx)
-            item_ctx["q"] = q
+            item_ctx["q"] = item_q
             item_ctx["item_index"] = idx
             item_xml = render_template(item_ctx, item_template)
             zf.writestr(f"items/item_{idx}.xml", item_xml.encode("utf-8"))
