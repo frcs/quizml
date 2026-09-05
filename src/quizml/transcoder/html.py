@@ -415,7 +415,8 @@ class QuizMLYamlHTMLRenderer(HTMLRenderer):
         return self.eq_dict["##Inline##" + token.content]
 
     def render_math_display(self, token):
-        return self.eq_dict["##Display##" + token.content]
+        inner = self.eq_dict["##Display##" + token.content]
+        return f"<p>{inner}</p>"
 
     def render_image(self, token: span_token.Image) -> str:
         template = '<img src="{}" alt="{}"{} >'

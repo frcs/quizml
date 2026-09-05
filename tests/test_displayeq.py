@@ -100,3 +100,22 @@ def test_math_display_token_parsing():
     assert len(doc3.children) == 5
     assert isinstance(doc3.children[1], MathDisplay)
     assert isinstance(doc3.children[3], MathDisplay)
+
+
+def test_math_display_wrapped_in_paragraph():
+    from quizml.transcoder.transcoder import MarkdownTranscoder
+
+    yaml_data = [
+        {
+            "question": (
+                "Intro text\n\n"
+                "$$\nE=mc^2\n$$\n\n"
+                "\\begin{equation}\n\\int_x \\sin(x)dx = \\phi\n\\end{equation}\n"
+            )
+        }
+    ]
+    tc = MarkdownTranscoder(yaml_data)
+    html_res = tc.html_dict({"fmt": "html-mathml"})
+    content = list(html_res.values())[0]
+    assert "<p><math display=\"block\"" in content
+    assert content.count("<p>") >= 3
