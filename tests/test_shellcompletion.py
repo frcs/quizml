@@ -64,9 +64,16 @@ def test_fish_completion():
     parser = _build_dummy_parser()
     script = fish(parser)
     assert "complete -c quizml" in script
-    assert "-l docs" in script
-    assert "-l render" in script
-    assert "-l transcode" in script
+    assert "complete -e -c quizml" in script
+    assert "function __fish_quizml_templates" in script
+    assert "function __fish_quizml_docs" in script
+    assert "function __fish_quizml_transcode_formats" in script
+    assert "function __fish_quizml_shells" in script
+    assert "-l docs" in script and "(__fish_quizml_docs)" in script
+    assert "-l render" in script and "(__fish_quizml_templates)" in script
+    assert "-l transcode" in script and "(__fish_quizml_transcode_formats)" in script
+    assert "-l shell-completion" in script and "(__fish_quizml_shells)" in script
     assert "tcd-exam.tex.j2" in script
     assert "quickstart" in script
-    assert "bash zsh fish" in script
+
+

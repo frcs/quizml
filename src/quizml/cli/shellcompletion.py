@@ -1,5 +1,4 @@
-
-
+import argparse
 from pathlib import Path
 
 
@@ -87,10 +86,104 @@ complete -F _quizml quizml"""
     return txt
 
 
+DOCS_FALLBACK_DESCRIPTIONS = {
+    "all": "Full documentation guide",
+    "list": "List available topics",
+    "overview": "Architecture and workflow overview",
+    "quickstart": "Quick start tutorial",
+    "usage": "Command-line usage reference",
+    "syntax_yaml": "Quiz YAML document syntax",
+    "syntax_questions": "Question syntax and types",
+    "targets": "Build targets and formats",
+}
+
+BUILTIN_TEMPLATE_DESCRIPTIONS = {
+    "blackboard.txt.j2": "Blackboard quiz format",
+    "preview.html.j2": "HTML test preview",
+    "prototype.docx": "Word document (docx)",
+    "stats.txt.j2": "Quiz statistics summary",
+    "tcd-exam.tex.j2": "TCD LaTeX exam paper",
+    "tcd-exam-solutions.tex.j2": "TCD LaTeX exam solutions",
+}
+
+
+def _get_docs_topics_with_descriptions() -> list[tuple[str, str]]:
+    topics = dict(DOCS_FALLBACK_DESCRIPTIONS)
+    try:
+        from quizml.cli.docs import get_docs_dir, parse_sidebar
+
+        docs_dir = get_docs_dir()
+        items = parse_sidebar(docs_dir)
+        for item in items:
+            slug = item.path.stem.lower()
+            title = item.title.replace("&", "and").replace('"', r"\"").replace("'", "")
+            topics[slug] = title
+    except Exception:
+        pass
+    return sorted(topics.items())
+
+
 def fish(parser):
-    txt = ""
-    docs_topics = _get_docs_topics()
-    templates_str = " ".join(_get_available_templates())
+    docs_items = _get_docs_topics_with_descriptions()
+    docs_printf_args = " \\\n        ".join(
+        f'{slug} "{desc}"' for slug, desc in docs_items
+    )
+
+    templates = _get_available_templates()
+    template_pairs = []
+    for t in templates:
+        desc = BUILTIN_TEMPLATE_DESCRIPTIONS.get(
+            t, "Jinja2 template" if t.endswith(".j2") else "Word template"
+        )
+        template_pairs.append(f'{t} "{desc}"')
+    templates_printf_args = " \\\n        ".join(template_pairs)
+
+    txt = f"""# quizml fish completion
+complete -e -c quizml
+
+function __fish_quizml_shells
+    printf "%s\\t%s\\n" \\
+        bash "Bash completion script" \\
+        fish "Fish completion script" \\
+        zsh "Zsh completion script"
+end
+
+function __fish_quizml_transcode_formats
+    printf "%s\\t%s\\n" \\
+        latex "LaTeX markup" \\
+        html "HTML markup" \\
+        html-svg "HTML with SVG equations" \\
+        html-mathml "HTML with MathML equations"
+end
+
+function __fish_quizml_docs
+    printf "%s\\t%s\\n" \\
+        {docs_printf_args}
+end
+
+function __fish_quizml_templates
+    printf "%s\\t%s\\n" \\
+        {templates_printf_args}
+    for f in *.j2 *.docx quizml-templates/*.j2 quizml-templates/*.docx
+        if test -f "$f"
+            printf "%s\\t%s\\n" (basename "$f") "Custom template"
+        end
+    end
+    set -l token (commandline -ct)
+    if string match -q "*/*" -- $token
+        for f in $token*.j2 $token*.docx
+            if test -f "$f"
+                printf "%s\\t%s\\n" "$f" "Template file"
+            end
+        end
+        for d in $token*/
+            if test -d "$d"
+                echo "$d"
+            end
+        end
+    end
+end
+"""
 
     for a in parser._action_groups[1]._group_actions:
         long_option = None
@@ -107,20 +200,35 @@ def fish(parser):
         if long_option:
             line = line + " -l " + long_option
 
+        help_desc = (a.help or "").replace('"', r"\"")
+
         if long_option == "docs":
-            line = f'{line:<50} -d "{a.help}" -a "{docs_topics}"'
+            line = f'{line:<50} -x -d "{help_desc}" -a "(__fish_quizml_docs)"'
         elif long_option == "shell-completion":
-            line = f'{line:<50} -d "{a.help}" -a "bash zsh fish"'
+            line = f'{line:<50} -x -d "{help_desc}" -a "(__fish_quizml_shells)"'
         elif long_option == "render":
-            line = f'{line:<50} -d "{a.help}" -a "{templates_str}"'
+            line = f'{line:<50} -x -d "{help_desc}" -a "(__fish_quizml_templates)"'
         elif long_option == "transcode":
-            line = f'{line:<50} -d "{a.help}" -a "latex html html-svg html-mathml"'
+            line = f'{line:<50} -x -d "{help_desc}" -a "(__fish_quizml_transcode_formats)"'
+
+        elif a.nargs != 0 and not isinstance(
+            a,
+            (
+                argparse._StoreTrueAction,
+                argparse._StoreFalseAction,
+                argparse._CountAction,
+                argparse._HelpAction,
+                argparse._VersionAction,
+            ),
+        ):
+            line = f'{line:<50} -r -d "{help_desc}"'
         else:
-            line = f'{line:<50} -d "{a.help}"'
+            line = f'{line:<50} -d "{help_desc}"'
         txt = txt + line + "\n"
 
     txt = txt + 'complete -c quizml -k -x -a "(__fish_complete_suffix .yaml .yml)"\n'
     return txt
+
 
 
 def zsh(parser):
