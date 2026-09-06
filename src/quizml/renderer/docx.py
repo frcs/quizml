@@ -210,6 +210,106 @@ def _prepare_context_for_docx(context: dict, part=None) -> dict:
         prepared_questions.append(q_copy)
 
     new_ctx["questions"] = prepared_questions
+
+    # Candidate identification box
+    hdr = new_ctx.get("header", {})
+    raw_midterm = hdr.get("midterm") or hdr.get("infomidterm")
+    is_midterm = bool(
+        raw_midterm
+        and (
+            raw_midterm is True
+            or str(raw_midterm).strip().lower() in ("true", "1", "yes")
+        )
+    )
+    digit_line = "⓪ ① ② ③ ④ ⑤ ⑥ ⑦ ⑧ ⑨"
+    new_ctx["candidate_info"] = {
+        "is_midterm": is_midterm,
+        "line1_label": "Student Name" if is_midterm else "Exam Number",
+        "line2_label": "Student Number" if is_midterm else "Seat Number ",
+        "mark_instruction": (
+            "Mark your student number below"
+            if is_midterm
+            else "Mark your exam number below"
+        ),
+        "digit_rows": (
+            "\n".join([digit_line] * 8)
+            if is_midterm
+            else "\n".join([digit_line] * 5)
+        ),
+    }
+
+    # Generate answer sheet rows for multi-column grid
+    is_sol = bool(new_ctx.get("solutions"))
+    open_letters = [chr(0x24B6 + i) for i in range(26)]  # Ⓐ, Ⓑ, Ⓒ, ...
+    filled_letters = [chr(0x1F150 + i) for i in range(26)]  # 🅐, 🅑, 🅒, ...
+
+    items = []
+    for q_idx, q in enumerate(questions, start=1):
+        q_type = q.get("type")
+        if q_type in ("mc", "ma"):
+            choices = q.get("choices", [])
+            bubbles = []
+            for c_idx, c in enumerate(choices):
+                open_char = (
+                    open_letters[c_idx]
+                    if c_idx < len(open_letters)
+                    else f"({chr(ord('A') + c_idx)})"
+                )
+                filled_char = (
+                    filled_letters[c_idx]
+                    if c_idx < len(filled_letters)
+                    else f"[{chr(ord('A') + c_idx)}]"
+                )
+                if is_sol:
+                    is_correct = isinstance(c, dict) and "x" in c
+                    bubbles.append(filled_char if is_correct else open_char)
+                else:
+                    bubbles.append(open_char)
+            bubble_str = " ".join(bubbles)
+        elif q_type == "tf":
+            ans = str(q.get("answer", "")).strip().lower()
+            if is_sol:
+                bubble_str = "🅣 Ⓕ" if ans == "true" else "Ⓣ 🅕"
+            else:
+                bubble_str = "Ⓣ Ⓕ"
+        elif q_type == "essay":
+            bubble_str = "essay question"
+        elif q_type in ("fill", "mfill"):
+            bubble_str = "fill-in"
+        elif q_type == "num":
+            bubble_str = "numeric"
+        else:
+            bubble_str = str(q_type or "question")
+
+        items.append({
+            "num": f"Q.{q_idx}",
+            "sep": "\t",
+            "bubbles": bubble_str,
+        })
+
+    num_items = len(items)
+    if num_items > 0:
+      col1_len = (num_items + 2) // 3
+      col2_len = (num_items + 1) // 3
+      col3_len = num_items // 3
+      num_rows = col1_len
+
+      col1 = items[0:col1_len]
+      col2 = items[col1_len : col1_len + col2_len]
+      col3 = items[col1_len + col2_len : num_items]
+
+      empty_cell = {"num": "", "sep": "", "bubbles": ""}
+      sheet_rows = []
+      for r in range(num_rows):
+        sheet_rows.append({
+            "c1": col1[r] if r < len(col1) else empty_cell,
+            "c2": col2[r] if r < len(col2) else empty_cell,
+            "c3": col3[r] if r < len(col3) else empty_cell,
+        })
+      new_ctx["answer_sheet_rows"] = sheet_rows
+    else:
+      new_ctx["answer_sheet_rows"] = []
+
     return new_ctx
 
 

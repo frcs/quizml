@@ -31,6 +31,22 @@ def _unwrap_sdt_elements(parent_element):
             _unwrap_sdt_elements(el)
 
 
+def _set_table_borders_none(table):
+    """Removes all visible borders from an OpenXML table."""
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+
+    tblPr = table._tbl.tblPr
+    tblBorders = tblPr.first_child_found_in("w:tblBorders")
+    if tblBorders is None:
+        tblBorders = OxmlElement("w:tblBorders")
+        tblPr.append(tblBorders)
+    for b_name in ["top", "left", "bottom", "right", "insideH", "insideV"]:
+        b = OxmlElement(f"w:{b_name}")
+        b.set(qn("w:val"), "none")
+        tblBorders.append(b)
+
+
 def create_tcd_docx_template(
     source_docx_path: str | Path, output_docx_path: str | Path
 ) -> Path:
@@ -181,7 +197,155 @@ def create_tcd_docx_template(
         p = doc.paragraphs[split_idx + 1]
         p._element.getparent().remove(p._element)
 
-    # 6. Build Questions Loop
+    # 6. Insert Blank Page (Page 2 - back of cover page in duplex print)
+    p_blank1 = doc.add_paragraph()
+    p_blank1.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_blank1.paragraph_format.space_before = Pt(250)
+    r_b1 = p_blank1.add_run("This page was intentionally left blank.")
+    r_b1.italic = True
+    r_b1.font.name = "Calibri"
+    r_b1.font.size = Pt(12)
+
+    # Page break to start Answer Sheet on Page 3
+    p_br1 = doc.add_paragraph()
+    p_br1.add_run().add_break(docx.enum.text.WD_BREAK.PAGE)
+
+    # 7. Build Answer Sheet (Page 3 - front of sheet 2)
+    # Candidate Identification Table (2 columns: ID fields on left, digit bubble matrix on right)
+    cand_tbl = doc.add_table(rows=1, cols=2)
+    _set_table_borders_none(cand_tbl)
+    col_widths_cand = [Inches(3.6), Inches(2.78)]
+    for row in cand_tbl.rows:
+        for i, w in enumerate(col_widths_cand):
+            row.cells[i].width = w
+
+    # Left cell: Exam Number / Seat Number (or Student Name / Number)
+    c0 = cand_tbl.rows[0].cells[0]
+    p0_1 = c0.paragraphs[0]
+    p0_1.paragraph_format.space_before = Pt(4)
+    p0_1.paragraph_format.space_after = Pt(14)
+    r0_1_label = p0_1.add_run("{{ candidate_info.line1_label }}:\t")
+    r0_1_label.font.name = "Calibri"
+    r0_1_label.font.size = Pt(11)
+    r0_1_line = p0_1.add_run("________________________________")
+    r0_1_line.font.name = "Calibri"
+    r0_1_line.font.size = Pt(11)
+
+    p0_2 = c0.add_paragraph()
+    p0_2.paragraph_format.space_before = Pt(0)
+    p0_2.paragraph_format.space_after = Pt(4)
+    r0_2_label = p0_2.add_run("{{ candidate_info.line2_label }}:\t")
+    r0_2_label.font.name = "Calibri"
+    r0_2_label.font.size = Pt(11)
+    r0_2_line = p0_2.add_run("________________________________")
+    r0_2_line.font.name = "Calibri"
+    r0_2_line.font.size = Pt(11)
+
+    # Right cell: Digit bubble grid (0-9)
+    c1 = cand_tbl.rows[0].cells[1]
+    p1_1 = c1.paragraphs[0]
+    p1_1.paragraph_format.space_before = Pt(4)
+    p1_1.paragraph_format.space_after = Pt(4)
+    r1_1 = p1_1.add_run("{{ candidate_info.mark_instruction }}")
+    r1_1.font.name = "Calibri"
+    r1_1.font.size = Pt(11)
+
+    p1_2 = c1.add_paragraph()
+    p1_2.paragraph_format.space_before = Pt(0)
+    p1_2.paragraph_format.space_after = Pt(4)
+    p1_2.paragraph_format.line_spacing = 1.15
+    r1_2 = p1_2.add_run("{{ candidate_info.digit_rows }}")
+    r1_2.font.name = "Calibri"
+    r1_2.font.size = Pt(10)
+
+    # Answer Sheet Banner
+    p_banner1 = doc.add_paragraph()
+    p_banner1.paragraph_format.space_before = Pt(14)
+    p_banner1.paragraph_format.space_after = Pt(4)
+    r_bn1 = p_banner1.add_run(
+        "All your MCQ answers must be filled in on this answer page."
+    )
+    r_bn1.bold = True
+    r_bn1.font.name = "Calibri"
+    r_bn1.font.size = Pt(11)
+
+    p_banner2 = doc.add_paragraph()
+    p_banner2.paragraph_format.space_before = Pt(0)
+    p_banner2.paragraph_format.space_after = Pt(12)
+    r_b2_1 = p_banner2.add_run("For ")
+    r_b2_1.font.name = "Calibri"
+    r_b2_1.font.size = Pt(10.5)
+
+    r_b2_2 = p_banner2.add_run("True")
+    r_b2_2.bold = True
+    r_b2_2.font.name = "Calibri"
+    r_b2_2.font.size = Pt(10.5)
+
+    r_b2_3 = p_banner2.add_run(" or ")
+    r_b2_3.font.name = "Calibri"
+    r_b2_3.font.size = Pt(10.5)
+
+    r_b2_4 = p_banner2.add_run("False")
+    r_b2_4.bold = True
+    r_b2_4.font.name = "Calibri"
+    r_b2_4.font.size = Pt(10.5)
+
+    r_b2_5 = p_banner2.add_run(
+        " questions, mark Ⓣ or Ⓕ. For questions with multiple choices, mark all"
+        " solutions that are correct (for instance 🅐🅑Ⓒ🅓)."
+    )
+    r_b2_5.font.name = "Calibri"
+    r_b2_5.font.size = Pt(10.5)
+
+    # 3-Column Answer Grid Table
+    grid_tbl = doc.add_table(rows=3, cols=3)
+    _set_table_borders_none(grid_tbl)
+    col_widths_grid = [Inches(2.12), Inches(2.12), Inches(2.14)]
+    for row in grid_tbl.rows:
+        for i, w in enumerate(col_widths_grid):
+            row.cells[i].width = w
+
+    grid_tbl.rows[0].cells[0].paragraphs[0].text = (
+        "{%tr for row in answer_sheet_rows %}"
+    )
+
+    for i, col_key in enumerate(["c1", "c2", "c3"]):
+        p_col = grid_tbl.rows[1].cells[i].paragraphs[0]
+        p_col.paragraph_format.space_before = Pt(1)
+        p_col.paragraph_format.space_after = Pt(2)
+        p_col.paragraph_format.line_spacing = 1.15
+        p_col.paragraph_format.tab_stops.add_tab_stop(Inches(0.40))
+        r_num = p_col.add_run(f"{{{{ row.{col_key}.num }}}}")
+        r_num.bold = True
+        r_num.font.name = "Calibri"
+        r_num.font.size = Pt(10.5)
+        r_sep = p_col.add_run(f"{{{{ row.{col_key}.sep }}}}")
+        r_sep.font.name = "Calibri"
+        r_sep.font.size = Pt(10.5)
+        r_bub = p_col.add_run(f"{{{{ row.{col_key}.bubbles }}}}")
+        r_bub.font.name = "Calibri"
+        r_bub.font.size = Pt(10.5)
+
+    grid_tbl.rows[2].cells[0].paragraphs[0].text = "{%tr endfor %}"
+
+    # Page break after Answer Sheet
+    p_br2 = doc.add_paragraph()
+    p_br2.add_run().add_break(docx.enum.text.WD_BREAK.PAGE)
+
+    # 8. Insert Blank Page (Page 4 - back of detachable answer sheet in duplex print)
+    p_blank2 = doc.add_paragraph()
+    p_blank2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_blank2.paragraph_format.space_before = Pt(250)
+    r_b2 = p_blank2.add_run("This page was intentionally left blank.")
+    r_b2.italic = True
+    r_b2.font.name = "Calibri"
+    r_b2.font.size = Pt(12)
+
+    # Page break to start Questions on Page 5
+    p_br3 = doc.add_paragraph()
+    p_br3.add_run().add_break(docx.enum.text.WD_BREAK.PAGE)
+
+    # 9. Build Questions Loop
     doc.add_paragraph("{%p for q in questions %}")
 
     # Question Title and Marks Header

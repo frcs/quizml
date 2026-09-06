@@ -416,4 +416,100 @@ materials: |
     assert "Calculators" in all_paras
 
 
+def test_tcd_docx_answer_sheet_student_and_solutions(tcd_docx_template_path):
+    """Verifies answer sheet generation, candidate identification box, and bubbles."""
+    yaml_text = """
+title: 'Answer Sheet Verification Exam'
+modulecode: 'EEU44C16'
+---
+- type: mc
+  marks: 2.5
+  question: 'Question 1'
+  choices:
+  - o: 'Choice 1'
+  - x: 'Choice 2'
+  - o: 'Choice 3'
+
+- type: tf
+  marks: 1.0
+  question: 'Question 2'
+  answer: true
+
+- type: essay
+  marks: 5.0
+  question: 'Question 3'
+"""
+    doc_dict, _ = loads(yaml_text)
+
+    # 1. Student Mode
+    std_bytes = render_docx(
+        {"header": doc_dict["header"], "questions": doc_dict["questions"], "solutions": False},
+        tcd_docx_template_path,
+    )
+    doc_std = docx.Document(io.BytesIO(std_bytes))
+
+    # Check candidate table
+    cand_tbl = doc_std.tables[1]
+    assert "Exam Number" in cand_tbl.rows[0].cells[0].text
+    assert "Seat Number" in cand_tbl.rows[0].cells[0].text
+    assert "Mark your exam number below" in cand_tbl.rows[0].cells[1].text
+    assert "⓪ ① ② ③ ④ ⑤ ⑥ ⑦ ⑧ ⑨" in cand_tbl.rows[0].cells[1].text
+
+    # Check answer banner
+    all_text = "\n".join(p.text for p in doc_std.paragraphs)
+    assert "All your MCQ answers must be filled in on this answer page." in all_text
+    assert "This page was intentionally left blank." in all_text
+
+    # Check grid table in student mode
+    grid_tbl = doc_std.tables[2]
+    assert len(grid_tbl.rows) == 1  # 3 questions -> 1 row of 3 columns
+    row0 = [c.text for c in grid_tbl.rows[0].cells]
+    assert "Q.1\tⒶ Ⓑ Ⓒ" in row0[0]
+    assert "Q.2\tⓉ Ⓕ" in row0[1]
+    assert "Q.3\tessay question" in row0[2]
+
+    # 2. Solutions Mode
+    sol_bytes = render_docx(
+        {"header": doc_dict["header"], "questions": doc_dict["questions"], "solutions": True},
+        tcd_docx_template_path,
+    )
+    doc_sol = docx.Document(io.BytesIO(sol_bytes))
+    grid_tbl_sol = doc_sol.tables[2]
+    row0_sol = [c.text for c in grid_tbl_sol.rows[0].cells]
+    assert "Q.1\tⒶ 🅑 Ⓒ" in row0_sol  # Choice 2 is marked correct
+    assert "Q.2\t🅣 Ⓕ" in row0_sol  # True is marked correct
+
+
+def test_tcd_docx_answer_sheet_midterm_mode(tcd_docx_template_path):
+    """Verifies candidate box switches to Student Name/Number and 8 digit rows on midterm."""
+    yaml_text = """
+title: 'Midterm Exam'
+modulecode: 'EEU44C16'
+midterm: true
+---
+- type: mc
+  marks: 2.0
+  question: 'Midterm Q1'
+  choices:
+  - x: 'Right'
+  - o: 'Wrong'
+"""
+    doc_dict, _ = loads(yaml_text)
+    rendered_bytes = render_docx(
+        {"header": doc_dict["header"], "questions": doc_dict["questions"]},
+        tcd_docx_template_path,
+    )
+    doc = docx.Document(io.BytesIO(rendered_bytes))
+    cand_tbl = doc.tables[1]
+    left_cell = cand_tbl.rows[0].cells[0].text
+    right_cell = cand_tbl.rows[0].cells[1].text
+
+    assert "Student Name" in left_cell
+    assert "Student Number" in left_cell
+    assert "Mark your student number below" in right_cell
+    # 8 rows of digits
+    assert right_cell.count("⓪ ① ② ③ ④ ⑤ ⑥ ⑦ ⑧ ⑨") == 8
+
+
+
 
