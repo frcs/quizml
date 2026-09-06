@@ -122,3 +122,13 @@ QuizML supports multiple LMS export formats:
 * **IMS QTI 2.1 (`qti21`):** Produces a `.qti21.zip` package conforming to IMS QTI 2.1 specifications (containing `imsmanifest.xml`, `assessment.xml`, and individual `items/item_N.xml` files). Verified for **Blackboard Ultra's Question Bank** importer (*Manage banks* $\to$ `(+)` $\to$ *Import from QTI 2.1 package*).
 * **IMS QTI 1.2 (`qti` / `qti12`):** Produces a `.qti.zip` package (containing `quiz.xml`, `imsmanifest.xml`, `assessment_meta.xml`) designed for **Canvas** quiz imports and classic LMS platforms. *(Note: QTI 1.2 export structure is generated per specification but has not yet been verified in a live Canvas/LMS environment).*
 
+---
+
+### Microsoft Word Targets
+
+QuizML supports generating official Microsoft Word (`.docx`) examination papers:
+
+* **TCD Word Exam Paper (`docx`):** Produces an official `.docx` file (`${inputbasename}.docx`) based on the Trinity College Dublin examination paper template. Preserves the institutional crest, typography (Calibri 12pt, 1.5 line spacing), cover page metadata layout (Faculty, School, Department, Degree Programme, Year level, Semester, Academic Year, Examiners, Instructions, Rubric notice, Materials permitted), running header with module code, dynamic running footers (`Page X of Y` and copyright), right-aligned marks (`[X marks]`), and the official centered `[oOo]` closing marker.
+* **TCD Word Exam Paper Solutions (`docx-solutions`):** Produces a `.solutions.docx` file (`${inputbasename}.solutions.docx`) with answers and solutions highlighted: correct choices marked with `[X]` (bold), numerical answers with tolerances, acceptable fill-in answers, and essay model answers.
+
+

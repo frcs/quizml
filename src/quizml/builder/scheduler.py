@@ -55,13 +55,21 @@ def compile_render_target(
 ) -> tuple[bool, str | None]:
     """Transcodes and renders a template target to disk."""
     try:
+        render_ctx = dict(extra_context or {})
+        if target.get("solutions") or target.get("name", "").endswith("-solutions"):
+            render_ctx["solutions"] = True
+        if "extra_context" in target and isinstance(target["extra_context"], dict):
+            render_ctx.update(target["extra_context"])
+
         yaml_transcoded = transcoder.transcode_target(target)
         rendered_doc = renderer.render(
-            yaml_transcoded, target["template"], extra_context
+            yaml_transcoded, target["template"], render_ctx
         )
 
         out_path = pathlib.Path(target["out"])
         out_path.parent.mkdir(parents=True, exist_ok=True)
+        if out_path.exists():
+            out_path.unlink()
 
         if isinstance(rendered_doc, bytes):
             out_path.write_bytes(rendered_doc)

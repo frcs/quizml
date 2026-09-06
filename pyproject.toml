@@ -20,7 +20,8 @@ dependencies = [
   "css_inline",
   "latex2mathml",
   "appdirs",
-  "docxtpl"
+  "docxtpl",
+  "mathml2omml>=0.0.2",
 ]
 requires-python = ">=3.8"
 authors = [

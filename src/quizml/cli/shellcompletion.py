@@ -31,10 +31,12 @@ def _get_available_templates() -> list[str]:
     except Exception:
         return [
             "blackboard.txt.j2",
+            "moodle.xml.j2",
             "preview.html.j2",
             "prototype.docx",
             "stats.txt.j2",
             "tcd-exam-solutions.tex.j2",
+            "tcd-exam.docx",
             "tcd-exam.tex.j2",
         ]
 

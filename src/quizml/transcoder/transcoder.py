@@ -109,6 +109,28 @@ class MarkdownTranscoder:
         self.cache_dict[key] = d
         return d
 
+    def docx_dict(self, opts=None):
+        """Returns a Word OpenXML dictionary of all MD entries in the YAML data."""
+        if not self.md_list:
+            return {}
+
+        if opts is None:
+            opts = {}
+
+        key = opts.get("fmt", "docx")
+        if key in self.cache_dict:
+            return self.cache_dict[key]
+        from quizml.transcoder.docx import get_docx_dict
+
+        d = get_docx_dict(
+            self.ast_dict,
+            opts=opts,
+            base_dir=self.base_dir,
+            search_dirs=self.search_dirs,
+        )
+        self.cache_dict[key] = d
+        return d
+
     def get_dict(self, opts=None):
         """Returns a dictionary of all transcoded MD entries for the target format."""
         if opts is None:
@@ -118,6 +140,8 @@ class MarkdownTranscoder:
             return self.html_dict(opts)
         elif opts.get("fmt") == "latex":
             return self.latex_dict(opts)
+        elif opts.get("fmt") == "docx":
+            return self.docx_dict(opts)
         return {}
 
     def transcode_target(self, target=None):

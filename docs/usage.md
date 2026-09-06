@@ -36,6 +36,13 @@ quizml -t bb quiz.yaml
 quizml -t qti quiz.yaml
 ```
 
+* Export a Microsoft Word exam paper or solutions paper:
+
+```bash
+quizml -t docx quiz.yaml
+quizml -t docx-solutions quiz.yaml
+```
+
 
 
 ### Syntax
@@ -61,7 +68,7 @@ Converts a questions in a YAML/markdown format into a Blackboard test or a LaTeX
 
 * `-h`, `--help`: show this help message and exit
 * `-w`, `--watch`: continuously compiles the document on file change
-* `-t`, `--target TARGET`: target names (e.g. 'pdf', 'html-preview', 'qti', 'qti21', 'moodle')
+* `-t`, `--target TARGET`: target names (e.g. 'pdf', 'html-preview', 'docx', 'docx-solutions', 'qti', 'qti21', 'moodle')
 * `--target-list`: list all targets in config file
 * `--init-local`: create a local directory 'quizml-templates' with all config files
 * `--init-user`: create the user app directory with all its config files
