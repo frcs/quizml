@@ -159,8 +159,9 @@ def preprocess_latex_for_mathml(latex_str: str) -> str:
             pos = brace_pos + 1
             continue
 
-        if "$" in body:
-            parts = re.split(r"\$([^\$]+)\$", body)
+        body_clean = body.replace("~", "\u00a0")
+        if "$" in body_clean:
+            parts = re.split(r"\$([^\$]+)\$", body_clean)
             out = []
             for i, p in enumerate(parts):
                 if i % 2 == 0:
@@ -170,10 +171,11 @@ def preprocess_latex_for_mathml(latex_str: str) -> str:
                     if p:
                         out.append(f" {p} ")
             replacement = "".join(out)
-            latex_str = latex_str[:text_start] + replacement + latex_str[next_pos:]
-            pos = text_start + len(replacement)
         else:
-            pos = next_pos
+            replacement = rf"\text{{{body_clean}}}"
+
+        latex_str = latex_str[:text_start] + replacement + latex_str[next_pos:]
+        pos = text_start + len(replacement)
 
     # 2. Convert align, alignat, flalign, gather, multline, split environments to matrix
     latex_str = re.sub(r"\\begin\{(?:alignat\*?)\}\s*\{[^}]*\}", r"\\begin{matrix}", latex_str)
@@ -185,8 +187,8 @@ def preprocess_latex_for_mathml(latex_str: str) -> str:
         # Collapse multiple & to single &
         latex_str = re.sub(r"&+", "&", latex_str)
         # Strip leading & at start of row (after \begin{matrix} or after \\)
-        latex_str = re.sub(r"(\\begin\{matrix\}\s*|\\\\\s*)&", r"\1", latex_str)
+        latex_str = re.sub(r"(\\begin\{matrix\}\s*|\\\\\s*)&", lambda m: m.group(1), latex_str)
         # Strip trailing & before \\ or \end{matrix}
-        latex_str = re.sub(r"&\s*(\\\\|\\end\{matrix\})", r"\1", latex_str)
+        latex_str = re.sub(r"&\s*(\\\\|\\end\{matrix\})", lambda m: m.group(1), latex_str)
 
     return latex_str

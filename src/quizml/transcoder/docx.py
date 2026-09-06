@@ -39,6 +39,103 @@ def _add_run_prop(xml_runs: str, prop: str) -> str:
     return re.sub(r"<w:r[ >].*?</w:r>", update_run, xml_runs, flags=re.DOTALL)
 
 
+def align_omml_matrices(omml: str, is_alignment_env: bool = False) -> str:
+    """Injects <m:mPr> with column alignment into OMML matrices (<m:m>).
+
+    For alignment environments (align, alignat, split, etc.) or matrices where
+    subsequent columns start with comparison/equality operators, this ensures Word
+    renders columns with proper alignment (right-aligned LHS, left-aligned RHS)
+    instead of default center justification.
+    """
+    if "<m:m>" not in omml and "<m:m " not in omml:
+        return omml
+
+    def process_matrix(match):
+        full_content = match.group(1)
+        if "<m:mPr>" in full_content or "<m:mPr " in full_content:
+            return match.group(0)
+
+        rows = re.findall(r"<m:mr>(.*?)</m:mr>", full_content, flags=re.DOTALL)
+        if not rows:
+            return match.group(0)
+
+        max_cols = 0
+        col_cells = []
+        for row in rows:
+            cells = []
+            depth = 0
+            start = -1
+            pos = 0
+            row_len = len(row)
+            while pos < row_len:
+                if row.startswith("<m:e>", pos) or row.startswith("<m:e ", pos):
+                    if depth == 0:
+                        start = pos
+                    depth += 1
+                    pos += 4
+                elif row.startswith("</m:e>", pos):
+                    depth -= 1
+                    if depth == 0 and start != -1:
+                        cells.append(row[start : pos + 6])
+                        start = -1
+                    pos += 5
+                elif row.startswith("<m:e/>", pos):
+                    if depth == 0:
+                        cells.append("<m:e/>")
+                    pos += 5
+                pos += 1
+
+            if len(cells) > max_cols:
+                max_cols = len(cells)
+            for idx, c in enumerate(cells):
+                while len(col_cells) <= idx:
+                    col_cells.append([])
+                col_cells[idx].append(c)
+
+        if max_cols == 0:
+            return match.group(0)
+
+        alignments = []
+        for c_idx in range(max_cols):
+            cells = col_cells[c_idx] if c_idx < len(col_cells) else []
+            has_op = any(
+                re.search(r"<m:t>\s*(=|&lt;|&gt;|≤|≥|≈|≠|≡|\+|-)", cell)
+                for cell in cells
+            )
+            has_normal_text = any("<m:nor/>" in cell for cell in cells)
+
+            if c_idx == 0:
+                if is_alignment_env or (max_cols > 1 and any(
+                    re.search(r"<m:t>\s*(=|&lt;|&gt;|≤|≥|≈|≠|≡)", c)
+                    for c in (col_cells[1] if len(col_cells) > 1 else [])
+                )):
+                    alignments.append("right")
+                else:
+                    alignments.append("center")
+            elif has_op or has_normal_text:
+                alignments.append("left")
+            elif is_alignment_env:
+                alignments.append("right" if c_idx % 2 == 0 else "left")
+            else:
+                alignments.append("left" if c_idx % 2 == 1 else "right")
+
+        mc_elements = "".join(
+            f'<m:mc><m:mcPr><m:mcJc m:val="{align}"/><m:count m:val="1"/></m:mcPr></m:mc>'
+            for align in alignments
+        )
+        mpr = (
+            f'<m:mPr>'
+            f'<m:baseJc m:val="center"/>'
+            f'<m:plcHide m:val="1"/>'
+            f'<m:mcs>{mc_elements}</m:mcs>'
+            f'</m:mPr>'
+        )
+
+        return f"<m:m>{mpr}{full_content}</m:m>"
+
+    return re.sub(r"<m:m>(.*?)</m:m>", process_matrix, omml, flags=re.DOTALL)
+
+
 class QuizMLYamlDocxRenderer(BaseRenderer):
     """Custom mistletoe renderer that converts Markdown AST into Word OpenXML."""
 
@@ -88,13 +185,14 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
 
     def render_math_inline(self, token):
         clean = strip_math_delimiters(token.content)
+        is_alignment = bool(re.search(r"\\begin\{(?:align|alignat|flalign|gather|multline|split|aligned)", clean))
         expanded = self.macro_expander.expand(clean) if self.macro_expander else clean
         preprocessed = preprocess_latex_for_mathml(expanded)
         try:
             mml = latex2mathml.converter.convert(preprocessed, display="inline")
             mml = re.sub(r"&(?![a-zA-Z0-9#]+;)", "&amp;", mml)
             omml = mathml2omml.convert(mml)
-            return omml
+            return align_omml_matrices(omml, is_alignment_env=is_alignment)
         except Exception as err:
             logging.debug(f"Failed to convert inline math to OMML: {token.content} ({err})")
             escaped = xml_escape(token.content)
@@ -102,15 +200,17 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
 
     def render_math_display(self, token):
         clean = strip_math_delimiters(token.content)
+        is_alignment = bool(re.search(r"\\begin\{(?:align|alignat|flalign|gather|multline|split|aligned)", clean))
         expanded = self.macro_expander.expand(clean) if self.macro_expander else clean
         preprocessed = preprocess_latex_for_mathml(expanded)
         try:
             mml = latex2mathml.converter.convert(preprocessed, display="block")
             mml = re.sub(r"&(?![a-zA-Z0-9#]+;)", "&amp;", mml)
             omml = mathml2omml.convert(mml)
+            aligned_omml = align_omml_matrices(omml, is_alignment_env=is_alignment)
             return (
                 '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="120" w:after="120" w:line="360" w:lineRule="auto"/></w:pPr>'
-                f'<m:oMathPara>{omml}</m:oMathPara></w:p>'
+                f'<m:oMathPara>{aligned_omml}</m:oMathPara></w:p>'
             )
         except Exception as err:
             logging.debug(f"Failed to convert display math to OMML: {token.content} ({err})")

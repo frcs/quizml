@@ -138,8 +138,12 @@ def test_docx_alignat_and_multiline_math():
 
     assert "<m:oMathPara>" in xml
     assert "<m:m>" in xml  # Word native matrix/alignment
+    assert "<m:mPr>" in xml  # Column alignment properties
+    assert '<m:mcJc m:val="right"/>' in xml  # Right-aligned LHS
+    assert '<m:mcJc m:val="left"/>' in xml  # Left-aligned RHS and annotations
     assert xml.count("<m:mr>") == 5  # 5 rows
     assert "<m:f>" in xml  # Fractions
     assert "symmetric" in xml
+    assert "~~~~" not in xml  # Spurious tildes replaced with spaces
     assert r"\begin{" not in xml  # No raw LaTeX fallback
     assert r"\mathbf{" not in xml
