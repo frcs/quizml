@@ -146,23 +146,34 @@ def preprocess_latex_for_mathml(latex_str: str) -> str:
     if not latex_str:
         return ""
 
-    # 1. Expand/split nested math inside \text{...}
-    def fix_text_math(m):
-        inner = m.group(1)
-        if "$" not in inner:
-            return m.group(0)
-        parts = re.split(r"\$([^\$]+)\$", inner)
-        out = []
-        for i, p in enumerate(parts):
-            if i % 2 == 0:
-                if p:
-                    out.append(rf"\text{{{p}}}")
-            else:
-                if p:
-                    out.append(f" {p} ")
-        return "".join(out)
+    # 1. Expand/split nested math inside \text{...} using extract_braced to handle nested braces like \mathbf{A}
+    pos = 0
+    while True:
+        m = re.search(r"\\text\s*\{", latex_str[pos:])
+        if not m:
+            break
+        text_start = pos + m.start()
+        brace_pos = text_start + len(m.group(0)) - 1
+        body, next_pos = extract_braced(latex_str, brace_pos)
+        if body is None:
+            pos = brace_pos + 1
+            continue
 
-    latex_str = re.sub(r"\\text\{([^}]+)\}", fix_text_math, latex_str)
+        if "$" in body:
+            parts = re.split(r"\$([^\$]+)\$", body)
+            out = []
+            for i, p in enumerate(parts):
+                if i % 2 == 0:
+                    if p:
+                        out.append(rf"\text{{{p}}}")
+                else:
+                    if p:
+                        out.append(f" {p} ")
+            replacement = "".join(out)
+            latex_str = latex_str[:text_start] + replacement + latex_str[next_pos:]
+            pos = text_start + len(replacement)
+        else:
+            pos = next_pos
 
     # 2. Convert align, alignat, flalign, gather, multline, split environments to matrix
     latex_str = re.sub(r"\\begin\{(?:alignat\*?)\}\s*\{[^}]*\}", r"\\begin{matrix}", latex_str)

@@ -140,3 +140,6 @@ def test_docx_alignat_and_multiline_math():
     assert "<m:m>" in xml  # Word native matrix/alignment
     assert xml.count("<m:mr>") == 5  # 5 rows
     assert "<m:f>" in xml  # Fractions
+    assert "symmetric" in xml
+    assert r"\begin{" not in xml  # No raw LaTeX fallback
+    assert r"\mathbf{" not in xml
