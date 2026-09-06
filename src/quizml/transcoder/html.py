@@ -13,7 +13,7 @@ from quizml.cache import compute_hash, get_from_cache, save_to_cache
 from quizml.exceptions import LatexCompilationError, MarkdownAttributeError
 from quizml.transcoder.images import append_unique, embed_base64
 from quizml.transcoder.latextools import LatexRunner
-from quizml.transcoder.macros import LatexMacroExpander
+from quizml.transcoder.macros import LatexMacroExpander, preprocess_latex_for_mathml
 from quizml.transcoder.tokens import ImageWithWidth, MathDisplay, MathInline
 
 
@@ -353,15 +353,17 @@ def build_eq_dict_MathML(eq_list, opts):
         else:
             clean_latex = strip_math_delimiters(eq.content)
             expanded_latex = expander.expand(clean_latex)
+            preprocessed_latex = preprocess_latex_for_mathml(expanded_latex)
             disp_mode = "inline" if is_inline else "block"
             try:
                 mathml = latex2mathml.converter.convert(
-                    expanded_latex, display=disp_mode
+                    preprocessed_latex, display=disp_mode
                 )
+                mathml = re.sub(r"&(?![a-zA-Z0-9#]+;)", "&amp;", mathml)
             except Exception as err:
                 raise LatexCompilationError(
                     f"latex2mathml failed on equation: {eq.content}\n"
-                    f"Expanded: {expanded_latex}\nError: {err}"
+                    f"Expanded: {preprocessed_latex}\nError: {err}"
                 )
 
             save_to_cache(h, mathml)

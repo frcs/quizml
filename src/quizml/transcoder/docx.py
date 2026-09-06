@@ -13,7 +13,7 @@ from mistletoe.block_token import HTMLBlock
 
 from quizml.transcoder.html import strip_math_delimiters
 from quizml.transcoder.images import convert_css_values_to_pixels
-from quizml.transcoder.macros import LatexMacroExpander
+from quizml.transcoder.macros import LatexMacroExpander, preprocess_latex_for_mathml
 from quizml.transcoder.tokens import ImageWithWidth, MathDisplay, MathInline
 
 
@@ -89,8 +89,10 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
     def render_math_inline(self, token):
         clean = strip_math_delimiters(token.content)
         expanded = self.macro_expander.expand(clean) if self.macro_expander else clean
+        preprocessed = preprocess_latex_for_mathml(expanded)
         try:
-            mml = latex2mathml.converter.convert(expanded, display="inline")
+            mml = latex2mathml.converter.convert(preprocessed, display="inline")
+            mml = re.sub(r"&(?![a-zA-Z0-9#]+;)", "&amp;", mml)
             omml = mathml2omml.convert(mml)
             return omml
         except Exception as err:
@@ -101,8 +103,10 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
     def render_math_display(self, token):
         clean = strip_math_delimiters(token.content)
         expanded = self.macro_expander.expand(clean) if self.macro_expander else clean
+        preprocessed = preprocess_latex_for_mathml(expanded)
         try:
-            mml = latex2mathml.converter.convert(expanded, display="block")
+            mml = latex2mathml.converter.convert(preprocessed, display="block")
+            mml = re.sub(r"&(?![a-zA-Z0-9#]+;)", "&amp;", mml)
             omml = mathml2omml.convert(mml)
             return (
                 '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="120" w:after="120" w:line="360" w:lineRule="auto"/></w:pPr>'

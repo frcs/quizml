@@ -117,3 +117,26 @@ modulecode: 'PHYS101'
     # Choices should have OMML inline math
     assert "<m:oMath>" in str(q["choices"][0]["o"])
     assert "<m:oMath>" in str(q["choices"][1]["x"])
+
+
+def test_docx_alignat_and_multiline_math():
+    """Verifies alignat and multiline alignment equations convert to native Word OMML matrices."""
+    md = r"""
+\begin{alignat*}{3}
+& {\frac {\partial {\mathbf{a}}^{\top }{\mathbf {w}}}{\partial {\mathbf{w}}}} &&= {\mathbf {a}} &&
+\\ & {\frac {\partial {\mathbf {b}}^{\top }{\mathbf {A}}{\mathbf {w}}}{\partial {\mathbf {w}}}} && = {\mathbf {A}}^{\top }{\mathbf {b}}
+&& \\ & {\frac {\partial {\mathbf {w}}^{\top }{\mathbf {A}}{\mathbf{w}}}{\partial {\mathbf {w}}}} && = ({\mathbf {A}}+{\mathbf {A}}^{\top }){\mathbf {w}} && \text{~~~~(or $2\mathbf{A}\mathbf{w}$ if $A$ symmetric)} \\ & \frac
+{\partial {\mathbf {w}}^{\top }{\mathbf {w}}}{\partial {\mathbf {w}}} && =
+2{\mathbf {w}} && \\ & {\frac {\partial \;{\mathbf {a}}^{\top }{\mathbf {w}}{\mathbf {w}}^{\top }{\mathbf {b}}}{\partial \;{\mathbf {w}}}} &&
+= ({\mathbf {a}}{\mathbf {b}}^{\top }+{\mathbf {b}}{\mathbf {a}}^{\top }){\mathbf {w}} && \\
+\end{alignat*}
+"""
+    doc = mt.Document(md)
+    renderer = QuizMLYamlDocxRenderer()
+    with renderer:
+        xml = renderer.render(doc)
+
+    assert "<m:oMathPara>" in xml
+    assert "<m:m>" in xml  # Word native matrix/alignment
+    assert xml.count("<m:mr>") == 5  # 5 rows
+    assert "<m:f>" in xml  # Fractions

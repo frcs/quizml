@@ -132,3 +132,50 @@ class LatexMacroExpander:
             if not changed:
                 break
         return cur
+
+
+def preprocess_latex_for_mathml(latex_str: str) -> str:
+    """Normalizes LaTeX expressions for compatibility with latex2mathml.
+
+    Handles:
+    1. Splitting math ($...$) embedded inside \\text{...}.
+    2. Mapping alignment environments (alignat, align, flalign, gather, multline, split)
+       into \\begin{matrix}...\\end{matrix} which latex2mathml converts to <mtable>.
+    3. Cleaning redundant or trailing ampersands (&) inside matrix rows.
+    """
+    if not latex_str:
+        return ""
+
+    # 1. Expand/split nested math inside \text{...}
+    def fix_text_math(m):
+        inner = m.group(1)
+        if "$" not in inner:
+            return m.group(0)
+        parts = re.split(r"\$([^\$]+)\$", inner)
+        out = []
+        for i, p in enumerate(parts):
+            if i % 2 == 0:
+                if p:
+                    out.append(rf"\text{{{p}}}")
+            else:
+                if p:
+                    out.append(f" {p} ")
+        return "".join(out)
+
+    latex_str = re.sub(r"\\text\{([^}]+)\}", fix_text_math, latex_str)
+
+    # 2. Convert align, alignat, flalign, gather, multline, split environments to matrix
+    latex_str = re.sub(r"\\begin\{(?:alignat\*?)\}\s*\{[^}]*\}", r"\\begin{matrix}", latex_str)
+    latex_str = re.sub(r"\\begin\{(?:align\*?|flalign\*?|gather\*?|multline\*?|split\*?)\}", r"\\begin{matrix}", latex_str)
+    latex_str = re.sub(r"\\end\{(?:alignat\*?|align\*?|flalign\*?|gather\*?|multline\*?|split\*?)\}", r"\\end{matrix}", latex_str)
+
+    # 3. If matrix environment is present, clean alignment ampersands
+    if r"\begin{matrix}" in latex_str:
+        # Collapse multiple & to single &
+        latex_str = re.sub(r"&+", "&", latex_str)
+        # Strip leading & at start of row (after \begin{matrix} or after \\)
+        latex_str = re.sub(r"(\\begin\{matrix\}\s*|\\\\\s*)&", r"\1", latex_str)
+        # Strip trailing & before \\ or \end{matrix}
+        latex_str = re.sub(r"&\s*(\\\\|\\end\{matrix\})", r"\1", latex_str)
+
+    return latex_str

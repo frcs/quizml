@@ -172,16 +172,20 @@ def _prepare_context_for_docx(context: dict, part=None) -> dict:
     """Prepares template context, ensuring questions and choices have valid OpenXML structures."""
     new_ctx = dict(context)
 
-    # Sanitize header fields: instructions as block XML, others as clean plain text
+    # Sanitize header fields: instructions and additionalinformation as block XML, others as clean plain text
     if "header" in new_ctx and isinstance(new_ctx["header"], dict):
         new_header = dict(new_ctx["header"])
         for k, v in new_header.items():
             if k == "instructions":
                 new_header[k] = _format_instructions_xml(v, part=part)
+            elif k == "additionalinformation":
+                new_header[k] = _ensure_block_xml(v, part=part) if v else Markup("")
             elif isinstance(v, str):
                 new_header[k] = _xml_to_plain_text(v)
         if "instructions" not in new_header or not new_header["instructions"]:
             new_header["instructions"] = _format_instructions_xml("", part=part)
+        if "additionalinformation" not in new_header or not new_header["additionalinformation"]:
+            new_header["additionalinformation"] = Markup("")
         new_ctx["header"] = new_header
 
     questions = new_ctx.get("questions", [])

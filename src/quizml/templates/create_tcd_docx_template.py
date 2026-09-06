@@ -120,9 +120,7 @@ def create_tcd_docx_template(
                 "Please indicate the make and model of your calculator on each answer book used.{% endif %}"
             )
         elif txt == "Log Tables permitted":
-            p.text = (
-                "{% if header.additionalinformation %}{{ header.additionalinformation }}{% endif %}"
-            )
+            p.text = "{{p header.additionalinformation }}"
 
     # 3. Configure Table 0 (Degree Programme and Session Info)
     if doc.tables:
