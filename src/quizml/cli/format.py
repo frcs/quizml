@@ -72,7 +72,7 @@ def clean_all_q_comments(data):
             clean_all_q_comments(item)
 
 
-def wrap_text_fields(data):
+def wrap_text_fields(data, wrap_width=None):
     from .wrap import wrap_markdown
 
     if isinstance(data, dict):
@@ -85,14 +85,17 @@ def wrap_text_fields(data):
                     if k.startswith("_"):
                         data[k] = LiteralScalarString(v.strip() + "\n")
                         continue
-                    val = wrap_markdown(v.strip(), width=74)
+                    if wrap_width is not None:
+                        val = wrap_markdown(v.strip(), width=wrap_width)
+                    else:
+                        val = v.strip()
                     if val:
                         data[k] = LiteralScalarString(val + "\n")
             elif isinstance(v, (dict, list)):
-                wrap_text_fields(v)
+                wrap_text_fields(v, wrap_width=wrap_width)
     elif isinstance(data, list):
         for item in data:
-            wrap_text_fields(item)
+            wrap_text_fields(item, wrap_width=wrap_width)
 
 
 def format_yaml(args):
@@ -115,13 +118,15 @@ def format_yaml(args):
     formatted_parts = []
     dummy_mark = StreamMark(None, 0, 0, 0)
 
+    wrap_width = getattr(args, "wrap", None)
+
     for data in docs:
         if data is None or (isinstance(data, str) and not data.strip()):
             continue
 
-        # Aggressive cleaning and text wrapping
+        # Aggressive cleaning and text wrapping (if requested)
         clean_all_q_comments(data)
-        wrap_text_fields(data)
+        wrap_text_fields(data, wrap_width=wrap_width)
 
         # Renumber questions if this part is a list
         if isinstance(data, list):

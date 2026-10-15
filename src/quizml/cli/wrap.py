@@ -92,40 +92,52 @@ def wrap_markdown(text, width=80):
         p_temp = p
         for pat in inline_patterns:
             p_temp = re.sub(pat, repl_inline, p_temp)
-            
-        words = re.split(r'[ \t\n]+', p_temp.strip())
-        wrapped_lines = []
-        current_line = []
-        current_len = 0
-        
-        for w in words:
-            if not w:
-                continue
-            
-            real_w = w
-            for k, v in inlines.items():
-                real_w = real_w.replace(k, v)
-            w_len = len(real_w)
-            
-            if not current_line:
-                current_line.append(w)
-                current_len = w_len
-            elif current_len + 1 + w_len <= width:
-                current_line.append(w)
-                current_len += 1 + w_len
-            else:
+
+        # Split paragraph into segments divided by hard line breaks ('  \n')
+        hard_break_segments = p_temp.split("  \n")
+        wrapped_segments = []
+
+        for segment in hard_break_segments:
+            words = re.split(r"[ \t\n]+", segment.strip())
+            wrapped_lines = []
+            current_line = []
+            current_len = 0
+
+            for w in words:
+                if not w:
+                    continue
+
+                real_w = w
+                for k, v in inlines.items():
+                    real_w = real_w.replace(k, v)
+                w_len = len(real_w)
+
+                if not current_line:
+                    current_line.append(w)
+                    current_len = w_len
+                elif current_len + 1 + w_len <= width:
+                    current_line.append(w)
+                    current_len += 1 + w_len
+                else:
+                    # Guard: never break before a token that would become a markdown block marker
+                    if re.match(r"^([-+*>#]|\d+[.)])$", w):
+                        current_line.append(w)
+                        current_len += 1 + w_len
+                    else:
+                        wrapped_lines.append(" ".join(current_line))
+                        current_line = [w]
+                        current_len = len(subsequent_indent) + w_len
+
+            if current_line:
                 wrapped_lines.append(" ".join(current_line))
-                current_line = [w]
-                current_len = len(subsequent_indent) + w_len
-                
-        if current_line:
-            wrapped_lines.append(" ".join(current_line))
-            
-        if wrapped_lines:
-            for i in range(1, len(wrapped_lines)):
-                wrapped_lines[i] = subsequent_indent + wrapped_lines[i]
-                
-        wrapped_paragraphs.append("\n".join(wrapped_lines))
+
+            if wrapped_lines:
+                for i in range(1, len(wrapped_lines)):
+                    wrapped_lines[i] = subsequent_indent + wrapped_lines[i]
+
+            wrapped_segments.append("\n".join(wrapped_lines))
+
+        wrapped_paragraphs.append("  \n".join(wrapped_segments))
         
     final_text = "\n\n".join(wrapped_paragraphs)
     

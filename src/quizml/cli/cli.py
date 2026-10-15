@@ -111,6 +111,14 @@ def main():
     )
 
     parser.add_argument(
+        "--wrap",
+        type=int,
+        default=None,
+        metavar="WIDTH",
+        help="wrap markdown text to specified width (e.g. --wrap 74)",
+    )
+
+    parser.add_argument(
         "-C",
         "--cleanup",
         help="deletes build artefacts from all yaml files in dir",
