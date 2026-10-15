@@ -34,7 +34,8 @@ class CustomTableElement(TableElement):
             yield table
 
 
-Markdown.elements["table_open"] = CustomTableElement
+class QuizMLMarkdown(Markdown):
+    elements = {**Markdown.elements, "table_open": CustomTableElement}
 
 
 def add_hyperlinks(descr_str, filename):
@@ -74,7 +75,7 @@ def print_stats_table(quiz, config):
     rendered = renderer.render_template(quiz, template_path)
 
     # Padding arguments: (top, right, bottom, left)
-    text_to_print = Padding(Markdown(rendered), (0, 0, 1, 4))
+    text_to_print = Padding(QuizMLMarkdown(rendered), (0, 0, 1, 4))
     err_console.print(text_to_print)
 
 

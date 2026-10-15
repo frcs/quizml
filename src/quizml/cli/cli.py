@@ -10,8 +10,6 @@ from rich_argparse import RawDescriptionRichHelpFormatter, RichHelpFormatter
 from ..exceptions import QuizMLError
 from .errorhandler import err_console
 
-install(show_locals=False)
-
 COMMANDS = {
     "compile",
     "diff",
@@ -181,10 +179,16 @@ def _dispatch(args, parser):
         import quizml.cli.compile
 
         if args.watch:
-            if not quizml.cli.compile.compile(args):
-                return False
-            quizml.cli.compile.compile_on_change(args)
-            return True
+            from quizml.cli.livereload import LiveReloadServer
+
+            live_reload = LiveReloadServer()
+            try:
+                if not quizml.cli.compile.compile(args, live_reload=live_reload):
+                    return False
+                quizml.cli.compile.compile_on_change(args, live_reload=live_reload)
+                return True
+            finally:
+                live_reload.stop()
         return quizml.cli.compile.compile(args)
 
     if args.command == "diff":
@@ -263,6 +267,7 @@ def _dispatch(args, parser):
 
 
 def main(argv=None):
+    install(show_locals=False)
     parser = build_parser()
     args = parser.parse_args(_normalize_argv(argv))
     if not hasattr(args, "config"):

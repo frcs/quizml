@@ -1,65 +1,69 @@
 import http.server
 import json
-import socket
 import socketserver
 import threading
 import time
 
 from quizml.cli.errorhandler import print_error
 
-# Global state for the LiveReload server
-LIVERELOAD_PORT = None
-LIVERELOAD_TIMESTAMP = 0.0
-SERVER_THREAD = None
 
+class LiveReloadServer:
+    """Own the server and timestamp used by one live-reload session."""
 
-class LiveReloadHandler(http.server.SimpleHTTPRequestHandler):
-    def log_message(self, format, *args):
-        pass  # Silence logs
+    def __init__(self):
+        self.port = None
+        self.timestamp = 0.0
+        self._server = None
+        self._thread = None
 
-    def do_GET(self):
-        if self.path == "/status":
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Cache-Control", "no-cache")
-            self.end_headers()
-            data = json.dumps({"timestamp": LIVERELOAD_TIMESTAMP})
-            self.wfile.write(data.encode())
-        else:
-            self.send_error(404)
+    def start(self):
+        if self._thread is not None and self._thread.is_alive():
+            return self.port
 
+        owner = self
 
-def start_livereload_server():
-    global LIVERELOAD_PORT, SERVER_THREAD
-    if SERVER_THREAD is not None:
-        return
+        class Handler(http.server.SimpleHTTPRequestHandler):
+            def log_message(self, format, *args):
+                pass
 
-    # Find a free port
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(("", 0))
-            LIVERELOAD_PORT = s.getsockname()[1]
+            def do_GET(self):
+                if self.path != "/status":
+                    self.send_error(404)
+                    return
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                data = json.dumps({"timestamp": owner.timestamp})
+                self.wfile.write(data.encode())
 
-        def run_server():
-            # Allow address reuse to prevent issues if we restart quickly
-            socketserver.TCPServer.allow_reuse_address = True
-            with socketserver.TCPServer(
-                ("", LIVERELOAD_PORT), LiveReloadHandler
-            ) as httpd:
-                httpd.serve_forever()
+        class Server(socketserver.TCPServer):
+            allow_reuse_address = True
 
-        SERVER_THREAD = threading.Thread(target=run_server, daemon=True)
-        SERVER_THREAD.start()
-        # print(f"[dim]LiveReload server started on port {LIVERELOAD_PORT}[/dim]")
-    except OSError as e:
-        print_error(f"Failed to start LiveReload server: {e}", title="Warning")
+        try:
+            self._server = Server(("", 0), Handler)
+            self.port = self._server.server_address[1]
+            self._thread = threading.Thread(
+                target=self._server.serve_forever, daemon=True
+            )
+            self._thread.start()
+            return self.port
+        except OSError as err:
+            print_error(f"Failed to start LiveReload server: {err}", title="Warning")
+            self._server = None
+            self.port = None
+            return None
 
+    def update_timestamp(self):
+        self.timestamp = time.time()
 
-def update_timestamp():
-    global LIVERELOAD_TIMESTAMP
-    LIVERELOAD_TIMESTAMP = time.time()
-
-
-def get_livereload_port():
-    return LIVERELOAD_PORT
+    def stop(self):
+        if self._server is not None:
+            self._server.shutdown()
+            self._server.server_close()
+            self._server = None
+        if self._thread is not None:
+            self._thread.join(timeout=1)
+            self._thread = None
+        self.port = None

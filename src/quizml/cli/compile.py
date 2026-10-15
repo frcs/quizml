@@ -17,11 +17,7 @@ from quizml import renderer
 # Imported from refactored modules
 from quizml.cli.config import get_config, get_target_list
 from quizml.cli.errorhandler import err_console
-from quizml.cli.livereload import (
-    get_livereload_port,
-    start_livereload_server,
-    update_timestamp,
-)
+from quizml.cli.livereload import LiveReloadServer
 from quizml.cli.ui import (
     add_hyperlinks,
     print_quiet_ouputs,
@@ -69,7 +65,7 @@ def compile_target(target, transcoder, extra_context=None):
     return True
 
 
-def compile(args):
+def compile(args, live_reload=None):
     """compiles the targets of a yaml file"""
 
     # read config file
@@ -106,8 +102,9 @@ def compile(args):
     # Prepare LiveReload if watching
     extra_context = {}
     if args.watch:
-        start_livereload_server()
-        port = get_livereload_port()
+        if live_reload is None:
+            live_reload = LiveReloadServer()
+        port = live_reload.start()
         if port:
             extra_context["livereload_port"] = port
 
@@ -167,7 +164,8 @@ def compile(args):
             break
 
     # Update timestamp for LiveReload clients
-    update_timestamp()
+    if live_reload is not None:
+        live_reload.update_timestamp()
 
     # display stats about the outputs
     if args.quiet:
@@ -178,7 +176,7 @@ def compile(args):
     return all_success
 
 
-def compile_on_change(args):
+def compile_on_change(args, live_reload=None):
     """compiles the targets if input QuizMLYaml file has changed on disk"""
 
     waitingtxt = "\n...waiting for a file change to re-compile the document...\n "
@@ -213,7 +211,7 @@ def compile_on_change(args):
                 rebuild_event.clear()
 
                 print("[bold yellow]Change detected, re-compiling...[/bold yellow]")
-                compile(args)
+                compile(args, live_reload=live_reload)
                 print(waitingtxt)
 
     except KeyboardInterrupt:
