@@ -21,6 +21,7 @@ Typical usage example:
 import json
 import os
 import random
+from importlib.resources import files
 from pathlib import Path
 
 from jsonschema import Draft7Validator, validators
@@ -521,17 +522,18 @@ def load(quizmlyaml_path, validate=True, schema_path=None):
 
     schema = None
     if validate:
-        if schema_path is None:
-            from quizml.cli.filelocator import locate
-
-            schema_path = locate.path("schema.json")
         try:
-            schema_str = Path(schema_path).read_text(encoding="utf-8")
+            if schema_path is None:
+                schema_resource = files("quizml").joinpath(
+                    "templates", "schema.json"
+                )
+                schema_str = schema_resource.read_text(encoding="utf-8")
+            else:
+                schema_str = Path(schema_path).read_text(encoding="utf-8")
             schema = json.loads(schema_str)
         except FileNotFoundError as err:
-            raise QuizMLYamlSyntaxError(
-                f"Schema file not found: {schema_path}"
-            ) from err
+            schema_name = schema_path or "packaged schema.json"
+            raise QuizMLYamlSyntaxError(f"Schema file not found: {schema_name}") from err
         except json.JSONDecodeError as err:
             raise QuizMLYamlSyntaxError(f"Invalid JSON in schema: {err}") from err
         except TypeError as err:
