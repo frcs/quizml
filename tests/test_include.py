@@ -362,6 +362,24 @@ def test_count_included_questions(tmp_path: Path):
     assert count_included_questions(item_missing, base_dir=tmp_path) == 1
 
 
+def test_count_and_loading_share_included_file_document_rules(tmp_path: Path):
+    bank_yaml = tmp_path / "bank.yaml"
+    bank_yaml.write_text(
+        "title: Bank\n---\n- type: essay\n  question: Q1\n---\nextra: document\n",
+        encoding="utf-8",
+    )
+    include = {"_include": "bank.yaml"}
+
+    # Counting remains best-effort for format comments, while compilation
+    # rejects the same invalid include using the shared parser.
+    assert count_included_questions(include, base_dir=tmp_path) == 1
+
+    main_yaml = tmp_path / "main.yaml"
+    main_yaml.write_text("---\n- _include: bank.yaml\n", encoding="utf-8")
+    with pytest.raises(QuizMLYamlSyntaxError, match="cannot have more than 2 documents"):
+        load(str(main_yaml), validate=False)
+
+
 def test_include_relative_image_paths(tmp_path: Path):
     from PIL import Image
 

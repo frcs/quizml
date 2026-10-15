@@ -130,6 +130,51 @@ def _to_plain_python(data):
     return data
 
 
+def _read_question_file(path: Path):
+    """Read one QuizML YAML file and return its header and question list."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as err:
+        raise QuizMLYamlSyntaxError(
+            f"Error reading included file '{path}': {err}"
+        ) from err
+
+    yaml = YAML()
+    yaml.Constructor = StringConstructor
+    try:
+        raw_docs = list(yaml.load_all(text))
+    except YAMLError as err:
+        raise QuizMLYamlSyntaxError(
+            f"YAML parsing error in included file {path}: {err}"
+        ) from err
+
+    docs = [
+        doc
+        for doc in raw_docs
+        if doc is not None and not (isinstance(doc, str) and not doc.strip())
+    ]
+    if len(docs) > 2:
+        raise QuizMLYamlSyntaxError(
+            f"Included file {path} cannot have more than 2 documents."
+        )
+
+    if not docs:
+        header, questions = {}, []
+    elif len(docs) == 1:
+        if isinstance(docs[0], list):
+            header, questions = {}, docs[0]
+        else:
+            header, questions = docs[0], []
+    else:
+        header, questions = docs
+
+    if not isinstance(questions, list):
+        raise QuizMLYamlSyntaxError(
+            f"Questions in included file {path} must be a YAML list."
+        )
+    return header, questions, text
+
+
 def count_included_questions(
     item: dict, base_dir: Path, visited: set[Path] | None = None
 ) -> int:
@@ -160,32 +205,14 @@ def count_included_questions(
         return 1
 
     try:
-        inc_text = inc_path.read_text(encoding="utf-8")
-        inc_yaml = YAML()
-        raw_docs = list(inc_yaml.load_all(inc_text))
-    except (OSError, YAMLError):
+        _, sub_questions, _ = _read_question_file(inc_path)
+    except QuizMLYamlSyntaxError:
         if "count" in item:
             try:
                 return max(0, int(item["count"]))
             except (ValueError, TypeError):
                 pass
         return 1
-
-    sub_docs = [
-        d
-        for d in raw_docs
-        if d is not None and not (isinstance(d, str) and not d.strip())
-    ]
-    if not sub_docs:
-        return 0
-
-    if len(sub_docs) == 1:
-        sub_questions = sub_docs[0] if isinstance(sub_docs[0], list) else []
-    else:
-        sub_questions = sub_docs[1] if isinstance(sub_docs[1], list) else []
-
-    if not isinstance(sub_questions, list):
-        return 0
 
     new_visited = visited | {inc_path}
     total = 0
@@ -254,47 +281,11 @@ def _resolve_includes(
                     f"Circular include detected: '{inc_path}' is already in the inclusion chain."
                 )
 
-            try:
-                inc_text = inc_path.read_text(encoding="utf-8")
-            except OSError as err:
-                raise QuizMLYamlSyntaxError(
-                    f"Error reading included file '{inc_path}': {err}"
-                ) from err
-
-            inc_yaml = YAML()
-            inc_yaml.Constructor = StringConstructor
-            try:
-                raw_docs = list(inc_yaml.load_all(inc_text))
-            except YAMLError as err:
-                raise QuizMLYamlSyntaxError(
-                    f"YAML parsing error in included file {inc_path}: {err}"
-                ) from err
-
-            sub_docs = [
-                d
-                for d in raw_docs
-                if d is not None and not (isinstance(d, str) and not d.strip())
-            ]
-
-            if not sub_docs:
-                sub_questions = []
-            elif len(sub_docs) == 1:
-                sub_questions = sub_docs[0] if isinstance(sub_docs[0], list) else []
-            elif len(sub_docs) == 2:
-                sub_questions = sub_docs[1] if isinstance(sub_docs[1], list) else []
-            else:
-                raise QuizMLYamlSyntaxError(
-                    f"Included file {inc_path} cannot have more than 2 documents."
-                )
-
-            if not isinstance(sub_questions, list):
-                raise QuizMLYamlSyntaxError(
-                    f"Questions in included file {inc_path} must be a YAML list."
-                )
+            sub_header, sub_questions, inc_text = _read_question_file(inc_path)
 
             # Accumulate figure paths from sub-file
-            if len(sub_docs) == 2 and isinstance(sub_docs[0], dict):
-                sub_figures = sub_docs[0].get("_figures_path", [])
+            if isinstance(sub_header, dict):
+                sub_figures = sub_header.get("_figures_path", [])
                 if isinstance(sub_figures, str):
                     sub_figures = [sub_figures]
                 elif not isinstance(sub_figures, list):
