@@ -200,3 +200,29 @@ def test_render_image_with_width():
         # 5. Invalid width raises MarkdownAttributeError
         with pytest.raises(MarkdownAttributeError, match="Sorry, bad width attr"):
             renderer.render_image_with_width(make_token("auto"))
+
+
+def test_blackboard_html_postprocess_is_opt_in():
+    from unittest.mock import patch
+
+    from quizml.markdown.html_renderer import (
+        QuizMLYamlHTMLRenderer,
+        get_html_dict,
+    )
+
+    html_fragment = "<p>first line\nsecond line</p>"
+    with patch.object(QuizMLYamlHTMLRenderer, "render", return_value=html_fragment):
+        with patch(
+            "quizml.markdown.html_renderer.inline_css",
+            return_value=html_fragment,
+        ) as inline_css:
+            generic = get_html_dict({"md": object()}, {"fmt": "html"})["md"]
+            assert generic == html_fragment
+            inline_css.assert_not_called()
+
+            blackboard = get_html_dict(
+                {"md": object()},
+                {"fmt": "html", "html_postprocess": "blackboard_html"},
+            )["md"]
+            assert "\n" not in blackboard
+            inline_css.assert_called_once()

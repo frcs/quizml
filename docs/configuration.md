@@ -17,7 +17,10 @@ BlackBoard csv quiz file can be defined as the following target:
                                          # (eg. mcq-01.yaml => mcq-01)
     descr     : BlackBoard CSV           # description for the target. 
     descr_cmd : ${inputbasename}.txt     # command to use (here we have no suggestion, so just print output path)
-    fmt       : html                     # latex or html: format that markdown gets converted to
+    markdown:
+      format: html
+      math: svg
+      html_postprocess: blackboard_html
     html_pre  : math-preamble.tex  # latex preamble for generating the equations in the markdown > html conversion
     html_css  : markdown-html.css    # CSS used for inline styling the HTML render.
                                          # e.g. it can be used to stye <code></code>, tables, line separation, etc.

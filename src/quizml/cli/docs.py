@@ -187,12 +187,12 @@ def print_topics_table(doc_items: list[DocItem], console: Console) -> None:
         cat = item.category if item.category != last_category else ""
         last_category = item.category
         primary_slug = item.aliases[0] if item.aliases else item.path.stem
-        cmd_str = f"quizml --docs {primary_slug}"
+        cmd_str = f"quizml docs {primary_slug}"
         table.add_row(cat, cmd_str, item.title, item.filename)
 
     console.print(table)
     console.print(
-        "\n[dim]Tip: Run [bold green]quizml --docs all[/bold green] to display the complete guide, or pipe to an LLM / file.[/dim]\n"
+        "\n[dim]Tip: Run [bold green]quizml docs all[/bold green] to display the complete guide, or pipe to an LLM / file.[/dim]\n"
     )
 
 
@@ -434,7 +434,7 @@ def handle_docs(topic: str | None = None, no_pager: bool = False) -> None:
         return
 
     if not query:
-        # No topic provided (e.g. `quizml --docs`)
+        # No topic provided (e.g. `quizml docs`)
         if not is_tty:
             full_doc = get_full_documentation(doc_items)
             sys.stdout.write(full_doc + "\n")
@@ -476,7 +476,7 @@ def handle_docs(topic: str | None = None, no_pager: bool = False) -> None:
     err_msg = f"Unknown documentation topic '{topic}'.\n\nAvailable topics:\n"
     available = sorted(list(dict.fromkeys(item.aliases[0] for item in doc_items)))
     err_msg += "  " + ", ".join(available) + "\n\n"
-    err_msg += "Run 'quizml --docs list' to view all topics, or 'quizml --docs all' for full documentation.\n"
+    err_msg += "Run 'quizml docs list' to view all topics, or 'quizml docs all' for full documentation.\n"
 
     sys.stderr.write(err_msg)
     sys.exit(1)

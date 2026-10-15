@@ -1,5 +1,7 @@
 import sys
 
+import pytest
+
 from quizml.cli.cli import main
 
 
@@ -16,7 +18,7 @@ title: Test
   question: Q2
 """)
 
-    monkeypatch.setattr(sys, "argv", ["quizml", "--format", str(yaml_file)])
+    monkeypatch.setattr(sys, "argv", ["quizml", "fmt", "-i", str(yaml_file)])
     main()
 
     new_txt = yaml_file.read_text()
@@ -35,7 +37,7 @@ title: Test
   type: ma
 """)
 
-    monkeypatch.setattr(sys, "argv", ["quizml", "--format", str(yaml_file)])
+    monkeypatch.setattr(sys, "argv", ["quizml", "fmt", "-i", str(yaml_file)])
     main()
     txt1 = yaml_file.read_text()
     main()
@@ -56,7 +58,7 @@ title: Test
   question: Q1 # <Q99>
 """)
 
-    monkeypatch.setattr(sys, "argv", ["quizml", "--format", str(yaml_file)])
+    monkeypatch.setattr(sys, "argv", ["quizml", "fmt", "-i", str(yaml_file)])
     main()
 
     new_txt = yaml_file.read_text()
@@ -75,7 +77,7 @@ def test_format_no_space_numbering(tmp_path, monkeypatch):
 - #<Q10>
   type: ma
 """)
-    monkeypatch.setattr(sys, "argv", ["quizml", "--format", str(yaml_file)])
+    monkeypatch.setattr(sys, "argv", ["quizml", "fmt", "-i", str(yaml_file)])
     main()
     new_txt = yaml_file.read_text()
     assert "- # <Q1>" in new_txt
@@ -90,7 +92,7 @@ def test_format_choices_literal_and_indent(tmp_path, monkeypatch):
     - o: Short string
     - x: Another one
 """)
-    monkeypatch.setattr(sys, "argv", ["quizml", "--format", str(yaml_file)])
+    monkeypatch.setattr(sys, "argv", ["quizml", "fmt", "-i", str(yaml_file)])
     main()
 
     new_txt = yaml_file.read_text()
@@ -112,7 +114,7 @@ def test_format_with_horizontal_rules(tmp_path, monkeypatch):
     Bottom
   answer: true
 """)
-    monkeypatch.setattr(sys, "argv", ["quizml", "--format", str(yaml_file)])
+    monkeypatch.setattr(sys, "argv", ["quizml", "fmt", "-i", str(yaml_file)])
     main()
     new_txt = yaml_file.read_text()
     assert "- # <Q1>" in new_txt
@@ -140,7 +142,7 @@ def test_format_with_include(tmp_path, monkeypatch):
   question: Last question
 """)
 
-    monkeypatch.setattr(sys, "argv", ["quizml", "--format", str(main_file)])
+    monkeypatch.setattr(sys, "argv", ["quizml", "fmt", "-i", str(main_file)])
     main()
 
     formatted = main_file.read_text()
@@ -180,10 +182,43 @@ def test_format_with_include_sampled(tmp_path, monkeypatch):
   question: Last question
 """)
 
-    monkeypatch.setattr(sys, "argv", ["quizml", "--format", str(main_file)])
+    monkeypatch.setattr(sys, "argv", ["quizml", "fmt", "-i", str(main_file)])
     main()
 
     formatted = main_file.read_text()
     assert "- # <Q1>" in formatted
     assert "- # <Q2>, <Q3>" in formatted
     assert "- # <Q4>" in formatted
+
+
+def test_fmt_defaults_to_stdout_without_modifying_file(tmp_path, monkeypatch, capsys):
+    yaml_file = tmp_path / "quiz.yaml"
+    original = "- type: essay\n  question: Example\n"
+    yaml_file.write_text(original)
+
+    monkeypatch.setattr(sys, "argv", ["quizml", "fmt", str(yaml_file)])
+    main()
+
+    assert yaml_file.read_text() == original
+    assert "- # <Q1>" in capsys.readouterr().out
+
+
+def test_fmt_check_reports_needed_changes(tmp_path, monkeypatch):
+    yaml_file = tmp_path / "quiz.yaml"
+    yaml_file.write_text("- type: essay\n  question: Example\n")
+    monkeypatch.setattr(sys, "argv", ["quizml", "fmt", "--check", str(yaml_file)])
+
+    with pytest.raises(SystemExit) as exc_info:
+        main()
+
+    assert exc_info.value.code == 1
+    assert "<Q1>" not in yaml_file.read_text()
+
+
+def test_fmt_reads_stdin(monkeypatch, capsys):
+    from io import StringIO
+
+    monkeypatch.setattr(sys, "argv", ["quizml", "fmt", "-"])
+    monkeypatch.setattr(sys, "stdin", StringIO("- type: essay\n  question: Example\n"))
+    main()
+    assert "- # <Q1>" in capsys.readouterr().out

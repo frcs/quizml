@@ -544,8 +544,11 @@ def get_html_dict(ast_dict, opts=None, base_dir=None, search_dirs=None):
     ) as renderer:
         for txt, doc in ast_dict.items():
             html_raw = renderer.render(doc)
-            html_inlined = inline_css(html_raw, opts)
-            html_clean = strip_newlines_and_tabs(html_inlined)
+            if opts.get("html_postprocess") == "blackboard_html":
+                html_inlined = inline_css(html_raw, opts)
+                html_clean = strip_newlines_and_tabs(html_inlined)
+            else:
+                html_clean = html_raw
             md_dict[txt] = html_clean
 
     return md_dict

@@ -8,13 +8,16 @@ BlackBoard csv quiz file can be defined as the following target:
 
 ```yaml
 - name      : bb
-  out       : ${inputbasename}.txt    
-  descr     : BlackBoard CSV          
-  descr_cmd : ${inputbasename}.txt    
-  fmt       : html-svg                    
-  html_pre  : math-preamble.tex 
-  html_css  : markdown-html.css   
-  template  : blackboard.txt.j2  
+  out       : ${inputbasename}.txt
+  descr     : Blackboard test
+  descr_cmd : ${inputbasename}.txt
+  markdown:
+    format: html
+    math: svg
+    html_postprocess: blackboard_html
+  html_pre  : math-preamble.tex
+  html_css  : markdown-html.css
+  template  : blackboard.txt.j2
 ```
 
 
@@ -55,17 +58,43 @@ In the example above, there is no post-build require, so we simply output the
 path of the generated rendered BlackBoard test.
 
 
-#### `fmt` 
-This can be set to `latex`, `html`, `html-svg`, `html-mathml`. It is the format
-that markdown gets converted to.
+#### `markdown`
+
+This mapping controls how Markdown fields are transcoded before they are passed
+to the target's Jinja template.
+
+##### `markdown.format`
+
+Choose the output representation: `html` or `latex`.
+
+##### `markdown.math`
+
+For HTML output, choose how LaTeX equations are rendered: `png` (the default),
+`svg`, or `mathml`. The LaTeX output format does not use this setting.
+
+##### `markdown.html_postprocess`
+
+Set this to `blackboard_html` when the target needs Blackboard-specific HTML
+preparation. It inlines CSS and removes line breaks and tabs from rendered HTML
+fragments before the template consumes them. It does not select or imply an
+output file format; the target may write any format supported by its template.
+
+The postprocessor is opt-in. Generic HTML targets receive the rendered HTML
+without Blackboard-specific changes. Existing templates can keep using fields
+such as `q.question` because post-processing happens before Jinja rendering.
 
 
-In the example above BlackBoard format requires HTML code. You have then the
-choice between `html`, `html-svg` and `html-mathml`, depending on whether you
-wish to convert LaTeX equations into PNG images, SVG graphics, or MathML tags.
-We recommend using `html-svg` for BlackBoard.
+In the example above Blackboard needs HTML fragments with equation SVGs, so
+`markdown.format` is `html`, `markdown.math` is `svg`, and the HTML postprocessor
+is enabled.
 
-!> Note that `html-svg` is best suited for the new version of BlackBoard.
+Older configuration files may still use `fmt`. QuizML maps `latex` to LaTeX,
+`html` to HTML with PNG equations, `html-svg` to HTML with SVG equations, and
+`html-mathml` to HTML with MathML equations. Move these values to the `markdown`
+mapping when updating your config. Add `html_postprocess: blackboard_html` only
+for targets that need the Blackboard-specific treatment. While an old `fmt`
+setting remains, QuizML preserves its historical HTML post-processing behavior;
+new `markdown` mappings only post-process HTML when explicitly configured.
 
 #### `html_pre`
 

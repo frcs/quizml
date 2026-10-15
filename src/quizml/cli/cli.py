@@ -1,11 +1,8 @@
-#!/usr/bin/python
-
 import argparse
 import logging
 import sys
 from importlib.metadata import version
 
-import platformdirs
 from rich.logging import RichHandler
 from rich.traceback import install
 from rich_argparse import RawDescriptionRichHelpFormatter, RichHelpFormatter
@@ -14,10 +11,45 @@ from ..exceptions import QuizMLError
 from .errorhandler import err_console
 
 install(show_locals=False)
-# from rich import print
+
+COMMANDS = {
+    "compile",
+    "diff",
+    "fmt",
+    "clean",
+    "init",
+    "docs",
+    "info",
+    "targets",
+    "completion",
+}
 
 
-def main():
+def _add_common_options(parser, *, include_config=True):
+    if include_config:
+        parser.add_argument(
+            "--config", metavar="CONFIGFILE", help="use this QuizML config file"
+        )
+    parser.add_argument(
+        "--debug",
+        action="store_const",
+        dest="loglevel",
+        const=logging.DEBUG,
+        help="show debug diagnostics",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_const",
+        dest="loglevel",
+        const=logging.INFO,
+        help="show informational diagnostics",
+    )
+    parser.add_argument(
+        "--quiet", action="store_true", help="suppress informational output"
+    )
+
+
+def build_parser():
     RichHelpFormatter.styles = {
         "argparse.args": "cyan",
         "argparse.groups": "yellow",
@@ -33,273 +65,226 @@ def main():
         return RawDescriptionRichHelpFormatter(prog, max_help_position=52)
 
     parser = argparse.ArgumentParser(
+        prog="quizml",
         formatter_class=formatter,
-        description="Converts a questions in a YAML/markdown format into"
-        + " a Blackboard test or a LaTeX script",
+        description="Convert YAML/Markdown questions to Blackboard or LaTeX output.",
     )
+    parser.add_argument("-v", "--version", action="version", version=version("quizml"))
+    subparsers = parser.add_subparsers(dest="command", required=True, metavar="COMMAND")
 
-    parser.add_argument(
-        "yaml_filename",
-        nargs="?",
-        metavar="quiz.yaml",
-        type=str,
-        help="path to the quiz in a yaml format",
+    compile_parser = subparsers.add_parser(
+        "compile", help="compile a quiz", formatter_class=formatter
     )
-
-    parser.add_argument(
-        "otherfiles",
-        nargs="*",
-        type=str,
-        help="other yaml files (only used with diff command)",
+    _add_common_options(compile_parser)
+    compile_parser.add_argument(
+        "yaml_filename", metavar="FILE", help="QuizML YAML input"
     )
-
-    parser.add_argument(
-        "-w",
-        "--watch",
-        help="continuously compiles the document on file change",
-        action="store_true",
-    )
-
-    default_config_dir = platformdirs.user_config_dir(
-        appname="quizml", appauthor="frcs"
-    )
-
-    parser.add_argument(
+    compile_parser.add_argument(
         "-t",
         "--target",
         action="append",
-        type=str,  # argparse.FileType('r'),
-        help="target names (e.g. 'pdf', 'html-preview')",
+        metavar="TARGET",
+        help="target to compile; repeatable",
+    )
+    compile_parser.add_argument(
+        "--build", action="store_true", help="run build commands"
+    )
+    compile_parser.add_argument(
+        "-w", "--watch", action="store_true", help="watch for changes"
     )
 
-    parser.add_argument(
-        "--target-list", help="list all targets in config file", action="store_true"
+    diff_parser = subparsers.add_parser(
+        "diff", help="compare questions across quiz files", formatter_class=formatter
     )
+    _add_common_options(diff_parser, include_config=False)
+    diff_parser.add_argument("files", nargs="+", metavar="FILE")
 
-    parser.add_argument(
-        "--init-local",
-        help="create a local directory 'quizml-templates' with all config files",
+    fmt_parser = subparsers.add_parser(
+        "fmt", help="format YAML", formatter_class=formatter
+    )
+    fmt_parser.add_argument(
+        "file",
+        nargs="?",
+        default="-",
+        metavar="FILE",
+        help="input file, or - for stdin",
+    )
+    fmt_modes = fmt_parser.add_mutually_exclusive_group()
+    fmt_modes.add_argument(
+        "-i",
+        "--in-place",
         action="store_true",
+        help="write changes back to the input file",
     )
-
-    parser.add_argument(
-        "--init-user",
-        help="create the user app directory with all its config files",
+    fmt_modes.add_argument(
+        "--check",
         action="store_true",
+        help="exit nonzero if formatting would change the input",
     )
-
-    parser.add_argument(
-        "--config",
-        metavar="CONFIGFILE",
-        help=f"user config file. Default location is {default_config_dir}",
+    fmt_modes.add_argument(
+        "--diff", action="store_true", help="show the proposed changes"
     )
-
-    parser.add_argument(
-        "--build",
-        help="compiles all targets and run all post-compilation commands",
-        action="store_true",
-    )
-
-    parser.add_argument(
-        "--diff",
-        help="compares questions from first yaml file to rest of files",
-        action="store_true",
-    )
-
-    parser.add_argument(
-        "--format",
-        help="formats and renumbers questions in the yaml file",
-        action="store_true",
-    )
-
-    parser.add_argument(
+    fmt_parser.add_argument(
         "--wrap",
         type=int,
-        default=None,
         metavar="WIDTH",
-        help="wrap markdown text to specified width (e.g. --wrap 74)",
+        help="wrap Markdown fields at WIDTH characters",
     )
 
-    parser.add_argument(
-        "-C",
-        "--cleanup",
-        help="deletes build artefacts from all yaml files in dir",
-        action="store_true",
+    clean_parser = subparsers.add_parser(
+        "clean", help="remove generated build artifacts", formatter_class=formatter
+    )
+    clean_parser.add_argument(
+        "path", nargs="?", default=".", help="directory or YAML file"
+    )
+    clean_parser.add_argument(
+        "--dry-run", action="store_true", help="list without deleting"
     )
 
-    parser.add_argument(
-        "--info", help="print configuration info and paths as json", action="store_true"
+    init_parser = subparsers.add_parser("init", help="copy QuizML templates")
+    init_parser.add_argument("scope", choices=("local", "user"))
+
+    docs_parser = subparsers.add_parser(
+        "docs", help="display documentation", formatter_class=formatter
+    )
+    docs_parser.add_argument("topic", nargs="?", default="", help="topic name or all")
+    docs_parser.add_argument(
+        "--no-pager", action="store_true", help="write directly to stdout"
     )
 
-    parser.add_argument(
-        "--shell-completion",
-        choices=["bash", "zsh", "fish"],
-        help="print shell completion script for the specified shell",
+    subparsers.add_parser("info", help="print configuration paths as JSON")
+
+    targets_parser = subparsers.add_parser(
+        "targets", help="list configured targets", formatter_class=formatter
     )
+    _add_common_options(targets_parser)
 
-    parser.add_argument(
-        "--no-pager",
-        help="disable pager for documentation output",
-        action="store_true",
+    completion_parser = subparsers.add_parser(
+        "completion", help="print a shell completion script"
     )
+    completion_parser.add_argument("shell", choices=("bash", "zsh", "fish"))
+    return parser
 
-    parser.add_argument(
-        "--docs",
-        nargs="?",
-        const="",
-        metavar="TOPIC",
-        help="display documentation topics or full guide (e.g. 'all', 'questions', 'targets'). TTY-aware.",
-    )
 
-    parser.add_argument("-v", "--version", action="version", version=version("quizml"))
+def _normalize_argv(argv):
+    """Treat a leading file or compile option as the historical compile shorthand."""
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if not argv:
+        return argv
+    if argv[0] not in COMMANDS and argv[0] not in ("-h", "--help", "-v", "--version"):
+        argv.insert(0, "compile")
+    return argv
 
-    parser.add_argument(
-        "--debug",
-        help="Print lots of debugging statements",
-        action="store_const",
-        dest="loglevel",
-        const=logging.DEBUG,
-        default=logging.WARNING,
-    )
 
-    parser.add_argument(
-        "--verbose",
-        help="set verbose on",
-        action="store_const",
-        dest="loglevel",
-        const=logging.INFO,
-    )
-
-    parser.add_argument("--quiet", help="turn off info statements", action="store_true")
-
-    args = parser.parse_args()
-
-    try:
-        logging.basicConfig(
-            force=True,
-            level=args.loglevel,
-            format="%(message)s",
-            datefmt="[%X]",
-            handlers=[RichHandler(rich_tracebacks=True, show_path=False)],
-        )
-
-        if args.target_list:
-            import quizml.cli.ui
-
-            if quizml.cli.ui.print_target_list(args) is False:
-                sys.exit(1)
-            return
-
-        if args.info:
-            import json
-
-            import quizml.cli.filelocator
-
-            try:
-                config_file = quizml.cli.filelocator.locate.path("quizml.cfg")
-            except FileNotFoundError:
-                config_file = "not found"
-
-            info = {
-                "version": version("quizml"),
-                "cwd": quizml.cli.filelocator.locate.cw_dir,
-                "local_templates": quizml.cli.filelocator.locate.local_template_dir,
-                "user_config_dir": quizml.cli.filelocator.locate.app_dir,
-                "user_templates": quizml.cli.filelocator.locate.user_template_dir,
-                "package_templates": quizml.cli.filelocator.locate.pkg_template_dir,
-                "search_paths": quizml.cli.filelocator.locate.dirlist,
-                "config_file": config_file,
-            }
-            sys.stdout.write(json.dumps(info, indent=4) + "\n")
-            return
-
-        if args.shell_completion:
-            import quizml.cli.shellcompletion
-
-            completion_func = getattr(quizml.cli.shellcompletion, args.shell_completion)
-            sys.stdout.write(completion_func(parser) + "\n")
-            return
-
-        if args.docs is not None:
-            import quizml.cli.docs
-
-            quizml.cli.docs.handle_docs(args.docs, no_pager=args.no_pager)
-            return
-
-        if args.cleanup:
-            from pathlib import Path
-
-            import quizml.cli.cleanup
-
-            if args.yaml_filename:
-                target_path = Path(args.yaml_filename)
-                if target_path.is_dir():
-                    res = quizml.cli.cleanup.cleanup_yaml_files(
-                        directory_path=str(target_path)
-                    )
-                elif not target_path.exists() and not target_path.suffix:
-                    res = quizml.cli.cleanup.cleanup_yaml_files(
-                        directory_path=str(target_path)
-                    )
-                else:
-                    dir_path = (
-                        target_path.parent if target_path.parent.name else Path(".")
-                    )
-                    res = quizml.cli.cleanup.cleanup_yaml_files(
-                        directory_path=str(dir_path), target_stems={target_path.stem}
-                    )
-            else:
-                res = quizml.cli.cleanup.cleanup_yaml_files()
-            if res is None:
-                sys.exit(1)
-            return
-
-        if args.init_user:
-            import quizml.cli.init
-
-            if quizml.cli.init.init_user() is False:
-                sys.exit(1)
-            return
-
-        if args.init_local:
-            import quizml.cli.init
-
-            if quizml.cli.init.init_local() is False:
-                sys.exit(1)
-            return
-
-        if not args.yaml_filename:
-            parser.error("a yaml file is required")
-
-        if args.diff:
-            import quizml.cli.diff
-
-            success = quizml.cli.diff.diff(args)
-            if not success:
-                sys.exit(1)
-            return
-
-        if args.format:
-            import quizml.cli.format
-
-            quizml.cli.format.format_yaml(args)
-            return
-
-        if args.otherfiles:
-            parser.error("only one yaml file is required")
-
+def _dispatch(args, parser):
+    if args.command == "compile":
         import quizml.cli.compile
 
         if args.watch:
-            quizml.cli.compile.compile(args)
+            if not quizml.cli.compile.compile(args):
+                return False
             quizml.cli.compile.compile_on_change(args)
-        else:
-            success = quizml.cli.compile.compile(args)
-            if not success:
-                sys.exit(1)
+            return True
+        return quizml.cli.compile.compile(args)
 
-    except QuizMLError as e:
-        err_console.print(f"[bold red]Error:[/bold red] {e}")
+    if args.command == "diff":
+        import quizml.cli.diff
+
+        args.yaml_filename, *args.otherfiles = args.files
+        return quizml.cli.diff.diff(args)
+
+    if args.command == "fmt":
+        import quizml.cli.format
+
+        return quizml.cli.format.run_format(args)
+
+    if args.command == "clean":
+        from pathlib import Path
+
+        from quizml.cli.cleanup import cleanup_yaml_files
+
+        path = Path(args.path)
+        if path.is_dir() or (not path.exists() and not path.suffix):
+            result = cleanup_yaml_files(str(path), dry_run=args.dry_run)
+        else:
+            result = cleanup_yaml_files(
+                str(path.parent or Path(".")),
+                dry_run=args.dry_run,
+                target_stems={path.stem},
+            )
+        return result is not None
+
+    if args.command == "init":
+        from quizml.cli import init
+
+        return init.init_local() if args.scope == "local" else init.init_user()
+
+    if args.command == "docs":
+        from quizml.cli.docs import handle_docs
+
+        handle_docs(args.topic, no_pager=args.no_pager)
+        return True
+
+    if args.command == "info":
+        import json
+
+        import quizml.cli.filelocator
+
+        try:
+            config_file = quizml.cli.filelocator.locate.path("quizml.cfg")
+        except FileNotFoundError:
+            config_file = "not found"
+        info = {
+            "version": version("quizml"),
+            "cwd": quizml.cli.filelocator.locate.cw_dir,
+            "local_templates": quizml.cli.filelocator.locate.local_template_dir,
+            "user_config_dir": quizml.cli.filelocator.locate.app_dir,
+            "user_templates": quizml.cli.filelocator.locate.user_template_dir,
+            "package_templates": quizml.cli.filelocator.locate.pkg_template_dir,
+            "search_paths": quizml.cli.filelocator.locate.dirlist,
+            "config_file": config_file,
+        }
+        sys.stdout.write(json.dumps(info, indent=4) + "\n")
+        return True
+
+    if args.command == "targets":
+        from quizml.cli.ui import print_target_list
+
+        args.yaml_filename = None
+        return print_target_list(args)
+
+    if args.command == "completion":
+        from quizml.cli import shellcompletion
+
+        sys.stdout.write(getattr(shellcompletion, args.shell)() + "\n")
+        return True
+
+    parser.error(f"unknown command: {args.command}")
+
+
+def main(argv=None):
+    parser = build_parser()
+    args = parser.parse_args(_normalize_argv(argv))
+    if not hasattr(args, "config"):
+        args.config = None
+    if not hasattr(args, "loglevel") or args.loglevel is None:
+        args.loglevel = logging.WARNING
+    if not hasattr(args, "quiet"):
+        args.quiet = False
+
+    logging.basicConfig(
+        force=True,
+        level=args.loglevel,
+        format="%(message)s",
+        datefmt="[%X]",
+        handlers=[RichHandler(rich_tracebacks=True, show_path=False)],
+    )
+
+    try:
+        if not _dispatch(args, parser):
+            sys.exit(1)
+    except QuizMLError as err:
+        err_console.print(f"[bold red]Error:[/bold red] {err}")
         sys.exit(1)
 
 

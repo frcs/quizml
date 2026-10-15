@@ -42,7 +42,7 @@ to specify template targets and in the [LaTeX setup section](config_latex).
 To get you started,
 
 ```shell-session
-$ quizml --init-local
+$ quizml init local
 ```
 This will copy a default `quizml.cfg` and all the provided templates to a newly
 created 
@@ -51,7 +51,7 @@ created
 Alternatively you can make a user-level install with:
 
 ```shell-session
-$ quizml --init-user
+$ quizml init user
 ```
 
 In this case `quizml.cfg` and the rest of the files will be moved to the default

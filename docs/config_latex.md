@@ -45,7 +45,7 @@ At that point you should be able to compile your LaTeX targets from anywhere.
 
 Alternatively, you can just set up the `TEXINPUTS` environment variable before
 using pdflatex. For instance, if you have set up a local copy of the templates
-using `quizml --init-local` and copied your LaTeX resouces there, you can
+using `quizml init local` and copied your LaTeX resources there, you can
 compile your LaTeX output with something like:
 
 

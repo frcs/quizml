@@ -173,3 +173,50 @@ def test_get_target_list_safe_substitute(mock_dependencies):
     targets = get_target_list(args, config, yaml_data)
     assert len(targets) == 1
     assert targets[0]["build_cmd"] == "latexmk -outdir=$HOME/out quiz.tex"
+
+
+def test_get_target_list_normalizes_markdown_transcoding_settings(mock_dependencies):
+    args = MagicMock()
+    args.target = ["bb"]
+    args.yaml_filename = "quiz.yaml"
+    config = {
+        "yaml_filename": "quiz.yaml",
+        "targets": [
+            {
+                "name": "bb",
+                "descr": "Blackboard",
+                "template": "bb.j2",
+                "markdown": {
+                    "format": "html",
+                    "math": "svg",
+                    "html_postprocess": "blackboard_html",
+                },
+            }
+        ],
+    }
+
+    targets = get_target_list(args, config, {"header": {}})
+
+    assert targets[0]["fmt"] == "html-svg"
+    assert targets[0]["html_postprocess"] == "blackboard_html"
+
+
+def test_legacy_html_fmt_keeps_historical_postprocessing(mock_dependencies):
+    args = MagicMock()
+    args.target = ["legacy"]
+    args.yaml_filename = "quiz.yaml"
+    config = {
+        "yaml_filename": "quiz.yaml",
+        "targets": [
+            {
+                "name": "legacy",
+                "descr": "Legacy HTML target",
+                "fmt": "html-svg",
+            }
+        ],
+    }
+
+    target = get_target_list(args, config, {"header": {}})[0]
+
+    assert target["fmt"] == "html-svg"
+    assert target["html_postprocess"] == "blackboard_html"

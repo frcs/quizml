@@ -1,138 +1,82 @@
-## Usage
+# Command-line usage
 
+QuizML converts questions written in YAML and Markdown into Blackboard-compatible
+HTML content, LaTeX documents, and other configured targets.
 
-This document explains how to use the `quizml` command-line tool, which converts questions in a YAML/markdown format into a Blackboard test or a LaTeX script.
+## Compile
 
-
-### TL;DR
-
-* Compile all targets
-```bash
-quizml quiz.yaml
-```
-
-* Re-compile all targets every time `quiz.yaml` changes:
+Compile all configured targets:
 
 ```bash
-quizml -w quiz.yaml
+quizml compile quiz.yaml
 ```
 
-* Compile all targets and also run post-build commands, eg. including running LaTeX on the
-  rendered `quiz.tex` to produce `quiz.pdf`:
+The shorthand `quizml quiz.yaml` is equivalent. Select targets with repeated
+`-t`/`--target` options, run build commands with `--build`, or watch for file
+changes with `-w`/`--watch`:
 
 ```bash
-quizml --build quiz.yaml
+quizml compile quiz.yaml --target bb --target pdf --build
+quizml compile -w quiz.yaml
 ```
 
-* Compile just one target, eg. the BlackBoard quiz:
+Compile options:
 
-```bash
-quizml -t bb quiz.yaml
+- `-t`, `--target TARGET`: compile a named target; may be repeated.
+- `--build`: run the selected targets' post-build commands.
+- `-w`, `--watch`: compile again when the input changes.
+- `--config CONFIGFILE`: use a specific QuizML config file.
+- `--debug`, `--verbose`, `--quiet`: adjust diagnostic output.
+
+## Other commands
+
+```text
+quizml diff FILE FILE [FILE ...]
+quizml fmt [FILE|-] [-i | --check | --diff] [--wrap WIDTH]
+quizml clean [PATH] [--dry-run]
+quizml init {local,user}
+quizml docs [TOPIC] [--no-pager]
+quizml info
+quizml targets [--config CONFIGFILE]
+quizml completion {bash,zsh,fish}
 ```
 
+- `diff` lists questions from the first file that also appear in the other files.
+- `fmt` reads a file or stdin and writes formatted YAML to stdout by default. Use
+  `-i` to edit a file, `--check` for a non-writing check, or `--diff` to display
+  the proposed changes. `--wrap WIDTH` opts into wrapping Markdown text.
+- `clean` removes known build artifacts. `--dry-run` lists candidates without
+  deleting them.
+- `init local` copies templates into `quizml-templates/`; `init user` copies
+  them into the user configuration directory.
+- `docs` displays a topic or the full guide. With no topic, behavior depends on
+  whether output is a terminal; use `--no-pager` to disable the pager.
+- `info` prints configuration paths and version information as JSON.
+- `targets` lists the configured target names and descriptions.
+- `completion` prints a shell completion script. Source the output using the
+  instructions for your shell.
 
-### Syntax
+All commands accept `--help`; `quizml --help` lists commands and `quizml
+COMMAND --help` lists that command's options. Use `--version` to print the
+installed version.
 
+## Migration from the flag-based CLI
 
-```bash
-Usage: quizml [-h] [-w] [-t TARGET] [--target-list] [--init-local] [--init-user]
-              [--config CONFIGFILE] [--build] [--diff] [--format] [-C] [--info]
-              [--shell-completion {bash,zsh,fish}] [--no-pager] [--docs [TOPIC]] [-v]
-              [--debug] [--verbose] [--quiet]
-              [quiz.yaml] [otherfiles ...]
-```
+The compile shorthand remains available. Other modes are now subcommands:
 
-Converts a questions in a YAML/markdown format into a Blackboard test or a LaTeX script
+| Previous invocation | Current invocation |
+|---|---|
+| `quizml --diff a.yaml b.yaml` | `quizml diff a.yaml b.yaml` |
+| `quizml --format quiz.yaml` | `quizml fmt quiz.yaml -i` |
+| `quizml --cleanup [PATH]` | `quizml clean [PATH]` |
+| `quizml --init-local` | `quizml init local` |
+| `quizml --init-user` | `quizml init user` |
+| `quizml --target-list` | `quizml targets` |
+| `quizml --docs [TOPIC]` | `quizml docs [TOPIC]` |
+| `quizml --info` | `quizml info` |
+| `quizml --shell-completion zsh` | `quizml completion zsh` |
 
-### Positional Arguments
-
-* `quiz.yaml`: path to the quiz in a yaml format
-* `otherfiles`: other yaml files (only used with diff command)
-
-### Optional Arguments
-
-* `-h`, `--help`: show this help message and exit
-* `-w`, `--watch`: continuously compiles the document on file change
-* `-t`, `--target TARGET`: target names (e.g. 'pdf', 'html-preview')
-* `--target-list`: list all targets in config file
-* `--init-local`: create a local directory 'quizml-templates' with all config files
-* `--init-user`: create the user app directory with all its config files
-* `--config CONFIGFILE`: user config file. Default location is
-  `/Users/fpitie/Library/Application Support/quizml`
-* `--build`: compiles all targets and run all post-compilation commands
-* `--diff`: compares questions from first yaml file to rest of files
-* `--format`: formats and renumbers questions in the yaml file
-* `--wrap WIDTH`: wrap markdown text to specified width (e.g. `--wrap 74`; wrapping is opt-in)
-* `-C`, `--cleanup`: deletes build artefacts from yaml files in directory (or matching the specified YAML file)
-* `--info`: print configuration info and paths as json
-* `--shell-completion {bash,zsh,fish}`: print shell completion script for the specified shell
-* `--no-pager`: disable pager for documentation output
-* `--docs [TOPIC]`: display documentation topic (e.g. 'quickstart', 'questions', 'targets') or full guide ('all'). TTY-aware: renders in full-screen pager, launches interactive topic browser if run with no topic in an interactive terminal, or outputs plain markdown when piped.
-* `-v`, `--version`: show program's version number and exit
-* `--debug`: Print lots of debugging statements
-* `--verbose`: set verbose on
-* `--quiet`: turn off info statements
-
-
-### Examples
-
-* Running QuizML on the simple example:
-
-```shell-session
-$ quizml quiz1.yaml
-
-  Q  Type  Marks  #  Exp  Question Statement
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  1   mc     5.0  4  1.2  If vector ${\bf w}$ is of dimension $3 \times 1$ ...
-  2   tf     5.0  2  2.5  Is this the image of a tree?
-
-  Total: 10.0 (with random expected mark at 37.5%)
-
-╭──────────────────────────────── Target Ouputs ────────────────────────────────╮
-│                                                                               │
-│   BlackBoard CSV   quiz1.txt                                                  │
-│   html preview     quiz1.html                                                 │
-│   latex            latexmk -xelatex -pvc quiz1.tex                            │
-│   Latex solutions  latexmk -xelatex -pvc quiz1.solutions.tex                  │
-│                                                                               │
-╰───────────────────────────────────────────────────────────────────────────────╯
-```
-
-The command returns a table that summarises some statistics about this
-exam. Namely, it lists all the questions, their types, their marks, the number
-of possible options per question, the expected mark if it is answered randomly.
-
-The rendered target outputs are shown at the end. It will also indicate how to
-further compile the output if it is required. For instance, to compile the
-generated LaTeX into a pdf, you can do it with:
-
-```shell-session
-$ latexmk -xelatex -pvc quiz1.tex
-```
-
-
-* Running post-build scripts:
-
-You can automate these additional compilations by setting the `--build` flag:
-
-```shell-session
-$ quizml --build quiz1.yaml
-```
-
-* Formatting and renumbering questions:
-
-You can format the YAML file and renumber the questions with the `--format` flag.
-This will update the `<Q#>` comments in front of each question sequentially.
-
-```shell-session
-$ quizml --format quiz1.yaml
-```
-
-### Running as a Module
-
-You can also run QuizML directly as a Python module, which is useful for development or if the `quizml` executable is not in your path:
-
-```bash
-python3 -m quizml quiz.yaml
-```
-
+`fmt` now writes to stdout unless `-i` is supplied. Update scripts that used
+`--format` to rewrite files by adding `-i`; scripts that need a read-only check
+can use `--check`. To preserve the previous opt-in wrapping behavior while
+editing a file, use `quizml fmt quiz.yaml -i --wrap 74`.

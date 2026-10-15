@@ -15,7 +15,7 @@ However, they embody fundamentally different design philosophies and workflows. 
 | **Question Syntax** | Clean, human-readable YAML (`- o:` / `- x:`) | Multi-section Markdown/LaTeX (`Question`, `Answerlist`, `exsolution: 1010`) |
 | **Tech Stack** | Python (lean `uv` / `pip` workflow) | R, CRAN packages, Pandoc, LaTeX, ImageMagick |
 | **Compilation Speed** | Instant (<0.2s for 30 questions) | Moderate (runs R processes & knitr rendering per question) |
-| **Developer Ergonomics** | Built-in CLI: `--watch`, `--format`, `--diff`, `--docs` | Driven via R interactive console or Rscript pipelines |
+| **Developer Ergonomics** | Built-in CLI: `compile --watch`, `fmt`, `diff`, `docs` | Driven via R interactive console or Rscript pipelines |
 | **LMS Exports** | Blackboard (CSV/Tab), LaTeX, HTML, Word docx | Blackboard, Moodle, Canvas (QTI), OpenOlat, ILIAS |
 | **AI / LLM Friendly** | **Exceptional** (compact YAML fits in a single prompt) | Moderate (LLMs often hallucinate binary bitstrings and knitr chunks) |
 
@@ -36,7 +36,7 @@ While this is useful for massive departmental question banks, it introduces sign
 QuizML treats the **entire exam as a single coherent document** (`quiz.yaml`):
 - All questions, header metadata, mark allocations, and layout instructions live in one place.
 - You can review the entire exam sequentially in seconds.
-- QuizML provides `--format` to automatically format YAML indentation and sequentially renumber question comments (`<Q1>`, `<Q2>`).
+- QuizML provides `fmt` to format YAML indentation and sequentially renumber question comments (`<Q1>`, `<Q2>`). It writes to stdout by default; add `-i` to edit a file.
 - For question banking, QuizML supports the `include` directive: you can still modularize questions into separate files and splice them into an exam when desired.
 
 ---
@@ -118,7 +118,7 @@ QuizML uses standard **Jinja2** templates with custom delimiters (`<| ... |>`, `
 
 - If you want to change university logos, adapt margins, or alter LaTeX exam headers, run:
   ```bash
-  quizml --init-local
+  quizml init local
   ```
 - All templates (`tcd-exam.tex.j2`, `blackboard.txt.j2`, `html-preview.html.j2`) are copied into your local `quizml-templates/` directory as plain text files you can edit with standard Jinja2.
 - R/exams templates, by comparison, are deeply intertwined with R internals, XML generators, and complex Pandoc filters.

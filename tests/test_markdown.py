@@ -22,7 +22,9 @@ def test_markdown_transcoding_html():
     transcoder = MarkdownTranscoder(yamldoc, schema)
 
     # Test HTML conversion
-    html_md_dict = transcoder.get_dict(opts={"fmt": "html"})
+    html_md_dict = transcoder.get_dict(
+        opts={"markdown": {"format": "html", "math": "png"}}
+    )
 
     # Check if we have expected keys (the original markdown strings)
     # The keys in the dictionary are the original markdown strings prepended with "##Markdown##"
@@ -58,7 +60,7 @@ def test_markdown_transcoding_latex():
     transcoder = MarkdownTranscoder(yamldoc, schema)
 
     # Test LaTeX conversion
-    latex_md_dict = transcoder.get_dict(opts={"fmt": "latex"})
+    latex_md_dict = transcoder.get_dict(opts={"markdown": {"format": "latex"}})
 
     question_md = yamldoc["questions"][0]["question"]
     key = question_md
@@ -106,7 +108,9 @@ def test_markdown_transcoding_with_headings():
     transcoder = MarkdownTranscoder(yamldoc)
 
     # Test HTML: ensure headings and text after headings are fully preserved
-    html_dict = transcoder.get_dict(opts={"fmt": "html"})
+    html_dict = transcoder.get_dict(
+        opts={"markdown": {"format": "html", "math": "png"}}
+    )
     assert q1_text in html_dict
     assert q2_text in html_dict
     assert "Important Concept" in html_dict[q1_text]
@@ -169,7 +173,7 @@ def test_inputbasename_with_underscore_not_escaped():
         "questions": [],
     }
     transcoder = MarkdownTranscoder(yamldoc)
-    transcoded = transcoder.transcode_target({"fmt": "latex"})
+    transcoded = transcoder.transcode_target({"markdown": {"format": "latex"}})
     assert transcoded["header"]["inputbasename"] == "quizzes/mda_01_final"
 
 

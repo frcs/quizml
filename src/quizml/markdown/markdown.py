@@ -29,7 +29,7 @@ from .latex_renderer import get_latex_dict
     
     transcoder = md.MarkdownTranscoder(yaml_data)
 
-    target = {'fmt': 'html',
+    target = {'markdown': {'format': 'html', 'math': 'svg'},
               'html_css': user_html_css,
               'html_pre': user_html_pre}
     yaml_transcoded = transcoder.transcode_target(target)
@@ -47,6 +47,39 @@ def _setup_mistletoe_tokens():
         mt.block_token.add_token(mt.block_token.Paragraph, 10)
         mt.span_token.add_token(mte.MathInline)
         mt.span_token.add_token(mte.ImageWithWidth)
+
+
+def _normalize_markdown_options(options):
+    """Translate the public Markdown settings into renderer options."""
+    options = dict(options or {})
+    markdown = options.get("markdown")
+    if markdown is None or "fmt" in options:
+        return options
+    if not isinstance(markdown, dict):
+        raise ValueError("The markdown option must be a mapping.")
+
+    output_format = markdown.get("format", "html")
+    if output_format == "latex":
+        options["fmt"] = "latex"
+    elif output_format == "html":
+        math_backend = markdown.get("math", "png")
+        renderer_format = {
+            "png": "html",
+            "svg": "html-svg",
+            "mathml": "html-mathml",
+        }.get(math_backend)
+        if renderer_format is None:
+            raise ValueError(f"Unknown Markdown math backend: {math_backend}")
+        options["fmt"] = renderer_format
+    else:
+        raise ValueError(f"Unknown Markdown output format: {output_format}")
+    postprocess = markdown.get("html_postprocess")
+    if postprocess not in (None, "blackboard_html"):
+        raise ValueError(f"Unknown HTML postprocessor: {postprocess}")
+    if output_format == "latex" and postprocess is not None:
+        raise ValueError("HTML postprocessing requires Markdown format 'html'.")
+    options["html_postprocess"] = postprocess
+    return options
 
 
 class MarkdownTranscoder:
@@ -111,7 +144,7 @@ class MarkdownTranscoder:
             the rendered HTML dictionary is cached
 
         Args:
-            opts (:dict): passing optional val for 'html_pre' and 'html_css'
+            opts (:dict): optional `markdown`, `html_pre`, and `html_css` settings
 
         Returns:
             a dictionary where each key corresponds to the MD string
@@ -120,12 +153,19 @@ class MarkdownTranscoder:
         if not self.md_list:
             return {}
 
-        if opts is None:
-            opts = {}
+        opts = _normalize_markdown_options(opts)
 
         html_pre = opts.get("html_pre", "")
         html_css = opts.get("html_css", "")
-        key = opts.get("fmt", "html") + ":PRE:" + html_pre + "CSS:" + html_css
+        key = (
+            opts.get("fmt", "html")
+            + ":PRE:"
+            + html_pre
+            + "CSS:"
+            + html_css
+            + "POSTPROCESS:"
+            + str(opts.get("html_postprocess", ""))
+        )
         if key in self.cache_dict:
             return self.cache_dict[key]
         d = get_html_dict(
@@ -165,15 +205,14 @@ class MarkdownTranscoder:
         """Returns a dictionary of all transcoded MD entries in the YAML data
 
         Args:
-            opts (:dict): target format with opts['fmt'] = 'html' or 'latex'
+            opts (:dict): target options, including a `markdown` settings mapping
 
         Returns:
             the dictionary where each key corresponds to found MD strings
             and its value is the corresponding rendered HTML or LaTeX
         """
 
-        if opts is None:
-            opts = {}
+        opts = _normalize_markdown_options(opts)
 
         if opts["fmt"].startswith("html"):
             return self.html_dict(opts)

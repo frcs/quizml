@@ -1,97 +1,117 @@
-def _get_docs_topics() -> str:
-    try:
-        from quizml.cli.docs import get_all_topics
+from quizml.cli.docs import get_all_topics
 
-        return " ".join(sorted(get_all_topics()))
-    except Exception:
-        return "all list overview quickstart usage syntax_yaml syntax_questions targets"
+COMMANDS = (
+    "compile",
+    "diff",
+    "fmt",
+    "clean",
+    "init",
+    "docs",
+    "info",
+    "targets",
+    "completion",
+)
+OPTIONS = {
+    "compile": "-h --help --config --debug --verbose --quiet -t --target --build -w --watch",
+    "diff": "-h --help --config --debug --verbose --quiet",
+    "fmt": "-h --help -i --in-place --check --diff --wrap",
+    "clean": "-h --help --dry-run",
+    "init": "-h --help",
+    "docs": "-h --help --no-pager",
+    "info": "-h --help",
+    "targets": "-h --help --config --debug --verbose --quiet",
+    "completion": "-h --help",
+}
 
 
-def bash(parser):
-    opts_list = []
-    for a in parser._action_groups[1]._group_actions:
-        for b in a.option_strings:
-            opts_list.append(b)
+def _docs_topics():
+    return " ".join(sorted(get_all_topics()))
 
-    opts = " ".join(opts_list)
-    docs_topics = _get_docs_topics()
 
-    txt = f"""_quizml()
+def bash():
+    commands = " ".join(COMMANDS)
+    options = " ".join(
+        sorted({opt for values in OPTIONS.values() for opt in values.split()})
+    )
+    topics = _docs_topics()
+    return f'''_quizml()
 {{
-    local cur prev opts docs_topics
+    local cur prev command opts topics
     COMPREPLY=()
     cur="${{COMP_WORDS[COMP_CWORD]}}"
     prev="${{COMP_WORDS[COMP_CWORD-1]}}"
-    opts="{opts}"
-    docs_topics="{docs_topics}"
-
-    if [[ ${{prev}} == "--docs" ]] ; then
-        COMPREPLY=( $(compgen -W "${{docs_topics}}" -- ${{cur}}) )
-        return 0
+    command="${{COMP_WORDS[1]}}"
+    opts="{options}"
+    topics="{topics}"
+    if [[ $COMP_CWORD -eq 1 ]]; then
+        COMPREPLY=( $(compgen -W "{commands} -h --help -v --version" -- "$cur") $(compgen -f -X "!*.yaml" -- "$cur") $(compgen -f -X "!*.yml" -- "$cur") )
+    elif [[ $command == "docs" && $prev == "docs" ]]; then
+        COMPREPLY=( $(compgen -W "$topics" -- "$cur") )
+    elif [[ $cur == -* ]]; then
+        COMPREPLY=( $(compgen -W "$opts" -- "$cur") )
+    else
+        COMPREPLY=( $(compgen -f -- "$cur") )
     fi
-
-    if [[ ${{cur}} == -* ]] ; then
-        COMPREPLY=( $(compgen -W "${{opts}}" -- ${{cur}}) )
-        return 0
-    fi
-    
-    local IFS=$'\\n'
-    COMPREPLY=( $(compgen -f -X "!*.yaml" -- ${{cur}}) $(compgen -f -X "!*.yml" -- ${{cur}}) )
+    return 0
 }}
-complete -F _quizml quizml"""
-    return txt
+complete -F _quizml quizml'''
 
 
-def fish(parser):
-    txt = ""
-    docs_topics = _get_docs_topics()
-
-    for a in parser._action_groups[1]._group_actions:
-        long_option = None
-        short_option = None
-        for b in a.option_strings:
-            if b.startswith("--"):
-                long_option = b[2:]
-            else:
-                short_option = b[1:]
-
-        line = "complete -c quizml"
-        if short_option:
-            line = line + " -s " + short_option
-        if long_option:
-            line = line + " -l " + long_option
-
-        if long_option == "docs":
-            line = f'{line:<50} -d "{a.help}" -a "{docs_topics}"'
-        elif long_option == "shell-completion":
-            line = f'{line:<50} -d "{a.help}" -a "bash zsh fish"'
-        else:
-            line = f'{line:<50} -d "{a.help}"'
-        txt = txt + line + "\n"
-
-    txt = txt + 'complete -c quizml -k -x -a "(__fish_complete_suffix .yaml .yml)"\n'
-    return txt
+def zsh():
+    commands = " ".join(COMMANDS)
+    lines = [
+        "#compdef quizml",
+        "_quizml() {",
+        "  local -a commands",
+        f"  commands=({commands})",
+        "  if (( CURRENT == 2 )); then",
+        '    _describe "QuizML command" commands',
+        "    return",
+        "  fi",
+        "  case $words[2] in",
+    ]
+    for command, opts in OPTIONS.items():
+        specs = " ".join(f"'{opt}[{opt}]'" for opt in opts.split())
+        if command == "docs":
+            specs += f" '*:topic:({_docs_topics()})'"
+        lines.extend(
+            [
+                f"    {command})",
+                f"      _arguments '*:file:_files' {specs}",
+                "      ;;",
+            ]
+        )
+    lines.extend(["  esac", "}", "_quizml"])
+    return "\n".join(lines)
 
 
-def zsh(parser):
-    txt = "function _quizml(){\n  _arguments\\\n"
-    docs_topics = _get_docs_topics()
-
-    for a in parser._action_groups[1]._group_actions:
-        help = a.help.replace("'", r"'\''")
-        for b in a.option_strings:
-            if b == "--docs":
-                txt = (
-                    txt
-                    + f"    '--docs[display documentation topics]::topic:({docs_topics})' \\\n"
+def fish():
+    lines = [
+        f"complete -c quizml -f -n '__fish_use_subcommand' -a '{' '.join(COMMANDS)}'"
+    ]
+    lines.extend(
+        [
+            "complete -c quizml -n '__fish_seen_subcommand_from compile diff fmt' -F",
+            "complete -c quizml -n '__fish_seen_subcommand_from init' -a 'local user'",
+            "complete -c quizml -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'",
+        ]
+    )
+    for command, opts in OPTIONS.items():
+        lines.append(
+            f"complete -c quizml -n '__fish_seen_subcommand_from {command}' -f"
+        )
+        for opt in opts.split():
+            if opt.startswith("--"):
+                lines.append(
+                    f"complete -c quizml -n '__fish_seen_subcommand_from {command}' -l {opt[2:]}"
                 )
-            elif b == "--shell-completion":
-                txt = (
-                    txt
-                    + "    '--shell-completion[print shell completion script for the specified shell]:shell:(bash zsh fish)' \\\n"
+            elif opt.startswith("-") and len(opt) == 2:
+                lines.append(
+                    f"complete -c quizml -n '__fish_seen_subcommand_from {command}' -s {opt[1:]}"
                 )
-            else:
-                txt = txt + f"    '{b}[{help}]' \\\n"
-
-    txt = txt + r"    '*:yaml file:_files -g \*.\(yml\|yaml\)'" + "\n}\n"
-    return txt
+    lines.append(
+        "complete -c quizml -n '__fish_seen_subcommand_from docs' -a '"
+        + _docs_topics()
+        + "'"
+    )
+    return "\n".join(lines)

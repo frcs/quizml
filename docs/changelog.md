@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+**Features:**
+*   Reorganized CLI modes as subcommands while keeping `quizml FILE` as a compile shorthand.
+*   Changed `fmt` to write to stdout by default, with explicit `-i`, `--check`, and `--diff` modes.
+*   Split Markdown output format, equation backend, and Blackboard HTML post-processing into separate target settings.
+
 <a name="0.12.0"></a>
 
 ### [0.12.0]() (2026-09-03)

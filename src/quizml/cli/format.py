@@ -1,3 +1,4 @@
+import difflib
 import io
 import re
 from pathlib import Path
@@ -98,13 +99,7 @@ def wrap_text_fields(data, wrap_width=None):
             wrap_text_fields(item, wrap_width=wrap_width)
 
 
-def format_yaml(args):
-    yaml_path = Path(args.yaml_filename)
-    if not yaml_path.exists():
-        raise QuizMLError(f"File not found: {yaml_path}")
-
-    txt = yaml_path.read_text(encoding="utf-8")
-
+def format_yaml_text(txt, *, base_dir=Path("."), filename="<stdin>", wrap_width=None):
     yaml = YAML()
     yaml.indent(mapping=2, sequence=2, offset=0)
     yaml.width = 80
@@ -113,12 +108,10 @@ def format_yaml(args):
     try:
         docs = list(yaml.load_all(txt))
     except Exception as err:
-        raise QuizMLError(f"YAML parsing error in {yaml_path}: {err}") from err
+        raise QuizMLError(f"YAML parsing error in {filename}: {err}") from err
 
     formatted_parts = []
     dummy_mark = StreamMark(None, 0, 0, 0)
-
-    wrap_width = getattr(args, "wrap", None)
 
     for data in docs:
         if data is None or (isinstance(data, str) and not data.strip()):
@@ -134,7 +127,7 @@ def format_yaml(args):
             for q_idx, item in enumerate(data):
                 prefix = "\n" if q_idx > 0 else ""
                 if isinstance(item, dict) and "_include" in item:
-                    n_q = count_included_questions(item, base_dir=yaml_path.parent)
+                    n_q = count_included_questions(item, base_dir=base_dir)
                     if n_q > 0:
                         q_tags = [f"<Q{q_counter + i}>" for i in range(n_q)]
                         new_comment = f"{prefix}# {', '.join(q_tags)}\n"
@@ -176,8 +169,55 @@ def format_yaml(args):
         flags=re.MULTILINE,
     )
 
-    if res != txt:
-        yaml_path.write_text(res, encoding="utf-8")
-        print(f"Formatted and renumbered {yaml_path}")
+    return res
+
+
+def run_format(args):
+    import sys
+
+    from .errorhandler import err_console
+
+    source_name = args.file
+    if source_name == "-":
+        original = sys.stdin.read()
+        base_dir = Path.cwd()
+        filename = "<stdin>"
     else:
-        print(f"No changes made to {yaml_path}")
+        path = Path(source_name)
+        if not path.is_file():
+            raise QuizMLError(f"File not found: {path}")
+        original = path.read_text(encoding="utf-8")
+        base_dir = path.parent
+        filename = str(path)
+
+    formatted = format_yaml_text(
+        original,
+        base_dir=base_dir,
+        filename=filename,
+        wrap_width=args.wrap,
+    )
+    changed = formatted != original
+
+    if args.check:
+        return not changed
+    if args.diff:
+        diff = difflib.unified_diff(
+            original.splitlines(keepends=True),
+            formatted.splitlines(keepends=True),
+            fromfile=filename,
+            tofile=f"{filename} (formatted)",
+        )
+        sys.stdout.writelines(diff)
+        return True
+    if args.in_place:
+        if source_name == "-":
+            raise QuizMLError("--in-place requires a file path")
+        if changed:
+            Path(source_name).write_text(formatted, encoding="utf-8")
+            err_console.print(f"Formatted and renumbered {source_name}")
+        else:
+            err_console.print(f"No changes needed in {source_name}")
+        return True
+
+    sys.stdout.write(formatted)
+    return True

@@ -148,8 +148,10 @@ When including a file from a different directory that contains images (e.g. `![]
 - Any `_figures_path` declared in the included file's own header (e.g. `custom_assets/`) is resolved relative to that sub-file and added to the parent exam's figure search paths.
 - Both HTML Base64 embedding and LaTeX compilation (`\graphicspath`) resolve these assets seamlessly without altering question text or assuming magic subfolders.
 
-#### Automatic Renumbering & Searchability (`quizml --format`)
-When running `quizml --format`, QuizML renumbers questions and decorates includes with all the question numbers they introduce:
+#### Automatic Renumbering & Searchability (`quizml fmt`)
+Run `quizml fmt exam.yaml -i` to renumber questions in place and decorate
+includes with all the question numbers they introduce. By default, `quizml fmt`
+writes formatted YAML to stdout without changing the input file.
 ```yaml
 - # <Q1>
   type: essay

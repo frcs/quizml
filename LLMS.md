@@ -49,7 +49,7 @@ Custom delimiters are used to avoid conflicts with LaTeX:
 ### Git Strategy & Commit Messages
 - **Strategy:** GitHub Flow. Use feature branches and PRs. Stable code resides on `main`.
 - **Versioning:** Semantic Versioning (SemVer) with Git tags (e.g., `v0.10.0`).
-- **Format:** `Type: Subject` (e.g., `Feat: Adding --target-list as feature`)
+- **Format:** `Type: Subject` (e.g., `Feat: Add the targets subcommand`)
 - **Types:** `Feat`, `Fix`, `Docs`, `Refactor`, `Chore`, `Test`, `Style`.
 
 ### Testing
@@ -63,7 +63,13 @@ Basic command:
 ```bash
 uv run quizml quiz1.yaml
 ```
-Common features:
-- `--format`: Formats and renumbers questions in the YAML file.
-- `-w`, `--watch`: Continuously compiles on file change.
-- `--build`: Compiles all targets and runs post-compilation commands.
+Common commands:
+- `quizml compile quiz1.yaml`: Compile configured outputs. `quizml quiz1.yaml` is shorthand.
+- `quizml fmt quiz1.yaml`: Write formatted YAML to stdout; use `-i` to edit the file, or `--check` in CI.
+- `quizml diff exam-a.yaml exam-b.yaml`: Find questions repeated across files.
+- `quizml clean [PATH]`: Remove generated build artifacts.
+- `quizml docs [TOPIC]`: Display documentation.
+- `quizml init local` / `quizml init user`: Copy the default templates.
+
+Compilation options include `-t TARGET`, `--build`, `-w`/`--watch`, `--config`,
+`--debug`, `--verbose`, and `--quiet`.

@@ -167,6 +167,63 @@ def get_target_list(args, config, yaml_data):
             else:
                 target[key] = val
 
+        markdown = t.get("markdown")
+        if markdown is not None:
+            if not isinstance(markdown, dict):
+                raise QuizMLConfigError(
+                    f"Target '{t.get('name', '<unnamed>')}' markdown setting must be a mapping."
+                )
+            unknown_settings = set(markdown) - {
+                "format",
+                "math",
+                "html_postprocess",
+            }
+            if unknown_settings:
+                unknown = ", ".join(sorted(unknown_settings))
+                raise QuizMLConfigError(
+                    f"Unknown Markdown setting(s) for target '{t.get('name', '<unnamed>')}': {unknown}."
+                )
+            output_format = markdown.get("format", "html")
+            math_backend = markdown.get("math", "png")
+            postprocess = markdown.get("html_postprocess")
+            if postprocess not in (None, "blackboard_html"):
+                raise QuizMLConfigError(
+                    f"Unknown HTML postprocessor '{postprocess}' in target '{t.get('name', '<unnamed>')}'."
+                )
+            if output_format == "latex":
+                if postprocess is not None:
+                    raise QuizMLConfigError(
+                        "markdown.html_postprocess can only be used with markdown.format: html."
+                    )
+                target["fmt"] = "latex"
+            elif output_format == "html":
+                backend_fmt = {
+                    "png": "html",
+                    "svg": "html-svg",
+                    "mathml": "html-mathml",
+                }.get(math_backend)
+                if backend_fmt is None:
+                    raise QuizMLConfigError(
+                        f"Unknown Markdown math backend '{math_backend}' in target '{t.get('name', '<unnamed>')}'."
+                    )
+                target["fmt"] = backend_fmt
+            else:
+                raise QuizMLConfigError(
+                    f"Unknown Markdown format '{output_format}' in target '{t.get('name', '<unnamed>')}'."
+                )
+            target["html_postprocess"] = postprocess
+        elif "fmt" in t:
+            # Translate existing configuration values while users migrate.
+            legacy_fmt = t["fmt"]
+            if legacy_fmt not in ("latex", "html", "html-svg", "html-mathml"):
+                raise QuizMLConfigError(f"Unknown legacy fmt value '{legacy_fmt}'.")
+            target["fmt"] = legacy_fmt
+            # Legacy HTML formats historically applied the Blackboard-oriented
+            # transformations to every HTML target.
+            target["html_postprocess"] = (
+                "blackboard_html" if legacy_fmt.startswith("html") else None
+            )
+
         # resolves relative path for all files
         for key in filenames_to_resolve:
             if key in target:

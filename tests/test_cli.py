@@ -8,14 +8,14 @@ from quizml.cli.cli import main
 
 @patch("quizml.cli.ui.print_target_list")
 def test_target_list(mock_print_target_list):
-    with patch.object(sys, "argv", ["quizml", "--target-list"]):
+    with patch.object(sys, "argv", ["quizml", "targets"]):
         main()
     mock_print_target_list.assert_called_once()
 
 
 @patch("quizml.cli.cleanup.cleanup_yaml_files")
 def test_cleanup(mock_cleanup):
-    with patch.object(sys, "argv", ["quizml", "--cleanup"]):
+    with patch.object(sys, "argv", ["quizml", "clean"]):
         main()
     mock_cleanup.assert_called_once()
 
@@ -85,21 +85,21 @@ def test_cleanup_specific_target_stem(tmp_path):
 
 @patch("quizml.cli.init.init_local")
 def test_init_local(mock_init_local):
-    with patch.object(sys, "argv", ["quizml", "--init-local"]):
+    with patch.object(sys, "argv", ["quizml", "init", "local"]):
         main()
     mock_init_local.assert_called_once()
 
 
 @patch("quizml.cli.init.init_user")
 def test_init_user(mock_init_user):
-    with patch.object(sys, "argv", ["quizml", "--init-user"]):
+    with patch.object(sys, "argv", ["quizml", "init", "user"]):
         main()
     mock_init_user.assert_called_once()
 
 
 @patch("sys.stdout.write")
 def test_shell_completion(mock_write):
-    with patch.object(sys, "argv", ["quizml", "--shell-completion", "bash"]):
+    with patch.object(sys, "argv", ["quizml", "completion", "bash"]):
         main()
     mock_write.assert_called()
 
@@ -120,7 +120,7 @@ def test_compile_default(mock_compile):
 
 @patch("quizml.cli.diff.diff")
 def test_diff_command(mock_diff):
-    with patch.object(sys, "argv", ["quizml", "--diff", "test1.yaml", "test2.yaml"]):
+    with patch.object(sys, "argv", ["quizml", "diff", "test1.yaml", "test2.yaml"]):
         main()
     mock_diff.assert_called_once()
 
@@ -137,7 +137,7 @@ def test_diff_execution(tmp_path, capsys):
     f1.write_text(content)
     f2.write_text(content)
 
-    with patch.object(sys, "argv", ["quizml", "--diff", str(f1), str(f2)]):
+    with patch.object(sys, "argv", ["quizml", "diff", str(f1), str(f2)]):
         main()
 
     captured = capsys.readouterr()
@@ -155,7 +155,7 @@ def test_version(capsys):
 def test_info_command(capsys):
     import json
 
-    with patch.object(sys, "argv", ["quizml", "--info"]):
+    with patch.object(sys, "argv", ["quizml", "info"]):
         try:
             main()
         except SystemExit:
@@ -212,7 +212,7 @@ def test_compile_missing_file_exit_code_and_stderr(capsys):
 
 
 def test_cleanup_missing_dir_exit_code():
-    with patch.object(sys, "argv", ["quizml", "-C", "does_not_exist_dir_98765"]):
+    with patch.object(sys, "argv", ["quizml", "clean", "does_not_exist_dir_98765"]):
         with pytest.raises(SystemExit) as exc_info:
             main()
         assert exc_info.value.code == 1
@@ -220,7 +220,7 @@ def test_cleanup_missing_dir_exit_code():
 
 def test_diff_missing_file_exit_code():
     with patch.object(
-        sys, "argv", ["quizml", "--diff", "f1_missing.yaml", "f2_missing.yaml"]
+        sys, "argv", ["quizml", "diff", "f1_missing.yaml", "f2_missing.yaml"]
     ):
         with pytest.raises(SystemExit) as exc_info:
             main()
@@ -230,7 +230,7 @@ def test_diff_missing_file_exit_code():
 def test_target_list_config_failure_exit_code_and_stderr(capsys):
     from quizml.exceptions import QuizMLConfigError
 
-    with patch.object(sys, "argv", ["quizml", "--target-list"]):
+    with patch.object(sys, "argv", ["quizml", "targets"]):
         with patch(
             "quizml.cli.ui.get_config", side_effect=QuizMLConfigError("bad config")
         ):
@@ -250,7 +250,7 @@ def test_init_copy_failure_exit_code_and_stderr(tmp_path, monkeypatch, capsys):
     with patch.object(
         init_module.shutil, "copytree", side_effect=OSError("permission denied")
     ):
-        with patch.object(sys, "argv", ["quizml", "--init-local"]):
+        with patch.object(sys, "argv", ["quizml", "init", "local"]):
             with pytest.raises(SystemExit) as exc_info:
                 main()
 

@@ -158,7 +158,7 @@ def test_handle_docs_unknown_topic(capsys):
 
 
 def test_cli_docs_integration(capsys):
-    with patch.object(sys, "argv", ["quizml", "--docs", "quickstart"]):
+    with patch.object(sys, "argv", ["quizml", "docs", "quickstart"]):
         with patch("sys.stdout.isatty", return_value=False):
             main()
     captured = capsys.readouterr()
@@ -166,7 +166,7 @@ def test_cli_docs_integration(capsys):
 
 
 def test_cli_docs_no_pager_integration(capsys):
-    with patch.object(sys, "argv", ["quizml", "--docs", "quickstart", "--no-pager"]):
+    with patch.object(sys, "argv", ["quizml", "docs", "quickstart", "--no-pager"]):
         with patch("sys.stdout.isatty", return_value=True):
             main()
     captured = capsys.readouterr()

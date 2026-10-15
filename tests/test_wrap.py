@@ -26,7 +26,7 @@ title: Test
     )
 
     monkeypatch.setattr(
-        sys, "argv", ["quizml", "--format", "--wrap", "74", str(yaml_file)]
+        sys, "argv", ["quizml", "fmt", "-i", "--wrap", "74", str(yaml_file)]
     )
     main()
 
@@ -64,7 +64,7 @@ title: Test
         encoding="utf-8",
     )
 
-    monkeypatch.setattr(sys, "argv", ["quizml", "--format", str(yaml_file)])
+    monkeypatch.setattr(sys, "argv", ["quizml", "fmt", "-i", str(yaml_file)])
     main()
 
     new_txt = yaml_file.read_text(encoding="utf-8")
