@@ -157,6 +157,23 @@ def get_all_topics(docs_dir: Path | None = None) -> list[str]:
     return topics
 
 
+def get_completion_topics(docs_dir: Path | None = None) -> list[str]:
+    """Return one canonical topic per page in sidebar order, plus built-ins."""
+    if docs_dir is None:
+        try:
+            docs_dir = get_docs_dir()
+        except FileNotFoundError:
+            return ["all", "list", "overview", "quickstart", "usage"]
+
+    topics = ["all", "list"]
+    for item in parse_sidebar(docs_dir):
+        # "overview" is the familiar canonical name for the README page.
+        topic = "overview" if item.path.stem.lower() == "readme" else item.aliases[0]
+        if topic not in topics:
+            topics.append(topic)
+    return topics
+
+
 def get_full_documentation(doc_items: list[DocItem]) -> str:
     """Concatenates all documentation sections into a single markdown stream."""
     docs = []

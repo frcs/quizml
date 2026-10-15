@@ -1,4 +1,6 @@
-from quizml.cli.docs import get_all_topics
+import shlex
+
+from quizml.cli.docs import get_completion_topics
 
 COMMANDS = (
     "compile",
@@ -25,7 +27,7 @@ OPTIONS = {
 
 
 def _docs_topics():
-    return " ".join(sorted(get_all_topics()))
+    return " ".join(get_completion_topics())
 
 
 def bash():
@@ -58,14 +60,15 @@ complete -F _quizml quizml'''
 
 
 def zsh():
-    commands = " ".join(COMMANDS)
+    command_candidates = " ".join((*COMMANDS, "-h", "--help", "-v", "--version"))
+    topics = " ".join(shlex.quote(topic) for topic in get_completion_topics())
     lines = [
         "#compdef quizml",
         "_quizml() {",
-        "  local -a commands",
-        f"  commands=({commands})",
+        "  local state",
+        f"  local -a topics=({topics})",
         "  if (( CURRENT == 2 )); then",
-        '    _describe "QuizML command" commands',
+        f"    _alternative 'commands:command:(({command_candidates}))' 'yaml files:file:_files -g \"*.(yaml|yml)\"'",
         "    return",
         "  fi",
         "  case $words[2] in",
@@ -73,11 +76,26 @@ def zsh():
     for command, opts in OPTIONS.items():
         specs = " ".join(f"'{opt}[{opt}]'" for opt in opts.split())
         if command == "docs":
-            specs += f" '*:topic:({_docs_topics()})'"
+            positional = "'*:topic:->topic'"
+        elif command in {"compile", "diff", "fmt"}:
+            positional = "'*:yaml file:_files -g \"*.(yaml|yml)\"'"
+        elif command == "clean":
+            positional = "'*:path:_files -g \"*.(yaml|yml)\" -/'"
+        else:
+            positional = "'*:file:_files'"
         lines.extend(
             [
                 f"    {command})",
-                f"      _arguments '*:file:_files' {specs}",
+                f"      _arguments -C {positional} {specs}",
+                *(
+                    [
+                        "      if [[ $state == topic ]]; then",
+                        "        _describe -V 'documentation topic' topics",
+                        "      fi",
+                    ]
+                    if command == "docs"
+                    else []
+                ),
                 "      ;;",
             ]
         )
