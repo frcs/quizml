@@ -10,13 +10,13 @@ from rich import print
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-import quizml.cli.filelocator as filelocator
 import quizml.markdown.markdown as md
 from quizml import renderer
 
 # Imported from refactored modules
 from quizml.cli.config import get_config, get_target_list
 from quizml.cli.errorhandler import err_console
+from quizml.cli.filelocator import FileLocator
 from quizml.cli.livereload import LiveReloadServer
 from quizml.cli.ui import (
     add_hyperlinks,
@@ -47,11 +47,16 @@ def compile_cmd_target(target):
     return True
 
 
-def compile_target(target, transcoder, extra_context=None):
+def compile_target(target, transcoder, extra_context=None, template_search_dirs=None):
     """compiles one target"""
 
     yaml_transcoded = transcoder.transcode_target(target)
-    rendered_doc = renderer.render(yaml_transcoded, target["template"], extra_context)
+    rendered_doc = renderer.render(
+        yaml_transcoded,
+        target["template"],
+        extra_context,
+        template_search_dirs=template_search_dirs,
+    )
 
     try:
         if isinstance(rendered_doc, bytes):
@@ -72,8 +77,9 @@ def compile(args, live_reload=None):
     config = get_config(args)
 
     # load Schema file
+    locator = FileLocator()
     try:
-        schema_path = filelocator.locate.path(config["schema_path"])
+        schema_path = locator.path(config["schema_path"])
     except FileNotFoundError as err:
         raise QuizMLConfigError(
             f"Schema file {config['schema_path']} not found; check the config file."
@@ -143,7 +149,9 @@ def compile(args, live_reload=None):
 
         # a template task that needs to be rendered
         elif "template" in target:
-            success = compile_target(target, transcoder, extra_context)
+            success = compile_target(
+                target, transcoder, extra_context, template_search_dirs=locator.dirlist
+            )
 
         success_list[target["name"]] = success
 

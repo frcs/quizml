@@ -14,17 +14,18 @@ class FileLocator:
     3. the install package templates dir
     """
 
-    def __init__(self):
+    def __init__(self, cwd=None):
         """
         sets up default directories to search
         """
         self.pkg_template_dir = os.path.join(os.path.dirname(__file__), "../templates")
         self.app_dir = platformdirs.user_config_dir(appname="quizml", appauthor="frcs")
         self.user_template_dir = os.path.join(self.app_dir, "templates")
+        self._cwd = os.path.abspath(cwd or os.getcwd())
 
     @property
     def cw_dir(self):
-        return os.getcwd()
+        return self._cwd
 
     @property
     def local_template_dir(self):
@@ -60,6 +61,3 @@ class FileLocator:
         raise FileNotFoundError(
             f"Could not find '{refpath}' in search paths: {search_dirs}"
         )
-
-
-locate = FileLocator()

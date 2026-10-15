@@ -29,23 +29,23 @@ def _get_jinja_env(search_dirs):
 def get_jinja_env(search_dirs=None):
     """Return a cached environment configured for the supplied template paths."""
     if search_dirs is None:
-        from quizml.cli.filelocator import locate
-
-        search_dirs = locate.dirlist
+        search_dirs = [pathlib.Path(__file__).parent / "templates"]
     return _get_jinja_env(tuple(str(pathlib.Path(path)) for path in search_dirs))
 
 
-def render_template(context, template_filename):
+def render_template(context, template_filename, search_dirs=None):
     if not template_filename:
         msg = "Template filename is missing, can't render jinja."
         raise Jinja2SyntaxError(msg)
 
     try:
         template_path = pathlib.Path(template_filename).resolve()
-        from quizml.cli.filelocator import locate
-
-        search_dirs = [template_path.parent, *locate.dirlist]
-        env = get_jinja_env(search_dirs)
+        template_search_dirs = [template_path.parent]
+        if search_dirs:
+            template_search_dirs.extend(search_dirs)
+        else:
+            template_search_dirs.append(pathlib.Path(__file__).parent / "templates")
+        env = get_jinja_env(template_search_dirs)
         template_name = template_path.name
         template_src, _, _ = env.loader.get_source(env, template_name)
         template = env.get_template(template_name)
@@ -80,7 +80,9 @@ def render_template(context, template_filename):
     return render_content
 
 
-def render(yaml_data, template_filename, extra_context=None):
+def render(
+    yaml_data, template_filename, extra_context=None, template_search_dirs=None
+):
     header = yaml_data["header"]
     paths = yaml_data.get("paths") or {
         "figure_dirs": header.get("_figures_path", [])
@@ -100,4 +102,4 @@ def render(yaml_data, template_filename, extra_context=None):
 
         return docx_renderer.render(context, template_filename)
 
-    return render_template(context, template_filename)
+    return render_template(context, template_filename, template_search_dirs)

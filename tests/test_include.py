@@ -488,10 +488,11 @@ title: Custom Exam
     assert len(rendered_q) == 1
 
     # Verify LaTeX graphicspath contains both directories
-    from quizml.cli.filelocator import locate
+    from quizml.cli.filelocator import FileLocator
     from quizml.renderer import render_template
 
-    template_path = locate.path("tcd-exam.tex.j2")
-    rendered_tex = render_template(doc, template_path)
+    locator = FileLocator()
+    template_path = locator.path("tcd-exam.tex.j2")
+    rendered_tex = render_template(doc, template_path, locator.dirlist)
     assert "{../banks/physics/}" in rendered_tex
     assert "{../banks/physics/custom_assets/}" in rendered_tex

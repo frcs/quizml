@@ -232,20 +232,22 @@ def _dispatch(args, parser):
     if args.command == "info":
         import json
 
-        import quizml.cli.filelocator
+        from quizml.cli.filelocator import FileLocator
+
+        locator = FileLocator()
 
         try:
-            config_file = quizml.cli.filelocator.locate.path("quizml.cfg")
+            config_file = locator.path("quizml.cfg")
         except FileNotFoundError:
             config_file = "not found"
         info = {
             "version": version("quizml"),
-            "cwd": quizml.cli.filelocator.locate.cw_dir,
-            "local_templates": quizml.cli.filelocator.locate.local_template_dir,
-            "user_config_dir": quizml.cli.filelocator.locate.app_dir,
-            "user_templates": quizml.cli.filelocator.locate.user_template_dir,
-            "package_templates": quizml.cli.filelocator.locate.pkg_template_dir,
-            "search_paths": quizml.cli.filelocator.locate.dirlist,
+            "cwd": locator.cw_dir,
+            "local_templates": locator.local_template_dir,
+            "user_config_dir": locator.app_dir,
+            "user_templates": locator.user_template_dir,
+            "package_templates": locator.pkg_template_dir,
+            "search_paths": locator.dirlist,
             "config_file": config_file,
         }
         sys.stdout.write(json.dumps(info, indent=4) + "\n")

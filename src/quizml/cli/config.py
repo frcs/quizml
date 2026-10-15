@@ -7,7 +7,7 @@ from string import Template
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
 
-import quizml.cli.filelocator as filelocator
+from quizml.cli.filelocator import FileLocator
 from quizml.exceptions import QuizMLConfigError
 
 
@@ -20,7 +20,7 @@ def get_config(args):
         config_file = os.path.realpath(os.path.expanduser(args.config))
     else:
         try:
-            config_file = filelocator.locate.path("quizml.cfg")
+            config_file = FileLocator().path("quizml.cfg")
         except FileNotFoundError as err:
             raise QuizMLConfigError("Could not find config file quizml.cfg") from err
 
@@ -130,6 +130,7 @@ def get_target_list(args, config, yaml_data):
     }
     filenames_to_resolve = ["template", "html_css", "html_pre", "latex_pre"]
     files_to_read_now = ["html_css", "html_pre", "latex_pre"]
+    locator = FileLocator()
 
     # if CLI provided specific list of required target names
     # we compile a list of all the required target names
@@ -227,7 +228,7 @@ def get_target_list(args, config, yaml_data):
         # resolves relative path for all files
         for key in filenames_to_resolve:
             if key in target:
-                target[key] = filelocator.locate.path(t[key])
+                target[key] = locator.path(t[key])
                 logging.info(f"'{target['descr']}:{key}' expands as '{target[key]}'")
 
         # replaces values with actual file content for some keys
