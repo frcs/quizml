@@ -124,11 +124,12 @@ def test_handle_docs_tty_no_pager(capsys):
     assert "targets" in captured.out.lower()
 
 
-def test_page_content_invokes_pager():
+def test_page_content_invokes_pager(monkeypatch):
     from unittest.mock import MagicMock
 
     from rich.markdown import Markdown
 
+    monkeypatch.setenv("PAGER", "less")
     mock_proc = MagicMock()
     with patch("subprocess.Popen", return_value=mock_proc) as mock_popen:
         page_content(Markdown("# Test Header"))
