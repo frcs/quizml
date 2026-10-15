@@ -1,4 +1,3 @@
-import base64
 import html
 import logging
 import re
@@ -425,35 +424,19 @@ class QuizMLYamlHTMLRenderer(HTMLRenderer):
 
         width_attr_str = token.width.strip()
 
-        width_attr_pattern = r"(\d+\.?\d+)\s*([a-zA-Z]+)"
-        match = re.match(width_attr_pattern, width_attr_str)
-        if match:
-            width_attr_val = match.group(1)
-            width_attr_ext = match.group(2)
+        linewidth_match = re.match(r"^(\d*\.?\d*)\s*\\linewidth$", width_attr_str)
+        if linewidth_match:
+            factor = float(linewidth_match.group(1)) if linewidth_match.group(1) else 1.0
+            css_width = f"{factor * 100:.4g}%"
+        elif re.match(r"^\d*\.?\d+\s*(?:%|px|cm|mm|in|pt|pc|em|rem|vw|vh)$", width_attr_str):
+            css_width = width_attr_str
+        elif re.match(r"^\d+$", width_attr_str):
+            css_width = f"{width_attr_str}px"
         else:
-            raise MarkdownAttributeError("Sorry, bad width attr")
+            raise MarkdownAttributeError(f"Sorry, bad width attr: '{width_attr_str}'")
 
-        if width_attr_ext == "em":
-            width_attr = float(width_attr_val) * 16
-        else:
-            width_attr = float(width_attr_val)
-
-        height_attr = width_attr / w * h
-
-        template = (
-            f'<svg width="{width_attr}" height="{height_attr}" '
-            f'xmlns="http://www.w3.org/2000/svg">'
-            f'<image href="{data64_img}" x="0" y="0" '
-            f'width="{width_attr}" height="{height_attr}" /></svg>'
-        )
-
-        data64_svg = "data:image/svg+xml;base64," + base64.b64encode(
-            str.encode(template)
-        ).decode("ascii")
-
-        template = f'<img src="{data64_svg}" width={width_attr} height="{height_attr}">'
-
-        return template
+        alt_text = html.escape(token.title) if token.title else ""
+        return f'<img src="{data64_img}" alt="{alt_text}" style="width:{css_width};" >'
 
 
 def get_html(doc, opts):

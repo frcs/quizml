@@ -109,3 +109,49 @@ def test_build_eq_dict_png_latex_error(MockLatexRunner, mock_get_from_cache):
     # 4. Assert that gs was not called
     mock_latex_runner_instance.run_gs_png.assert_not_called()
 
+def test_render_image_with_width():
+    from quizml.exceptions import MarkdownAttributeError
+    from quizml.markdown.extensions import ImageWithWidth
+    from quizml.markdown.html_renderer import QuizMLYamlHTMLRenderer
+
+    renderer = QuizMLYamlHTMLRenderer(eq_dict={})
+
+    def make_token(width, title="Diagram", src="plot.png"):
+        mock_match = MagicMock()
+        mock_match.group.side_effect = lambda idx: {1: title, 2: src, 3: width}[idx]
+        return ImageWithWidth(mock_match)
+
+    with patch(
+        "quizml.markdown.html_renderer.embed_base64",
+        return_value=[200, 100, "data:image/png;base64,abc"],
+    ):
+        # 1. Centimeters (single digit and double digit)
+        res_5cm = renderer.render_image_with_width(make_token("5cm"))
+        assert 'style="width:5cm;"' in res_5cm
+        assert 'src="data:image/png;base64,abc"' in res_5cm
+        assert 'alt="Diagram"' in res_5cm
+
+        res_10cm = renderer.render_image_with_width(make_token("10cm"))
+        assert 'style="width:10cm;"' in res_10cm
+
+        # 2. Percentage
+        res_pct = renderer.render_image_with_width(make_token("50%"))
+        assert 'style="width:50%;"' in res_pct
+
+        # 3. LaTeX \linewidth
+        res_lw = renderer.render_image_with_width(make_token(r"0.5\linewidth"))
+        assert 'style="width:50%;"' in res_lw
+
+        res_full_lw = renderer.render_image_with_width(make_token(r"\linewidth"))
+        assert 'style="width:100%;"' in res_full_lw
+
+        # 4. Pure digits (pixels)
+        res_px = renderer.render_image_with_width(make_token("300"))
+        assert 'style="width:300px;"' in res_px
+
+        # 5. Invalid width raises MarkdownAttributeError
+        with pytest.raises(MarkdownAttributeError, match="Sorry, bad width attr"):
+            renderer.render_image_with_width(make_token("auto"))
+
+
+
