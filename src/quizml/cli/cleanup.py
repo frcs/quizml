@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from rich import print
+from quizml.cli.errorhandler import err_console, print_error
 
 # Suffixes relative to the YAML base stem (e.g. "exam" -> "exam" + suffix)
 KNOWN_TARGET_SUFFIXES = {
@@ -55,10 +55,10 @@ def cleanup_yaml_files(directory_path=".", dry_run=False, target_stems=None):
     """
     dir_path = Path(directory_path)
     if not dir_path.is_dir():
-        print(f"Directory not found: {directory_path}")
-        return 0
+        print_error(f"Directory not found: {directory_path}")
+        return None
 
-    print(f"Scanning directory: {dir_path.resolve()}")
+    err_console.print(f"Scanning directory: {dir_path.resolve()}")
 
     # 1. Identify base names of .yaml files to clean up
     if target_stems:
@@ -67,7 +67,7 @@ def cleanup_yaml_files(directory_path=".", dry_run=False, target_stems=None):
         yaml_stems = {
             p.stem for p in dir_path.iterdir() if p.is_file() and p.suffix in (".yaml", ".yml")
         }
-    print(f"Found {len(yaml_stems)} unique YAML stems to check.")
+    err_console.print(f"Found {len(yaml_stems)} unique YAML stems to check.")
 
     # 2. Build set of allowed filenames to clean up
     allowed_to_delete = set()
@@ -79,16 +79,16 @@ def cleanup_yaml_files(directory_path=".", dry_run=False, target_stems=None):
     for path in dir_path.iterdir():
         if path.is_file() and path.name in allowed_to_delete:
             if dry_run:
-                print(f"-> [Dry-run] Would delete: {path.name}")
+                err_console.print(f"-> [Dry-run] Would delete: {path.name}")
             else:
-                print(f"-> Deleting file: {path.name}")
+                err_console.print(f"-> Deleting file: {path.name}")
                 try:
                     path.unlink()
                     deleted_files_count += 1
                 except OSError as e:
-                    print(f"Error deleting file {path.name}: {e}")
+                    err_console.print(f"Error deleting file {path.name}: {e}")
 
-    print("-" * 30)
+    err_console.print("-" * 30)
     action = "Would delete" if dry_run else "Total files deleted"
-    print(f"Cleanup complete. {action}: {deleted_files_count}")
+    err_console.print(f"Cleanup complete. {action}: {deleted_files_count}")
     return deleted_files_count

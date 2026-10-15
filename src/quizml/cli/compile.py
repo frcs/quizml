@@ -16,7 +16,7 @@ from quizml import renderer
 
 # Imported from refactored modules
 from quizml.cli.config import get_config, get_target_list
-from quizml.cli.errorhandler import print_error
+from quizml.cli.errorhandler import err_console, print_error
 from quizml.cli.livereload import (
     get_livereload_port,
     start_livereload_server,
@@ -87,8 +87,8 @@ def compile_target(target, transcoder, extra_context=None):
         print_error(str(err), title="QuizML Error")
         success = False
     except KeyboardInterrupt:
-        print("[bold red] KeyboardInterrupt [/bold red]")
-        success = False
+        err_console.print("[bold red] KeyboardInterrupt [/bold red]")
+        raise
 
     return success
 
@@ -101,7 +101,7 @@ def compile(args):
         config = get_config(args)
     except QuizMLConfigError as err:
         print_error(str(err), title="QuizML Config Error")
-        return
+        return False
 
     # load Schema file
     try:
@@ -113,7 +113,7 @@ def compile(args):
             + " not found, check the config file.",
             title="Schema Error",
         )
-        return
+        return False
 
     # load QuizMLYaml file
     try:
@@ -122,10 +122,9 @@ def compile(args):
         )
     except (QuizMLYamlSyntaxError, FileNotFoundError) as err:
         print_error(str(err), title="QuizMLYaml Syntax Error")
-        return
+        return False
 
-    if logging.DEBUG:
-        logging.debug(yaml_data)
+    logging.debug(yaml_data)
 
     # load all markdown entries into a list
     # and build dictionaries of their HTML and LaTeX translations
@@ -134,7 +133,7 @@ def compile(args):
         transcoder = md.MarkdownTranscoder(yaml_data, schema, base_dir=base_dir)
     except (LatexEqError, MarkdownError, FileNotFoundError) as err:
         print_error(str(err), title="Error")
-        return
+        return False
 
     # diplay stats about the questions
     if not args.quiet:
@@ -145,7 +144,7 @@ def compile(args):
         target_list = get_target_list(args, config, yaml_data)
     except FileNotFoundError as err:
         print_error(str(err), title="Template NotFoundError")
-        return
+        return False
 
     # Prepare LiveReload if watching
     extra_context = {}
@@ -207,6 +206,7 @@ def compile(args):
         )
 
         if not success:
+            all_success = False
             break
 
     # Update timestamp for LiveReload clients
@@ -218,12 +218,14 @@ def compile(args):
     else:
         print_table_ouputs(targets_output)
 
+    return all_success
+
 
 def compile_on_change(args):
     """compiles the targets if input QuizMLYaml file has changed on disk"""
 
     waitingtxt = "\n...waiting for a file change to re-compile the document...\n "
-    print(waitingtxt)
+    err_console.print(waitingtxt)
 
     full_yaml_path = os.path.abspath(args.yaml_filename)
     rebuild_event = threading.Event()

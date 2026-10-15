@@ -3,9 +3,9 @@ import os
 
 from rich import print
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table, box
 
+from quizml.cli.errorhandler import print_error
 from quizml.exceptions import QuizMLYamlSyntaxError
 from quizml.loader import load
 
@@ -80,21 +80,18 @@ def diff(args):
     filedata = {}
     for f in files:
         if not os.path.exists(f):
-            print(Panel("File " + f + " not found", title="Error", border_style="red"))
-            return
+            print_error("File " + f + " not found", title="Error")
+            return False
         try:
             # we need to turn off schema for speed this is OK because
             # everything will be considered as Strings anyway
             filedata[f], _ = load(f, validate=False)
         except QuizMLYamlSyntaxError as err:
-            print(
-                Panel(
-                    str(err),
-                    title=f"QuizMLYaml Syntax Error in file {f}",
-                    border_style="red",
-                )
+            print_error(
+                str(err),
+                title=f"QuizMLYaml Syntax Error in file {f}",
             )
-            return
+            return False
 
     # checking for duplicate questions
     ref_yaml = filedata[files[0]]
@@ -132,6 +129,7 @@ def diff(args):
                     qstats[i].setdefault("dups", []).append(f)
 
     print_dups_table(qstats)
+    return True
 
 
 def print_dups_table(qstats):

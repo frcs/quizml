@@ -9,7 +9,7 @@ from rich.table import Table, box
 import quizml.cli.filelocator as filelocator
 from quizml import renderer
 from quizml.cli.config import get_config
-from quizml.cli.errorhandler import print_error
+from quizml.cli.errorhandler import err_console, print_error
 from quizml.exceptions import Jinja2SyntaxError, QuizMLConfigError
 
 
@@ -81,7 +81,7 @@ def print_stats_table(quiz, config):
 
         # Padding arguments: (top, right, bottom, left)
         text_to_print = Padding(Markdown(rendered), (0, 0, 1, 4))
-        print(text_to_print)
+        err_console.print(text_to_print)
     except Jinja2SyntaxError as err:
         print_error(str(err), title="Jinja Template Error")
 
@@ -102,12 +102,12 @@ def print_table_ouputs(targets_output):
         elif row[2] == "":
             table.add_row(*row)
 
-    print(Panel(table, title="Target Ouputs", border_style="magenta"))
+    err_console.print(Panel(table, title="Target Ouputs", border_style="magenta"))
 
 
 def print_quiet_ouputs(targets_quiet_output):
     for row in targets_quiet_output:
         if row[1] == "[FAIL]":
-            print("[bold red]x " + row[0] + "[/bold red]")
+            err_console.print("[bold red]x " + row[0] + "[/bold red]")
         elif row[1] == "":
-            print("[bold green]o[/bold green] " + row[0])
+            err_console.print("[bold green]o[/bold green] " + row[0])

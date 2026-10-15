@@ -172,3 +172,43 @@ def test_info_command(capsys):
     
     for key in expected_keys:
         assert key in data
+
+
+def test_compile_failure_exit_code_and_stderr(tmp_path, capsys):
+    bad_yaml = tmp_path / "bad.yaml"
+    bad_yaml.write_text("- type: tf\n  question: test\n  answer: maybe\n")
+
+    with patch.object(sys, "argv", ["quizml", str(bad_yaml)]):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 1
+
+    captured = capsys.readouterr()
+    assert "Schema Error" in captured.err or "QuizML Error" in captured.err or len(captured.err) > 0
+    assert captured.out == ""
+
+
+def test_compile_missing_file_exit_code_and_stderr(capsys):
+    with patch.object(sys, "argv", ["quizml", "does_not_exist_98765.yaml"]):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 1
+
+    captured = capsys.readouterr()
+    assert "Error" in captured.err or len(captured.err) > 0
+    assert captured.out == ""
+
+
+def test_cleanup_missing_dir_exit_code():
+    with patch.object(sys, "argv", ["quizml", "-C", "does_not_exist_dir_98765"]):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 1
+
+
+def test_diff_missing_file_exit_code():
+    with patch.object(sys, "argv", ["quizml", "--diff", "f1_missing.yaml", "f2_missing.yaml"]):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 1
+

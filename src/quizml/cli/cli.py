@@ -6,12 +6,12 @@ import sys
 from importlib.metadata import version
 
 import platformdirs
-from rich import print
 from rich.logging import RichHandler
 from rich.traceback import install
 from rich_argparse import RawDescriptionRichHelpFormatter, RichHelpFormatter
 
 from ..exceptions import QuizMLError
+from .errorhandler import err_console
 
 install(show_locals=False)
 # from rich import print
@@ -231,18 +231,24 @@ def main():
             if args.yaml_filename:
                 target_path = Path(args.yaml_filename)
                 if target_path.is_dir():
-                    quizml.cli.cleanup.cleanup_yaml_files(
+                    res = quizml.cli.cleanup.cleanup_yaml_files(
+                        directory_path=str(target_path)
+                    )
+                elif not target_path.exists() and not target_path.suffix:
+                    res = quizml.cli.cleanup.cleanup_yaml_files(
                         directory_path=str(target_path)
                     )
                 else:
                     dir_path = (
                         target_path.parent if target_path.parent.name else Path(".")
                     )
-                    quizml.cli.cleanup.cleanup_yaml_files(
+                    res = quizml.cli.cleanup.cleanup_yaml_files(
                         directory_path=str(dir_path), target_stems={target_path.stem}
                     )
             else:
-                quizml.cli.cleanup.cleanup_yaml_files()
+                res = quizml.cli.cleanup.cleanup_yaml_files()
+            if res is None:
+                sys.exit(1)
             return
 
         if args.init_user:
@@ -263,7 +269,9 @@ def main():
         if args.diff:
             import quizml.cli.diff
 
-            quizml.cli.diff.diff(args)
+            success = quizml.cli.diff.diff(args)
+            if not success:
+                sys.exit(1)
             return
 
         if args.format:
@@ -281,10 +289,12 @@ def main():
             quizml.cli.compile.compile(args)
             quizml.cli.compile.compile_on_change(args)
         else:
-            quizml.cli.compile.compile(args)
+            success = quizml.cli.compile.compile(args)
+            if not success:
+                sys.exit(1)
 
     except QuizMLError as e:
-        print(f"[bold red]Error:[/bold red] {e}")
+        err_console.print(f"[bold red]Error:[/bold red] {e}")
         sys.exit(1)
 
 
