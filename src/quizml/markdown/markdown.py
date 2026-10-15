@@ -4,6 +4,8 @@ Markdown classes requried by mistletoe for parsing
 """
 
 import os
+import threading
+from contextlib import contextmanager
 
 import mistletoe as mt
 
@@ -37,16 +39,46 @@ from .latex_renderer import get_latex_dict
 """
 
 
+_MISTLETOE_TOKEN_LOCK = threading.RLock()
+
+
 def _setup_mistletoe_tokens():
-    """Ensure mistletoe has required block and span tokens without duplicates."""
-    if mte.MathInline not in mt.span_token._token_types:
-        mt.block_token.remove_token(mt.block_token.Paragraph)
-        mt.block_token.remove_token(mt.block_token.BlockCode)
-        mt.block_token.add_token(mte.MathDisplay)
-        mt.block_token.add_token(mt.block_token.HTMLBlock)
-        mt.block_token.add_token(mt.block_token.Paragraph, 10)
-        mt.span_token.add_token(mte.MathInline)
-        mt.span_token.add_token(mte.ImageWithWidth)
+    """Configure mistletoe's shared registries for QuizML parsing."""
+    for token_type in (
+        mt.block_token.Paragraph,
+        mt.block_token.BlockCode,
+        mte.MathDisplay,
+        mt.block_token.HTMLBlock,
+    ):
+        while token_type in mt.block_token._token_types:
+            mt.block_token.remove_token(token_type)
+    mt.block_token.add_token(mte.MathDisplay)
+    mt.block_token.add_token(mt.block_token.HTMLBlock)
+    mt.block_token.add_token(mt.block_token.Paragraph, 10)
+
+    for token_type in (mte.MathInline, mte.ImageWithWidth):
+        while token_type in mt.span_token._token_types:
+            mt.span_token.remove_token(token_type)
+        mt.span_token.add_token(token_type)
+
+
+@contextmanager
+def _quizml_token_scope():
+    """Temporarily register QuizML tokens while mistletoe parses documents."""
+    with _MISTLETOE_TOKEN_LOCK:
+        block_tokens = list(mt.block_token._token_types)
+        span_tokens = list(mt.span_token._token_types)
+        try:
+            _setup_mistletoe_tokens()
+            yield
+        finally:
+            mt.block_token._token_types[:] = block_tokens
+            mt.span_token._token_types[:] = span_tokens
+
+
+def _parse_markdown_documents(markdown_texts):
+    with _quizml_token_scope():
+        return {text: mt.Document(text) for text in markdown_texts}
 
 
 def _normalize_markdown_options(options):
@@ -131,11 +163,9 @@ class MarkdownTranscoder:
             self.ast_dict = {}
             return
 
-        _setup_mistletoe_tokens()
-
         # Parse each unique markdown string into its own isolated AST Document
         unique_md = list(dict.fromkeys(self.md_list))
-        self.ast_dict = {txt: mt.Document(txt) for txt in unique_md}
+        self.ast_dict = _parse_markdown_documents(unique_md)
 
     def html_dict(self, opts=None):
         """Returns a HTML dictionary of all MD entries in the YAML data

@@ -210,18 +210,22 @@ def test_math_inline_tokenizer():
     import mistletoe as mt
 
     from quizml.markdown import extensions as mte
-    from quizml.markdown.markdown import _setup_mistletoe_tokens
+    from quizml.markdown.markdown import _parse_markdown_documents
 
-    _setup_mistletoe_tokens()
+    original_block_tokens = list(mt.block_token._token_types)
+    original_span_tokens = list(mt.span_token._token_types)
 
     def get_inline_math(text):
-        doc = mt.Document(text)
+        doc = _parse_markdown_documents([text])[text]
         p = doc.children[0]
         return [t.content for t in p.children if isinstance(t, mte.MathInline)]
 
     # 1. Non-greedy \(...\) does not merge equations
     tokens = get_inline_math(r"Let \(a\) and \(b\) be reals.")
     assert tokens == [r"\(a\)", r"\(b\)"]
+
+    assert mt.block_token._token_types == original_block_tokens
+    assert mt.span_token._token_types == original_span_tokens
 
     # 2. Currency with digits does not trigger math
     assert get_inline_math("It costs $5 and $10 today.") == []
