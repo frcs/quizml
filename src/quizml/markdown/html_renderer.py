@@ -175,7 +175,18 @@ def build_eq_dict_PNG(eq_list, opts):
             pdf_filename, depthratio = latex_runner.run_pdflatex(latex_content)
             png_files = latex_runner.run_gs_png(pdf_filename)
 
-            for i, (eq, png_file) in enumerate(zip(to_compile, png_files)):
+            if len(png_files) != len(to_compile):
+                raise LatexCompilationError(
+                    f"Mismatch between number of equations and compiled PNG images.\n"
+                    f"Expected {len(to_compile)}, got {len(png_files)}."
+                )
+            if len(depthratio) != len(to_compile):
+                raise LatexCompilationError(
+                    f"Mismatch between number of equations and depth ratio entries.\n"
+                    f"Expected {len(to_compile)}, got {len(depthratio)}."
+                )
+
+            for i, (eq, png_file) in enumerate(zip(to_compile, png_files, strict=True)):
                 w, h, data64 = embed_base64(png_file)
                 d = depthratio[i]
                 d_ = round(d * w * 0.5, 2)
@@ -282,7 +293,13 @@ def build_eq_dict_SVG(eq_list, opts):
             dvi_path = latex_runner.run_latex_dvi(latex_content)
             svg_files = latex_runner.run_dvisvgm_svg(dvi_path)
 
-            for eq, svg_file in zip(to_compile, svg_files):
+            if len(svg_files) != len(to_compile):
+                raise LatexCompilationError(
+                    f"Mismatch between number of equations and compiled SVG images.\n"
+                    f"Expected {len(to_compile)}, got {len(svg_files)}."
+                )
+
+            for eq, svg_file in zip(to_compile, svg_files, strict=True):
                 _, _, data64 = embed_base64(svg_file)
                 alt_text = escape_LaTeX(eq.content)
                 style = "vertical-align:middle;"

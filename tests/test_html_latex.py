@@ -109,6 +109,35 @@ def test_build_eq_dict_png_latex_error(MockLatexRunner, mock_get_from_cache):
     # 4. Assert that gs was not called
     mock_latex_runner_instance.run_gs_png.assert_not_called()
 
+
+@patch("quizml.markdown.html_renderer.get_from_cache", return_value=None)
+@patch("quizml.markdown.html_renderer.LatexRunner")
+def test_build_eq_dict_png_count_mismatch(MockLatexRunner, mock_cache):
+    mock_latex = MockLatexRunner.return_value.__enter__.return_value
+    mock_latex.run_pdflatex.return_value = (Path("/tmp/fake.pdf"), [0.5])
+    # 2 equations expected, but only 1 PNG returned
+    mock_latex.run_gs_png.return_value = [Path("/tmp/img1.png")]
+
+    eq_list = [create_mock_inline(r"$x$"), create_mock_inline(r"$y$")]
+    with pytest.raises(LatexCompilationError, match="Mismatch between number of equations and compiled PNG"):
+        build_eq_dict_PNG(eq_list, {})
+
+
+@patch("quizml.markdown.html_renderer.get_from_cache", return_value=None)
+@patch("quizml.markdown.html_renderer.LatexRunner")
+def test_build_eq_dict_svg_count_mismatch(MockLatexRunner, mock_cache):
+    from quizml.markdown.html_renderer import build_eq_dict_SVG
+
+    mock_latex = MockLatexRunner.return_value.__enter__.return_value
+    mock_latex.run_latex_dvi.return_value = Path("/tmp/fake.dvi")
+    # 2 equations expected, but only 1 SVG returned
+    mock_latex.run_dvisvgm_svg.return_value = [Path("/tmp/img1.svg")]
+
+    eq_list = [create_mock_inline(r"$x$"), create_mock_inline(r"$y$")]
+    with pytest.raises(LatexCompilationError, match="Mismatch between number of equations and compiled SVG"):
+        build_eq_dict_SVG(eq_list, {})
+
+
 def test_render_image_with_width():
     from quizml.exceptions import MarkdownAttributeError
     from quizml.markdown.extensions import ImageWithWidth
@@ -152,6 +181,5 @@ def test_render_image_with_width():
         # 5. Invalid width raises MarkdownAttributeError
         with pytest.raises(MarkdownAttributeError, match="Sorry, bad width attr"):
             renderer.render_image_with_width(make_token("auto"))
-
 
 
