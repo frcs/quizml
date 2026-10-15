@@ -37,3 +37,27 @@ def test_missing_file():
     with pytest.raises(QuizMLYamlSyntaxError) as excinfo:
         load("non_existent_file.yaml")
     assert "Yaml file not found" in str(excinfo.value)
+
+
+@pytest.mark.parametrize(
+    "question, expected_message",
+    [
+        ("- type: mcq\n  question: typo\n", "'mcq' is not one of"),
+        (
+            "- type: tf\n  question: typo\n  answer: true\n  anwser: true\n",
+            "Additional properties are not allowed",
+        ),
+        (
+            "- type: mc\n  question: typo\n  choices:\n    - x: yes\n      y: typo\n",
+            "Additional properties are not allowed",
+        ),
+    ],
+)
+def test_default_schema_rejects_unknown_types_and_fields(
+    tmp_path, question, expected_message
+):
+    quiz_file = tmp_path / "invalid.yaml"
+    quiz_file.write_text(question, encoding="utf-8")
+
+    with pytest.raises(QuizMLYamlSyntaxError, match=expected_message):
+        load(str(quiz_file))

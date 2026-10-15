@@ -14,7 +14,19 @@
     "properties": {
       "type": {
         "type": "string",
-        "description": "The type of the question or part."
+        "description": "The type of the question or part.",
+        "enum": [
+          "mc",
+          "ma",
+          "tf",
+          "essay",
+          "matching",
+          "ordering",
+          "fill",
+          "mfill",
+          "num",
+          "part"
+        ]
       }
     },
     "required": ["type"],
@@ -37,11 +49,13 @@
                 "properties": {
                   "x": { "$ref": "#/definitions/markdown" },
                   "o": { "$ref": "#/definitions/markdown" }
-                }
+                },
+                "additionalProperties": false
               }
             }
           },
-          "required": ["question", "choices"]
+          "required": ["question", "choices"],
+          "additionalProperties": false
         }
       },
       {
@@ -62,11 +76,13 @@
                 "properties": {
                   "x": { "$ref": "#/definitions/markdown" },
                   "o": { "$ref": "#/definitions/markdown" }
-                }
+                },
+                "additionalProperties": false
               }
             }
           },
-          "required": ["question", "choices"]
+          "required": ["question", "choices"],
+          "additionalProperties": false
         }
       },
       {
@@ -82,7 +98,8 @@
             "figure-split": { "type": "number" },
             "answer": { "type": "boolean" }
           },
-          "required": ["question", "answer"]
+          "required": ["question", "answer"],
+          "additionalProperties": false
         }
       },
       {
@@ -95,7 +112,8 @@
             "question": { "$ref": "#/definitions/markdown" },
             "answer": { "type": "string" }
           },
-          "required": ["question"]
+          "required": ["question"],
+          "additionalProperties": false
         }
       },
       {
@@ -116,11 +134,13 @@
                   "A": { "$ref": "#/definitions/markdown" },
                   "B": { "$ref": "#/definitions/markdown" }
                 },
+                "additionalProperties": false,
                 "required": ["A", "B"]
               }
             }
           },
-          "required": ["question", "choices"]
+          "required": ["question", "choices"],
+          "additionalProperties": false
         }
       },
       {
@@ -139,7 +159,8 @@
               "items": { "$ref": "#/definitions/markdown" }
             }
           },
-          "required": ["question", "choices"]
+          "required": ["question", "choices"],
+          "additionalProperties": false
         }
       },
       {
@@ -157,7 +178,8 @@
               "items": { "type": "string" }
             }
           },
-          "required": ["question", "answers"]
+          "required": ["question", "answers"],
+          "additionalProperties": false
         }
       },
       {
@@ -178,7 +200,8 @@
               }
             }
           },
-          "required": ["question", "answers"]
+          "required": ["question", "answers"],
+          "additionalProperties": false
         }
       },
       {
@@ -194,7 +217,8 @@
             "answer": { "type": ["number", "string"] },
             "tolerance": { "type": "number" }
           },
-          "required": ["question", "answer"]
+          "required": ["question", "answer"],
+          "additionalProperties": false
         }
       },
       {
@@ -205,7 +229,8 @@
             "title": {  "$ref": "#/definitions/markdown" },
             "marks": { "type": "number" },
             "question": { "$ref": "#/definitions/markdown" }
-          }
+          },
+          "additionalProperties": false
         }
       }
     ]

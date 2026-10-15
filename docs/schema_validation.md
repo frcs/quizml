@@ -95,6 +95,12 @@ Questions in included files are validated where they are defined. A validation
 error therefore names the included file and its source line, including when the
 include uses sampling.
 
+The bundled schema accepts only its declared question types and fields. This
+catches misspellings such as `mcq` or `anwser`, but it also means custom fields
+must be declared in a custom schema. Start from the bundled `schema.json`, add
+the field to the matching question type's `properties`; that properties list is
+the allowlist enforced by `additionalProperties: false`.
+
 For example, if you wanted to create a new question type `geolocation` that
 requires numeric latitude and longitude, you could add this to your custom
 schema's `allOf` array:

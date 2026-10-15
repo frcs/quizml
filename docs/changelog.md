@@ -8,6 +8,7 @@
 *   Split Markdown output format, equation backend, and Blackboard HTML post-processing into separate target settings.
 *   Enabled Jinja template inheritance, includes, imports, and strict undefined-variable checks.
 *   Preserved included-file validation locations, centralized CLI error reporting, and wrapped external tool failures with concise diagnostics.
+*   Made the bundled question schema reject unknown question types and undeclared fields.
 
 <a name="0.12.0"></a>
 
