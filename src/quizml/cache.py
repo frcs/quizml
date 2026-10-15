@@ -5,9 +5,9 @@ import logging
 import os
 from pathlib import Path
 
-import appdirs
+import platformdirs
 
-CACHE_DIR = appdirs.user_cache_dir("quizml")
+CACHE_DIR = platformdirs.user_cache_dir("quizml")
 
 
 @functools.lru_cache(maxsize=1)

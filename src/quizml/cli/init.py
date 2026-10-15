@@ -1,7 +1,7 @@
 import os
 import shutil
 
-import appdirs
+import platformdirs
 
 
 def _copy_templates(dest_dir):
@@ -23,6 +23,6 @@ def init_local():
 
 
 def init_user():
-    app_dir = appdirs.user_config_dir(appname="quizml", appauthor="frcs")
+    app_dir = platformdirs.user_config_dir(appname="quizml", appauthor="frcs")
     user_template_dir = os.path.join(app_dir, "templates")
     _copy_templates(user_template_dir)

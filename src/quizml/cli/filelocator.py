@@ -1,6 +1,6 @@
 import os
 
-import appdirs
+import platformdirs
 
 
 class FileLocator:
@@ -17,7 +17,7 @@ class FileLocator:
         sets up default directories to search
         """
         self.pkg_template_dir = os.path.join(os.path.dirname(__file__), "../templates")
-        self.app_dir = appdirs.user_config_dir(appname="quizml", appauthor="frcs")
+        self.app_dir = platformdirs.user_config_dir(appname="quizml", appauthor="frcs")
         self.user_template_dir = os.path.join(self.app_dir, "templates")
 
     @property

@@ -5,7 +5,7 @@ import logging
 import sys
 from importlib.metadata import version
 
-import appdirs
+import platformdirs
 from rich import print
 from rich.logging import RichHandler
 from rich.traceback import install
@@ -60,7 +60,7 @@ def main():
         action="store_true",
     )
 
-    default_config_dir = appdirs.user_config_dir(appname="quizml", appauthor="frcs")
+    default_config_dir = platformdirs.user_config_dir(appname="quizml", appauthor="frcs")
 
     parser.add_argument(
         "-t",
