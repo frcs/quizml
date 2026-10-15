@@ -9,8 +9,8 @@ from rich.table import Table, box
 import quizml.cli.filelocator as filelocator
 from quizml import renderer
 from quizml.cli.config import get_config
-from quizml.cli.errorhandler import err_console, print_error
-from quizml.exceptions import Jinja2SyntaxError, QuizMLConfigError
+from quizml.cli.errorhandler import err_console
+from quizml.exceptions import QuizMLConfigError
 
 
 class CustomTableElement(TableElement):
@@ -44,11 +44,7 @@ def add_hyperlinks(descr_str, filename):
 
 
 def print_target_list(args):
-    try:
-        config = get_config(args)
-    except QuizMLConfigError as err:
-        print_error(str(err), title="QuizML Config Error")
-        return False
+    config = get_config(args)
 
     table = Table(
         box=box.SIMPLE, collapse_padding=True, show_footer=False, show_header=False
@@ -69,22 +65,17 @@ def print_stats_table(quiz, config):
     prints a table with information about each question, using a user-defined jinja template.
     """
 
+    template_name = config.get("stats_template", "stats.txt.j2")
     try:
-        template_name = config.get("stats_template", "stats.txt.j2")
         template_path = filelocator.locate.path(template_name)
-    except FileNotFoundError:
-        print_error(f"Stats template '{template_name}' not found", title="Error")
-        return
+    except FileNotFoundError as err:
+        raise QuizMLConfigError(f"Stats template '{template_name}' not found") from err
 
-    try:
-        #        rendered = renderer.render_template({'quiz': quiz}, template_path)
-        rendered = renderer.render_template(quiz, template_path)
+    rendered = renderer.render_template(quiz, template_path)
 
-        # Padding arguments: (top, right, bottom, left)
-        text_to_print = Padding(Markdown(rendered), (0, 0, 1, 4))
-        err_console.print(text_to_print)
-    except Jinja2SyntaxError as err:
-        print_error(str(err), title="Jinja Template Error")
+    # Padding arguments: (top, right, bottom, left)
+    text_to_print = Padding(Markdown(rendered), (0, 0, 1, 4))
+    err_console.print(text_to_print)
 
 
 def print_table_ouputs(targets_output):

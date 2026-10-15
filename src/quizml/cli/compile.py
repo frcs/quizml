@@ -16,7 +16,7 @@ from quizml import renderer
 
 # Imported from refactored modules
 from quizml.cli.config import get_config, get_target_list
-from quizml.cli.errorhandler import err_console, print_error
+from quizml.cli.errorhandler import err_console
 from quizml.cli.livereload import (
     get_livereload_port,
     start_livereload_server,
@@ -29,13 +29,10 @@ from quizml.cli.ui import (
     print_table_ouputs,
 )
 from quizml.exceptions import (
-    Jinja2SyntaxError,
-    LatexEqError,
-    MarkdownError,
+    QuizMLBuildError,
     QuizMLConfigError,
-    QuizMLError,
 )
-from quizml.loader import QuizMLYamlSyntaxError, load
+from quizml.loader import load
 
 
 def compile_cmd_target(target):
@@ -43,97 +40,58 @@ def compile_cmd_target(target):
     command = shlex.split(target["build_cmd"])
 
     try:
-        subprocess.check_output(command)
-        return True
-
-    except subprocess.CalledProcessError as e:
-        print_error(e.output.decode(), title="Failed to build command")
-
-        return False
+        subprocess.run(command, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as err:
+        details = err.stderr or err.stdout or str(err)
+        raise QuizMLBuildError(
+            f"Build command failed ({err.returncode}): {details.strip()}"
+        ) from err
+    except FileNotFoundError as err:
+        raise QuizMLBuildError(f"Build command not found: {command[0]}") from err
+    return True
 
 
 def compile_target(target, transcoder, extra_context=None):
     """compiles one target"""
 
-    try:
-        yaml_transcoded = transcoder.transcode_target(target)
-        rendered_doc = renderer.render(
-            yaml_transcoded, target["template"], extra_context
-        )
+    yaml_transcoded = transcoder.transcode_target(target)
+    rendered_doc = renderer.render(yaml_transcoded, target["template"], extra_context)
 
+    try:
         if isinstance(rendered_doc, bytes):
             pathlib.Path(target["out"]).write_bytes(rendered_doc)
         else:
             pathlib.Path(target["out"]).write_text(rendered_doc, encoding="utf-8")
-
-        success = True
-
-    except LatexEqError as err:
-        print_error(str(err), title="Latex Error")
-        success = False
-    except MarkdownError as err:
-        print_error(str(err), title="Markdown Error")
-        success = False
-    except FileNotFoundError as err:
-        print_error(str(err), title="FileNotFoundError Error")
-        success = False
-    except Jinja2SyntaxError as err:
-        print_error(
-            f"\n did not generate target because of template errors ! \n {err}",
-            title="Jinja Template Error",
-        )
-        success = False
-    except QuizMLError as err:
-        print_error(str(err), title="QuizML Error")
-        success = False
-    except KeyboardInterrupt:
-        err_console.print("[bold red] KeyboardInterrupt [/bold red]")
-        raise
-
-    return success
+    except OSError as err:
+        raise QuizMLBuildError(
+            f"Could not write output {target['out']}: {err}"
+        ) from err
+    return True
 
 
 def compile(args):
     """compiles the targets of a yaml file"""
 
     # read config file
-    try:
-        config = get_config(args)
-    except QuizMLConfigError as err:
-        print_error(str(err), title="QuizML Config Error")
-        return False
+    config = get_config(args)
 
     # load Schema file
     try:
         schema_path = filelocator.locate.path(config["schema_path"])
-    except FileNotFoundError:
-        print_error(
-            "Schema file "
-            + config["schema_path"]
-            + " not found, check the config file.",
-            title="Schema Error",
-        )
-        return False
+    except FileNotFoundError as err:
+        raise QuizMLConfigError(
+            f"Schema file {config['schema_path']} not found; check the config file."
+        ) from err
 
     # load QuizMLYaml file
-    try:
-        yaml_data, schema = load(
-            args.yaml_filename, validate=True, schema_path=schema_path
-        )
-    except (QuizMLYamlSyntaxError, FileNotFoundError) as err:
-        print_error(str(err), title="QuizMLYaml Syntax Error")
-        return False
+    yaml_data, schema = load(args.yaml_filename, validate=True, schema_path=schema_path)
 
     logging.debug(yaml_data)
 
     # load all markdown entries into a list
     # and build dictionaries of their HTML and LaTeX translations
-    try:
-        base_dir = os.path.dirname(os.path.abspath(args.yaml_filename))
-        transcoder = md.MarkdownTranscoder(yaml_data, schema, base_dir=base_dir)
-    except (LatexEqError, MarkdownError, FileNotFoundError) as err:
-        print_error(str(err), title="Error")
-        return False
+    base_dir = os.path.dirname(os.path.abspath(args.yaml_filename))
+    transcoder = md.MarkdownTranscoder(yaml_data, schema, base_dir=base_dir)
 
     # diplay stats about the questions
     if not args.quiet:
@@ -143,8 +101,7 @@ def compile(args):
     try:
         target_list = get_target_list(args, config, yaml_data)
     except FileNotFoundError as err:
-        print_error(str(err), title="Template NotFoundError")
-        return False
+        raise QuizMLConfigError(str(err)) from err
 
     # Prepare LiveReload if watching
     extra_context = {}

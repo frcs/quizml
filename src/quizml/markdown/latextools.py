@@ -12,6 +12,16 @@ from ..exceptions import (
 )
 
 
+def _trim_tool_log(*outputs):
+    lines = [line for output in outputs if output for line in output.splitlines()]
+    error_index = next(
+        (i for i, line in enumerate(lines) if line.startswith("!")), None
+    )
+    if error_index is not None:
+        lines = lines[error_index:]
+    return "\n".join(lines[-40:])
+
+
 class LatexRunner:
     def __init__(self, working_dir_prefix="quizml_latex_"):
         self.temp_dir = Path(tempfile.mkdtemp(prefix=working_dir_prefix))
@@ -22,6 +32,23 @@ class LatexRunner:
             desc = desc or name
             raise error_cls(f"{desc} not found in PATH.")
 
+    @staticmethod
+    def _run_checked(command, tool_name, cwd):
+        try:
+            process = subprocess.run(
+                command, capture_output=True, text=True, cwd=cwd, check=False
+            )
+        except FileNotFoundError as err:
+            raise LatexNotFoundError(
+                f"{tool_name} was not found while starting it."
+            ) from err
+        if process.returncode:
+            details = _trim_tool_log(process.stdout, process.stderr)
+            raise LatexCompilationError(
+                f"{tool_name} failed with return code {process.returncode}\n{details}"
+            )
+        return process
+
     def run_pdflatex(self, latex_content: str):
         self._require_executable("pdflatex", LatexNotFoundError)
         latex_filename = self.temp_dir / "eq_list.tex"
@@ -29,19 +56,25 @@ class LatexRunner:
 
         latex_filename.write_text(latex_content, encoding="utf-8")
 
-        process = subprocess.Popen(
-            ["pdflatex", "-interaction=nonstopmode", str(latex_filename)],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
-            cwd=self.temp_dir,
-        )
+        try:
+            process = subprocess.Popen(
+                ["pdflatex", "-interaction=nonstopmode", str(latex_filename)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+                cwd=self.temp_dir,
+            )
+        except FileNotFoundError as err:
+            raise LatexNotFoundError(
+                "pdflatex was not found while starting it."
+            ) from err
 
-        stdout, _ = process.communicate()
+        stdout, stderr = process.communicate()
 
         if process.returncode != 0:
             raise LatexCompilationError(
-                f"pdflatex failed with return code {process.returncode}\n\n{stdout}"
+                "pdflatex failed with return code "
+                f"{process.returncode}\n\n{_trim_tool_log(stdout, stderr)}"
             )
 
         # Parse depth ratio from stdout
@@ -65,7 +98,7 @@ class LatexRunner:
         self._require_executable("gs", GhostscriptNotFoundError, "gs (Ghostscript)")
         output_template = self.temp_dir / f"{output_prefix}%05d.png"
 
-        subprocess.check_call(
+        self._run_checked(
             [
                 "gs",
                 "-dBATCH",
@@ -78,7 +111,8 @@ class LatexRunner:
                 f"-sOutputFile={output_template}",
                 str(pdf_path),
             ],
-            cwd=self.temp_dir,
+            "gs",
+            self.temp_dir,
         )
 
         # Return a list of generated PNG files
@@ -91,19 +125,23 @@ class LatexRunner:
 
         latex_filename.write_text(latex_content, encoding="utf-8")
 
-        process = subprocess.Popen(
-            ["latex", "-interaction=nonstopmode", str(latex_filename)],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
-            cwd=self.temp_dir,
-        )
+        try:
+            process = subprocess.Popen(
+                ["latex", "-interaction=nonstopmode", str(latex_filename)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+                cwd=self.temp_dir,
+            )
+        except FileNotFoundError as err:
+            raise LatexNotFoundError("latex was not found while starting it.") from err
 
-        stdout, _ = process.communicate()
+        stdout, stderr = process.communicate()
 
         if process.returncode != 0:
             raise LatexCompilationError(
-                f"latex failed with return code {process.returncode}\n\n{stdout}"
+                f"latex failed with return code {process.returncode}\n\n"
+                f"{_trim_tool_log(stdout, stderr)}"
             )
 
         err_msg = ""
@@ -123,7 +161,7 @@ class LatexRunner:
         self._require_executable("dvisvgm", DvisvgmNotFoundError)
         output_template = self.temp_dir / f"{output_prefix}-%p.svg"
 
-        subprocess.check_call(
+        self._run_checked(
             [
                 "dvisvgm",
                 "-n",
@@ -136,7 +174,8 @@ class LatexRunner:
                 f"-o{output_template}",
                 str(dvi_path),
             ],
-            cwd=self.temp_dir,
+            "dvisvgm",
+            self.temp_dir,
         )
 
         return sorted(self.temp_dir.glob(f"{output_prefix}-*.svg"))
@@ -148,20 +187,25 @@ class LatexRunner:
 
         latex_filename.write_text(latex_content, encoding="utf-8")
 
-        process = subprocess.Popen(
-            ["make4ht", "-x", str(latex_filename), "xhtml,html5,mathml"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
-            cwd=self.temp_dir,
-        )
+        try:
+            process = subprocess.Popen(
+                ["make4ht", "-x", str(latex_filename), "xhtml,html5,mathml"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+                cwd=self.temp_dir,
+            )
+        except FileNotFoundError as err:
+            raise Make4htNotFoundError(
+                "make4ht was not found while starting it."
+            ) from err
 
-        stdout, _ = process.communicate()
+        stdout, stderr = process.communicate()
 
         if process.returncode != 0:
-            # make4ht returns errors on stdout
             raise LatexCompilationError(
-                f"make4ht failed with return code {process.returncode}\n\n{stdout}"
+                "make4ht failed with return code "
+                f"{process.returncode}\n\n{_trim_tool_log(stdout, stderr)}"
             )
 
         return html_filename

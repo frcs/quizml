@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 
 from ruamel.yaml import YAML
-from ruamel.yaml.error import StreamMark
+from ruamel.yaml.error import StreamMark, YAMLError
 from ruamel.yaml.scalarstring import LiteralScalarString
 from ruamel.yaml.tokens import CommentToken
 
@@ -107,7 +107,7 @@ def format_yaml_text(txt, *, base_dir=Path("."), filename="<stdin>", wrap_width=
 
     try:
         docs = list(yaml.load_all(txt))
-    except Exception as err:
+    except YAMLError as err:
         raise QuizMLError(f"YAML parsing error in {filename}: {err}") from err
 
     formatted_parts = []

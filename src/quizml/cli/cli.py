@@ -286,6 +286,9 @@ def main(argv=None):
     except QuizMLError as err:
         err_console.print(f"[bold red]Error:[/bold red] {err}")
         sys.exit(1)
+    except KeyboardInterrupt:
+        err_console.print("[bold red]Interrupted[/bold red]")
+        sys.exit(130)
 
 
 if __name__ == "__main__":

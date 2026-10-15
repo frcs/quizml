@@ -149,12 +149,26 @@ def test_page_content_cat_fallback(capsys):
 
 
 def test_handle_docs_unknown_topic(capsys):
-    with pytest.raises(SystemExit) as exc_info:
+    from quizml.exceptions import QuizMLConfigError
+
+    with pytest.raises(QuizMLConfigError) as exc_info:
         handle_docs("completely_invalid_topic_xyz")
+    assert "Unknown documentation topic 'completely_invalid_topic_xyz'" in str(
+        exc_info.value
+    )
+    assert "Available topics:" in str(exc_info.value)
+    captured = capsys.readouterr()
+    assert captured.err == ""
+
+
+def test_cli_docs_unknown_topic_reports_once(capsys):
+    with patch.object(sys, "argv", ["quizml", "docs", "completely_invalid_topic_xyz"]):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
     assert exc_info.value.code == 1
     captured = capsys.readouterr()
-    assert "Unknown documentation topic 'completely_invalid_topic_xyz'" in captured.err
-    assert "Available topics:" in captured.err
+    assert captured.err.count("Unknown documentation topic") == 1
+    assert captured.out == ""
 
 
 def test_cli_docs_integration(capsys):

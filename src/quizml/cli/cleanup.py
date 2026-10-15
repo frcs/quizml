@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from quizml.cli.errorhandler import err_console, print_error
+from quizml.cli.errorhandler import err_console
+from quizml.exceptions import QuizMLConfigError
 
 # Suffixes relative to the YAML base stem (e.g. "exam" -> "exam" + suffix)
 KNOWN_TARGET_SUFFIXES = {
@@ -55,8 +56,7 @@ def cleanup_yaml_files(directory_path=".", dry_run=False, target_stems=None):
     """
     dir_path = Path(directory_path)
     if not dir_path.is_dir():
-        print_error(f"Directory not found: {directory_path}")
-        return None
+        raise QuizMLConfigError(f"Directory not found: {directory_path}")
 
     err_console.print(f"Scanning directory: {dir_path.resolve()}")
 
@@ -78,6 +78,7 @@ def cleanup_yaml_files(directory_path=".", dry_run=False, target_stems=None):
 
     # 3. Check directory for matches and delete safely
     deleted_files_count = 0
+    errors = []
     for path in dir_path.iterdir():
         if path.is_file() and path.name in allowed_to_delete:
             if dry_run:
@@ -88,9 +89,11 @@ def cleanup_yaml_files(directory_path=".", dry_run=False, target_stems=None):
                     path.unlink()
                     deleted_files_count += 1
                 except OSError as e:
-                    err_console.print(f"Error deleting file {path.name}: {e}")
+                    errors.append(f"Could not delete {path}: {e}")
 
     err_console.print("-" * 30)
     action = "Would delete" if dry_run else "Total files deleted"
     err_console.print(f"Cleanup complete. {action}: {deleted_files_count}")
+    if errors:
+        raise QuizMLConfigError("\n".join(errors))
     return deleted_files_count

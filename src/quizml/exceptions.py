@@ -22,6 +22,12 @@ class QuizMLConfigError(QuizMLError):
     pass
 
 
+class QuizMLBuildError(QuizMLError):
+    """Raised when a configured output build command fails."""
+
+    pass
+
+
 class MarkdownError(QuizMLError):
     """Raised for errors during Markdown processing."""
 

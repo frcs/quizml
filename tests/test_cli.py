@@ -192,11 +192,8 @@ def test_compile_failure_exit_code_and_stderr(tmp_path, capsys):
         assert exc_info.value.code == 1
 
     captured = capsys.readouterr()
-    assert (
-        "Schema Error" in captured.err
-        or "QuizML Error" in captured.err
-        or len(captured.err) > 0
-    )
+    assert "Schema validation error" in captured.err
+    assert captured.err.count("Schema validation error") == 1
     assert captured.out == ""
 
 

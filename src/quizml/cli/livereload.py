@@ -52,7 +52,7 @@ def start_livereload_server():
         SERVER_THREAD = threading.Thread(target=run_server, daemon=True)
         SERVER_THREAD.start()
         # print(f"[dim]LiveReload server started on port {LIVERELOAD_PORT}[/dim]")
-    except Exception as e:
+    except OSError as e:
         print_error(f"Failed to start LiveReload server: {e}", title="Warning")
 
 

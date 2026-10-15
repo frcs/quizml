@@ -288,13 +288,14 @@ title: Exam
     assert len(doc["questions"]) == 1
     assert doc["questions"][0]["marks"] == 5.0
 
-    # Now test an included file with invalid schema (e.g. ma question missing required choices)
+    # Included-file errors should point to the included source even when sampling.
     bad_sub_yaml = tmp_path / "bad_sub.yaml"
     bad_sub_yaml.write_text(
         """
-- type: ma
+- type: tf
   marks: 5
-  question: Bad question without choices
+  question: Bad true false question
+  answer: maybe
 """,
         encoding="utf-8",
     )
@@ -304,13 +305,17 @@ title: Exam
         """
 ---
 - _include: bad_sub.yaml
+  count: 0
 """,
         encoding="utf-8",
     )
 
     with pytest.raises(QuizMLYamlSyntaxError) as exc_info:
         load(str(bad_main_yaml), validate=True)
-    assert "Schema validation error" in str(exc_info.value)
+    message = str(exc_info.value)
+    assert "Schema validation error" in message
+    assert str(bad_sub_yaml) in message
+    assert "line ~5" in message
 
 
 def test_unprefixed_include_raises_error(tmp_path: Path):

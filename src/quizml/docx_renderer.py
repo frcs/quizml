@@ -1,7 +1,6 @@
 import io
-import sys
 
-from rich import print
+from .exceptions import QuizMLConfigError
 
 
 def render(context, template_filename):
@@ -11,12 +10,10 @@ def render(context, template_filename):
     """
     try:
         from docxtpl import DocxTemplate
-    except ImportError:
-        print(
-            "[bold red]Error:[/bold red] The 'docxtpl' package is required for docx templates."
-        )
-        print("Please install it with: [green]pip install docxtpl[/green]")
-        sys.exit(1)
+    except ImportError as err:
+        raise QuizMLConfigError(
+            "The 'docxtpl' package is required for DOCX templates."
+        ) from err
 
     doc = DocxTemplate(template_filename)
 

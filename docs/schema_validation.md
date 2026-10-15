@@ -91,6 +91,10 @@ schema_path: my_custom_schema.json
 
 When you compile with `quizml`, it will use your new schema for validation.
 
+Questions in included files are validated where they are defined. A validation
+error therefore names the included file and its source line, including when the
+include uses sampling.
+
 For example, if you wanted to create a new question type `geolocation` that
 requires numeric latitude and longitude, you could add this to your custom
 schema's `allOf` array:

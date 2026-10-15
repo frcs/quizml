@@ -6,6 +6,7 @@ import pytest
 from quizml.exceptions import LatexCompilationError
 from quizml.markdown.extensions import MathDisplay, MathInline
 from quizml.markdown.html_renderer import build_eq_dict_PNG
+from quizml.markdown.latextools import LatexRunner
 
 
 # Helper functions to create correctly-structured mock tokens
@@ -21,6 +22,18 @@ def create_mock_display(content):
     """Creates a MathDisplay token using a list of lines."""
     # The real MathDisplay.__init__ takes a list of strings
     return MathDisplay([content])
+
+
+def test_external_latex_tool_failure_is_typed_and_trimmed():
+    process = MagicMock(
+        returncode=1,
+        stdout="routine output\n! fatal latex error\nerror details\n",
+        stderr="",
+    )
+    with LatexRunner() as runner:
+        with patch("quizml.markdown.latextools.subprocess.run", return_value=process):
+            with pytest.raises(LatexCompilationError, match="! fatal latex error"):
+                runner._run_checked(["fake-tool"], "fake-tool", runner.temp_dir)
 
 
 @patch("quizml.markdown.html_renderer.save_to_cache")

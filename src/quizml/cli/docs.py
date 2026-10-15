@@ -12,6 +12,8 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.table import Table
 
+from quizml.exceptions import QuizMLConfigError
+
 
 @dataclass
 class DocItem:
@@ -401,8 +403,7 @@ def handle_docs(topic: str | None = None, no_pager: bool = False) -> None:
     try:
         docs_dir = get_docs_dir()
     except FileNotFoundError as err:
-        sys.stderr.write(f"Error: {err}\n")
-        sys.exit(1)
+        raise QuizMLConfigError(str(err)) from err
 
     doc_items = parse_sidebar(docs_dir)
     topic_map = build_topic_map(doc_items)
@@ -478,5 +479,4 @@ def handle_docs(topic: str | None = None, no_pager: bool = False) -> None:
     err_msg += "  " + ", ".join(available) + "\n\n"
     err_msg += "Run 'quizml docs list' to view all topics, or 'quizml docs all' for full documentation.\n"
 
-    sys.stderr.write(err_msg)
-    sys.exit(1)
+    raise QuizMLConfigError(err_msg)

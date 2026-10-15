@@ -24,8 +24,10 @@ import random
 from pathlib import Path
 
 from jsonschema import Draft7Validator, validators
+from jsonschema.exceptions import best_match
 from ruamel.yaml import YAML
 from ruamel.yaml.constructor import RoundTripConstructor
+from ruamel.yaml.error import YAMLError
 from ruamel.yaml.nodes import ScalarNode
 from ruamel.yaml.scalarstring import PlainScalarString
 
@@ -161,7 +163,7 @@ def count_included_questions(
         inc_text = inc_path.read_text(encoding="utf-8")
         inc_yaml = YAML()
         raw_docs = list(inc_yaml.load_all(inc_text))
-    except Exception:
+    except (OSError, YAMLError):
         if "count" in item:
             try:
                 return max(0, int(item["count"]))
@@ -209,6 +211,9 @@ def _resolve_includes(
     root_dir: Path,
     visited: set[Path] | None = None,
     accumulated_figure_dirs: list[str] | None = None,
+    schema=None,
+    source_text="",
+    source_path="<string>",
 ) -> list:
     """Recursively resolves '- _include: filename.yaml' directives in the questions list.
 
@@ -220,6 +225,10 @@ def _resolve_includes(
         visited = set()
     if accumulated_figure_dirs is None:
         accumulated_figure_dirs = []
+
+    _validate_source_questions(
+        questions_data, schema, source_text=source_text, source_path=source_path
+    )
 
     resolved = []
     for item in questions_data:
@@ -247,7 +256,7 @@ def _resolve_includes(
 
             try:
                 inc_text = inc_path.read_text(encoding="utf-8")
-            except Exception as err:
+            except OSError as err:
                 raise QuizMLYamlSyntaxError(
                     f"Error reading included file '{inc_path}': {err}"
                 ) from err
@@ -256,7 +265,7 @@ def _resolve_includes(
             inc_yaml.Constructor = StringConstructor
             try:
                 raw_docs = list(inc_yaml.load_all(inc_text))
-            except Exception as err:
+            except YAMLError as err:
                 raise QuizMLYamlSyntaxError(
                     f"YAML parsing error in included file {inc_path}: {err}"
                 ) from err
@@ -314,6 +323,9 @@ def _resolve_includes(
                 root_dir,
                 new_visited,
                 accumulated_figure_dirs,
+                schema,
+                inc_text,
+                str(inc_path),
             )
 
             # Optional sampling
@@ -342,6 +354,63 @@ def _resolve_includes(
     return resolved
 
 
+def _line_for_node_path(root, path, initial_line=None):
+    """Return the YAML source line for a node path when ruamel has one."""
+    line = initial_line
+    node = root
+    for key in path:
+        try:
+            if isinstance(node, list):
+                location = node.lc.item(key)
+            elif isinstance(node, dict):
+                location = node.lc.value(key)
+            else:
+                break
+            if location is not None:
+                line = location[0] + 1
+            node = node[key]
+        except (AttributeError, IndexError, KeyError, TypeError):
+            break
+    return line
+
+
+def _validate_source_questions(questions, schema, *, source_text, source_path):
+    """Validate each source file's actual questions before include flattening."""
+    if not schema or not isinstance(questions, list) or "items" not in schema:
+        return
+
+    item_schema = dict(schema["items"])
+    if "definitions" in schema:
+        item_schema.setdefault("definitions", schema["definitions"])
+    validator = DefaultFillingValidator(item_schema)
+    lines = source_text.splitlines()
+    for index, question in enumerate(questions):
+        if isinstance(question, dict) and "_include" in question:
+            continue
+        error = best_match(validator.iter_errors(question))
+        if error is None:
+            continue
+
+        try:
+            initial_line = questions.lc.item(index)[0] + 1
+        except (AttributeError, IndexError, TypeError):
+            initial_line = None
+        line_num = _line_for_node_path(
+            question,
+            error.path,
+            initial_line=initial_line,
+        )
+        path = " -> ".join([str(index), *map(str, error.path)])
+        message = f"Schema validation error in {source_path} at '{path}'"
+        if line_num is not None:
+            message += f" (line ~{line_num})\n"
+            message += msg_context(lines, line_num) + "\n"
+        else:
+            message += "\n"
+        message += text_wrap(error.message)
+        raise QuizMLYamlSyntaxError(message)
+
+
 def loads(
     quizmlyaml_txt,
     validate=True,
@@ -359,7 +428,7 @@ def loads(
     yaml.Constructor = StringConstructor
     try:
         raw_docs = list(yaml.load_all(quizmlyaml_txt))
-    except Exception as err:
+    except YAMLError as err:
         line = -1
         if hasattr(err, "problem_mark"):
             line = err.problem_mark.line
@@ -404,6 +473,9 @@ def loads(
             base_dir=base_dir,
             root_dir=base_dir,
             accumulated_figure_dirs=accumulated_figure_dirs,
+            schema=schema if validate else None,
+            source_text=quizmlyaml_txt,
+            source_path=filename,
         )
         if accumulated_figure_dirs:
             if not isinstance(header_data, dict):
@@ -421,9 +493,8 @@ def loads(
     # Validating questions against the schema
     if validate and schema and questions_data:
         validator = DefaultFillingValidator(schema)
-        errors = sorted(validator.iter_errors(questions_data), key=lambda e: e.path)
-        if errors:
-            err = errors[0]
+        err = best_match(validator.iter_errors(questions_data))
+        if err:
             path = " -> ".join(map(str, err.path))
             try:
                 item = questions_data
