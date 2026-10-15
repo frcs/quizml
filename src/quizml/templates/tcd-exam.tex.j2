@@ -41,9 +41,9 @@
 \additionalinformation{\infoadditionalinformation}
 
 \usepackage{graphicx}
-<| if header and header.get('_figures_path') -|>
+<| if paths.get('figure_dirs') -|>
 \graphicspath{
-<|- set fig_paths = [header['_figures_path']] if header['_figures_path'] is string else header['_figures_path'] -|>
+<|- set fig_paths = [paths['figure_dirs']] if paths['figure_dirs'] is string else paths['figure_dirs'] -|>
 <|- for p in fig_paths -|>
   {<< p if p.endswith('/') else p ~ '/' >>}
 <|- endfor -|>

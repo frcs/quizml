@@ -421,9 +421,9 @@ title: Final Exam
     )
 
     doc, _ = load(str(exam_yaml), validate=True)
-    # Check that ../banks/physics was accumulated into _figures_path
-    assert "_figures_path" in doc["header"]
-    assert "../banks/physics" in doc["header"]["_figures_path"]
+    # Included asset directories are carried separately from user metadata.
+    assert "_figures_path" not in doc["header"]
+    assert "../banks/physics" in doc["paths"]["figure_dirs"]
 
     # Verify Markdown image embedding finds the image and converts to base64
     from quizml.markdown.markdown import MarkdownTranscoder
@@ -473,9 +473,9 @@ title: Custom Exam
     )
 
     doc, _ = load(str(exam_yaml), validate=True)
-    assert "_figures_path" in doc["header"]
+    assert "_figures_path" not in doc["header"]
     # Both the bank directory and its custom_assets directory are accumulated
-    fig_paths = doc["header"]["_figures_path"]
+    fig_paths = doc["paths"]["figure_dirs"]
     assert "../banks/physics" in fig_paths
     assert "../banks/physics/custom_assets" in fig_paths
 

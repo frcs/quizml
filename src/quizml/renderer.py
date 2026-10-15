@@ -81,9 +81,14 @@ def render_template(context, template_filename):
 
 
 def render(yaml_data, template_filename, extra_context=None):
+    header = yaml_data["header"]
+    paths = yaml_data.get("paths") or {
+        "figure_dirs": header.get("_figures_path", [])
+    }
     context = {
-        "header": yaml_data["header"],
+        "header": header,
         "questions": yaml_data["questions"],
+        "paths": paths,
         # "total_marks" : get_total_marks(yaml_data)
     }
 

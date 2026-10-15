@@ -86,24 +86,24 @@ class MarkdownTranscoder:
     def __init__(self, yaml_data, schema=None, base_dir=None):
         self.yaml_data = yaml_data
         self.schema = schema
+        path_context = (
+            yaml_data.get("paths", {}) if isinstance(yaml_data, dict) else {}
+        )
 
         if base_dir is None:
-            inputbasename = (
-                yaml_data.get("header", {}).get("inputbasename", "")
-                if isinstance(yaml_data, dict)
-                else ""
-            )
-            if inputbasename:
+            input_dir = path_context.get("input_dir")
+            inputbasename = yaml_data.get("header", {}).get("inputbasename", "")
+            if input_dir:
+                self.base_dir = os.path.abspath(input_dir)
+            elif inputbasename:
                 self.base_dir = os.path.dirname(os.path.abspath(inputbasename))
             else:
                 self.base_dir = None
         else:
             self.base_dir = os.path.abspath(base_dir)
 
-        figures_rel = (
-            yaml_data.get("header", {}).get("_figures_path", [])
-            if isinstance(yaml_data, dict)
-            else []
+        figures_rel = path_context.get(
+            "figure_dirs", yaml_data.get("header", {}).get("_figures_path", [])
         )
         if isinstance(figures_rel, str):
             figures_rel = [figures_rel]

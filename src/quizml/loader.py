@@ -438,6 +438,12 @@ def loads(
         if d is not None and not (isinstance(d, str) and not d.strip())
     ]
 
+    if base_dir is None:
+        if filename and filename != "<string>":
+            base_dir = Path(filename).parent.resolve()
+        else:
+            base_dir = Path.cwd()
+
     if len(yamldocs) > 2:
         raise QuizMLYamlSyntaxError(
             "YAML file cannot have more than 2 documents: "
@@ -445,7 +451,11 @@ def loads(
         )
 
     if not yamldocs:
-        return {"header": {}, "questions": []}, schema
+        return {
+            "header": {},
+            "questions": [],
+            "paths": {"input_dir": str(base_dir), "figure_dirs": []},
+        }, schema
 
     if len(yamldocs) == 1:
         if isinstance(yamldocs[0], list):
@@ -455,14 +465,17 @@ def loads(
     else:
         header_data, questions_data = yamldocs[0], yamldocs[1]
 
-    if base_dir is None:
-        if filename and filename != "<string>":
-            base_dir = Path(filename).parent.resolve()
-        else:
-            base_dir = Path.cwd()
+    root_figure_dirs = []
+    if isinstance(header_data, dict):
+        root_figure_dirs = header_data.pop("_figures_path", [])
+    if isinstance(root_figure_dirs, str):
+        root_figure_dirs = [root_figure_dirs]
+    elif not isinstance(root_figure_dirs, list):
+        root_figure_dirs = []
+
+    accumulated_figure_dirs = []
 
     if questions_data and isinstance(questions_data, list):
-        accumulated_figure_dirs = []
         questions_data = _resolve_includes(
             questions_data,
             base_dir=base_dir,
@@ -472,18 +485,7 @@ def loads(
             source_text=quizmlyaml_txt,
             source_path=filename,
         )
-        if accumulated_figure_dirs:
-            if not isinstance(header_data, dict):
-                header_data = {}
-            existing_figs = header_data.get("_figures_path", [])
-            if isinstance(existing_figs, str):
-                existing_figs = [existing_figs]
-            elif not isinstance(existing_figs, list):
-                existing_figs = []
-            combined = list(
-                dict.fromkeys(list(existing_figs) + accumulated_figure_dirs)
-            )
-            header_data["_figures_path"] = combined
+    figure_dirs = list(dict.fromkeys(root_figure_dirs + accumulated_figure_dirs))
 
     # Validating questions against the schema
     if validate and schema and questions_data:
@@ -508,6 +510,7 @@ def loads(
     doc = {
         "header": _to_plain_python(header_data) if header_data else {},
         "questions": _to_plain_python(questions_data) if questions_data else [],
+        "paths": {"input_dir": str(base_dir), "figure_dirs": figure_dirs},
     }
     doc = coerce_data(doc, schema)
 
