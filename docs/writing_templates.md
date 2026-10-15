@@ -4,6 +4,27 @@ Templates are rendered with Jinja2. The [Jinja2 Template Designer
 Documentation](https://jinja.palletsprojects.com/en/3.1.x/templates/) provides
 complete information about how to write jinja2 templates.
 
+Templates can include, import, and extend other templates found through the
+same search paths as configured target templates. Give an extending template a
+different filename from its parent to avoid loading itself recursively. The
+packaged `tcd-exam.tex.j2` template exposes `preamble`, `document_start`,
+`solution_key`, `question_list`, and `document_end` blocks for targeted
+overrides. For example:
+
+```jinja
+<| extends "tcd-exam.tex.j2" |>
+
+<| block preamble |>
+<< super() >>
+\\newcommand{\\myexamcommand}{...}
+<| endblock |>
+```
+
+QuizML uses strict undefined-variable handling. A misspelled or absent value
+raises a template error instead of silently rendering as empty text. Guard
+optional question fields with `is defined`, or provide a fallback with
+`default`, for example `<< q.comments | default('') >>`.
+
 The default templates used in QuizML can be found in the `templates`
 directory. 
 

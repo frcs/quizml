@@ -57,3 +57,29 @@ def test_render_function():
 def test_render_missing_template():
     with pytest.raises(Jinja2SyntaxError):
         render_template({}, "")
+
+
+def test_template_composition_uses_quizml_search_paths(tmp_path):
+    (tmp_path / "macros.j2").write_text(
+        "<| macro greeting(name) |>Hello << name >>!<| endmacro |>",
+        encoding="utf-8",
+    )
+    (tmp_path / "base.j2").write_text(
+        "Before <| block content |>base<| endblock |> After", encoding="utf-8"
+    )
+    child = tmp_path / "custom.j2"
+    child.write_text(
+        '<| extends "base.j2" |><| import "macros.j2" as m |>'
+        "<| block content |><< m.greeting(title) >><| endblock |>",
+        encoding="utf-8",
+    )
+
+    assert render_template({"title": "QuizML"}, child) == "Before Hello QuizML! After"
+
+
+def test_strict_undefined_reports_missing_template_variable(tmp_path):
+    template = tmp_path / "undefined.j2"
+    template.write_text("<< misspelled_name >>", encoding="utf-8")
+
+    with pytest.raises(Jinja2SyntaxError, match="undefined variable"):
+        render_template({}, template)

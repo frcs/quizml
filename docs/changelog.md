@@ -6,6 +6,7 @@
 *   Reorganized CLI modes as subcommands while keeping `quizml FILE` as a compile shorthand.
 *   Changed `fmt` to write to stdout by default, with explicit `-i`, `--check`, and `--diff` modes.
 *   Split Markdown output format, equation backend, and Blackboard HTML post-processing into separate target settings.
+*   Enabled Jinja template inheritance, includes, imports, and strict undefined-variable checks.
 
 <a name="0.12.0"></a>
 
