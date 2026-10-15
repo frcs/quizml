@@ -6,6 +6,7 @@ import subprocess
 from mistletoe.block_token import HTMLBlock
 from mistletoe.latex_renderer import LaTeXRenderer
 
+from ..paths import find_path
 from .extensions import ImageWithWidth, MathDisplay, MathInline
 
 
@@ -39,23 +40,21 @@ def resolve_image_path(src, base_dir=None, search_dirs=None):
     If SVG is provided and no compatible format is found, attempts conversion
     if tools are available.
     """
-    actual_src = src
-    found_in_search_dirs = False
-
     dirs_to_check = []
     if not os.path.isabs(src):
         if search_dirs:
-            dirs_to_check.extend([(d, True) for d in search_dirs])
+            dirs_to_check.extend(search_dirs)
         if base_dir:
-            dirs_to_check.append((base_dir, False))
+            dirs_to_check.append(base_dir)
 
     # 1. Try finding the exact file first
-    for d, is_search_dir in dirs_to_check:
-        candidate = os.path.normpath(os.path.join(d, src))
-        if os.path.exists(candidate):
-            actual_src = candidate
-            found_in_search_dirs = is_search_dir
-            break
+    exact_match = find_path(src, dirs_to_check)
+    actual_src = str(exact_match[0]) if exact_match else src
+    found_in_search_dirs = (
+        exact_match is not None
+        and exact_match[1] is not None
+        and exact_match[1] < len(search_dirs or [])
+    )
 
     # If not SVG, return if found or check cwd
     if not src.lower().endswith(".svg"):
@@ -67,13 +66,16 @@ def resolve_image_path(src, base_dir=None, search_dirs=None):
     src_base_name = os.path.splitext(src)[0]
     for ext in [".pdf", ".png", ".jpg", ".jpeg"]:
         if found_in_search_dirs:
-            candidate = os.path.splitext(actual_src)[0] + ext
-            if os.path.exists(candidate):
+            candidate = find_path(
+                src_base_name + ext, [os.path.dirname(actual_src)]
+            )
+            if candidate:
                 return src_base_name + ext
-        for d, is_search_dir in dirs_to_check:
-            candidate = os.path.normpath(os.path.join(d, src_base_name + ext))
-            if os.path.exists(candidate):
-                return src_base_name + ext if is_search_dir else candidate
+        candidate = find_path(src_base_name + ext, dirs_to_check)
+        if candidate:
+            if candidate[1] is not None and candidate[1] < len(search_dirs or []):
+                return src_base_name + ext
+            return str(candidate[0])
 
     # If no compatible format exists, try converting the SVG if found
     if os.path.exists(actual_src):

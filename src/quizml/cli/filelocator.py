@@ -2,6 +2,8 @@ import os
 
 import platformdirs
 
+from quizml.paths import find_path
+
 
 class FileLocator:
     """
@@ -41,20 +43,19 @@ class FileLocator:
         """
         finds file in list of directories to search. returns absolute path or raises FileNotFoundError.
         """
-        if os.path.isabs(refpath):
-            if os.path.exists(refpath):
-                return refpath
-            raise FileNotFoundError(f"Absolute file '{refpath}' does not exist.")
-
         search_dirs = []
         if extra_search_dirs:
             search_dirs.extend(extra_search_dirs)
         search_dirs.extend(self.dirlist)
 
-        for d in search_dirs:
-            abspath = os.path.realpath(os.path.expanduser(os.path.join(d, refpath)))
-            if os.path.exists(abspath):
-                return abspath
+        found = find_path(refpath, search_dirs)
+        if found:
+            return str(found[0])
+
+        if os.path.isabs(os.path.expanduser(refpath)):
+            raise FileNotFoundError(
+                f"Absolute file '{refpath}' does not exist."
+            )
 
         raise FileNotFoundError(
             f"Could not find '{refpath}' in search paths: {search_dirs}"

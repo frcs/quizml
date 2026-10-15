@@ -10,6 +10,7 @@ from pathlib import Path
 from PIL import Image
 
 from ..exceptions import MarkdownImageError
+from ..paths import find_path
 
 
 def embed_pdf(pdf_filename, base_dir=None, search_dirs=None):
@@ -22,12 +23,9 @@ def embed_pdf(pdf_filename, base_dir=None, search_dirs=None):
             dirs.extend(search_dirs)
         if base_dir:
             dirs.append(base_dir)
-
-        for d in dirs:
-            candidate = os.path.normpath(os.path.join(d, pdf_filename))
-            if os.path.exists(candidate):
-                pdf_filename = candidate
-                break
+        found = find_path(pdf_filename, dirs)
+        if found:
+            pdf_filename = str(found[0])
 
     pdf_abspath = os.path.abspath(pdf_filename)
     if not os.path.exists(pdf_abspath):
@@ -70,12 +68,9 @@ def embed_base64(pathname, base_dir=None, search_dirs=None):
             dirs.extend(search_dirs)
         if base_dir:
             dirs.append(base_dir)
-
-        for d in dirs:
-            candidate = Path(os.path.normpath(os.path.join(d, pathname)))
-            if candidate.exists():
-                path = candidate
-                break
+        found = find_path(pathname, dirs)
+        if found:
+            path = found[0]
 
     suffix = path.suffix.lower()
 

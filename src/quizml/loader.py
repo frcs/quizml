@@ -32,6 +32,7 @@ from ruamel.yaml.nodes import ScalarNode
 from ruamel.yaml.scalarstring import PlainScalarString
 
 from quizml.exceptions import QuizMLYamlSyntaxError
+from quizml.paths import find_path
 from quizml.utils import coerce_data, msg_context, text_wrap
 
 # --- Custom ruamel.yaml Constructor ---
@@ -175,6 +176,16 @@ def _read_question_file(path: Path):
     return header, questions, text
 
 
+def _include_path(filename, base_dir):
+    found = find_path(filename, [base_dir])
+    if found:
+        return found[0]
+    requested = Path(filename).expanduser()
+    if not requested.is_absolute():
+        requested = Path(base_dir) / requested
+    return Path(os.path.realpath(requested))
+
+
 def count_included_questions(
     item: dict, base_dir: Path, visited: set[Path] | None = None
 ) -> int:
@@ -190,11 +201,7 @@ def count_included_questions(
     if not inc_file:
         return 0
 
-    inc_path = (
-        Path(inc_file).resolve()
-        if os.path.isabs(inc_file)
-        else (base_dir / inc_file).resolve()
-    )
+    inc_path = _include_path(inc_file, base_dir)
 
     if not inc_path.is_file() or inc_path in visited:
         if "count" in item:
@@ -265,11 +272,7 @@ def _resolve_includes(
             )
         if isinstance(item, dict) and "_include" in item:
             inc_file = str(item["_include"]).strip()
-            inc_path = (
-                Path(inc_file).resolve()
-                if os.path.isabs(inc_file)
-                else (base_dir / inc_file).resolve()
-            )
+            inc_path = _include_path(inc_file, base_dir)
 
             if not inc_path.is_file():
                 raise QuizMLYamlSyntaxError(
