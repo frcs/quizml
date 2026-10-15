@@ -1,7 +1,10 @@
 "a few utility functions to deal with QuizMLYaml objects."
 
 import os
+import re
 import textwrap
+
+from jsonschema import Draft7Validator, validators
 
 
 def iter_nodes(data, key_filter=None):
@@ -62,48 +65,146 @@ class MarkdownString(str):
 # --- Schema Helpers ---
 
 
-def apply_conditions(data, current_schema):
-    """
-    Applies conditional logic (if/then/else) from JSON schema.
-    Handles root if/then/else and those inside allOf/anyOf/oneOf.
-    Returns the specific sub-schema to apply, or the original if no condition matches.
-    """
+def _resolve_local_ref(ref, root_schema):
+    """Resolve a JSON Pointer reference into the root schema."""
+    if ref == "#":
+        return root_schema
+    if not ref.startswith("#/"):
+        raise ValueError(f"Only local JSON Schema references are supported: {ref}")
 
-    # Helper to check a condition
-    def check_condition(cond_schema):
-        if "properties" in cond_schema:
-            for prop, value in cond_schema["properties"].items():
-                if "const" in value:
-                    if data.get(prop) != value["const"]:
-                        return False
+    target = root_schema
+    for part in ref[2:].split("/"):
+        part = part.replace("~1", "/").replace("~0", "~")
+        try:
+            target = target[part] if isinstance(target, dict) else target[int(part)]
+        except (KeyError, IndexError, ValueError, TypeError) as err:
+            raise ValueError(f"Unresolvable JSON Schema reference: {ref}") from err
+    return target
+
+
+def _resolve_schema_refs(schema, root_schema, ref_stack=()):
+    """Expand local references for schema validation (for example, anyOf)."""
+    if isinstance(schema, list):
+        return [_resolve_schema_refs(item, root_schema, ref_stack) for item in schema]
+    if not isinstance(schema, dict):
+        return schema
+    if "$ref" in schema:
+        ref = schema["$ref"]
+        if ref in ref_stack:
+            raise ValueError(f"Recursive JSON Schema reference is unsupported: {ref}")
+        # In Draft 7, sibling keywords beside $ref are ignored.
+        return _resolve_schema_refs(
+            _resolve_local_ref(ref, root_schema), root_schema, ref_stack + (ref,)
+        )
+    return {
+        key: _resolve_schema_refs(value, root_schema, ref_stack)
+        for key, value in schema.items()
+    }
+
+
+def _numeric_string(checker, instance):
+    if isinstance(instance, bool):
+        return False
+    if isinstance(instance, (int, float)):
         return True
+    if isinstance(instance, str):
+        try:
+            float(instance)
+            return True
+        except ValueError:
+            return False
+    return False
 
-    # Check root if/then/else
-    if "if" in current_schema:
-        if check_condition(current_schema["if"]):
-            return current_schema.get("then", {})
-        else:
-            return current_schema.get("else", {})
 
-    # Check combinators
-    for key in ["allOf", "anyOf", "oneOf"]:
-        if key in current_schema:
-            for sub_schema in current_schema[key]:
-                if "if" in sub_schema:
-                    if check_condition(sub_schema["if"]):
-                        return sub_schema.get("then", {})
+def _integer_string(checker, instance):
+    if isinstance(instance, bool):
+        return False
+    if isinstance(instance, int):
+        return True
+    if isinstance(instance, str):
+        try:
+            return str(int(instance)) == instance
+        except ValueError:
+            return False
+    return False
 
-    return current_schema
+
+def _boolean_string(checker, instance):
+    return isinstance(instance, str) and instance.lower() in {
+        "true", "false", "yes", "no", "on", "off"
+    } or isinstance(instance, bool)
+
+
+_CoercionValidator = validators.extend(
+    Draft7Validator,
+    type_checker=Draft7Validator.TYPE_CHECKER.redefine_many(
+        {
+            "number": _numeric_string,
+            "integer": _integer_string,
+            "boolean": _boolean_string,
+        }
+    ),
+)
+
+
+def _applicable_schemas(data, schema, root_schema, ref_stack=()):
+    """Return schema fragments that apply to this value for coercion."""
+    if isinstance(schema, list):
+        return [
+            active
+            for sub_schema in schema
+            for active in _applicable_schemas(
+                data, sub_schema, root_schema, ref_stack
+            )
+        ]
+    if not isinstance(schema, dict):
+        return []
+    if "$ref" in schema:
+        ref = schema["$ref"]
+        if ref in ref_stack:
+            raise ValueError(f"Recursive JSON Schema reference is unsupported: {ref}")
+        return _applicable_schemas(
+            data,
+            _resolve_local_ref(ref, root_schema),
+            root_schema,
+            ref_stack + (ref,),
+        )
+
+    applicable = [schema]
+    if "if" in schema:
+        condition = _resolve_schema_refs(schema["if"], root_schema)
+        branch = "then" if _CoercionValidator(condition).is_valid(data) else "else"
+        if branch in schema:
+            applicable.extend(
+                _applicable_schemas(data, schema[branch], root_schema, ref_stack)
+            )
+
+    for sub_schema in schema.get("allOf", []):
+        applicable.extend(
+            _applicable_schemas(data, sub_schema, root_schema, ref_stack)
+        )
+
+    for keyword in ("anyOf", "oneOf"):
+        if keyword not in schema:
+            continue
+        matching = [
+            sub_schema
+            for sub_schema in schema[keyword]
+            if _CoercionValidator(
+                _resolve_schema_refs(sub_schema, root_schema)
+            ).is_valid(data)
+        ]
+        if keyword == "oneOf" and len(matching) != 1:
+            continue
+        for sub_schema in matching:
+            applicable.extend(
+                _applicable_schemas(data, sub_schema, root_schema, ref_stack)
+            )
+    return applicable
 
 
 def is_format_markdown(schema_node):
     if not schema_node or not isinstance(schema_node, dict):
-        return False
-    if "$ref" in schema_node:
-        # Note: simplistic ref resolution, assumes local definitions structure
-        # In our specific case, we just need to detect the tag.
-        if schema_node["$ref"] == "#/definitions/markdown":
-            return True
         return False
     return schema_node.get("format") == "markdown"
 
@@ -111,41 +212,31 @@ def is_format_markdown(schema_node):
 # --- Coercion Logic ---
 
 
-def coerce_value(value, schema):
+def coerce_value(value, schemas):
     """
     Coerce a single value based on the schema type.
     """
-    # Check Markdown
-    if is_format_markdown(schema):
-        if isinstance(value, str):
+    for schema in schemas:
+        if is_format_markdown(schema) and isinstance(value, str):
             return MarkdownString(value)
-        return value
-
-    types = schema.get("type", [])
-    if isinstance(types, str):
-        types = [types]
-
-    if "boolean" in types:
-        if isinstance(value, str):
+        types = schema.get("type", [])
+        if isinstance(types, str):
+            types = [types]
+        if "boolean" in types and isinstance(value, str):
             if value.lower() in ["true", "yes", "on"]:
                 return True
             if value.lower() in ["false", "no", "off"]:
                 return False
-
-    if "integer" in types:
-        if isinstance(value, str):
+        if "integer" in types and isinstance(value, str):
             try:
-                return int(value)
+                value = int(value)
             except ValueError:
                 pass
-
-    if "number" in types:
-        if isinstance(value, str):
+        if "number" in types and isinstance(value, str):
             try:
-                return float(value)
+                value = float(value)
             except ValueError:
                 pass
-
     return value
 
 
@@ -159,26 +250,50 @@ def coerce_data(yaml_data, schema):
         if not current_schema:
             return data
 
+        active_schemas = _applicable_schemas(data, current_schema, schema)
         if isinstance(data, dict):
-            refined_schema = apply_conditions(data, current_schema)
             new_dict = {}
-            properties = refined_schema.get("properties", {})
             for key, value in data.items():
-                if key in properties:
-                    new_dict[key] = coerce_recursive(value, properties[key])
-                else:
-                    new_dict[key] = value
+                child_schemas = []
+                for active in active_schemas:
+                    properties = active.get("properties", {})
+                    if key in properties:
+                        child_schemas.append(properties[key])
+                    matching_patterns = [
+                        subschema
+                        for pattern, subschema in active.get(
+                            "patternProperties", {}
+                        ).items()
+                        if re.search(pattern, key)
+                    ]
+                    child_schemas.extend(matching_patterns)
+                    if (
+                        key not in properties
+                        and not matching_patterns
+                        and "additionalProperties" in active
+                        and isinstance(
+                        active["additionalProperties"], dict
+                        )
+                    ):
+                        child_schemas.append(active["additionalProperties"])
+                new_dict[key] = coerce_recursive(value, child_schemas)
             return new_dict
 
-        elif isinstance(data, list):
+        if isinstance(data, list):
             new_list = []
-            items_schema = current_schema.get("items", {})
-            for item in data:
-                new_list.append(coerce_recursive(item, items_schema))
+            for index, item in enumerate(data):
+                child_schemas = []
+                for active in active_schemas:
+                    items = active.get("items", {})
+                    if isinstance(items, list):
+                        if index < len(items):
+                            child_schemas.append(items[index])
+                    elif items:
+                        child_schemas.append(items)
+                new_list.append(coerce_recursive(item, child_schemas))
             return new_list
 
-        else:
-            return coerce_value(data, current_schema)
+        return coerce_value(data, active_schemas)
 
     if isinstance(yaml_data, dict) and "questions" in yaml_data and schema:
         yaml_data["questions"] = coerce_recursive(yaml_data["questions"], schema)
