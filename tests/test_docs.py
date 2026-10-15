@@ -5,7 +5,6 @@ import pytest
 
 from quizml.cli.cli import main
 from quizml.cli.docs import (
-    get_all_topics,
     get_docs_dir,
     handle_docs,
     page_content,
@@ -29,12 +28,11 @@ def test_parse_sidebar():
     assert "syntax_questions.md" in filenames
     assert "targets.md" in filenames
 
-    # Verify alias generation
+    # The sidebar title and filename are sufficient to resolve topics.
     questions_item = next(
         item for item in items if item.filename == "syntax_questions.md"
     )
-    assert "questions" in questions_item.aliases
-    assert "syntax-questions" in questions_item.aliases
+    assert questions_item.title == "Questions Syntax"
 
 
 def test_handle_docs_list_non_tty(capsys):
@@ -91,14 +89,6 @@ def test_handle_docs_all_non_tty(capsys):
     assert "quickstart.md" in captured.out
     assert "syntax_questions.md" in captured.out
     assert len(captured.out.splitlines()) > 500
-
-
-def test_get_all_topics():
-    topics = get_all_topics()
-    assert "all" in topics
-    assert "quickstart" in topics
-    assert "usage" in topics
-    assert "syntax_yaml" in topics or "yaml" in topics
 
 
 def test_handle_docs_default_piped_is_all(capsys):

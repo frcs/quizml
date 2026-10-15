@@ -20,7 +20,27 @@ class DocItem:
     title: str
     filename: str
     path: Path
-    aliases: list[str]
+
+
+def _normalize_topic(topic: str) -> str:
+    """Make filename and title spellings comparable for topic lookup."""
+    return " ".join(topic.lower().replace("_", " ").replace("-", " ").split())
+
+
+def _primary_topic(item: DocItem) -> str:
+    """Return the topic name shown in lists and shell completion."""
+    return "overview" if item.path.stem.lower() == "readme" else item.path.stem.lower()
+
+
+def _topic_names(item: DocItem) -> set[str]:
+    names = {
+        _normalize_topic(item.filename),
+        _normalize_topic(item.path.stem),
+        _normalize_topic(item.title),
+    }
+    if item.path.stem.lower() == "readme":
+        names.add("overview")
+    return names
 
 
 def get_docs_dir() -> Path:
@@ -57,7 +77,6 @@ def parse_sidebar(docs_dir: Path) -> list[DocItem]:
                     title=stem,
                     filename=md_file.name,
                     path=md_file,
-                    aliases=[md_file.stem, md_file.stem.replace("_", "-")],
                 )
             )
         return items
@@ -80,41 +99,12 @@ def parse_sidebar(docs_dir: Path) -> list[DocItem]:
             filename = match_link.group(2).strip()
             filepath = docs_dir / filename
             if filepath.is_file():
-                stem = filepath.stem.lower()
-                aliases = [stem, stem.replace("_", "-")]
-                if stem == "readme":
-                    aliases.extend(
-                        [
-                            "overview",
-                            "getting-started",
-                            "getting_started",
-                            "getting started",
-                            "readme",
-                        ]
-                    )
-                for part in stem.split("_"):
-                    if part and part not in aliases:
-                        aliases.append(part)
-                if stem.startswith("syntax_"):
-                    aliases.append(stem.replace("syntax_", ""))
-                elif stem.startswith("config_"):
-                    aliases.append(stem.replace("config_", ""))
-                elif stem.startswith("writing_"):
-                    aliases.append(stem.replace("writing_", ""))
-
-                title_clean = title.lower().strip()
-                if title_clean:
-                    aliases.append(title_clean)
-                    aliases.append(title_clean.replace(" ", "-"))
-                    aliases.append(title_clean.replace(" ", "_"))
-
                 items.append(
                     DocItem(
                         category=current_category,
                         title=title,
                         filename=filename,
                         path=filepath,
-                        aliases=list(dict.fromkeys(aliases)),
                     )
                 )
         else:
@@ -123,37 +113,6 @@ def parse_sidebar(docs_dir: Path) -> list[DocItem]:
                 current_category = match_cat.group(1).strip()
 
     return items
-
-
-def build_topic_map(doc_items: list[DocItem]) -> dict[str, DocItem]:
-    """Creates a lookup dictionary mapping slugs, titles, and aliases to DocItem objects."""
-    topic_map = {}
-    for item in doc_items:
-        topic_map[item.filename.lower()] = item
-        topic_map[item.path.stem.lower()] = item
-        topic_map[item.title.lower()] = item
-        for alias in item.aliases:
-            topic_map[alias.lower()] = item
-    return topic_map
-
-
-def get_all_topics(docs_dir: Path | None = None) -> list[str]:
-    """Returns a deduplicated list of all recognized topic slugs and aliases."""
-    if docs_dir is None:
-        try:
-            docs_dir = get_docs_dir()
-        except FileNotFoundError:
-            return ["all", "list", "overview", "quickstart", "usage"]
-
-    doc_items = parse_sidebar(docs_dir)
-    builtins = ["all", "list", "overview"]
-    topics = list(builtins)
-    for item in doc_items:
-        for a in item.aliases:
-            low = a.lower()
-            if low not in topics:
-                topics.append(low)
-    return topics
 
 
 def get_completion_topics(docs_dir: Path | None = None) -> list[str]:
@@ -166,8 +125,7 @@ def get_completion_topics(docs_dir: Path | None = None) -> list[str]:
 
     topics = ["all", "list"]
     for item in parse_sidebar(docs_dir):
-        # "overview" is the familiar canonical name for the README page.
-        topic = "overview" if item.path.stem.lower() == "readme" else item.aliases[0]
+        topic = _primary_topic(item)
         if topic not in topics:
             topics.append(topic)
     return topics
@@ -204,7 +162,7 @@ def print_topics_table(doc_items: list[DocItem], console: Console) -> None:
     for item in doc_items:
         cat = item.category if item.category != last_category else ""
         last_category = item.category
-        primary_slug = item.aliases[0] if item.aliases else item.path.stem
+        primary_slug = _primary_topic(item)
         cmd_str = f"quizml docs {primary_slug}"
         table.add_row(cat, cmd_str, item.title, item.filename)
 
@@ -268,12 +226,10 @@ def handle_docs(topic: str | None = None, no_pager: bool = False) -> None:
         raise QuizMLConfigError(str(err)) from err
 
     doc_items = parse_sidebar(docs_dir)
-    topic_map = build_topic_map(doc_items)
-
     is_tty = sys.stdout.isatty()
     console = Console()
 
-    query = (topic or "").strip().lower()
+    query = _normalize_topic(topic or "")
 
     if query == "list":
         if is_tty:
@@ -281,7 +237,7 @@ def handle_docs(topic: str | None = None, no_pager: bool = False) -> None:
         else:
             lines = ["QuizML Documentation Topics:\n"]
             for item in doc_items:
-                primary_slug = item.aliases[0] if item.aliases else item.path.stem
+                primary_slug = _primary_topic(item)
                 lines.append(f"- {primary_slug:<20} {item.title} ({item.filename})")
             sys.stdout.write("\n".join(lines) + "\n")
         return
@@ -310,17 +266,13 @@ def handle_docs(topic: str | None = None, no_pager: bool = False) -> None:
         print_topics_table(doc_items, console)
         return
 
-    matched_item = topic_map.get(query)
-    if not matched_item:
-        matches = [
-            item
-            for item in doc_items
-            if query in item.path.stem.lower()
-            or query in item.title.lower()
-            or any(query in a for a in item.aliases)
-        ]
-        if len(matches) == 1:
-            matched_item = matches[0]
+    exact_matches = [item for item in doc_items if query in _topic_names(item)]
+    matches = exact_matches or [
+        item
+        for item in doc_items
+        if any(query in name for name in _topic_names(item))
+    ]
+    matched_item = matches[0] if len(matches) == 1 else None
 
     if matched_item:
         content = matched_item.path.read_text(encoding="utf-8")
@@ -333,7 +285,7 @@ def handle_docs(topic: str | None = None, no_pager: bool = False) -> None:
         return
 
     err_msg = f"Unknown documentation topic '{topic}'.\n\nAvailable topics:\n"
-    available = sorted(list(dict.fromkeys(item.aliases[0] for item in doc_items)))
+    available = [_primary_topic(item) for item in doc_items]
     err_msg += "  " + ", ".join(available) + "\n\n"
     err_msg += "Run 'quizml docs list' to view all topics, or 'quizml docs all' for full documentation.\n"
 
