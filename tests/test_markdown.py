@@ -196,3 +196,33 @@ def test_latex_template_graphicspath():
     assert r"\graphicspath{" in rendered_list
     assert "{figures/}" in rendered_list
     assert "{../shared-figures/}" in rendered_list
+
+
+def test_math_inline_tokenizer():
+    import mistletoe as mt
+
+    from quizml.markdown import extensions as mte
+    from quizml.markdown.markdown import _setup_mistletoe_tokens
+
+    _setup_mistletoe_tokens()
+
+    def get_inline_math(text):
+        doc = mt.Document(text)
+        p = doc.children[0]
+        return [t.content for t in p.children if isinstance(t, mte.MathInline)]
+
+    # 1. Non-greedy \(...\) does not merge equations
+    tokens = get_inline_math(r"Let \(a\) and \(b\) be reals.")
+    assert tokens == [r"\(a\)", r"\(b\)"]
+
+    # 2. Currency with digits does not trigger math
+    assert get_inline_math("It costs $5 and $10 today.") == []
+
+    # 3. Valid inline dollar math matches separately
+    assert get_inline_math("Here is $x$ and $y^2$.") == ["$x$", "$y^2$"]
+
+    # 4. Single character variable
+    assert get_inline_math("What about single char $a$?") == ["$a$"]
+
+    # 5. Escaped dollar signs do not trigger math
+    assert get_inline_math(r"Escaped \$5 and \$10") == []
