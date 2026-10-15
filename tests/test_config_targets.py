@@ -117,3 +117,55 @@ def test_get_target_list_circular_dependency(mock_dependencies):
     with pytest.raises(QuizMLConfigError, match="Circular dependency"):
         get_target_list(args, config, yaml_data)
 
+
+def test_get_target_list_with_list_dep(mock_dependencies):
+    args = MagicMock()
+    args.target = ["t1"]
+    args.yaml_filename = "quizzes/final.yaml"
+
+    config = {
+        "yaml_filename": "quizzes/final.yaml",
+        "targets": [
+            {
+                "name": "t1",
+                "template": "t1.jinja",
+                "descr": "Target 1",
+                "dep": ["t2", "t3"],
+                "out": "${inputdir}/${inputstem}.t1",
+            },
+            {"name": "t2", "template": "t2.jinja", "descr": "Target 2"},
+            {"name": "t3", "template": "t3.jinja", "descr": "Target 3"},
+        ],
+    }
+    yaml_data = {"header": {}}
+
+    targets = get_target_list(args, config, yaml_data)
+    names = [t["name"] for t in targets]
+    assert "t2" in names
+    assert "t3" in names
+    assert names[-1] == "t1"
+    assert targets[-1]["out"] == "quizzes/final.t1"
+
+
+def test_get_target_list_safe_substitute(mock_dependencies):
+    args = MagicMock()
+    args.target = ["cmd_target"]
+    args.yaml_filename = "quiz.yaml"
+
+    config = {
+        "yaml_filename": "quiz.yaml",
+        "targets": [
+            {
+                "name": "cmd_target",
+                "descr": "Command",
+                "build_cmd": "latexmk -outdir=$HOME/out ${inputbasename}.tex",
+            }
+        ],
+    }
+    yaml_data = {"header": {}}
+
+    targets = get_target_list(args, config, yaml_data)
+    assert len(targets) == 1
+    assert targets[0]["build_cmd"] == "latexmk -outdir=$HOME/out quiz.tex"
+
+

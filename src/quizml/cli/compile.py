@@ -159,11 +159,14 @@ def compile(args):
     targets_output = []
     targets_quiet_output = []
     success_list = {}
+    all_success = True
 
     for _i, target in enumerate(target_list):
         # skipping build target if build option is not on
         if ("build_cmd" in target) and not (args.build or args.target):
             continue
+
+        success = False
 
         # a build target (eg. compile pdf of generated latex) a build
         # target only requires the execution of an external command,
@@ -172,16 +175,21 @@ def compile(args):
         if ("build_cmd" in target) and (args.build or args.target):
             # need to check if there is a dependency,
             # and if this dependency compiled successfully
+            deps = target.get("dep")
+            if not deps:
+                dep_ok = True
+            elif isinstance(deps, list):
+                dep_ok = all(success_list.get(d, False) for d in deps)
+            else:
+                dep_ok = success_list.get(deps, False)
 
-            if ("dep" not in target) or (
-                "dep" in target and success_list.get(target["dep"], False)
-            ):
+            if dep_ok:
                 success = compile_cmd_target(target)
             else:
                 success = False
 
         # a template task that needs to be rendered
-        if "template" in target:
+        elif "template" in target:
             success = compile_target(target, transcoder, extra_context)
 
         success_list[target["name"]] = success

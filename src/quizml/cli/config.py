@@ -118,8 +118,14 @@ def get_target_list(args, config, yaml_data):
     """
 
     (basename, _) = os.path.splitext(config["yaml_filename"])
+    inputstem = pathlib.Path(config["yaml_filename"]).stem
+    inputdir = os.path.dirname(config["yaml_filename"]) or "."
 
-    subs = {"inputbasename": basename}
+    subs = {
+        "inputbasename": basename,
+        "inputstem": inputstem,
+        "inputdir": inputdir,
+    }
     filenames_to_resolve = ["template", "html_css", "html_pre", "latex_pre"]
     files_to_read_now = ["html_css", "html_pre", "latex_pre"]
 
@@ -146,9 +152,17 @@ def get_target_list(args, config, yaml_data):
     for t in ordered_targets:
         target = {}
 
-        # resolves $inputbasename
+        # resolves $inputbasename, $inputstem, $inputdir safely
         for key, val in t.items():
-            target[key] = Template(val).substitute(subs)
+            if isinstance(val, str):
+                target[key] = Template(val).safe_substitute(subs)
+            elif isinstance(val, list):
+                target[key] = [
+                    Template(v).safe_substitute(subs) if isinstance(v, str) else v
+                    for v in val
+                ]
+            else:
+                target[key] = val
 
         # resolves relative path for all files
         for key in filenames_to_resolve:
