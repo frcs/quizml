@@ -1,4 +1,3 @@
-import curses
 import io
 import os
 import re
@@ -260,160 +259,6 @@ def page_content(renderable, console: Console | None = None) -> None:
         pass
 
 
-def run_interactive_browser(
-    doc_items: list[DocItem], docs_dir: Path, console: Console
-) -> None:
-    """Launches a full-screen interactive topic browser using curses."""
-    entries: list[dict] = []
-
-    # 1. Doc items
-    for item in doc_items:
-        entries.append(
-            {
-                "category": item.category,
-                "title": item.title,
-                "path": item.path,
-            }
-        )
-
-    # 3. Full Guide
-    entries.append(
-        {
-            "category": "Reference",
-            "title": "Complete Documentation Guide (All)",
-            "path": None,
-        }
-    )
-
-    def _menu(stdscr) -> None:
-        curses.curs_set(0)
-        stdscr.keypad(True)
-        try:
-            curses.use_default_colors()
-        except curses.error:
-            pass
-
-        has_color = curses.has_colors()
-        if has_color:
-            try:
-                curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)  # Selected
-                curses.init_pair(2, curses.COLOR_CYAN, -1)  # Category
-                curses.init_pair(3, curses.COLOR_WHITE, -1)  # Normal
-                curses.init_pair(4, curses.COLOR_YELLOW, -1)  # Header help
-            except curses.error:
-                pass
-
-        selected = 0
-        top_line = 0
-
-        while True:
-            stdscr.clear()
-            h, w = stdscr.getmaxyx()
-            if h < 6 or w < 20:
-                stdscr.addstr(0, 0, "Window too small")
-                stdscr.refresh()
-                key = stdscr.getch()
-                if key in (ord("q"), ord("Q"), 27):
-                    break
-                continue
-
-            # Header
-            title = "QuizML Documentation Browser"
-            stdscr.addstr(
-                0, max(0, (w - len(title)) // 2), title[: w - 1], curses.A_BOLD
-            )
-            help_line = "↑/↓, j/k: Navigate | Enter: Read | q: Quit"
-            attr_help = curses.color_pair(4) if has_color else curses.A_DIM
-            stdscr.addstr(
-                1, max(0, (w - len(help_line)) // 2), help_line[: w - 1], attr_help
-            )
-
-            try:
-                stdscr.hline(2, 0, curses.ACS_HLINE, w)
-            except curses.error:
-                pass
-
-            available_rows = h - 4
-            if selected < top_line:
-                top_line = selected
-            elif selected >= top_line + available_rows:
-                top_line = selected - available_rows + 1
-
-            for i in range(top_line, min(len(entries), top_line + available_rows)):
-                row = 3 + (i - top_line)
-                entry = entries[i]
-                is_sel = i == selected
-
-                prefix = " ▸ " if is_sel else "   "
-                cat_tag = f"[{entry['category']}] "
-                text = f"{prefix}{cat_tag}{entry['title']}"
-                text = text[: w - 1].ljust(w - 1)
-
-                if is_sel:
-                    attr = (
-                        curses.color_pair(1) | curses.A_BOLD
-                        if has_color
-                        else curses.A_REVERSE
-                    )
-                else:
-                    attr = curses.color_pair(3) if has_color else curses.A_NORMAL
-
-                try:
-                    stdscr.addstr(row, 0, text, attr)
-                except curses.error:
-                    pass
-
-            # Footer
-            footer = f" Topic {selected + 1} of {len(entries)} "
-            try:
-                stdscr.addstr(h - 1, 0, footer[: w - 1], curses.A_DIM)
-            except curses.error:
-                pass
-
-            stdscr.refresh()
-
-            key = stdscr.getch()
-
-            if key in (curses.KEY_UP, ord("k"), ord("K")):
-                selected = (selected - 1) % len(entries)
-            elif key in (curses.KEY_DOWN, ord("j"), ord("J")):
-                selected = (selected + 1) % len(entries)
-            elif key == curses.KEY_PPAGE:
-                selected = max(0, selected - available_rows)
-            elif key == curses.KEY_NPAGE:
-                selected = min(len(entries) - 1, selected + available_rows)
-            elif key in (curses.KEY_HOME, ord("g")):
-                selected = 0
-            elif key in (curses.KEY_END, ord("G")):
-                selected = len(entries) - 1
-            elif key in (ord("q"), ord("Q"), 27):
-                break
-            elif key in (curses.KEY_ENTER, 10, 13):
-                target_entry = entries[selected]
-                if target_entry["path"] is not None:
-                    content = target_entry["path"].read_text(encoding="utf-8")
-                else:
-                    content = get_full_documentation(doc_items)
-
-                curses.def_prog_mode()
-                curses.endwin()
-                try:
-                    page_content(Markdown(content), console)
-                finally:
-                    curses.reset_prog_mode()
-                    stdscr.clear()
-                    stdscr.refresh()
-
-    try:
-        curses.wrapper(_menu)
-    except curses.error:
-        # Fallback if curses fails to initialize
-        readme_path = docs_dir / "README.md"
-        if readme_path.is_file():
-            console.print(Markdown(readme_path.read_text(encoding="utf-8")))
-            console.print("\n---\n")
-        print_topics_table(doc_items, console)
-
 
 def handle_docs(topic: str | None = None, no_pager: bool = False) -> None:
     """CLI entry point for displaying documentation."""
@@ -458,15 +303,11 @@ def handle_docs(topic: str | None = None, no_pager: bool = False) -> None:
             sys.stdout.write(full_doc + "\n")
             return
 
-        if no_pager or not sys.stdin.isatty():
-            readme_path = docs_dir / "README.md"
-            if readme_path.is_file():
-                console.print(Markdown(readme_path.read_text(encoding="utf-8")))
-                console.print("\n---\n")
-            print_topics_table(doc_items, console)
-            return
-
-        run_interactive_browser(doc_items, docs_dir, console)
+        readme_path = docs_dir / "README.md"
+        if readme_path.is_file():
+            console.print(Markdown(readme_path.read_text(encoding="utf-8")))
+            console.print("\n---\n")
+        print_topics_table(doc_items, console)
         return
 
     matched_item = topic_map.get(query)
