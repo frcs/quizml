@@ -38,3 +38,7 @@ jobs:
       - name: Run Ruff Linter
         run: |
           uv run ruff check
+
+      - name: Check Ruff Formatting
+        run: |
+          uv run ruff format --check src tests

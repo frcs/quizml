@@ -65,7 +65,9 @@ def cleanup_yaml_files(directory_path=".", dry_run=False, target_stems=None):
         yaml_stems = set(target_stems)
     else:
         yaml_stems = {
-            p.stem for p in dir_path.iterdir() if p.is_file() and p.suffix in (".yaml", ".yml")
+            p.stem
+            for p in dir_path.iterdir()
+            if p.is_file() and p.suffix in (".yaml", ".yml")
         }
     err_console.print(f"Found {len(yaml_stems)} unique YAML stems to check.")
 

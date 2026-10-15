@@ -203,6 +203,8 @@ def get_SVG_info(data):
     elif vb_h is not None:
         h = vb_h
     else:
-        raise MarkdownImageError("can't read SVG dimensions: missing height and viewBox")
+        raise MarkdownImageError(
+            "can't read SVG dimensions: missing height and viewBox"
+        )
 
     return round(w), round(h)

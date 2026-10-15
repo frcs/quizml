@@ -16,17 +16,20 @@ def create_mock_inline(content):
     mock_match.group.return_value = content
     return MathInline(mock_match)
 
+
 def create_mock_display(content):
     """Creates a MathDisplay token using a list of lines."""
     # The real MathDisplay.__init__ takes a list of strings
     return MathDisplay([content])
 
 
-@patch('quizml.markdown.html_renderer.save_to_cache')
-@patch('quizml.markdown.html_renderer.get_from_cache')
-@patch('quizml.markdown.html_renderer.embed_base64')
-@patch('quizml.markdown.html_renderer.LatexRunner')
-def test_build_eq_dict_png_success(MockLatexRunner, mock_embed_base64, mock_get_from_cache, mock_save_to_cache):
+@patch("quizml.markdown.html_renderer.save_to_cache")
+@patch("quizml.markdown.html_renderer.get_from_cache")
+@patch("quizml.markdown.html_renderer.embed_base64")
+@patch("quizml.markdown.html_renderer.LatexRunner")
+def test_build_eq_dict_png_success(
+    MockLatexRunner, mock_embed_base64, mock_get_from_cache, mock_save_to_cache
+):
     """
     Tests that build_eq_dict_PNG successfully generates an image dictionary
     by mocking the external pdflatex and gs commands.
@@ -36,8 +39,14 @@ def test_build_eq_dict_png_success(MockLatexRunner, mock_embed_base64, mock_get_
 
     # 1. Setup Mocks
     mock_latex_runner_instance = MockLatexRunner.return_value.__enter__.return_value
-    mock_latex_runner_instance.run_pdflatex.return_value = (Path("/tmp/fake.pdf"), [0.5, 0.0])
-    mock_latex_runner_instance.run_gs_png.return_value = [Path("/tmp/img1.png"), Path("/tmp/img2.png")]
+    mock_latex_runner_instance.run_pdflatex.return_value = (
+        Path("/tmp/fake.pdf"),
+        [0.5, 0.0],
+    )
+    mock_latex_runner_instance.run_gs_png.return_value = [
+        Path("/tmp/img1.png"),
+        Path("/tmp/img2.png"),
+    ]
 
     mock_embed_base64.side_effect = [
         (100, 50, "data:image/png;base64,inline_fake_data"),
@@ -59,7 +68,9 @@ def test_build_eq_dict_png_success(MockLatexRunner, mock_embed_base64, mock_get_
     mock_latex_runner_instance.run_pdflatex.assert_called_once()
     latex_content = mock_latex_runner_instance.run_pdflatex.call_args[0][0]
     assert r"\setbox0=\hbox{$E=mc^2$}" in latex_content
-    assert r"\begin{standalone}$$\int_0^\infty x^2 dx$$\end{standalone}" in latex_content
+    assert (
+        r"\begin{standalone}$$\int_0^\infty x^2 dx$$\end{standalone}" in latex_content
+    )
 
     mock_latex_runner_instance.run_gs_png.assert_called_once_with(Path("/tmp/fake.pdf"))
 
@@ -68,7 +79,7 @@ def test_build_eq_dict_png_success(MockLatexRunner, mock_embed_base64, mock_get_
     mock_embed_base64.assert_any_call(Path("/tmp/img2.png"))
 
     assert len(eq_dict) == 2
-    
+
     # Robust assertions checking for key parts of the generated HTML
     inline_html = eq_dict["##Inline##" + r"$E=mc^2$"]
     assert "src='data:image/png;base64,inline_fake_data'" in inline_html
@@ -84,8 +95,8 @@ def test_build_eq_dict_png_success(MockLatexRunner, mock_embed_base64, mock_get_
     assert "height='40'" in display_html
 
 
-@patch('quizml.markdown.html_renderer.get_from_cache')
-@patch('quizml.markdown.html_renderer.LatexRunner')
+@patch("quizml.markdown.html_renderer.get_from_cache")
+@patch("quizml.markdown.html_renderer.LatexRunner")
 def test_build_eq_dict_png_latex_error(MockLatexRunner, mock_get_from_cache):
     """
     Tests that build_eq_dict_PNG properly propagates a LatexCompilationError
@@ -96,7 +107,9 @@ def test_build_eq_dict_png_latex_error(MockLatexRunner, mock_get_from_cache):
 
     # 1. Setup Mock
     mock_latex_runner_instance = MockLatexRunner.return_value.__enter__.return_value
-    mock_latex_runner_instance.run_pdflatex.side_effect = LatexCompilationError("LaTeX failed!")
+    mock_latex_runner_instance.run_pdflatex.side_effect = LatexCompilationError(
+        "LaTeX failed!"
+    )
 
     # 2. Test Data
     eq_list = [create_mock_inline(r"$E=mc^2$")]
@@ -119,7 +132,10 @@ def test_build_eq_dict_png_count_mismatch(MockLatexRunner, mock_cache):
     mock_latex.run_gs_png.return_value = [Path("/tmp/img1.png")]
 
     eq_list = [create_mock_inline(r"$x$"), create_mock_inline(r"$y$")]
-    with pytest.raises(LatexCompilationError, match="Mismatch between number of equations and compiled PNG"):
+    with pytest.raises(
+        LatexCompilationError,
+        match="Mismatch between number of equations and compiled PNG",
+    ):
         build_eq_dict_PNG(eq_list, {})
 
 
@@ -134,7 +150,10 @@ def test_build_eq_dict_svg_count_mismatch(MockLatexRunner, mock_cache):
     mock_latex.run_dvisvgm_svg.return_value = [Path("/tmp/img1.svg")]
 
     eq_list = [create_mock_inline(r"$x$"), create_mock_inline(r"$y$")]
-    with pytest.raises(LatexCompilationError, match="Mismatch between number of equations and compiled SVG"):
+    with pytest.raises(
+        LatexCompilationError,
+        match="Mismatch between number of equations and compiled SVG",
+    ):
         build_eq_dict_SVG(eq_list, {})
 
 
@@ -181,5 +200,3 @@ def test_render_image_with_width():
         # 5. Invalid width raises MarkdownAttributeError
         with pytest.raises(MarkdownAttributeError, match="Sorry, bad width attr"):
             renderer.render_image_with_width(make_token("auto"))
-
-

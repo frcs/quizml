@@ -137,7 +137,9 @@ def get_latex_dict(ast_dict, base_dir=None, search_dirs=None):
     Renders LaTeX for markdown entries from discrete AST documents.
     """
     md_dict = {}
-    with QuizMLYamlLaTeXRenderer(base_dir=base_dir, search_dirs=search_dirs) as renderer:
+    with QuizMLYamlLaTeXRenderer(
+        base_dir=base_dir, search_dirs=search_dirs
+    ) as renderer:
         for txt, doc in ast_dict.items():
             latex_content = renderer.render(doc)
             latex_content = latex_content.replace("\\includesvg", "\\includegraphics")

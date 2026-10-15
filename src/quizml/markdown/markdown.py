@@ -82,7 +82,9 @@ class MarkdownTranscoder:
             if os.path.isabs(p):
                 self.search_dirs.append(os.path.normpath(p))
             elif self.base_dir:
-                self.search_dirs.append(os.path.normpath(os.path.join(self.base_dir, p)))
+                self.search_dirs.append(
+                    os.path.normpath(os.path.join(self.base_dir, p))
+                )
             else:
                 self.search_dirs.append(os.path.normpath(os.path.abspath(p)))
 
@@ -91,7 +93,7 @@ class MarkdownTranscoder:
 
         # read yaml_data and collect all MD entries into a single list
         self.md_list = get_md_list_from_yaml(yaml_data)
-        
+
         if not self.md_list:
             self.ast_dict = {}
             return
@@ -120,7 +122,7 @@ class MarkdownTranscoder:
 
         if opts is None:
             opts = {}
-            
+
         html_pre = opts.get("html_pre", "")
         html_css = opts.get("html_css", "")
         key = opts.get("fmt", "html") + ":PRE:" + html_pre + "CSS:" + html_css
@@ -149,7 +151,7 @@ class MarkdownTranscoder:
 
         if opts is None:
             opts = {}
-        
+
         key = opts.get("fmt", "latex")
         if key in self.cache_dict:
             return self.cache_dict[key]
@@ -172,7 +174,7 @@ class MarkdownTranscoder:
 
         if opts is None:
             opts = {}
-        
+
         if opts["fmt"].startswith("html"):
             return self.html_dict(opts)
         elif opts["fmt"] == "latex":

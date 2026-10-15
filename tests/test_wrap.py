@@ -25,7 +25,9 @@ title: Test
         encoding="utf-8",
     )
 
-    monkeypatch.setattr(sys, "argv", ["quizml", "--format", "--wrap", "74", str(yaml_file)])
+    monkeypatch.setattr(
+        sys, "argv", ["quizml", "--format", "--wrap", "74", str(yaml_file)]
+    )
     main()
 
     new_txt = yaml_file.read_text(encoding="utf-8")
@@ -41,7 +43,10 @@ title: Test
             assert len(line) <= 90
 
     # Check that list indent was preserved
-    assert "- This is a list item that is also very very very very very very very very" in new_txt
+    assert (
+        "- This is a list item that is also very very very very very very very very"
+        in new_txt
+    )
     assert "  long and should be wrapped carefully to preserve indentation." in new_txt
 
 
@@ -80,4 +85,3 @@ def test_wrap_markdown_semantics_preservation():
     # 3. Hard line break (ending with two spaces) is preserved
     res_hardbreak = wrap_markdown("Line one  \nhard break", 74)
     assert res_hardbreak == "Line one  \nhard break"
-

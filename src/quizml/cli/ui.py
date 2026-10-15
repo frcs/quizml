@@ -48,7 +48,7 @@ def print_target_list(args):
         config = get_config(args)
     except QuizMLConfigError as err:
         print_error(str(err), title="QuizML Config Error")
-        return
+        return False
 
     table = Table(
         box=box.SIMPLE, collapse_padding=True, show_footer=False, show_header=False
@@ -61,6 +61,7 @@ def print_target_list(args):
         table.add_row(t["name"], t["descr"])
 
     print(table)
+    return True
 
 
 def print_stats_table(quiz, config):

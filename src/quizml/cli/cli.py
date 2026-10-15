@@ -60,7 +60,9 @@ def main():
         action="store_true",
     )
 
-    default_config_dir = platformdirs.user_config_dir(appname="quizml", appauthor="frcs")
+    default_config_dir = platformdirs.user_config_dir(
+        appname="quizml", appauthor="frcs"
+    )
 
     parser.add_argument(
         "-t",
@@ -184,7 +186,8 @@ def main():
         if args.target_list:
             import quizml.cli.ui
 
-            quizml.cli.ui.print_target_list(args)
+            if quizml.cli.ui.print_target_list(args) is False:
+                sys.exit(1)
             return
 
         if args.info:
@@ -254,13 +257,15 @@ def main():
         if args.init_user:
             import quizml.cli.init
 
-            quizml.cli.init.init_user()
+            if quizml.cli.init.init_user() is False:
+                sys.exit(1)
             return
 
         if args.init_local:
             import quizml.cli.init
 
-            quizml.cli.init.init_local()
+            if quizml.cli.init.init_local() is False:
+                sys.exit(1)
             return
 
         if not args.yaml_filename:

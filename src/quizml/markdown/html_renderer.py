@@ -443,9 +443,13 @@ class QuizMLYamlHTMLRenderer(HTMLRenderer):
 
         linewidth_match = re.match(r"^(\d*\.?\d*)\s*\\linewidth$", width_attr_str)
         if linewidth_match:
-            factor = float(linewidth_match.group(1)) if linewidth_match.group(1) else 1.0
+            factor = (
+                float(linewidth_match.group(1)) if linewidth_match.group(1) else 1.0
+            )
             css_width = f"{factor * 100:.4g}%"
-        elif re.match(r"^\d*\.?\d+\s*(?:%|px|cm|mm|in|pt|pc|em|rem|vw|vh)$", width_attr_str):
+        elif re.match(
+            r"^\d*\.?\d+\s*(?:%|px|cm|mm|in|pt|pc|em|rem|vw|vh)$", width_attr_str
+        ):
             css_width = width_attr_str
         elif re.match(r"^\d+$", width_attr_str):
             css_width = f"{width_attr_str}px"
@@ -500,7 +504,13 @@ def inline_css(html_content, opts):
 
     css = css.replace("\n", " ").replace("\t", "  ")
 
-    html_payload = "<html><head><style>" + css + "</style></head><body>" + html_content + "</body></html>"
+    html_payload = (
+        "<html><head><style>"
+        + css
+        + "</style></head><body>"
+        + html_content
+        + "</body></html>"
+    )
     out = css_inline.inline(html_payload)
     soup = BeautifulSoup(out, "html.parser")
     return soup.body.decode_contents() if soup.body else out

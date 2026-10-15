@@ -28,7 +28,7 @@ def get_config(args):
 
     try:
         with open(config_file, encoding="utf-8") as f:
-            yaml = YAML(typ='safe')
+            yaml = YAML(typ="safe")
             config = yaml.load(f)
     except YAMLError as err:
         s = f"Something went wrong while parsing the config file at:\n {config_file}\n\n {str(err)}"
@@ -97,7 +97,9 @@ def sort_targets_topologically(targets, required_names=None):
         ts = TopologicalSorter(graph)
         sorted_names = list(ts.static_order())
     except CycleError as err:
-        raise QuizMLConfigError(f"Circular dependency detected among targets: {err}") from err
+        raise QuizMLConfigError(
+            f"Circular dependency detected among targets: {err}"
+        ) from err
 
     ordered = [target_by_name[n] for n in sorted_names if n in target_by_name]
 
@@ -144,7 +146,8 @@ def get_target_list(args, config, yaml_data):
         logging.info(f"required target list:{required_target_names_set}")
 
     ordered_targets = sort_targets_topologically(
-        config["targets"], required_target_names_set if required_target_names_set else None
+        config["targets"],
+        required_target_names_set if required_target_names_set else None,
     )
 
     target_list = []

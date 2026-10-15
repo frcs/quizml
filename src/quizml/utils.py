@@ -1,6 +1,5 @@
 "a few utility functions to deal with QuizMLYaml objects."
 
-
 import os
 import textwrap
 
@@ -56,10 +55,12 @@ class MarkdownString(str):
     """
     A string subclass to tag values that should be treated as Markdown.
     """
+
     pass
 
 
 # --- Schema Helpers ---
+
 
 def apply_conditions(data, current_schema):
     """
@@ -67,6 +68,7 @@ def apply_conditions(data, current_schema):
     Handles root if/then/else and those inside allOf/anyOf/oneOf.
     Returns the specific sub-schema to apply, or the original if no condition matches.
     """
+
     # Helper to check a condition
     def check_condition(cond_schema):
         if "properties" in cond_schema:
@@ -90,7 +92,7 @@ def apply_conditions(data, current_schema):
                 if "if" in sub_schema:
                     if check_condition(sub_schema["if"]):
                         return sub_schema.get("then", {})
-    
+
     return current_schema
 
 
@@ -107,6 +109,7 @@ def is_format_markdown(schema_node):
 
 
 # --- Coercion Logic ---
+
 
 def coerce_value(value, schema):
     """
@@ -128,21 +131,21 @@ def coerce_value(value, schema):
                 return True
             if value.lower() in ["false", "no", "off"]:
                 return False
-    
+
     if "integer" in types:
         if isinstance(value, str):
             try:
                 return int(value)
             except ValueError:
                 pass
-    
+
     if "number" in types:
         if isinstance(value, str):
             try:
                 return float(value)
             except ValueError:
                 pass
-                
+
     return value
 
 
@@ -151,7 +154,7 @@ def coerce_data(yaml_data, schema):
     Traverses the yaml_data (specifically questions) and coerces types
     (int, float, bool, MarkdownString) based on the provided schema.
     """
-    
+
     def coerce_recursive(data, current_schema):
         if not current_schema:
             return data
@@ -173,17 +176,18 @@ def coerce_data(yaml_data, schema):
             for item in data:
                 new_list.append(coerce_recursive(item, items_schema))
             return new_list
-        
+
         else:
             return coerce_value(data, current_schema)
 
     if isinstance(yaml_data, dict) and "questions" in yaml_data and schema:
         yaml_data["questions"] = coerce_recursive(yaml_data["questions"], schema)
-    
+
     return yaml_data
 
 
 # --- Markdown Processing ---
+
 
 def get_md_list_from_yaml(yaml_data):
     """
@@ -196,12 +200,14 @@ def get_md_list_from_yaml(yaml_data):
         non_md_keys = ["type", "inputbasename"]
         return (key not in non_md_keys) and not key.startswith("_")
 
-    if isinstance(yaml_data, dict) and ("header" in yaml_data or "questions" in yaml_data):
+    if isinstance(yaml_data, dict) and (
+        "header" in yaml_data or "questions" in yaml_data
+    ):
         if "header" in yaml_data:
             for node in iter_nodes(yaml_data["header"], header_key_filter):
                 if isinstance(node, str):
                     md_list.append(str(node))
-        
+
         if "questions" in yaml_data:
             for node in iter_nodes(yaml_data["questions"]):
                 if isinstance(node, MarkdownString):
@@ -224,16 +230,18 @@ def transcode_md_in_yaml(yaml_data, md_dict):
         if isinstance(node, MarkdownString) and node in md_dict:
             return md_dict[node]
         return node
-    
+
     def transform_header(node):
         if isinstance(node, str) and node in md_dict:
             return md_dict[node]
         return node
-        
+
     def header_key_filter(key):
         return key != "inputbasename" and not key.startswith("_")
 
-    if isinstance(yaml_data, dict) and ("header" in yaml_data or "questions" in yaml_data):
+    if isinstance(yaml_data, dict) and (
+        "header" in yaml_data or "questions" in yaml_data
+    ):
         new_doc = {}
         for k, v in yaml_data.items():
             if k == "header":

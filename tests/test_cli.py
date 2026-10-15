@@ -1,4 +1,3 @@
-
 import sys
 from unittest.mock import patch
 
@@ -7,15 +6,16 @@ import pytest
 from quizml.cli.cli import main
 
 
-@patch('quizml.cli.ui.print_target_list')
+@patch("quizml.cli.ui.print_target_list")
 def test_target_list(mock_print_target_list):
-    with patch.object(sys, 'argv', ['quizml', '--target-list']):
+    with patch.object(sys, "argv", ["quizml", "--target-list"]):
         main()
     mock_print_target_list.assert_called_once()
 
-@patch('quizml.cli.cleanup.cleanup_yaml_files')
+
+@patch("quizml.cli.cleanup.cleanup_yaml_files")
 def test_cleanup(mock_cleanup):
-    with patch.object(sys, 'argv', ['quizml', '--cleanup']):
+    with patch.object(sys, "argv", ["quizml", "--cleanup"]):
         main()
     mock_cleanup.assert_called_once()
 
@@ -83,39 +83,44 @@ def test_cleanup_specific_target_stem(tmp_path):
     assert (tmp_path / "exam2.html").exists()
 
 
-@patch('quizml.cli.init.init_local')
+@patch("quizml.cli.init.init_local")
 def test_init_local(mock_init_local):
-    with patch.object(sys, 'argv', ['quizml', '--init-local']):
+    with patch.object(sys, "argv", ["quizml", "--init-local"]):
         main()
     mock_init_local.assert_called_once()
 
-@patch('quizml.cli.init.init_user')
+
+@patch("quizml.cli.init.init_user")
 def test_init_user(mock_init_user):
-    with patch.object(sys, 'argv', ['quizml', '--init-user']):
+    with patch.object(sys, "argv", ["quizml", "--init-user"]):
         main()
     mock_init_user.assert_called_once()
 
-@patch('sys.stdout.write')
+
+@patch("sys.stdout.write")
 def test_shell_completion(mock_write):
-    with patch.object(sys, 'argv', ['quizml', '--shell-completion', 'bash']):
+    with patch.object(sys, "argv", ["quizml", "--shell-completion", "bash"]):
         main()
     mock_write.assert_called()
 
+
 def test_missing_yaml_file(capsys):
-    with patch.object(sys, 'argv', ['quizml']):
+    with patch.object(sys, "argv", ["quizml"]):
         with pytest.raises(SystemExit) as e:
             main()
-        assert e.value.code == 2 # argparse error code
+        assert e.value.code == 2  # argparse error code
 
-@patch('quizml.cli.compile.compile')
+
+@patch("quizml.cli.compile.compile")
 def test_compile_default(mock_compile):
-    with patch.object(sys, 'argv', ['quizml', 'test.yaml']):
+    with patch.object(sys, "argv", ["quizml", "test.yaml"]):
         main()
     mock_compile.assert_called_once()
 
-@patch('quizml.cli.diff.diff')
+
+@patch("quizml.cli.diff.diff")
 def test_diff_command(mock_diff):
-    with patch.object(sys, 'argv', ['quizml', '--diff', 'test1.yaml', 'test2.yaml']):
+    with patch.object(sys, "argv", ["quizml", "--diff", "test1.yaml", "test2.yaml"]):
         main()
     mock_diff.assert_called_once()
 
@@ -132,33 +137,36 @@ def test_diff_execution(tmp_path, capsys):
     f1.write_text(content)
     f2.write_text(content)
 
-    with patch.object(sys, 'argv', ['quizml', '--diff', str(f1), str(f2)]):
+    with patch.object(sys, "argv", ["quizml", "--diff", str(f1), str(f2)]):
         main()
 
     captured = capsys.readouterr()
     assert "Is this a test question?" in captured.out
     assert "tf" in captured.out
 
+
 def test_version(capsys):
-    with patch.object(sys, 'argv', ['quizml', '--version']):
+    with patch.object(sys, "argv", ["quizml", "--version"]):
         with pytest.raises(SystemExit):
             main()
     # verify output contains version? argparse usually prints to stdout/stderr
 
+
 def test_info_command(capsys):
     import json
-    with patch.object(sys, 'argv', ['quizml', '--info']):
+
+    with patch.object(sys, "argv", ["quizml", "--info"]):
         try:
             main()
         except SystemExit:
-            pass 
-        
+            pass
+
     captured = capsys.readouterr()
     output = captured.out
-    
+
     # Check if output is valid JSON
     data = json.loads(output)
-    
+
     expected_keys = [
         "version",
         "cwd",
@@ -167,9 +175,9 @@ def test_info_command(capsys):
         "user_templates",
         "package_templates",
         "search_paths",
-        "config_file"
+        "config_file",
     ]
-    
+
     for key in expected_keys:
         assert key in data
 
@@ -184,7 +192,11 @@ def test_compile_failure_exit_code_and_stderr(tmp_path, capsys):
         assert exc_info.value.code == 1
 
     captured = capsys.readouterr()
-    assert "Schema Error" in captured.err or "QuizML Error" in captured.err or len(captured.err) > 0
+    assert (
+        "Schema Error" in captured.err
+        or "QuizML Error" in captured.err
+        or len(captured.err) > 0
+    )
     assert captured.out == ""
 
 
@@ -207,8 +219,42 @@ def test_cleanup_missing_dir_exit_code():
 
 
 def test_diff_missing_file_exit_code():
-    with patch.object(sys, "argv", ["quizml", "--diff", "f1_missing.yaml", "f2_missing.yaml"]):
+    with patch.object(
+        sys, "argv", ["quizml", "--diff", "f1_missing.yaml", "f2_missing.yaml"]
+    ):
         with pytest.raises(SystemExit) as exc_info:
             main()
         assert exc_info.value.code == 1
 
+
+def test_target_list_config_failure_exit_code_and_stderr(capsys):
+    from quizml.exceptions import QuizMLConfigError
+
+    with patch.object(sys, "argv", ["quizml", "--target-list"]):
+        with patch(
+            "quizml.cli.ui.get_config", side_effect=QuizMLConfigError("bad config")
+        ):
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+    assert exc_info.value.code == 1
+    captured = capsys.readouterr()
+    assert "bad config" in captured.err
+    assert captured.out == ""
+
+
+def test_init_copy_failure_exit_code_and_stderr(tmp_path, monkeypatch, capsys):
+    import quizml.cli.init as init_module
+
+    monkeypatch.chdir(tmp_path)
+    with patch.object(
+        init_module.shutil, "copytree", side_effect=OSError("permission denied")
+    ):
+        with patch.object(sys, "argv", ["quizml", "--init-local"]):
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+    assert exc_info.value.code == 1
+    captured = capsys.readouterr()
+    assert "permission denied" in captured.err
+    assert captured.out == ""

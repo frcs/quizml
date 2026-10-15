@@ -41,7 +41,7 @@ class MathDisplay(BlockToken):
             close_pattern = r"\]"
         elif envname:
             close_pattern = r"\end{" + envname + envstar + "}"
-            if close_pattern in stripped[match_obj.end():]:
+            if close_pattern in stripped[match_obj.end() :]:
                 return [first_line]
         else:
             return [first_line]

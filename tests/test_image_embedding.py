@@ -23,7 +23,9 @@ def test_embed_base64_jpeg():
 def test_embed_base64_svg(tmp_path):
     # 1. Standard width and height
     svg1 = tmp_path / "std.svg"
-    svg1.write_text('<svg width="200" height="100"><rect width="200" height="100"/></svg>')
+    svg1.write_text(
+        '<svg width="200" height="100"><rect width="200" height="100"/></svg>'
+    )
     w, h, data = embed_base64(str(svg1))
     assert w == 200
     assert h == 100
@@ -31,14 +33,18 @@ def test_embed_base64_svg(tmp_path):
 
     # 2. Inverted attributes (height before width)
     svg2 = tmp_path / "inverted.svg"
-    svg2.write_text('<svg height="80" width="160"><rect width="160" height="80"/></svg>')
+    svg2.write_text(
+        '<svg height="80" width="160"><rect width="160" height="80"/></svg>'
+    )
     w, h, data = embed_base64(str(svg2))
     assert w == 160
     assert h == 80
 
     # 3. ViewBox only (no width/height)
     svg3 = tmp_path / "viewbox.svg"
-    svg3.write_text('<svg viewBox="0 0 300 150"><circle cx="150" cy="75" r="50"/></svg>')
+    svg3.write_text(
+        '<svg viewBox="0 0 300 150"><circle cx="150" cy="75" r="50"/></svg>'
+    )
     w, h, data = embed_base64(str(svg3))
     assert w == 300
     assert h == 150
@@ -53,7 +59,9 @@ def test_embed_pdf_preserves_cwd_and_cleans_up():
     w, h, data64 = embed_pdf(str(demo_pdf))
     cwd_after = os.getcwd()
 
-    assert cwd_before == cwd_after, "embed_pdf must not modify process working directory"
+    assert cwd_before == cwd_after, (
+        "embed_pdf must not modify process working directory"
+    )
     assert w > 0
     assert h > 0
     assert data64.startswith("data:image/png;base64,")
@@ -81,9 +89,10 @@ def test_embed_base64_with_base_dir(tmp_path):
     sub_dir = tmp_path / "nested"
     sub_dir.mkdir()
     img_file = sub_dir / "diagram.png"
-    
+
     # Create a simple 10x10 PNG
     from PIL import Image
+
     im = Image.new("RGB", (10, 10), color="blue")
     im.save(str(img_file))
 
@@ -101,6 +110,7 @@ def test_embed_base64_with_search_dirs(tmp_path):
     quiz_dir.mkdir()
 
     from PIL import Image
+
     im = Image.new("RGB", (15, 20), color="red")
     im.save(str(shared_dir / "quiz-plot.png"))
 
@@ -131,4 +141,3 @@ def test_resolve_image_path_with_search_dirs(tmp_path):
         "regression.png", base_dir=str(quiz_dir), search_dirs=[str(shared_dir)]
     )
     assert resolved == "regression.png"
-

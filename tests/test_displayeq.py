@@ -33,35 +33,35 @@ def test_math_regex():
     """
 
     matches = list(re.finditer(regex, md_text, re.MULTILINE | re.DOTALL | re.VERBOSE))
-    
+
     assert len(matches) == 3
-    
+
     # Check $$ match
     assert "$$" in matches[0].group(0)
-    
+
     # Check $ match is NOT in this regex (Wait, the regex above checks for $${2} i.e. $$, what about single $?)
     # Looking at the regex: ((?<!\$)\${2}(?!\$)) matches $$.
     # It does NOT seem to match single $ inline math based on group 1.
     # But wait, let's re-read carefully.
-    
+
     # Actually, the regex seems to be targeting display math mainly or complex structures.
     # Group 1: $${2} -> $$
-    
+
     # Let's check what it actually matched in the original test output (implied)
     # The original file had matches = re.finditer(...)
-    
+
     # Let's see if it finds 'Inline: $x^2$'
     # The regex does NOT appear to have a group for single $.
     # So it should skip $x^2$.
-    
+
     # Let's verify what I captured.
     # 1. $$ ... $$
     # 2. \[ ... \]
     # 3. \begin{equation} ... \end{equation}
-    
+
     # Wait, my assertion `len(matches) == 4` might be wrong if it doesn't match single $.
     # Let's assume it matches the 3 display blocks.
-    
+
     count = 0
     for match in matches:
         if "$$" in match.group(0):
@@ -70,7 +70,7 @@ def test_math_regex():
             count += 1
         if "\\begin{equation}" in match.group(0):
             count += 1
-        
+
     assert count == 3
 
 
@@ -96,7 +96,9 @@ def test_math_display_token_parsing():
     assert doc2.children[1].children[0].content == "Paragraph text."
 
     # Interrupted paragraph with two single-line block equations
-    doc3 = mt.Document("Question text\n$$E=mc^2$$\nExplanation text\n$$\\alpha=5$$\nDone.")
+    doc3 = mt.Document(
+        "Question text\n$$E=mc^2$$\nExplanation text\n$$\\alpha=5$$\nDone."
+    )
     assert len(doc3.children) == 5
     assert isinstance(doc3.children[1], MathDisplay)
     assert isinstance(doc3.children[3], MathDisplay)

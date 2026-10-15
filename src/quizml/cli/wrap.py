@@ -9,20 +9,20 @@ def wrap_markdown(text, width=80):
         r"(?sm)\\\[.*?\\\]",
         r"(?sm)\\begin\{.*?\}.*?\\end\{.*?\}",
     ]
-    
+
     inline_patterns = [
-        r"(?s)\$.*?\$",          
-        r"(?s)\\\(.*?\\\)",      
-        r"(?s)!?\[.*?\]\(.*?\)", 
-        r"(?s)`.*?`",            
+        r"(?s)\$.*?\$",
+        r"(?s)\\\(.*?\\\)",
+        r"(?s)!?\[.*?\]\(.*?\)",
+        r"(?s)`.*?`",
     ]
 
     blocks = {}
     inlines = {}
-    
+
     block_counter = 0
     inline_counter = 0
-    
+
     def repl_block(m):
         nonlocal block_counter
         key = f"__BLOCK_{block_counter}__"
@@ -40,12 +40,12 @@ def wrap_markdown(text, width=80):
     temp_text = text
     for pat in block_patterns:
         temp_text = re.sub(pat, repl_block, temp_text)
-        
+
     # Split into paragraphs correctly
-    lines = temp_text.split('\n')
+    lines = temp_text.split("\n")
     paragraphs = []
     current_p = []
-    
+
     for line in lines:
         if re.match(r"^[ \t]*__BLOCK_\d+__[ \t]*$", line):
             if current_p:
@@ -65,22 +65,22 @@ def wrap_markdown(text, width=80):
             current_p.append(line)
     if current_p:
         paragraphs.append("\n".join(current_p))
-    
+
     wrapped_paragraphs = []
-    
+
     for p in paragraphs:
         if not p.strip():
             continue
-            
+
         if re.match(r"^[ \t]*__BLOCK_\d+__[ \t]*$", p):
             wrapped_paragraphs.append(p)
             continue
-            
+
         if "\n|" in p or p.lstrip().startswith("|"):
             wrapped_paragraphs.append(p)
             continue
-            
-        lines_p = p.split('\n')
+
+        lines_p = p.split("\n")
         first_line = lines_p[0]
         match = re.match(r"^([ \t]*(?:[-*+]|\d+\.)[ \t]+)", first_line)
         if match:
@@ -88,7 +88,7 @@ def wrap_markdown(text, width=80):
         else:
             match_indent = re.match(r"^([ \t]+)", first_line)
             subsequent_indent = match_indent.group(1) if match_indent else ""
-            
+
         p_temp = p
         for pat in inline_patterns:
             p_temp = re.sub(pat, repl_inline, p_temp)
@@ -138,13 +138,13 @@ def wrap_markdown(text, width=80):
             wrapped_segments.append("\n".join(wrapped_lines))
 
         wrapped_paragraphs.append("  \n".join(wrapped_segments))
-        
+
     final_text = "\n\n".join(wrapped_paragraphs)
-    
+
     for k, v in inlines.items():
         final_text = final_text.replace(k, v)
-        
+
     for k, v in blocks.items():
         final_text = final_text.replace(k, v)
-        
+
     return final_text
