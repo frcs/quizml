@@ -98,6 +98,30 @@ def escape_LaTeX(str_eq):
     return str_eq
 
 
+def _equation_key(eq):
+    kind = "Inline" if isinstance(eq, MathInline) else "Display"
+    return f"##{kind}##{eq.content}"
+
+
+def _cached_equations(eq_list, settings_str):
+    cached = {}
+    to_compile = []
+    for eq in eq_list:
+        rendered = get_from_cache(compute_hash(eq.content, settings_str))
+        if rendered:
+            cached[_equation_key(eq)] = rendered
+        else:
+            to_compile.append(eq)
+    return cached, to_compile
+
+
+def _store_equation(eq, settings_str, rendered, eq_dict):
+    kind = "inline" if isinstance(eq, MathInline) else "display"
+    logging.debug(f"[eq-{kind}] '{rendered}'")
+    eq_dict[_equation_key(eq)] = rendered
+    save_to_cache(compute_hash(eq.content, settings_str), rendered)
+
+
 def build_eq_dict_PNG(eq_list, opts):
     """returns a dictionary of images from a list of LaTeX equations.
 
@@ -107,11 +131,8 @@ def build_eq_dict_PNG(eq_list, opts):
     The PDF is then converted into PNG images using ghostscript (gs).
 
     """
-    eq_dict = {}
-
-    # if we don't have any equations, exit with empty dict
     if not eq_list:
-        return eq_list
+        return {}
 
     if "html_pre" in opts:
         template_latex_preamble = opts["html_pre"]
@@ -136,21 +157,7 @@ def build_eq_dict_PNG(eq_list, opts):
 
     # Check cache first
     settings_str = latex_preamble + "PNG"
-    to_compile = []
-
-    for eq in eq_list:
-        h = compute_hash(eq.content, settings_str)
-        cached_html = get_from_cache(h)
-
-        if isinstance(eq, MathInline):
-            key = "##Inline##" + eq.content
-        else:
-            key = "##Display##" + eq.content
-
-        if cached_html:
-            eq_dict[key] = cached_html
-        else:
-            to_compile.append(eq)
+    eq_dict, to_compile = _cached_equations(eq_list, settings_str)
 
     if not to_compile:
         return eq_dict
@@ -195,28 +202,19 @@ def build_eq_dict_PNG(eq_list, opts):
 
                 html_img = ""
                 if isinstance(eq, MathInline):
-                    key = "##Inline##" + eq.content
                     html_img = (
                         f"<img src='{data64}'"
                         f" alt='{escape_LaTeX(eq.content)}'"
                         f" width='{w_}' height='{h_}'"
                         f" style='vertical-align:{-d_}px;'>"
                     )
-                    logging.debug(f"[eq-inline] '{html_img}'")
-                    eq_dict[key] = html_img
                 else:
-                    key = "##Display##" + eq.content
                     html_img = (
                         f"<img src='{data64}'"
                         f" alt='{escape_LaTeX(eq.content)}'"
                         f" width='{w_}' height='{h_}'>"
                     )
-                    logging.debug(f"[eq-display] '{html_img}'")
-                    eq_dict[key] = html_img
-
-                # Save to cache
-                h = compute_hash(eq.content, settings_str)
-                save_to_cache(h, html_img)
+                _store_equation(eq, settings_str, html_img, eq_dict)
 
     except LatexCompilationError as e:
         # Re-raise to be caught by the CLI
@@ -233,10 +231,8 @@ def build_eq_dict_SVG(eq_list, opts):
 
     The DVI is then converted into SVG images using dvisvgm.
     """
-    eq_dict = {}
-
     if not eq_list:
-        return eq_list
+        return {}
 
     template_latex_preamble = opts.get(
         "html_pre",
@@ -255,20 +251,7 @@ def build_eq_dict_SVG(eq_list, opts):
     )
 
     settings_str = latex_preamble + "SVG"
-    to_compile = []
-
-    for eq in eq_list:
-        h = compute_hash(eq.content, settings_str)
-        cached_html = get_from_cache(h)
-        if isinstance(eq, MathInline):
-            key = "##Inline##" + eq.content
-        else:
-            key = "##Display##" + eq.content
-
-        if cached_html:
-            eq_dict[key] = cached_html
-        else:
-            to_compile.append(eq)
+    eq_dict, to_compile = _cached_equations(eq_list, settings_str)
 
     if not to_compile:
         return eq_dict
@@ -301,24 +284,11 @@ def build_eq_dict_SVG(eq_list, opts):
 
             for eq, svg_file in zip(to_compile, svg_files, strict=True):
                 _, _, data64 = embed_base64(svg_file)
-                alt_text = escape_LaTeX(eq.content)
-                style = "vertical-align:middle;"
-
-                html_img = ""
-                if isinstance(eq, MathInline):
-                    key = "##Inline##" + eq.content
-                    html_img = f"<img src='{data64}' alt='{alt_text}' style='{style}'>"
-                    logging.debug(f"[eq-inline] '{html_img}'")
-                    eq_dict[key] = html_img
-                else:
-                    key = "##Display##" + eq.content
-                    html_img = f"<img src='{data64}' alt='{alt_text}' style='{style}'>"
-                    logging.debug(f"[eq-display] '{html_img}'")
-                    eq_dict[key] = html_img
-
-                # Save cache
-                h = compute_hash(eq.content, settings_str)
-                save_to_cache(h, html_img)
+                html_img = (
+                    f"<img src='{data64}' alt='{escape_LaTeX(eq.content)}' "
+                    "style='vertical-align:middle;'>"
+                )
+                _store_equation(eq, settings_str, html_img, eq_dict)
 
     except LatexCompilationError as e:
         raise e
@@ -331,10 +301,8 @@ def build_eq_dict_MathML(eq_list, opts):
 
     LaTeX equations are compiled into MATHML using make4ht.
     """
-    eq_dict = {}
-
     if not eq_list:
-        return eq_list
+        return {}
 
     template_latex_preamble = opts.get("html_pre", "\\usepackage{amsmath}\n")
     user_latex_preamble = opts.get("user_pre", "")
@@ -347,20 +315,7 @@ def build_eq_dict_MathML(eq_list, opts):
     )
 
     settings_str = latex_preamble + "MathML"
-    to_compile = []
-
-    for eq in eq_list:
-        h = compute_hash(eq.content, settings_str)
-        cached_html = get_from_cache(h)
-        if isinstance(eq, MathInline):
-            key = "##Inline##" + eq.content
-        else:
-            key = "##Display##" + eq.content
-
-        if cached_html:
-            eq_dict[key] = cached_html
-        else:
-            to_compile.append(eq)
+    eq_dict, to_compile = _cached_equations(eq_list, settings_str)
 
     if not to_compile:
         return eq_dict
@@ -384,17 +339,7 @@ def build_eq_dict_MathML(eq_list, opts):
 
             for i, eq in enumerate(to_compile):
                 mathml = eq_list_str[i]
-                h = compute_hash(eq.content, settings_str)
-                save_to_cache(h, mathml)
-
-                if isinstance(eq, MathInline):
-                    key = "##Inline##" + eq.content
-                    logging.debug(f"[eq-inline] '{mathml}'")
-                    eq_dict[key] = mathml
-                else:
-                    key = "##Display##" + eq.content
-                    logging.debug(f"[eq-display] '{mathml}'")
-                    eq_dict[key] = mathml
+                _store_equation(eq, settings_str, mathml, eq_dict)
 
     except LatexCompilationError as e:
         raise e
