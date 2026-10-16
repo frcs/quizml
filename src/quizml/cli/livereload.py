@@ -42,7 +42,7 @@ class LiveReloadServer:
             allow_reuse_address = True
 
         try:
-            self._server = Server(("", 0), Handler)
+            self._server = Server(("127.0.0.1", 0), Handler)
             self.port = self._server.server_address[1]
             self._thread = threading.Thread(
                 target=self._server.serve_forever, daemon=True

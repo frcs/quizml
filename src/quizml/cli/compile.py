@@ -204,7 +204,9 @@ def compile_on_change(args, live_reload=None):
                 rebuild_event.set()
 
     observer = Observer()
-    observer.schedule(Handler(), ".")  # watch the local directory
+    observer.schedule(
+        Handler(), str(pathlib.Path(full_yaml_path).parent), recursive=True
+    )
     observer.start()
 
     try:
