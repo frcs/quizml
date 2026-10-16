@@ -68,7 +68,7 @@ def zsh():
         "  local state",
         f"  local -a topics=({topics})",
         "  if (( CURRENT == 2 )); then",
-        f"    _alternative 'commands:command:(({command_candidates}))' 'yaml files:file:_files -g \"*.(yaml|yml)\"'",
+        f"    _alternative 'commands:command:(({command_candidates}))' 'yaml-files:yaml file:_files -g \"*.(yaml|yml)\"'",
         "    return",
         "  fi",
         "  case $words[2] in",

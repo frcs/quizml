@@ -18,6 +18,7 @@ def test_zsh_completion():
     assert "quickstart" in script
     assert "--no-pager" in script
     assert "completion)" in script
+    assert "yaml-files:yaml file:_files" in script
 
 
 def test_fish_completion():
