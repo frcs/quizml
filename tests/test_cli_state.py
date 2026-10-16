@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from rich.markdown import Markdown
 
 from quizml.cli import compile as compile_cli
@@ -57,3 +59,18 @@ def test_watch_mode_recursively_watches_input_parent(tmp_path, monkeypatch):
     compile_cli.compile_on_change(type("Args", (), {"yaml_filename": str(yaml_path)})())
 
     assert scheduled == {"path": str(tmp_path), "recursive": True}
+
+
+def test_output_paths_resolve_from_source_directory(tmp_path):
+    relative = compile_cli.resolve_output_path("build/quiz.pdf", tmp_path)
+    absolute_path = tmp_path / "custom" / "quiz.pdf"
+
+    assert relative == tmp_path / "build" / "quiz.pdf"
+    assert compile_cli.resolve_output_path(absolute_path, tmp_path) == absolute_path
+
+
+def test_build_command_runs_from_source_directory(tmp_path):
+    with patch("quizml.cli.compile.subprocess.run") as run:
+        compile_cli.compile_cmd_target({"build_cmd": "make quiz.pdf"}, cwd=tmp_path)
+
+    assert run.call_args.kwargs["cwd"] == tmp_path

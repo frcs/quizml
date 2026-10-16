@@ -12,12 +12,14 @@ COMMANDS = (
     "info",
     "targets",
     "completion",
+    "cache",
 )
 OPTIONS = {
     "compile": "-h --help --config --debug --verbose --quiet -t --target --build -w --watch",
     "diff": "-h --help --config --debug --verbose --quiet",
     "fmt": "-h --help -i --in-place --check --diff --wrap",
     "clean": "-h --help --dry-run",
+    "cache": "-h --help",
     "init": "-h --help",
     "docs": "-h --help --no-pager",
     "info": "-h --help",

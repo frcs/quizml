@@ -6,7 +6,7 @@ def test_bash_completion():
     assert "_quizml()" in script
     assert "complete -F _quizml quizml" in script
     assert 'command == "docs"' in script
-    assert "compile diff fmt clean init docs info targets completion" in script
+    assert "compile diff fmt clean init docs info targets completion cache" in script
     assert "quickstart" in script
     assert "all" in script
 

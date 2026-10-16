@@ -63,7 +63,7 @@ Images can be included using standard Markdown syntax. We can also set the image
 If you use an `.svg` image in your Markdown, QuizML attempts to handle it gracefully for LaTeX output:
 1.  It first checks if a `.pdf`, `.png`, or `.jpg` version of the same image exists (e.g., `figures/bee.png`).
 2.  If found, it uses that file instead.
-3.  If not found, and if tools like `rsvg-convert` or `inkscape` are installed, it attempts to convert the `.svg` to `.pdf` automatically.
+3.  If not found, and if tools like `rsvg-convert` or `inkscape` are installed, it attempts to convert the `.svg` to `.pdf` automatically. The converted PDF is stored in QuizML's user cache, leaving the source image directory unchanged.
 
 This means you can use SVG for high-quality web previews while keeping a PNG copy for LaTeX compatibility without needing extra tools.
 

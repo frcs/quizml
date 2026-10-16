@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -150,7 +151,7 @@ def test_get_target_list_with_list_dep(mock_dependencies):
     assert "t2" in names
     assert "t3" in names
     assert names[-1] == "t1"
-    assert targets[-1]["out"] == "quizzes/final.t1"
+    assert targets[-1]["out"] == f"{Path('quizzes').resolve()}/final.t1"
 
 
 def test_get_target_list_safe_substitute(mock_dependencies):

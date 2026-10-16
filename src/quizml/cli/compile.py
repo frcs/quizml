@@ -31,12 +31,12 @@ from quizml.exceptions import (
 from quizml.loader import load
 
 
-def compile_cmd_target(target):
+def compile_cmd_target(target, cwd=None):
     """execute command line scripts of the post compilation targets."""
     command = shlex.split(target["build_cmd"])
 
     try:
-        subprocess.run(command, check=True, capture_output=True, text=True)
+        subprocess.run(command, check=True, capture_output=True, text=True, cwd=cwd)
     except subprocess.CalledProcessError as err:
         details = err.stderr or err.stdout or str(err)
         raise QuizMLBuildError(
@@ -45,6 +45,14 @@ def compile_cmd_target(target):
     except FileNotFoundError as err:
         raise QuizMLBuildError(f"Build command not found: {command[0]}") from err
     return True
+
+
+def resolve_output_path(output, base_dir):
+    """Resolve a target output relative to its source document directory."""
+    path = pathlib.Path(output).expanduser()
+    if not path.is_absolute():
+        path = pathlib.Path(base_dir) / path
+    return path.resolve()
 
 
 def compile_target(target, transcoder, extra_context=None, template_search_dirs=None):
@@ -59,6 +67,7 @@ def compile_target(target, transcoder, extra_context=None, template_search_dirs=
     )
 
     try:
+        pathlib.Path(target["out"]).parent.mkdir(parents=True, exist_ok=True)
         if isinstance(rendered_doc, bytes):
             pathlib.Path(target["out"]).write_bytes(rendered_doc)
         else:
@@ -105,6 +114,11 @@ def compile(args, live_reload=None):
     except FileNotFoundError as err:
         raise QuizMLConfigError(str(err)) from err
 
+    input_dir = pathlib.Path(args.yaml_filename).expanduser().resolve().parent
+    for target in target_list:
+        if target.get("out"):
+            target["out"] = str(resolve_output_path(target["out"], input_dir))
+
     # Prepare LiveReload if watching
     extra_context = {}
     if args.watch:
@@ -143,7 +157,7 @@ def compile(args, live_reload=None):
                 dep_ok = success_list.get(deps, False)
 
             if dep_ok:
-                success = compile_cmd_target(target)
+                success = compile_cmd_target(target, cwd=input_dir)
             else:
                 success = False
 

@@ -1,11 +1,15 @@
+import hashlib
 import logging
 import os
 import shutil
 import subprocess
+import tempfile
+from pathlib import Path
 
 from mistletoe.block_token import HTMLBlock
 from mistletoe.latex_renderer import LaTeXRenderer
 
+from ..cache import get_cache_dir
 from ..paths import find_path
 from .extensions import ImageWithWidth, MathDisplay, MathInline
 
@@ -77,12 +81,26 @@ def resolve_image_path(src, base_dir=None, search_dirs=None):
                 return src_base_name + ext
             return str(candidate[0])
 
-    # If no compatible format exists, try converting the SVG if found
+    # Keep generated conversions in the application cache, away from source assets.
     if os.path.exists(actual_src):
-        base = os.path.splitext(actual_src)[0]
-        pdf_path = base + ".pdf"
-        if convert_svg_to_pdf(actual_src, pdf_path):
-            return src_base_name + ".pdf" if found_in_search_dirs else pdf_path
+        svg_path = Path(actual_src).resolve()
+        digest = hashlib.sha256(svg_path.read_bytes()).hexdigest()
+        cache_dir = get_cache_dir() / "svg-pdf"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        pdf_path = cache_dir / f"{digest}.pdf"
+        if pdf_path.exists():
+            return str(pdf_path)
+
+        with tempfile.NamedTemporaryFile(
+            prefix=f"{digest}.", suffix=".pdf", dir=cache_dir, delete=False
+        ) as temp_pdf:
+            temp_pdf_path = Path(temp_pdf.name)
+        try:
+            if convert_svg_to_pdf(str(svg_path), str(temp_pdf_path)):
+                temp_pdf_path.replace(pdf_path)
+                return str(pdf_path)
+        finally:
+            temp_pdf_path.unlink(missing_ok=True)
 
     return src if found_in_search_dirs else actual_src
 

@@ -7,7 +7,7 @@ from rich.logging import RichHandler
 from rich.traceback import install
 from rich_argparse import RawDescriptionRichHelpFormatter, RichHelpFormatter
 
-from ..exceptions import QuizMLError
+from ..exceptions import QuizMLConfigError, QuizMLError
 from .errorhandler import err_console
 
 COMMANDS = {
@@ -20,6 +20,7 @@ COMMANDS = {
     "info",
     "targets",
     "completion",
+    "cache",
 }
 
 
@@ -139,6 +140,14 @@ def build_parser():
         "--dry-run", action="store_true", help="list without deleting"
     )
 
+    cache_parser = subparsers.add_parser(
+        "cache", help="manage cached equation and image conversions"
+    )
+    cache_subparsers = cache_parser.add_subparsers(
+        dest="cache_command", required=True
+    )
+    cache_subparsers.add_parser("clear", help="remove all cached renderings")
+
     init_parser = subparsers.add_parser("init", help="copy QuizML templates")
     init_parser.add_argument("scope", choices=("local", "user"))
 
@@ -218,6 +227,18 @@ def _dispatch(args, parser):
             )
         return result is not None
 
+    if args.command == "cache":
+        from ..cache import CACHE_DIR, clear_cache
+
+        try:
+            size = clear_cache()
+        except OSError as err:
+            raise QuizMLConfigError(
+                f"Could not clear QuizML cache at {CACHE_DIR}: {err}"
+            ) from err
+        sys.stdout.write(f"Cleared {size} bytes from QuizML cache at {CACHE_DIR}\n")
+        return True
+
     if args.command == "init":
         from quizml.cli import init
 
@@ -234,6 +255,8 @@ def _dispatch(args, parser):
 
         from quizml.cli.filelocator import FileLocator
 
+        from ..cache import CACHE_DIR, get_cache_size
+
         locator = FileLocator()
 
         try:
@@ -249,6 +272,8 @@ def _dispatch(args, parser):
             "package_templates": locator.pkg_template_dir,
             "search_paths": locator.dirlist,
             "config_file": config_file,
+            "cache_dir": CACHE_DIR,
+            "cache_size_bytes": get_cache_size(),
         }
         sys.stdout.write(json.dumps(info, indent=4) + "\n")
         return True

@@ -1,8 +1,8 @@
 # QuizML Code Review: Current Status
 
-*Updated: 2026-10-15 · Code revision: `694d7ea` (`main`) · Scope: remaining work after the P0/P1 and selected P2 changes.*
+*Updated: 2026-10-16 · Code revision: `5416b4a` (`main`) · Scope: remaining work after the P0/P1 and selected P2 changes.*
 
-This file replaces the original review roadmap with the work that remains after the changes through `d630a26`. The initial findings were based on `6ab38d7`; their recommendations should not be treated as open when marked complete below.
+This file replaces the original review roadmap with the work that remains after the changes through `5416b4a`. The initial findings were based on `6ab38d7`; their recommendations should not be treated as open when marked complete below.
 
 ## Summary
 
@@ -10,7 +10,7 @@ The major P0 and P1 work is complete. QuizML now has explicit CLI subcommands, n
 
 The schema walker now supports the constructs needed by the project, including local `$ref`, `allOf`, conditionals, `anyOf`, `oneOf` and `patternProperties`. It intentionally does not implement all of JSON Schema; `not` remains out of scope. Question types and fields are constrained by the bundled schema.
 
-The loader, renderer, Markdown parser, CLI state and equation cache handling have also been refactored to reduce cross-layer dependencies and process-wide state. Remaining work is mostly lower-priority correctness and maintenance: watch-mode coverage, a few path and side-effect issues, cache lifecycle, some error-policy cleanup, and header schema semantics.
+The loader, renderer, Markdown parser, CLI state and equation cache handling have also been refactored to reduce cross-layer dependencies and process-wide state. The watch-mode, generated-path and cache-lifecycle findings are now addressed. Remaining work is mostly lower-priority correctness and maintenance: error-policy cleanup, header schema semantics and packaging hygiene.
 
 ## Completed
 
@@ -37,29 +37,14 @@ The loader, renderer, Markdown parser, CLI state and equation cache handling hav
 - **C1:** schema-guided coercion was generalized to the agreed subset. `anyOf` and `oneOf` are implemented; `not` is intentionally unsupported. This is not a claim of full JSON Schema support.
 - **C2/C6:** shared include parsing and path lookup were introduced; the loader no longer imports CLI lookup; renderer and asset paths are passed explicitly; Markdown token registration and CLI/live-reload state are scoped; equation cache handling is shared.
 - **C8 partial:** loaded documents now have top-level `header`, `questions` and `paths`; `_figures_path` is moved out of `header`. The loader still injects `inputbasename` into `header`.
-- **A5:** the curses docs browser is removed in the working tree. LiveReload remains instance-owned; its watch-mode and bind-address issues are tracked separately under A7.
+- **C7/C9:** SVG-to-PDF conversions are stored in QuizML's shared cache. Relative output paths and build commands use the input YAML directory as their base.
+- **C10:** equation and image conversion caches share one directory; `quizml cache clear` clears it, `quizml info` reports its path and size, and equation keys include relevant external renderer versions. Automatic age/size eviction is deferred in favor of explicit clearing unless cache growth proves problematic.
+- **A5:** the curses docs browser is removed in the working tree. LiveReload remains instance-owned.
+- **A7:** watch mode recursively observes the input file's parent directory, and LiveReload binds to loopback.
 
 ## Remaining work
 
 ### Medium priority
-
-#### A7 — Make watch mode observe its actual inputs
-
-`compile_on_change` watches `.` non-recursively and only reacts to changes to the original YAML path. It misses input files in another directory and changes to included YAML, figures, templates, config and schema. The LiveReload server binds to `("", 0)`, exposing it on all interfaces; port zero already lets the OS choose an available port.
-
-**Next step:** watch the paths used by a compile, including included files, or at minimum watch the input's parent directory recursively. Bind the server to `127.0.0.1` while retaining OS-assigned port selection.
-
-#### C7/C9 — Keep generated files and build outputs predictable
-
-LaTeX image handling can create converted PDFs beside source SVGs during transcoding. Output paths and build commands also still depend on the current working directory in ways that can put generated PDFs somewhere other than the source document's directory.
-
-**Next step:** decide whether generated conversions belong in a build/cache directory, then define one documented base-directory rule for output paths and build commands. Avoid writing generated artifacts beside user assets as a side effect of Markdown conversion.
-
-#### C10 — Define a cache lifecycle
-
-Equation cache entries persist without an age/size policy. `clear_cache()` exists but is not exposed through the CLI, and cache keys do not account for external tool versions.
-
-**Next step:** decide whether a cache-clearing command and bounded retention are useful. Include relevant tool/version settings in cache keys if output may change across tool versions.
 
 #### D/B8 — Finish the error-handling audit
 
@@ -91,7 +76,7 @@ Sampling remains nondeterministic when an include has `count:` without `seed:`. 
 
 #### F2 — Add tests around remaining high-risk paths
 
-The original test gaps for the fixed tokenizer, widths, equation counts, CLI failures and config interpolation have been addressed. Add focused tests as work proceeds on watch mode, cache invalidation, cleanup with custom targets, header validation and the remaining external-tool error paths.
+The original test gaps for the fixed tokenizer, widths, equation counts, CLI failures, config interpolation, watch paths and cache invalidation have been addressed. Add focused tests as work proceeds on cleanup with custom targets, header validation and the remaining external-tool error paths.
 
 #### G — Finish packaging and documentation hygiene
 

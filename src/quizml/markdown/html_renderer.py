@@ -7,7 +7,12 @@ from bs4 import BeautifulSoup
 from mistletoe import span_token
 from mistletoe.html_renderer import HTMLRenderer
 
-from ..cache import compute_hash, get_from_cache, save_to_cache
+from ..cache import (
+    compute_hash,
+    get_from_cache,
+    renderer_tool_versions,
+    save_to_cache,
+)
 from ..exceptions import LatexCompilationError, MarkdownAttributeError
 from .extensions import ImageWithWidth, MathDisplay, MathInline
 from .image_embedding import embed_base64
@@ -103,11 +108,23 @@ def _equation_key(eq):
     return f"##{kind}##{eq.content}"
 
 
+def _cache_hash(content, settings_str):
+    backend = next(
+        (name for name in ("PNG", "SVG", "MathML") if settings_str.endswith(name)),
+        "",
+    )
+    return compute_hash(
+        content, settings_str, renderer_tool_versions(backend)
+    )
+
+
 def _cached_equations(eq_list, settings_str):
+    if not eq_list:
+        return {}, []
     cached = {}
     to_compile = []
     for eq in eq_list:
-        rendered = get_from_cache(compute_hash(eq.content, settings_str))
+        rendered = get_from_cache(_cache_hash(eq.content, settings_str))
         if rendered:
             cached[_equation_key(eq)] = rendered
         else:
@@ -119,7 +136,7 @@ def _store_equation(eq, settings_str, rendered, eq_dict):
     kind = "inline" if isinstance(eq, MathInline) else "display"
     logging.debug(f"[eq-{kind}] '{rendered}'")
     eq_dict[_equation_key(eq)] = rendered
-    save_to_cache(compute_hash(eq.content, settings_str), rendered)
+    save_to_cache(_cache_hash(eq.content, settings_str), rendered)
 
 
 def build_eq_dict_PNG(eq_list, opts):

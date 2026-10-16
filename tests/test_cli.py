@@ -176,10 +176,22 @@ def test_info_command(capsys):
         "package_templates",
         "search_paths",
         "config_file",
+        "cache_dir",
+        "cache_size_bytes",
     ]
 
     for key in expected_keys:
         assert key in data
+
+
+def test_cache_clear_command(capsys):
+    with (
+        patch.object(sys, "argv", ["quizml", "cache", "clear"]),
+        patch("quizml.cache.clear_cache", return_value=123),
+    ):
+        main()
+
+    assert "Cleared 123 bytes from QuizML cache" in capsys.readouterr().out
 
 
 def test_compile_failure_exit_code_and_stderr(tmp_path, capsys):

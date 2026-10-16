@@ -34,6 +34,7 @@ Compile options:
 quizml diff FILE FILE [FILE ...]
 quizml fmt [FILE|-] [-i | --check | --diff] [--wrap WIDTH]
 quizml clean [PATH] [--dry-run]
+quizml cache clear
 quizml init {local,user}
 quizml docs [TOPIC] [--no-pager]
 quizml info
@@ -47,6 +48,8 @@ quizml completion {bash,zsh,fish}
   the proposed changes. `--wrap WIDTH` opts into wrapping Markdown text.
 - `clean` removes known build artifacts. `--dry-run` lists candidates without
   deleting them.
+- `cache clear` removes cached equation renderings and SVG-to-PDF conversions.
+  `info` reports the cache location and its current size.
 - `init local` copies templates into `quizml-templates/`; `init user` copies
   them into the user configuration directory.
 - `docs` displays a topic or the full guide. With no topic, behavior depends on

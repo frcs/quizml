@@ -141,3 +141,33 @@ def test_resolve_image_path_with_search_dirs(tmp_path):
         "regression.png", base_dir=str(quiz_dir), search_dirs=[str(shared_dir)]
     )
     assert resolved == "regression.png"
+
+
+def test_svg_pdf_conversion_uses_user_cache(tmp_path, monkeypatch):
+    from quizml.markdown import latex_renderer
+
+    quiz_dir = tmp_path / "quiz"
+    quiz_dir.mkdir()
+    svg_path = quiz_dir / "diagram.svg"
+    svg_path.write_text('<svg xmlns="http://www.w3.org/2000/svg"/>')
+    cache_dir = tmp_path / "cache"
+    calls = []
+
+    monkeypatch.setattr(latex_renderer, "get_cache_dir", lambda: cache_dir)
+
+    def convert(svg, pdf):
+        calls.append((svg, pdf))
+        Path(pdf).write_bytes(b"converted")
+        return True
+
+    monkeypatch.setattr(latex_renderer, "convert_svg_to_pdf", convert)
+
+    first = latex_renderer.resolve_image_path("diagram.svg", base_dir=str(quiz_dir))
+    second = latex_renderer.resolve_image_path("diagram.svg", base_dir=str(quiz_dir))
+
+    assert first == second
+    assert Path(first).read_bytes() == b"converted"
+    assert Path(first).parent == cache_dir / "svg-pdf"
+    assert not svg_path.with_suffix(".pdf").exists()
+    assert len(calls) == 1
+    assert not Path(calls[0][1]).exists()

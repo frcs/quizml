@@ -119,12 +119,12 @@ def get_target_list(args, config, yaml_data):
       * also resolves $inputbasename
     """
 
-    (basename, _) = os.path.splitext(config["yaml_filename"])
-    inputstem = pathlib.Path(config["yaml_filename"]).stem
-    inputdir = os.path.dirname(config["yaml_filename"]) or "."
+    input_path = pathlib.Path(config["yaml_filename"]).expanduser().resolve()
+    inputstem = input_path.stem
+    inputdir = str(input_path.parent)
 
     subs = {
-        "inputbasename": basename,
+        "inputbasename": inputstem,
         "inputstem": inputstem,
         "inputdir": inputdir,
     }

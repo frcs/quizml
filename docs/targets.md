@@ -45,6 +45,14 @@ E.g., in the example above,
 
 `quizml test-01.yaml` will produce a file called `test-01.txt`
 
+Output paths that are relative are resolved from the directory containing the
+input YAML file. Absolute output paths are used as given. Post-build commands
+run with that same input directory as their working directory. `${inputbasename}`
+and `${inputstem}` expand to the input filename without its directory or
+extension; `${inputdir}` expands to the absolute input directory. This keeps
+outputs and build commands beside the source YAML even when QuizML is launched
+from another directory.
+
  
 #### `descr`
  
