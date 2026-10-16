@@ -1,6 +1,6 @@
 # QuizML Code Review: Current Status
 
-*Updated: 2026-10-16 · Code revision: `5416b4a` (`main`) · Scope: remaining work after the P0/P1 and selected P2 changes.*
+*Updated: 2026-10-16 · Code revision: `99df9c3` (`main`) · Scope: remaining work after the P0/P1 and selected P2 changes.*
 
 This file replaces the original review roadmap with the work that remains after the changes through `5416b4a`. The initial findings were based on `6ab38d7`; their recommendations should not be treated as open when marked complete below.
 
@@ -39,6 +39,7 @@ The loader, renderer, Markdown parser, CLI state and equation cache handling hav
 - **C8 partial:** loaded documents now have top-level `header`, `questions` and `paths`; `_figures_path` is moved out of `header`. The loader still injects `inputbasename` into `header`.
 - **C7/C9:** SVG-to-PDF conversions are stored in QuizML's shared cache. Relative output paths and build commands use the input YAML directory as their base.
 - **C10:** equation and image conversion caches share one directory; `quizml cache clear` clears it, `quizml info` reports its path and size, and equation keys include relevant external renderer versions. Automatic age/size eviction is deferred in favor of explicit clearing unless cache growth proves problematic.
+- **D/B8:** redundant equation re-raises now add renderer context, the deprecated `LatexEqError` type has been removed, subprocess launch/build failures are typed with concise bounded diagnostics, and Jinja/DOCX render failures use template-specific errors.
 - **A5:** the curses docs browser is removed in the working tree. LiveReload remains instance-owned.
 - **A7:** watch mode recursively observes the input file's parent directory, and LiveReload binds to loopback.
 
@@ -46,19 +47,11 @@ The loader, renderer, Markdown parser, CLI state and equation cache handling hav
 
 ### Medium priority
 
-#### D/B8 — Finish the error-handling audit
+#### E2–E4 — Header and YAML scalar semantics
 
-The main CLI error path and include provenance are improved, but the review found remaining cleanup such as redundant `raise e` statements in equation renderers and a deprecated `LatexEqError` type. Continue checking subprocess and template failures for useful typed errors and avoid obscuring programming errors as user-input errors.
-
-**Next step:** remove no-op exception handling, consolidate or retire deprecated exception types, and check that external-tool failures carry concise diagnostics without raw tracebacks.
-
-#### E2–E4 — Decide header and YAML scalar semantics
-
-- The header is not validated against a schema.
-- Some schema defaults are still strings and rely on coercion.
-- YAML `null` is loaded as string-like input by `StringConstructor`; whether a schema-approved `null` should become Python `None` is not defined.
-
-**Next step:** decide which header fields should be validated, whether defaults should use native JSON types, and whether `null` is supported for any fields. Keep the scope aligned with actual template/config use.
+- The bundled schema validates commonly used header fields and `_figures_path`; additional header keys remain allowed for template-specific metadata.
+- Plain YAML `null` becomes Python `None`, while quoted `"null"` remains a string. Known string fields reject null; unknown extension fields may contain it.
+- Question schema defaults remain unchanged; their string defaults are coerced according to the declared schema type.
 
 ### Lower priority
 

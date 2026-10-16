@@ -4,6 +4,34 @@
   "description": "Schema for quizml YAML files.",
   "type": "array",
   "definitions": {
+    "header": {
+      "type": "object",
+      "properties": {
+        "author": { "type": "string" },
+        "date": { "type": "string" },
+        "title": { "type": "string" },
+        "examtime": { "type": "string" },
+        "examdate": { "type": "string" },
+        "examyear": { "type": "string" },
+        "examvenue": { "type": "string" },
+        "examsemester": { "type": "string" },
+        "programmeyear": { "type": "string" },
+        "modulename": { "type": "string" },
+        "modulecode": { "type": "string" },
+        "examiner": { "type": "string" },
+        "instructions": { "type": "string" },
+        "materials": { "type": "string" },
+        "additionalinformation": { "type": "string" },
+        "_latexpreamble": { "type": "string" },
+        "_figures_path": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
     "markdown": {
       "type": "string",
       "format": "markdown"

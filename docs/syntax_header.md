@@ -7,6 +7,11 @@ exam date, venue, etc. The header must be declared at the start of the file and
 must be separated from the rest of the questions with a line starting with
 `---`.
 
+The bundled schema checks the types of commonly used header fields and
+`_figures_path`. Other header keys are allowed, so templates can use
+project-specific metadata without extending the schema. Plain YAML `null`
+values are loaded as `None`; quote `"null"` when the literal text is intended.
+
 ```yaml
 descr: |
   A very long exam

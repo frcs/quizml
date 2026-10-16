@@ -46,6 +46,8 @@ class StringConstructor(RoundTripConstructor):
     """
 
     def construct_scalar(self, node: ScalarNode):
+        if node.tag == "tag:yaml.org,2002:null":
+            return None
         s = PlainScalarString(node.value, anchor=node.anchor)
         return s
 
@@ -130,6 +132,32 @@ def _to_plain_python(data):
     if isinstance(data, list):
         return [_to_plain_python(v) for v in data]
     return data
+
+
+def _validate_header(header, schema, source_text="", source_path="<string>"):
+    """Validate the optional header definition when a schema provides one."""
+    if not schema:
+        return
+    header_schema = schema.get("definitions", {}).get("header")
+    if not header_schema:
+        return
+
+    err = best_match(DefaultFillingValidator(header_schema).iter_errors(header))
+    if err:
+        path = " -> ".join(map(str, err.path))
+        line_num = "unknown"
+        if err.path:
+            key = next(iter(err.path))
+            try:
+                line_num = header.lc.data[key][0] + 1
+            except (AttributeError, KeyError, TypeError, IndexError):
+                pass
+        lines = source_text.splitlines()
+        msg = f"Header schema validation error in {source_path} at '{path}' (line ~{line_num})\n"
+        if line_num != "unknown":
+            msg += msg_context(lines, line_num) + "\n"
+        msg += text_wrap(err.message)
+        raise QuizMLYamlSyntaxError(msg)
 
 
 def _read_question_file(path: Path):
@@ -286,6 +314,7 @@ def _resolve_includes(
                 )
 
             sub_header, sub_questions, inc_text = _read_question_file(inc_path)
+            _validate_header(sub_header, schema, inc_text, str(inc_path))
 
             # Accumulate figure paths from sub-file
             if isinstance(sub_header, dict):
@@ -464,6 +493,9 @@ def loads(
             header_data, questions_data = yamldocs[0], []
     else:
         header_data, questions_data = yamldocs[0], yamldocs[1]
+
+    if validate:
+        _validate_header(header_data, schema, quizmlyaml_txt, filename)
 
     root_figure_dirs = []
     if isinstance(header_data, dict):
