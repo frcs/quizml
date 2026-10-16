@@ -50,9 +50,13 @@ def embed_pdf(pdf_filename, base_dir=None, search_dirs=None):
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
-        except (subprocess.CalledProcessError, FileNotFoundError) as err:
+        except (subprocess.CalledProcessError, OSError) as err:
+            if isinstance(err, subprocess.CalledProcessError):
+                detail = f"Ghostscript exited with status {err.returncode}"
+            else:
+                detail = err.strerror or str(err)
             raise MarkdownImageError(
-                f"failed to convert PDF {pdf_filename} to PNG using ghostscript: {err}"
+                f"failed to convert PDF {pdf_filename} to PNG using ghostscript: {detail}"
             ) from err
 
         return embed_base64(png_path)

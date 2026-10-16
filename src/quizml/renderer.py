@@ -4,7 +4,7 @@ from functools import lru_cache
 
 import jinja2
 
-from quizml.exceptions import Jinja2SyntaxError
+from quizml.exceptions import Jinja2SyntaxError, TemplateRenderError
 from quizml.utils import msg_context, text_wrap
 
 
@@ -76,6 +76,11 @@ def render_template(context, template_filename, search_dirs=None):
             msg += f", line {lineno}"
         msg += "\n\n" + str(exc) + "\n\n"
         raise Jinja2SyntaxError(msg) from exc
+    except OSError as exc:
+        detail = exc.strerror or str(exc)
+        raise TemplateRenderError(
+            f"Could not read template '{template_filename}': {detail}"
+        ) from exc
 
     return render_content
 

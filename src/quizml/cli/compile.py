@@ -38,12 +38,18 @@ def compile_cmd_target(target, cwd=None):
     try:
         subprocess.run(command, check=True, capture_output=True, text=True, cwd=cwd)
     except subprocess.CalledProcessError as err:
-        details = err.stderr or err.stdout or str(err)
+        output = err.stderr or err.stdout or ""
+        details = "\n".join(output.splitlines()[-40:]) or "No diagnostic output was produced."
         raise QuizMLBuildError(
-            f"Build command failed ({err.returncode}): {details.strip()}"
+            f"Build command failed ({err.returncode}):\n{details}"
         ) from err
     except FileNotFoundError as err:
         raise QuizMLBuildError(f"Build command not found: {command[0]}") from err
+    except OSError as err:
+        detail = err.strerror or str(err)
+        raise QuizMLBuildError(
+            f"Could not start build command '{command[0]}': {detail}"
+        ) from err
     return True
 
 

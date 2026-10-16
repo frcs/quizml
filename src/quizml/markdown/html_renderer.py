@@ -234,8 +234,7 @@ def build_eq_dict_PNG(eq_list, opts):
                 _store_equation(eq, settings_str, html_img, eq_dict)
 
     except LatexCompilationError as e:
-        # Re-raise to be caught by the CLI
-        raise e
+        raise LatexCompilationError(f"PNG equation rendering failed: {e}") from e
 
     return eq_dict
 
@@ -308,7 +307,7 @@ def build_eq_dict_SVG(eq_list, opts):
                 _store_equation(eq, settings_str, html_img, eq_dict)
 
     except LatexCompilationError as e:
-        raise e
+        raise LatexCompilationError(f"SVG equation rendering failed: {e}") from e
 
     return eq_dict
 
@@ -359,7 +358,7 @@ def build_eq_dict_MathML(eq_list, opts):
                 _store_equation(eq, settings_str, mathml, eq_dict)
 
     except LatexCompilationError as e:
-        raise e
+        raise LatexCompilationError(f"MathML equation rendering failed: {e}") from e
 
     return eq_dict
 

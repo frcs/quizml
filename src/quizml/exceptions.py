@@ -34,13 +34,6 @@ class MarkdownError(QuizMLError):
     pass
 
 
-class LatexEqError(MarkdownError):
-    """DEPRECATED: Use LatexCompilationError.
-    Raised for errors related to LaTeX equation processing."""
-
-    pass
-
-
 class LatexToolError(QuizMLError):
     """Base class for errors related to external LaTeX tools."""
 
@@ -89,7 +82,13 @@ class MarkdownImageError(MarkdownError):
     pass
 
 
-class Jinja2SyntaxError(QuizMLError):
+class TemplateRenderError(QuizMLError):
+    """Raised when a document template cannot be rendered."""
+
+    pass
+
+
+class Jinja2SyntaxError(TemplateRenderError):
     """Raised for errors during Jinja2 template rendering."""
 
     pass

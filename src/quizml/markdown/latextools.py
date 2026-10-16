@@ -8,6 +8,7 @@ from ..exceptions import (
     GhostscriptNotFoundError,
     LatexCompilationError,
     LatexNotFoundError,
+    LatexToolError,
     Make4htNotFoundError,
 )
 
@@ -22,6 +23,28 @@ def _trim_tool_log(*outputs):
     return "\n".join(lines[-40:])
 
 
+def _process_failure(tool_name, returncode, stdout, stderr):
+    details = _trim_tool_log(stdout, stderr) or "No diagnostic output was produced."
+    return LatexCompilationError(
+        f"{tool_name} failed with return code {returncode}\n{details}"
+    )
+
+
+def _launch_failure(tool_name, err, missing_error_cls=LatexNotFoundError):
+    if isinstance(err, FileNotFoundError):
+        return missing_error_cls(f"{tool_name} was not found while starting it.")
+    detail = err.strerror or str(err)
+    return LatexToolError(f"Could not start {tool_name}: {detail}")
+
+
+def _communicate(process, tool_name):
+    try:
+        return process.communicate()
+    except OSError as err:
+        detail = err.strerror or str(err)
+        raise LatexToolError(f"Could not collect output from {tool_name}: {detail}") from err
+
+
 class LatexRunner:
     def __init__(self, working_dir_prefix="quizml_latex_"):
         self.temp_dir = Path(tempfile.mkdtemp(prefix=working_dir_prefix))
@@ -33,19 +56,18 @@ class LatexRunner:
             raise error_cls(f"{desc} not found in PATH.")
 
     @staticmethod
-    def _run_checked(command, tool_name, cwd):
+    def _run_checked(
+        command, tool_name, cwd, missing_error_cls=LatexNotFoundError
+    ):
         try:
             process = subprocess.run(
                 command, capture_output=True, text=True, cwd=cwd, check=False
             )
-        except FileNotFoundError as err:
-            raise LatexNotFoundError(
-                f"{tool_name} was not found while starting it."
-            ) from err
+        except OSError as err:
+            raise _launch_failure(tool_name, err, missing_error_cls) from err
         if process.returncode:
-            details = _trim_tool_log(process.stdout, process.stderr)
-            raise LatexCompilationError(
-                f"{tool_name} failed with return code {process.returncode}\n{details}"
+            raise _process_failure(
+                tool_name, process.returncode, process.stdout, process.stderr
             )
         return process
 
@@ -64,17 +86,14 @@ class LatexRunner:
                 universal_newlines=True,
                 cwd=self.temp_dir,
             )
-        except FileNotFoundError as err:
-            raise LatexNotFoundError(
-                "pdflatex was not found while starting it."
-            ) from err
+        except OSError as err:
+            raise _launch_failure("pdflatex", err) from err
 
-        stdout, stderr = process.communicate()
+        stdout, stderr = _communicate(process, "pdflatex")
 
         if process.returncode != 0:
-            raise LatexCompilationError(
-                "pdflatex failed with return code "
-                f"{process.returncode}\n\n{_trim_tool_log(stdout, stderr)}"
+            raise _process_failure(
+                "pdflatex", process.returncode, stdout, stderr
             )
 
         # Parse depth ratio from stdout
@@ -83,14 +102,19 @@ class LatexRunner:
         found_pdflatex_errors = False
         for line in stdout.splitlines():
             if line.startswith(":::"):
-                depthratio.append(float(line[4:]))
+                try:
+                    depthratio.append(float(line[4:]))
+                except ValueError as err:
+                    raise LatexCompilationError(
+                        "pdflatex returned invalid equation depth data."
+                    ) from err
             if line.startswith("!"):
                 found_pdflatex_errors = True
             if found_pdflatex_errors:
                 err_msg += line + "\n"
 
         if found_pdflatex_errors:
-            raise LatexCompilationError(err_msg)
+            raise LatexCompilationError(_trim_tool_log(err_msg))
 
         return pdf_filename, depthratio
 
@@ -113,6 +137,7 @@ class LatexRunner:
             ],
             "gs",
             self.temp_dir,
+            missing_error_cls=GhostscriptNotFoundError,
         )
 
         # Return a list of generated PNG files
@@ -133,15 +158,14 @@ class LatexRunner:
                 universal_newlines=True,
                 cwd=self.temp_dir,
             )
-        except FileNotFoundError as err:
-            raise LatexNotFoundError("latex was not found while starting it.") from err
+        except OSError as err:
+            raise _launch_failure("latex", err) from err
 
-        stdout, stderr = process.communicate()
+        stdout, stderr = _communicate(process, "latex")
 
         if process.returncode != 0:
-            raise LatexCompilationError(
-                f"latex failed with return code {process.returncode}\n\n"
-                f"{_trim_tool_log(stdout, stderr)}"
+            raise _process_failure(
+                "latex", process.returncode, stdout, stderr
             )
 
         err_msg = ""
@@ -153,7 +177,7 @@ class LatexRunner:
                 err_msg += line + "\n"
 
         if found_latex_errors:
-            raise LatexCompilationError(err_msg)
+            raise LatexCompilationError(_trim_tool_log(err_msg))
 
         return dvi_filename
 
@@ -176,6 +200,7 @@ class LatexRunner:
             ],
             "dvisvgm",
             self.temp_dir,
+            missing_error_cls=DvisvgmNotFoundError,
         )
 
         return sorted(self.temp_dir.glob(f"{output_prefix}-*.svg"))
@@ -195,17 +220,14 @@ class LatexRunner:
                 universal_newlines=True,
                 cwd=self.temp_dir,
             )
-        except FileNotFoundError as err:
-            raise Make4htNotFoundError(
-                "make4ht was not found while starting it."
-            ) from err
+        except OSError as err:
+            raise _launch_failure("make4ht", err, Make4htNotFoundError) from err
 
-        stdout, stderr = process.communicate()
+        stdout, stderr = _communicate(process, "make4ht")
 
         if process.returncode != 0:
-            raise LatexCompilationError(
-                "make4ht failed with return code "
-                f"{process.returncode}\n\n{_trim_tool_log(stdout, stderr)}"
+            raise _process_failure(
+                "make4ht", process.returncode, stdout, stderr
             )
 
         return html_filename

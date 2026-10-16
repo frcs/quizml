@@ -32,8 +32,8 @@ def convert_svg_to_pdf(svg_path, pdf_path):
     try:
         subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return True
-    except subprocess.CalledProcessError:
-        logging.warning(f"Failed to convert {svg_path} to PDF.")
+    except (OSError, subprocess.CalledProcessError) as err:
+        logging.warning(f"Failed to convert {svg_path} to PDF: {err}")
         return False
 
 
