@@ -118,7 +118,7 @@ def compile(args, live_reload=None):
     base_dir = str(input_dir)
 
     # load Schema file
-    locator = FileLocator(base_dir=base_dir)
+    locator = FileLocator(base_dir=base_dir, config_dir=config.get("_config_dir"))
     schema_ref = config.get("schema_path", "schema.json")
     try:
         schema_path = locator.path(schema_ref)

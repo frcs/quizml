@@ -60,6 +60,7 @@ def get_config(args):
 
     _validate_targets_list(config)
     config["yaml_filename"] = yaml_filename
+    config["_config_dir"] = os.path.dirname(os.path.abspath(config_file))
 
     return config
 
@@ -228,7 +229,7 @@ def get_target_list(args, config, yaml_data):
     )
     filenames_to_resolve = ["template", "html_css", "html_pre", "latex_pre"]
     files_to_read_now = ["html_css", "html_pre", "latex_pre"]
-    locator = FileLocator(base_dir=inputdir)
+    locator = FileLocator(base_dir=inputdir, config_dir=config.get("_config_dir"))
 
     # if CLI provided specific list of required target names
     # we compile a list of all the required target names

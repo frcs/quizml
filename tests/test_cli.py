@@ -384,7 +384,7 @@ def test_init_copy_failure_exit_code_and_stderr(tmp_path, monkeypatch, capsys):
 
     monkeypatch.chdir(tmp_path)
     with patch.object(
-        init_module.shutil, "copytree", side_effect=OSError("permission denied")
+        init_module.shutil, "copy2", side_effect=OSError("permission denied")
     ):
         with patch.object(sys, "argv", ["quizml", "init", "local"]):
             with pytest.raises(SystemExit) as exc_info:
@@ -486,14 +486,43 @@ targets:
 
 def test_init_excludes_python_files(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    with patch.object(sys, "argv", ["quizml", "init", "local"]):
+    with patch.object(sys, "argv", ["quizml", "init", "local", "--all"]):
         main()
 
-    dest_dir = tmp_path / "quizml-templates"
+    dest_dir = tmp_path / "_quizml"
     assert dest_dir.exists()
     assert not (dest_dir / "__init__.py").exists()
     assert not (dest_dir / "__pycache__").exists()
     assert (dest_dir / "preview.html.j2").exists()
+
+
+def test_init_tiered_default_and_selective_flags(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    # Default init only creates _quizml/quizml.cfg
+    with patch.object(sys, "argv", ["quizml", "init"]):
+        main()
+
+    dest_dir = tmp_path / "_quizml"
+    assert (dest_dir / "quizml.cfg").exists()
+    assert not (dest_dir / "schema.json").exists()
+    assert not (dest_dir / "tcd-exam.tex.j2").exists()
+
+    # Re-running without --force raises error (exits 1)
+    with patch.object(sys, "argv", ["quizml", "init"]):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 1
+
+    # Selective --latex --schema with --force succeeds
+    with patch.object(
+        sys, "argv", ["quizml", "init", "--latex", "--schema", "--force"]
+    ):
+        main()
+
+    assert (dest_dir / "schema.json").exists()
+    assert (dest_dir / "tcd-exam.tex.j2").exists()
+    assert (dest_dir / "math-preamble.tex").exists()
+    assert not (dest_dir / "preview.html.j2").exists()
 
 
 def test_targets_non_tty_tab_separated(capsys):

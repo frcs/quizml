@@ -88,7 +88,7 @@ def print_stats_table(quiz, config):
 
     template_name = config.get("stats_template", "stats.txt.j2")
     try:
-        locator = FileLocator(base_dir=base_dir)
+        locator = FileLocator(base_dir=base_dir, config_dir=config.get("_config_dir"))
         template_path = locator.path(template_name)
     except FileNotFoundError as err:
         raise QuizMLConfigError(f"Stats template '{template_name}' not found") from err

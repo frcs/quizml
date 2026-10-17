@@ -262,8 +262,8 @@ def test_init_local_excludes_python_scripts(tmp_path, monkeypatch):
     from quizml.cli.init import init_local
 
     monkeypatch.chdir(tmp_path)
-    init_local()
-    dest = tmp_path / "quizml-templates"
+    init_local(all_files=True)
+    dest = tmp_path / "_quizml"
     assert dest.is_dir()
     assert not list(dest.glob("*.py"))
 

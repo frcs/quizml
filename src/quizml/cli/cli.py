@@ -182,8 +182,64 @@ def build_parser():
     cache_subparsers = cache_parser.add_subparsers(dest="cache_command", required=True)
     cache_subparsers.add_parser("clear", help="remove all cached renderings")
 
-    init_parser = subparsers.add_parser("init", help="copy QuizML templates")
-    init_parser.add_argument("scope", choices=("local", "user"))
+    init_parser = subparsers.add_parser(
+        "init",
+        help="initialize QuizML configuration and templates",
+        formatter_class=formatter,
+    )
+    init_parser.add_argument(
+        "scope",
+        nargs="?",
+        default="local",
+        choices=("local", "user"),
+        help="where to initialize (default: local _quizml/)",
+    )
+    init_parser.add_argument(
+        "--all",
+        "-a",
+        action="store_true",
+        dest="all_files",
+        help="copy all bundled templates, assets, and schema.json",
+    )
+    init_parser.add_argument(
+        "--latex",
+        action="store_true",
+        help="copy LaTeX exam templates and math preamble",
+    )
+    init_parser.add_argument(
+        "--html",
+        action="store_true",
+        help="copy HTML preview template, CSS, and math preamble",
+    )
+    init_parser.add_argument(
+        "--bb",
+        action="store_true",
+        help="copy Blackboard template, CSS, and math preamble",
+    )
+    init_parser.add_argument(
+        "--docx",
+        action="store_true",
+        help="copy Word (docxtpl) reference template",
+    )
+    init_parser.add_argument(
+        "--schema",
+        action="store_true",
+        help="copy schema.json for custom validation rules",
+    )
+    init_parser.add_argument(
+        "-t",
+        "--template",
+        action="append",
+        dest="templates",
+        metavar="FILE",
+        help="copy a specific bundled template file; repeatable",
+    )
+    init_parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="overwrite existing files in the destination directory",
+    )
 
     docs_parser = subparsers.add_parser(
         "docs", help="display documentation", formatter_class=formatter
@@ -302,7 +358,22 @@ def _dispatch(args, parser):
     if args.command == "init":
         from quizml.cli import init
 
-        return init.init_local() if args.scope == "local" else init.init_user()
+        init_kwargs = {
+            k: v
+            for k, v in {
+                "all_files": getattr(args, "all_files", False),
+                "latex": getattr(args, "latex", False),
+                "html": getattr(args, "html", False),
+                "bb": getattr(args, "bb", False),
+                "docx": getattr(args, "docx", False),
+                "schema": getattr(args, "schema", False),
+                "templates": getattr(args, "templates", None),
+                "force": getattr(args, "force", False),
+            }.items()
+            if v
+        }
+        fn = init.init_local if args.scope == "local" else init.init_user
+        return fn(**init_kwargs)
 
     if args.command == "docs":
         from quizml.cli.docs import handle_docs

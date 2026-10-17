@@ -1,20 +1,63 @@
 import os
+import tempfile
+from pathlib import Path
 
 import platformdirs
 
 from quizml.paths import find_path
 
 
+def _expand_dir_variants(directory):
+    """Return [<dir>, <dir>/_quizml, <dir>/quizml-templates] for a directory."""
+    d = os.path.abspath(directory)
+    return [
+        d,
+        os.path.join(d, "_quizml"),
+        os.path.join(d, "quizml-templates"),
+    ]
+
+
+def _ancestor_project_dirs(start_dir):
+    """Walk upward from start_dir to discover parent project directories."""
+    if not start_dir:
+        return []
+    cur = Path(start_dir).resolve()
+    stop_boundaries = {
+        Path.home().resolve(),
+        Path(tempfile.gettempdir()).resolve(),
+        Path(cur.anchor),
+    }
+    ancestors = []
+    if (cur / ".git").exists():
+        return ancestors
+
+    parent = cur.parent
+    while parent != cur and parent not in stop_boundaries:
+        has_markers = any(
+            (parent / marker).exists()
+            for marker in ("_quizml", "quizml-templates", "quizml.cfg")
+        )
+        if has_markers:
+            ancestors.extend(_expand_dir_variants(str(parent)))
+        if (parent / ".git").exists():
+            break
+        cur = parent
+        parent = cur.parent
+    return ancestors
+
+
 class FileLocator:
     """
     Config file and templates are defined as a relative path, and searched in:
-    1. the local directory from which QuizML is called
-    2. a `quizml-templates` subdirectory of the local directory
-    2. the default application config dir
-    3. the install package templates dir
+    1. the input YAML's directory (and its `_quizml` / `quizml-templates` subdirs)
+    2. parent project directories up to the repository root
+    3. the explicit `--config` directory (if provided)
+    4. the current working directory (and its `_quizml` / `quizml-templates` subdirs)
+    5. the user application config dir
+    6. the installed package templates dir
     """
 
-    def __init__(self, cwd=None, base_dir=None):
+    def __init__(self, cwd=None, base_dir=None, config_dir=None):
         """
         sets up default directories to search
         """
@@ -23,6 +66,7 @@ class FileLocator:
         self.user_template_dir = os.path.join(self.app_dir, "templates")
         self._cwd = os.path.abspath(cwd or os.getcwd())
         self._base_dir = os.path.abspath(base_dir) if base_dir else None
+        self._config_dir = os.path.abspath(config_dir) if config_dir else None
 
     @property
     def cw_dir(self):
@@ -30,20 +74,27 @@ class FileLocator:
 
     @property
     def local_template_dir(self):
-        return os.path.join(self.cw_dir, "quizml-templates")
+        return os.path.join(self.cw_dir, "_quizml")
 
     @property
     def dirlist(self):
         dirs = []
+        candidates = []
         if self._base_dir:
-            dirs.append(self._base_dir)
-            dirs.append(os.path.join(self._base_dir, "quizml-templates"))
-        for d in (
-            self.cw_dir,
-            self.local_template_dir,
-            self.user_template_dir,
-            self.pkg_template_dir,
-        ):
+            candidates.extend(_expand_dir_variants(self._base_dir))
+            candidates.extend(_ancestor_project_dirs(self._base_dir))
+        if self._config_dir:
+            candidates.extend(_expand_dir_variants(self._config_dir))
+        candidates.extend(_expand_dir_variants(self.cw_dir))
+        candidates.extend(_ancestor_project_dirs(self.cw_dir))
+        candidates.extend(
+            [
+                os.path.join(self.app_dir, "_quizml"),
+                self.user_template_dir,
+                self.pkg_template_dir,
+            ]
+        )
+        for d in candidates:
             if d not in dirs:
                 dirs.append(d)
         return dirs
