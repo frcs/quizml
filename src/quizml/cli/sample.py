@@ -26,17 +26,14 @@ def _sample_questions(questions, count, seed):
     return selected
 
 
-def _read_yaml(path):
+def _parse_yaml_text(text, label):
     yaml = YAML()
     try:
-        text = path.read_text(encoding="utf-8")
         docs = [doc for doc in yaml.load_all(text) if doc is not None]
-    except OSError as err:
-        raise QuizMLError(f"Could not read YAML file {path}: {err}") from err
     except YAMLError as err:
-        raise QuizMLError(f"YAML parsing error in {path}: {err}") from err
+        raise QuizMLError(f"YAML parsing error in {label}: {err}") from err
     if len(docs) > 2:
-        raise QuizMLError(f"YAML file {path} cannot have more than 2 documents")
+        raise QuizMLError(f"YAML file {label} cannot have more than 2 documents")
     if not docs:
         return yaml, [], None
     if len(docs) == 1:
@@ -44,8 +41,16 @@ def _read_yaml(path):
             return yaml, docs, 0
         return yaml, [docs[0], []], 1
     if not isinstance(docs[1], list):
-        raise QuizMLError(f"Questions in {path} must be a YAML list")
+        raise QuizMLError(f"Questions in {label} must be a YAML list")
     return yaml, docs, 1
+
+
+def _read_yaml(path):
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as err:
+        raise QuizMLError(f"Could not read YAML file {path}: {err}") from err
+    return _parse_yaml_text(text, path)
 
 
 def _figure_paths(header, base_dir):
@@ -118,9 +123,20 @@ def _expand(questions, base_dir, *, inherited_seed, stack, figure_dirs):
         question_comments = (
             source_comments.items.get(index) if source_comments is not None else None
         )
+        if (
+            isinstance(question, dict)
+            and "include" in question
+            and "type" not in question
+        ):
+            raise QuizMLError("Unknown directive 'include'. Did you mean '_include'?")
         if not isinstance(question, dict) or "_include" not in question:
             append_items([question], [question_comments])
             continue
+
+        unknown_keys = set(question) - {"_include", "count", "seed"}
+        if unknown_keys:
+            unknown = ", ".join(sorted(str(k) for k in unknown_keys))
+            raise QuizMLError(f"Unknown key(s) on '_include' item: {unknown}")
 
         include_path = (base_dir / str(question["_include"])).expanduser().resolve()
         if include_path in stack:
@@ -131,13 +147,15 @@ def _expand(questions, base_dir, *, inherited_seed, stack, figure_dirs):
         except QuizMLError as err:
             raise QuizMLError(f"In include {question['_include']!s}: {err}") from err
         bank_questions = bank_docs[q_index] if q_index is not None else []
-        figure_dirs.add(include_path.parent.resolve())
+        figure_dirs.append(include_path.parent.resolve())
         if q_index == 1:
-            figure_dirs.update(_figure_paths(bank_docs[0], include_path.parent))
+            figure_dirs.extend(_figure_paths(bank_docs[0], include_path.parent))
+
+        child_seed = f"{inherited_seed}:{index}" if inherited_seed is not None else None
         bank_questions = _expand(
             bank_questions,
             include_path.parent,
-            inherited_seed=inherited_seed,
+            inherited_seed=child_seed,
             stack=(*stack, include_path),
             figure_dirs=figure_dirs,
         )
@@ -149,7 +167,11 @@ def _expand(questions, base_dir, *, inherited_seed, stack, figure_dirs):
                 raise QuizMLError("Include 'count' must be an integer") from err
             if count < 0:
                 raise QuizMLError("Include 'count' cannot be negative")
-            seed = question.get("seed", inherited_seed)
+            if count > len(bank_questions):
+                raise QuizMLError(
+                    f"Include 'count' ({count}) exceeds available questions ({len(bank_questions)}) in {question['_include']!s}"
+                )
+            seed = question.get("seed", child_seed)
             if seed is None:
                 raise QuizMLError(
                     "Sampled includes require a 'seed' or a command-line --seed"
@@ -192,31 +214,65 @@ def _expand(questions, base_dir, *, inherited_seed, stack, figure_dirs):
 
 
 def run_sample(args):
-    source = Path(args.file).expanduser().resolve()
-    output = Path(args.output).expanduser().resolve()
-    if source == output:
-        raise QuizMLError("Sample output must be different from the meta YAML input")
-    if output.exists() and not args.force:
-        raise QuizMLError(
-            f"Output already exists: {output}. Use --force to replace it."
-        )
+    import sys
 
-    yaml, docs, q_index = _read_yaml(source)
+    file_arg = getattr(args, "file", "-") or "-"
+    output_arg = getattr(args, "output", "-") or "-"
+
+    if file_arg == "-":
+        source = None
+        source_dir = Path.cwd().resolve()
+        source_label = "<stdin>"
+    else:
+        source = Path(file_arg).expanduser().resolve()
+        source_dir = source.parent
+        source_label = source
+
+    if output_arg == "-":
+        output = None
+        output_dir = Path.cwd().resolve()
+    else:
+        output = Path(output_arg).expanduser().resolve()
+        output_dir = output.parent
+        if source is not None and source == output:
+            raise QuizMLError(
+                "Sample output must be different from the meta YAML input"
+            )
+        if output.exists() and not args.force:
+            raise QuizMLError(
+                f"Output already exists: {output}. Use --force to replace it."
+            )
+
+    if source is None:
+        yaml, docs, q_index = _parse_yaml_text(sys.stdin.read(), source_label)
+        initial_stack = ()
+    else:
+        yaml, docs, q_index = _read_yaml(source)
+        initial_stack = (source,)
+
     if q_index is None:
-        raise QuizMLError(f"No questions found in {source}")
-    figure_dirs = set(_figure_paths(docs[0], source.parent) if q_index == 1 else [])
+        raise QuizMLError(f"No questions found in {source_label}")
+    figure_dirs = list(_figure_paths(docs[0], source_dir) if q_index == 1 else [])
     docs[q_index] = _expand(
         docs[q_index],
-        source.parent,
+        source_dir,
         inherited_seed=args.seed,
-        stack=(source,),
+        stack=initial_stack,
         figure_dirs=figure_dirs,
     )
-    if figure_dirs and q_index == 1:
-        docs[0]["_figures_path"] = sorted(
-            os.path.relpath(path, output.parent) for path in figure_dirs
+    if figure_dirs:
+        rel_dirs = list(
+            dict.fromkeys(os.path.relpath(path, output_dir) for path in figure_dirs)
         )
-    output.parent.mkdir(parents=True, exist_ok=True)
-    with output.open("w", encoding="utf-8") as stream:
-        yaml.dump_all(docs, stream)
+        if q_index == 0:
+            docs.insert(0, {"_figures_path": rel_dirs})
+        else:
+            docs[0]["_figures_path"] = rel_dirs
+
+    if output is None:
+        yaml.dump_all(docs, sys.stdout)
+    else:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        with output.open("w", encoding="utf-8") as stream:
+            yaml.dump_all(docs, stream)
     return True

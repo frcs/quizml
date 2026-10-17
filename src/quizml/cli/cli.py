@@ -94,6 +94,11 @@ def build_parser():
         "diff", help="compare questions across quiz files", formatter_class=formatter
     )
     _add_common_options(diff_parser, include_config=False)
+    diff_parser.add_argument(
+        "--check",
+        action="store_true",
+        help="exit nonzero if duplicate questions are found",
+    )
     diff_parser.add_argument("files", nargs="+", metavar="FILE")
 
     fmt_parser = subparsers.add_parser(
@@ -112,13 +117,19 @@ def build_parser():
         help="expand and sample question-bank includes",
         formatter_class=formatter,
     )
-    sample_parser.add_argument("file", metavar="FILE", help="meta YAML input")
+    sample_parser.add_argument(
+        "file",
+        nargs="?",
+        default="-",
+        metavar="FILE",
+        help="meta YAML input, or - for stdin",
+    )
     sample_parser.add_argument(
         "-o",
         "--output",
-        required=True,
+        default="-",
         metavar="FILE",
-        help="write static YAML here",
+        help="write static YAML here, or - for stdout (default)",
     )
     sample_parser.add_argument(
         "--seed",
@@ -161,13 +172,14 @@ def build_parser():
     clean_parser.add_argument(
         "--config", metavar="CONFIGFILE", help="use a specific QuizML config file"
     )
+    clean_parser.add_argument(
+        "--quiet", action="store_true", help="suppress informational output"
+    )
 
     cache_parser = subparsers.add_parser(
         "cache", help="manage cached equation and image conversions"
     )
-    cache_subparsers = cache_parser.add_subparsers(
-        dest="cache_command", required=True
-    )
+    cache_subparsers = cache_parser.add_subparsers(dest="cache_command", required=True)
     cache_subparsers.add_parser("clear", help="remove all cached renderings")
 
     init_parser = subparsers.add_parser("init", help="copy QuizML templates")
@@ -245,15 +257,25 @@ def _dispatch(args, parser):
         from quizml.cli.cleanup import cleanup_yaml_files
         from quizml.cli.config import get_config
 
-        config = get_config(SimpleNamespace(config=args.config, yaml_filename=None))
+        path = Path(args.path)
+        yaml_for_cfg = (
+            None
+            if (path.is_dir() or (not path.exists() and not path.suffix))
+            else str(path)
+        )
+        config = get_config(
+            SimpleNamespace(config=args.config, yaml_filename=yaml_for_cfg)
+        )
         targets = config.get("targets")
         if not isinstance(targets, list):
             raise QuizMLConfigError("The config file must define a list of targets.")
 
-        path = Path(args.path)
         if path.is_dir() or (not path.exists() and not path.suffix):
             result = cleanup_yaml_files(
-                str(path), dry_run=args.dry_run, targets=targets
+                str(path),
+                dry_run=args.dry_run,
+                targets=targets,
+                quiet=args.quiet,
             )
         else:
             result = cleanup_yaml_files(
@@ -261,6 +283,7 @@ def _dispatch(args, parser):
                 dry_run=args.dry_run,
                 target_stems={path.stem},
                 targets=targets,
+                quiet=args.quiet,
             )
         return result is not None
 
@@ -273,7 +296,7 @@ def _dispatch(args, parser):
             raise QuizMLConfigError(
                 f"Could not clear QuizML cache at {CACHE_DIR}: {err}"
             ) from err
-        sys.stdout.write(f"Cleared {size} bytes from QuizML cache at {CACHE_DIR}\n")
+        err_console.print(f"Cleared {size} bytes from QuizML cache at {CACHE_DIR}")
         return True
 
     if args.command == "init":
@@ -331,7 +354,9 @@ def _dispatch(args, parser):
 
 
 def main(argv=None):
-    install(show_locals=False)
+    from .errorhandler import print_error
+
+    install(show_locals=False, console=err_console)
     parser = build_parser()
     args = parser.parse_args(_normalize_argv(argv))
     if not hasattr(args, "config"):
@@ -346,15 +371,23 @@ def main(argv=None):
         level=args.loglevel,
         format="%(message)s",
         datefmt="[%X]",
-        handlers=[RichHandler(rich_tracebacks=True, show_path=False)],
+        handlers=[
+            RichHandler(console=err_console, rich_tracebacks=True, show_path=False)
+        ],
     )
 
     try:
         if not _dispatch(args, parser):
             sys.exit(1)
     except QuizMLError as err:
-        err_console.print(f"[bold red]Error:[/bold red] {err}")
+        print_error(err)
         sys.exit(1)
+    except BrokenPipeError:
+        try:
+            sys.stdout.close()
+        except OSError:
+            pass
+        sys.exit(0)
     except KeyboardInterrupt:
         err_console.print("[bold red]Interrupted[/bold red]")
         sys.exit(130)

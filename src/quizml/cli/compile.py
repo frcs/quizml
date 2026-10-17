@@ -6,7 +6,6 @@ import subprocess
 import threading
 from time import sleep
 
-from rich import print
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
@@ -39,7 +38,9 @@ def compile_cmd_target(target, cwd=None):
         subprocess.run(command, check=True, capture_output=True, text=True, cwd=cwd)
     except subprocess.CalledProcessError as err:
         output = err.stderr or err.stdout or ""
-        details = "\n".join(output.splitlines()[-40:]) or "No diagnostic output was produced."
+        details = (
+            "\n".join(output.splitlines()[-40:]) or "No diagnostic output was produced."
+        )
         raise QuizMLBuildError(
             f"Build command failed ({err.returncode}):\n{details}"
         ) from err
@@ -63,6 +64,7 @@ def resolve_output_path(output, base_dir):
 
 def compile_target(target, transcoder, extra_context=None, template_search_dirs=None):
     """compiles one target"""
+    import sys
 
     yaml_transcoded = transcoder.transcode_target(target)
     rendered_doc = renderer.render(
@@ -73,11 +75,19 @@ def compile_target(target, transcoder, extra_context=None, template_search_dirs=
     )
 
     try:
-        pathlib.Path(target["out"]).parent.mkdir(parents=True, exist_ok=True)
-        if isinstance(rendered_doc, bytes):
-            pathlib.Path(target["out"]).write_bytes(rendered_doc)
+        if target["out"] == "-":
+            if isinstance(rendered_doc, bytes):
+                sys.stdout.buffer.write(rendered_doc)
+                sys.stdout.buffer.flush()
+            else:
+                sys.stdout.write(rendered_doc)
+                sys.stdout.flush()
         else:
-            pathlib.Path(target["out"]).write_text(rendered_doc, encoding="utf-8")
+            pathlib.Path(target["out"]).parent.mkdir(parents=True, exist_ok=True)
+            if isinstance(rendered_doc, bytes):
+                pathlib.Path(target["out"]).write_bytes(rendered_doc)
+            else:
+                pathlib.Path(target["out"]).write_text(rendered_doc, encoding="utf-8")
     except OSError as err:
         raise QuizMLBuildError(
             f"Could not write output {target['out']}: {err}"
@@ -87,17 +97,26 @@ def compile_target(target, transcoder, extra_context=None, template_search_dirs=
 
 def compile(args, live_reload=None):
     """compiles the targets of a yaml file"""
+    if args.watch and args.yaml_filename == "-":
+        raise QuizMLConfigError("--watch cannot be used when reading from stdin (-).")
 
     # read config file
     config = get_config(args)
 
+    if args.yaml_filename == "-":
+        input_dir = pathlib.Path.cwd().resolve()
+    else:
+        input_dir = pathlib.Path(args.yaml_filename).expanduser().resolve().parent
+    base_dir = str(input_dir)
+
     # load Schema file
-    locator = FileLocator()
+    locator = FileLocator(base_dir=base_dir)
+    schema_ref = config.get("schema_path", "schema.json")
     try:
-        schema_path = locator.path(config["schema_path"])
+        schema_path = locator.path(schema_ref)
     except FileNotFoundError as err:
         raise QuizMLConfigError(
-            f"Schema file {config['schema_path']} not found; check the config file."
+            f"Schema file {schema_ref} not found; check the config file."
         ) from err
 
     # load QuizMLYaml file
@@ -107,7 +126,6 @@ def compile(args, live_reload=None):
 
     # load all markdown entries into a list
     # and build dictionaries of their HTML and LaTeX translations
-    base_dir = os.path.dirname(os.path.abspath(args.yaml_filename))
     transcoder = md.MarkdownTranscoder(yaml_data, schema, base_dir=base_dir)
 
     # diplay stats about the questions
@@ -120,9 +138,8 @@ def compile(args, live_reload=None):
     except FileNotFoundError as err:
         raise QuizMLConfigError(str(err)) from err
 
-    input_dir = pathlib.Path(args.yaml_filename).expanduser().resolve().parent
     for target in target_list:
-        if target.get("out"):
+        if target.get("out") and target["out"] != "-":
             target["out"] = str(resolve_output_path(target["out"], input_dir))
 
     # Prepare LiveReload if watching
@@ -174,18 +191,23 @@ def compile(args, live_reload=None):
                 target, transcoder, extra_context, template_search_dirs=locator.dirlist
             )
 
-        success_list[target["name"]] = success
+        target_name = target.get("name", "<unnamed>")
+        target_descr = target.get("descr", target_name)
+        target_out = target.get("out", "")
+        target_descr_cmd = target.get("descr_cmd", target_out)
+
+        success_list[target_name] = success
 
         targets_output.append(
             [
-                target["descr"],
-                add_hyperlinks(target["descr_cmd"], target["out"]),
+                target_descr,
+                add_hyperlinks(target_descr_cmd, target_out),
                 "" if success else "[FAIL]",
             ]
         )
 
         targets_quiet_output.append(
-            [add_hyperlinks(target["out"], target["out"]), "" if success else "[FAIL]"]
+            [add_hyperlinks(target_out, target_out), "" if success else "[FAIL]"]
         )
 
         if not success:
@@ -241,12 +263,14 @@ def compile_on_change(args, live_reload=None):
                 # Clear any events that occurred during the sleep
                 rebuild_event.clear()
 
-                print("[bold yellow]Change detected, re-compiling...[/bold yellow]")
+                err_console.print(
+                    "[bold yellow]Change detected, re-compiling...[/bold yellow]"
+                )
                 compile(args, live_reload=live_reload)
-                print(waitingtxt)
+                err_console.print(waitingtxt)
 
     except KeyboardInterrupt:
-        print("[bold red]Stopping watch mode...[/bold red]")
+        err_console.print("[bold red]Stopping watch mode...[/bold red]")
         observer.stop()
 
     observer.join()

@@ -46,7 +46,9 @@ def get_cleanup_candidates(yaml_path, targets):
 
         output_suffix = output_path.suffix
         output_stem = (
-            output_path.name[: -len(output_suffix)] if output_suffix else output_path.name
+            output_path.name[: -len(output_suffix)]
+            if output_suffix
+            else output_path.name
         )
         for extension in extensions:
             candidates.add(output_path.with_name(f"{output_stem}{extension}"))
@@ -70,6 +72,7 @@ def cleanup_yaml_files(
     dry_run=False,
     target_stems=None,
     targets=None,
+    quiet=False,
 ):
     """Clean configured outputs and declared sidecars for quizzes in a directory."""
     dir_path = Path(directory_path).expanduser()
@@ -78,9 +81,11 @@ def cleanup_yaml_files(
     if targets is None:
         raise QuizMLConfigError("Target configuration is required for cleanup.")
 
-    err_console.print(f"Scanning directory: {dir_path.resolve()}")
+    if not quiet:
+        err_console.print(f"Scanning directory: {dir_path.resolve()}")
     quiz_files = _quiz_files(dir_path, target_stems)
-    err_console.print(f"Found {len(quiz_files)} YAML files to check.")
+    if not quiet:
+        err_console.print(f"Found {len(quiz_files)} YAML files to check.")
 
     candidates = set()
     for yaml_path in quiz_files:
@@ -95,18 +100,21 @@ def cleanup_yaml_files(
     for path in sorted(candidates, key=str):
         if path.is_file():
             if dry_run:
-                err_console.print(f"-> [Dry-run] Would delete: {path}")
+                if not quiet:
+                    err_console.print(f"-> [Dry-run] Would delete: {path}")
             else:
-                err_console.print(f"-> Deleting file: {path}")
+                if not quiet:
+                    err_console.print(f"-> Deleting file: {path}")
                 try:
                     path.unlink()
                     deleted_files_count += 1
                 except OSError as error:
                     errors.append(f"Could not delete {path}: {error}")
 
-    err_console.print("-" * 30)
-    action = "Would delete" if dry_run else "Total files deleted"
-    err_console.print(f"Cleanup complete. {action}: {deleted_files_count}")
+    if not quiet:
+        err_console.print("-" * 30)
+        action = "Would delete" if dry_run else "Total files deleted"
+        err_console.print(f"Cleanup complete. {action}: {deleted_files_count}")
     if errors:
         raise QuizMLConfigError("\n".join(errors))
     return deleted_files_count

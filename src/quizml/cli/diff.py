@@ -1,10 +1,10 @@
 import difflib
 import os
 
-from rich import print
 from rich.console import Console
 from rich.table import Table, box
 
+from quizml.cli.errorhandler import err_console
 from quizml.exceptions import QuizMLConfigError
 from quizml.loader import load
 
@@ -110,7 +110,7 @@ def diff(args):
                         " […]" if len(lines) > 1 else ""
                     )
 
-        qstats.append({"type": qr["type"], "excerpt": long_excerpt})
+        qstats.append({"type": qr.get("type", ""), "excerpt": long_excerpt})
 
         for f in other_files:
             dst_questions = filedata[f]["questions"]
@@ -118,11 +118,13 @@ def diff(args):
                 if questions_are_similar(qr, qd):
                     qstats[i].setdefault("dups", []).append(f)
 
-    print_dups_table(qstats)
+    has_dups = print_dups_table(qstats, quiet=getattr(args, "quiet", False))
+    if getattr(args, "check", False) and has_dups:
+        return False
     return True
 
 
-def print_dups_table(qstats):
+def print_dups_table(qstats, quiet=False):
     """
     prints a table with information about each question, including:
       * question id
@@ -146,10 +148,16 @@ def print_dups_table(qstats):
         if "dups" in q:
             has_dups = True
             table.add_row(
-                f"{i + 1}", q["type"], q["excerpt"], ", ".join(q.get("dups", ""))
+                f"{i + 1}",
+                q.get("type", ""),
+                q["excerpt"],
+                ", ".join(q.get("dups", "")),
             )
 
     if has_dups:
-        console.print(table)
-    else:
-        print("no dups found")
+        if not quiet:
+            console.print(table)
+    elif not quiet:
+        err_console.print("no dups found")
+
+    return has_dups

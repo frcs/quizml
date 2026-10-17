@@ -11,16 +11,31 @@ from quizml.cli.filelocator import FileLocator
 from quizml.exceptions import QuizMLConfigError
 
 
+def _validate_targets_list(config):
+    targets = config.get("targets")
+    if not isinstance(targets, list) or not all(isinstance(t, dict) for t in targets):
+        raise QuizMLConfigError(
+            "Config file must define 'targets' as a list of target mappings."
+        )
+    return targets
+
+
 def get_config(args):
     """
     returns the yaml data of the config file
     """
+    yaml_filename = getattr(args, "yaml_filename", None)
+    base_dir = (
+        str(pathlib.Path(yaml_filename).expanduser().resolve().parent)
+        if yaml_filename and yaml_filename != "-"
+        else None
+    )
 
-    if args.config:
+    if getattr(args, "config", None):
         config_file = os.path.realpath(os.path.expanduser(args.config))
     else:
         try:
-            config_file = FileLocator().path("quizml.cfg")
+            config_file = FileLocator(base_dir=base_dir).path("quizml.cfg")
         except FileNotFoundError as err:
             raise QuizMLConfigError("Could not find config file quizml.cfg") from err
 
@@ -43,7 +58,8 @@ def get_config(args):
             f"Config file {config_file} must contain a YAML mapping at its root."
         )
 
-    config["yaml_filename"] = args.yaml_filename
+    _validate_targets_list(config)
+    config["yaml_filename"] = yaml_filename
 
     return config
 
@@ -185,10 +201,15 @@ def get_target_list(args, config, yaml_data):
       * resolves the absolute path of each template
       * also resolves $inputbasename
     """
+    _validate_targets_list(config)
 
-    input_path = pathlib.Path(config["yaml_filename"]).expanduser().resolve()
-    inputstem = input_path.stem
-    inputdir = str(input_path.parent)
+    if config["yaml_filename"] == "-":
+        inputdir = str(pathlib.Path.cwd().resolve())
+        inputstem = "stdin"
+    else:
+        input_path = pathlib.Path(config["yaml_filename"]).expanduser().resolve()
+        inputstem = input_path.stem
+        inputdir = str(input_path.parent)
 
     subs = {
         "inputbasename": inputstem,
@@ -197,7 +218,7 @@ def get_target_list(args, config, yaml_data):
     }
     filenames_to_resolve = ["template", "html_css", "html_pre", "latex_pre"]
     files_to_read_now = ["html_css", "html_pre", "latex_pre"]
-    locator = FileLocator()
+    locator = FileLocator(base_dir=inputdir)
 
     # if CLI provided specific list of required target names
     # we compile a list of all the required target names
@@ -238,11 +259,16 @@ def get_target_list(args, config, yaml_data):
             else:
                 target[key] = val
 
+        target.setdefault("name", "<unnamed>")
+        target.setdefault("descr", target["name"])
+        target.setdefault("out", "")
+        target.setdefault("descr_cmd", target["out"])
+
         markdown = t.get("markdown")
         if markdown is not None:
             if not isinstance(markdown, dict):
                 raise QuizMLConfigError(
-                    f"Target '{t.get('name', '<unnamed>')}' markdown setting must be a mapping."
+                    f"Target '{target['name']}' markdown setting must be a mapping."
                 )
             unknown_settings = set(markdown) - {
                 "format",
@@ -252,14 +278,14 @@ def get_target_list(args, config, yaml_data):
             if unknown_settings:
                 unknown = ", ".join(sorted(unknown_settings))
                 raise QuizMLConfigError(
-                    f"Unknown Markdown setting(s) for target '{t.get('name', '<unnamed>')}': {unknown}."
+                    f"Unknown Markdown setting(s) for target '{target['name']}': {unknown}."
                 )
             output_format = markdown.get("format", "html")
             math_backend = markdown.get("math", "png")
             postprocess = markdown.get("html_postprocess")
             if postprocess not in (None, "blackboard_html"):
                 raise QuizMLConfigError(
-                    f"Unknown HTML postprocessor '{postprocess}' in target '{t.get('name', '<unnamed>')}'."
+                    f"Unknown HTML postprocessor '{postprocess}' in target '{target['name']}'."
                 )
             if output_format == "latex":
                 if postprocess is not None:
@@ -275,12 +301,12 @@ def get_target_list(args, config, yaml_data):
                 }.get(math_backend)
                 if backend_fmt is None:
                     raise QuizMLConfigError(
-                        f"Unknown Markdown math backend '{math_backend}' in target '{t.get('name', '<unnamed>')}'."
+                        f"Unknown Markdown math backend '{math_backend}' in target '{target['name']}'."
                     )
                 target["fmt"] = backend_fmt
             else:
                 raise QuizMLConfigError(
-                    f"Unknown Markdown format '{output_format}' in target '{t.get('name', '<unnamed>')}'."
+                    f"Unknown Markdown format '{output_format}' in target '{target['name']}'."
                 )
             target["html_postprocess"] = postprocess
         elif "fmt" in t:
@@ -298,7 +324,7 @@ def get_target_list(args, config, yaml_data):
         # resolves relative path for all files
         for key in filenames_to_resolve:
             if key in target:
-                target[key] = locator.path(t[key])
+                target[key] = locator.path(target[key])
                 logging.info(f"'{target['descr']}:{key}' expands as '{target[key]}'")
 
         # replaces values with actual file content for some keys

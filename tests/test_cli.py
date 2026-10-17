@@ -153,9 +153,7 @@ def test_cleanup_absolute_output_path(tmp_path):
     output.parent.mkdir()
     output.write_text("output")
 
-    deleted_count = cleanup_yaml_files(
-        str(quiz_dir), targets=[{"out": str(output)}]
-    )
+    deleted_count = cleanup_yaml_files(str(quiz_dir), targets=[{"out": str(output)}])
 
     assert deleted_count == 1
     assert not output.exists()
@@ -318,7 +316,9 @@ def test_cache_clear_command(capsys):
     ):
         main()
 
-    assert "Cleared 123 bytes from QuizML cache" in capsys.readouterr().out
+    captured = capsys.readouterr()
+    assert "Cleared 123 bytes from QuizML cache" in captured.err
+    assert captured.out == ""
 
 
 def test_compile_failure_exit_code_and_stderr(tmp_path, capsys):
@@ -394,3 +394,91 @@ def test_init_copy_failure_exit_code_and_stderr(tmp_path, monkeypatch, capsys):
     captured = capsys.readouterr()
     assert "permission denied" in captured.err
     assert captured.out == ""
+
+
+def test_diff_check_exits_nonzero_on_duplicates(tmp_path, capsys):
+    f1 = tmp_path / "q1.yaml"
+    f2 = tmp_path / "q2.yaml"
+    content = "- type: tf\n  question: Same question?\n  answer: true\n"
+    f1.write_text(content, encoding="utf-8")
+    f2.write_text(content, encoding="utf-8")
+
+    with patch.object(
+        sys, "argv", ["quizml", "diff", "--check", "--quiet", str(f1), str(f2)]
+    ):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 1
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+
+
+def test_clean_quiet_suppresses_stderr(tmp_path, capsys):
+    from quizml.cli.cleanup import cleanup_yaml_files
+
+    (tmp_path / "exam.yaml").write_text("---\n[]", encoding="utf-8")
+    (tmp_path / "exam.html").write_text("artifact", encoding="utf-8")
+
+    deleted = cleanup_yaml_files(
+        str(tmp_path), targets=[{"out": "${inputbasename}.html"}], quiet=True
+    )
+    assert deleted == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+
+def test_sample_stdin_to_stdout(tmp_path, monkeypatch, capsys):
+    import io
+
+    bank = tmp_path / "bank.yaml"
+    bank.write_text(
+        "- type: tf\n  question: Sampled from bank?\n  answer: true\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        sys, "stdin", io.StringIO("- _include: bank.yaml\n  count: 1\n")
+    )
+
+    with patch.object(sys, "argv", ["quizml", "sample", "--seed", "1"]):
+        main()
+
+    captured = capsys.readouterr()
+    assert "Sampled from bank?" in captured.out
+    assert captured.err == ""
+
+
+def test_compile_stdin_to_stdout(tmp_path, monkeypatch, capsys):
+    import io
+
+    cfg = tmp_path / "quizml.cfg"
+    cfg.write_text(
+        """
+schema_path: schema.json
+targets:
+  - name: bb
+    template: blackboard.txt.j2
+    out: "-"
+    markdown:
+      format: html
+      math: svg
+      html_postprocess: blackboard_html
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        sys,
+        "stdin",
+        io.StringIO("- type: tf\n  question: Piped question?\n  answer: true\n"),
+    )
+
+    with patch.object(
+        sys, "argv", ["quizml", "compile", "--quiet", "--config", str(cfg), "-"]
+    ):
+        main()
+
+    captured = capsys.readouterr()
+    assert "TF\t<p>Piped question?</p>\tTrue" in captured.out

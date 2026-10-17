@@ -17,10 +17,10 @@ COMMANDS = (
 )
 OPTIONS = {
     "compile": "-h --help --config --debug --verbose --quiet -t --target -w --watch",
-    "diff": "-h --help --config --debug --verbose --quiet",
+    "diff": "-h --help --debug --verbose --quiet --check",
     "fmt": "-h --help -i --in-place --check --diff --wrap",
     "sample": "-h --help -o --output --seed --force",
-    "clean": "-h --help --dry-run --config",
+    "clean": "-h --help --dry-run --config --quiet",
     "cache": "-h --help",
     "init": "-h --help",
     "docs": "-h --help --no-pager",

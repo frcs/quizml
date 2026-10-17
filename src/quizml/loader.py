@@ -127,9 +127,11 @@ DefaultFillingValidator = extend_with_default(
 
 def _to_plain_python(data):
     if isinstance(data, dict):
-        return {k: _to_plain_python(v) for k, v in data.items()}
+        return {str(k): _to_plain_python(v) for k, v in data.items()}
     if isinstance(data, list):
         return [_to_plain_python(v) for v in data]
+    if isinstance(data, str):
+        return str(data)
     return data
 
 
@@ -254,6 +256,12 @@ def count_included_questions(
 
 def _reject_include_sampling(item):
     """Require sampling directives to be materialized with ``quizml sample``."""
+    unknown = sorted(set(item) - {"_include", "count", "seed"})
+    if unknown:
+        options = ", ".join(f"'{option}'" for option in unknown)
+        raise QuizMLYamlSyntaxError(
+            f"Unknown directive(s) in _include mapping: {options}."
+        )
     unsupported = sorted({"count", "seed"}.intersection(item))
     if unsupported:
         options = ", ".join(f"'{option}'" for option in unsupported)
@@ -527,25 +535,38 @@ def loads(
 
 
 def load(quizmlyaml_path, validate=True, schema_path=None):
-    try:
-        quizmlyaml_txt = Path(quizmlyaml_path).read_text(encoding="utf-8")
-    except FileNotFoundError as err:
-        raise QuizMLYamlSyntaxError(f"Yaml file not found: {quizmlyaml_path}") from err
+    import sys
+
+    if quizmlyaml_path == "-":
+        quizmlyaml_txt = sys.stdin.read()
+        base_dir = Path.cwd().resolve()
+        filename = "<stdin>"
+        stem = "stdin"
+    else:
+        try:
+            quizmlyaml_txt = Path(quizmlyaml_path).read_text(encoding="utf-8")
+        except FileNotFoundError as err:
+            raise QuizMLYamlSyntaxError(
+                f"Yaml file not found: {quizmlyaml_path}"
+            ) from err
+        base_dir = Path(quizmlyaml_path).parent.resolve()
+        filename = str(quizmlyaml_path)
+        stem = Path(quizmlyaml_path).stem
 
     schema = None
     if validate:
         try:
             if schema_path is None:
-                schema_resource = files("quizml").joinpath(
-                    "templates", "schema.json"
-                )
+                schema_resource = files("quizml").joinpath("templates", "schema.json")
                 schema_str = schema_resource.read_text(encoding="utf-8")
             else:
                 schema_str = Path(schema_path).read_text(encoding="utf-8")
             schema = json.loads(schema_str)
         except FileNotFoundError as err:
             schema_name = schema_path or "packaged schema.json"
-            raise QuizMLYamlSyntaxError(f"Schema file not found: {schema_name}") from err
+            raise QuizMLYamlSyntaxError(
+                f"Schema file not found: {schema_name}"
+            ) from err
         except json.JSONDecodeError as err:
             raise QuizMLYamlSyntaxError(f"Invalid JSON in schema: {err}") from err
         except TypeError as err:
@@ -557,12 +578,11 @@ def load(quizmlyaml_path, validate=True, schema_path=None):
         quizmlyaml_txt,
         validate=validate,
         schema=schema,
-        filename=str(quizmlyaml_path),
-        base_dir=Path(quizmlyaml_path).parent.resolve(),
+        filename=filename,
+        base_dir=base_dir,
     )
 
     # passing the input quiz file's basename to header
-    basename, _ = os.path.splitext(quizmlyaml_path)
-    doc["header"]["inputbasename"] = basename
+    doc["header"]["inputbasename"] = stem
 
     return doc, schema
