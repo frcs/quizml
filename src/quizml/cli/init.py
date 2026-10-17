@@ -4,6 +4,7 @@ import shutil
 import platformdirs
 
 from ..exceptions import QuizMLConfigError
+from .errorhandler import err_console
 
 
 def _copy_templates(dest_dir):
@@ -13,7 +14,9 @@ def _copy_templates(dest_dir):
 
     try:
         shutil.copytree(pkg_template_dir, dest_dir, dirs_exist_ok=True)
-        print(f"Successfully copied contents from {pkg_template_dir} to {dest_dir}")
+        err_console.print(
+            f"Successfully copied contents from {pkg_template_dir} to {dest_dir}"
+        )
         return True
     except OSError as e:
         raise QuizMLConfigError(f"Could not copy templates to {dest_dir}: {e}") from e

@@ -205,9 +205,10 @@ def page_content(renderable, console: Console | None = None) -> None:
         return
 
     try:
+        import shlex
+
         proc = subprocess.Popen(
-            pager_cmd,
-            shell=True,
+            shlex.split(pager_cmd),
             stdin=subprocess.PIPE,
             text=True,
             env=env,
@@ -215,7 +216,6 @@ def page_content(renderable, console: Console | None = None) -> None:
         proc.communicate(input=rendered_text)
     except (OSError, KeyboardInterrupt):
         pass
-
 
 
 def handle_docs(topic: str | None = None, no_pager: bool = False) -> None:
@@ -268,9 +268,7 @@ def handle_docs(topic: str | None = None, no_pager: bool = False) -> None:
 
     exact_matches = [item for item in doc_items if query in _topic_names(item)]
     matches = exact_matches or [
-        item
-        for item in doc_items
-        if any(query in name for name in _topic_names(item))
+        item for item in doc_items if any(query in name for name in _topic_names(item))
     ]
     matched_item = matches[0] if len(matches) == 1 else None
 
