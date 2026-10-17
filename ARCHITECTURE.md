@@ -43,13 +43,15 @@ flowchart LR
    configured schema. The loaded document has top-level `header`, `questions`,
    and `paths` values.
 3. For each target, the Markdown transcoder parses Markdown fields and converts
-   them to the configured representation. HTML targets can choose PNG, SVG, or
-   MathML equation output (with configurable DPI/scaling and optional custom
-   HTML postprocessors); LaTeX targets receive LaTeX-formatted content.
+   them to the configured representation (`html`, `latex`, or raw `markdown`).
+   HTML targets can choose `png`, `svg`, `mathml`, or `passthrough` (client-side
+   MathJax/KaTeX) equation output, with configurable DPI/scaling and optional
+   custom HTML postprocessors; LaTeX targets receive LaTeX-formatted content.
 4. The renderer supplies the document, paths, target metadata, and any custom
-   `context` variables or `jinja_filters` to a Jinja or Word template. Text
-   templates use `<| ... |>` for blocks, `<< ... >>` for expressions, and
-   `<# ... #>` for comments. Undefined Jinja variables are errors.
+   `context`/`vars` variables or `jinja_filters` to a Jinja or Word (`docxtpl`)
+   template. Text templates use `<| ... |>` for blocks, `<< ... >>` for
+   expressions, and `<# ... #>` for comments. Undefined Jinja variables are
+   errors.
 5. Targets with `build_cmd` run external commands after their dependencies
    succeed. The bundled `build` alias selects the standard exports and PDF
    targets.
@@ -65,7 +67,13 @@ flowchart LR
   state to other users of Mistletoe.
 - Templates and assets are found through `FileLocator`; relative output paths,
   template lookups, and build commands are anchored to the input quiz's
-  directory (or current working directory when reading from `stdin`).
+  directory (or current working directory when reading from `stdin`). Target
+  `out`, `build_cmd`, and `descr_cmd` strings support `${inputdir}`,
+  `${inputbasename}`, `${inputstem}`, and sanitized scalar header variables
+  (`${<header_key>}`).
 - Equation and SVG-to-PDF conversions use QuizML's shared cache, keyed on
-  content, preamble/converter settings, and external tool versions. Run
-  `quizml cache clear` to remove cached conversions.
+  content, preamble/converter settings, DPI/scale, and external tool versions.
+  Run `quizml cache clear` to remove cached conversions.
+- CLI subcommands keep `stdout` strictly reserved for data payloads (`fmt`,
+  `sample`, `compile -o -`, and tab-separated `targets`/`diff` output when
+  piped) and route all human diagnostics, banners, and errors to `stderr`.

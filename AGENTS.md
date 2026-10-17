@@ -34,6 +34,11 @@ Useful references:
   the problem or root cause, the motivation/impact, and the specific technical
   solution. Never rely on external or temporary files to explain the context of
   a commit.
+- Record codebase reviews, multi-stage implementation plans, rejected
+  alternatives, and session notes in `.devlog/` (`reviews/`, `plans/`,
+  `decisions/`, and `journal.md`), which is git-ignored in the main repository
+  and tracked as its own private Git repository. Distill lasting architectural
+  invariants into [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Python workflow
 
