@@ -1,39 +1,40 @@
 # QuizML
 
-> QuizML is a command line tool for converting a list of questions in
-> yaml/markdown to a BlackBoard test or to a Latex exam source file.
+> QuizML converts quizzes written in YAML and Markdown into Blackboard,
+> HTML, LaTeX, PDF, and Word outputs.
 
 [![Documentation](https://img.shields.io/badge/docs-frcs.github.io%2Fquizml-blue)](https://frcs.github.io/quizml)
 
-Assuming that you have python and pip installed, you can simply install it with:
+Install QuizML with pip:
 
 ```bash
 pip install quizml
 ```
 
-You will also need a LaTeX installation with `gs` and `pdflatex` (e.g. TeXLive or MacTeX).
+Some output formats require a LaTeX installation and supporting tools such as
+Ghostscript. TeX Live and MacTeX are common options. See the
+[LaTeX setup guide](docs/config_latex.md) for details.
 
-
-Questions are written in a YAML file, using a Markdown syntax. 
+Questions are written in YAML with Markdown content.
 
 Here is a minimal `quiz.yaml` example:
 
 ```yaml
 - type: mc
-  marks: 5           
+  marks: 5
   question: |
     If vector ${\bf w}$ is of dimension $3 \times 1$ and
     matrix ${\bf A}$ of dimension $5 \times 3$,
     then what is the dimension of
     $\left({\bf w}^{\top}{\bf A}^{\top}{\bf A}{\bf w}\right)^{\top}$?
   choices:
-    - o:  $5\times 5$
-    - o:  $3\times 3$
-    - o:  $3\times 1$
-    - x:  $1\times 1$
+    - o: $5\times 5$
+    - o: $3\times 3$
+    - o: $3\times 1$
+    - x: $1\times 1$
 
 - type: tf
-  marks: 5         
+  marks: 5
   question: |
     Is this the image of a tree?
     
@@ -42,8 +43,8 @@ Here is a minimal `quiz.yaml` example:
   answer: false
 ```
 
-Then you can generate multiple render targets, including BlackBoard test, LaTeX,
-and an HTML preview.
+Then generate the configured outputs, including a Blackboard import file,
+LaTeX source, and an HTML preview:
 
 ```shell-session
 $ quizml quiz1.yaml
@@ -55,9 +56,9 @@ $ quizml quiz1.yaml
 
   Total: 10.0 (with random expected mark at 37.5%)
 
-╭──────────────────────────────── Target Ouputs ────────────────────────────────╮
+╭──────────────────────────────── Target Outputs ───────────────────────────────╮
 │                                                                               │
-│   BlackBoard CSV   quiz1.txt                                                  │
+│   Blackboard test  quiz1.txt                                                  │
 │   html preview     quiz1.html                                                 │
 │   latex            latexmk -xelatex -pvc quiz1.tex                            │
 │   Latex solutions  latexmk -xelatex -pvc quiz1.solutions.tex                  │
@@ -65,7 +66,7 @@ $ quizml quiz1.yaml
 ╰───────────────────────────────────────────────────────────────────────────────╯
 ```
 
-and this is what the rendered outputs look like:
+The rendered outputs look like this:
 
 <img src="docs/figures/demo-output-carousel.gif" width="100%" />
 

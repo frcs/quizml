@@ -22,8 +22,8 @@ quizml compile -w quiz.yaml
 
 Compile options:
 
-- `-t`, `--target TARGET`: compile a named target; may be repeated.
-- `--target TARGET`: may name a target alias from `quizml.cfg`, such as `build`.
+- `-t`, `--target TARGET`: compile a named target or configured alias; may be
+  repeated.
 - `-w`, `--watch`: compile again when the input changes.
 - `--config CONFIGFILE`: use a specific QuizML config file.
 - `--debug`, `--verbose`, `--quiet`: adjust diagnostic output.

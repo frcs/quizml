@@ -1,12 +1,12 @@
-# QuizML Code Review: Current Status
+# QuizML Code Review Status
 
-*Updated: 2026-10-16 · Code revision: `99df9c3` (`main`) · Scope: remaining work after the P0/P1 and selected P2 changes.*
+*Updated: 2026-10-17 · Code revision: `63fbd9d` (`main`) · Scope: remaining work after the P0/P1 and selected P2 changes.*
 
-This file replaces the original review roadmap with the work that remains after the changes through `5416b4a`. The initial findings were based on `6ab38d7`; their recommendations should not be treated as open when marked complete below.
+This file tracks remaining work after the changes through `63fbd9d`. The initial findings were based on `6ab38d7`; recommendations marked complete below are closed.
 
 ## Summary
 
-The major P0 and P1 work is complete. QuizML now has explicit CLI subcommands, nonzero failure statuses and stderr diagnostics; the formatter supports stdout, in-place, check and diff modes; the confirmed tokenizer, image-width, target-config and equation-count bugs have fixes; and CI runs tests and Ruff. The docs browser has been removed in the current working tree.
+The major P0 and P1 work is complete. QuizML now has explicit CLI subcommands, nonzero failure statuses and stderr diagnostics; the formatter supports stdout, in-place, check and diff modes; the confirmed tokenizer, image-width, target-config and equation-count bugs have fixes; CI runs tests and Ruff; and the curses docs browser has been removed.
 
 The schema walker now supports the constructs needed by the project, including local `$ref`, `allOf`, conditionals, `anyOf`, `oneOf` and `patternProperties`. It intentionally does not implement all of JSON Schema; `not` remains out of scope. Question types and fields are constrained by the bundled schema.
 
@@ -72,7 +72,6 @@ The original test gaps for the fixed tokenizer, widths, equation counts, CLI fai
 
 - Template paths are still assembled from `__file__`; consider `importlib.resources` for package data.
 - `src/quizml/docs` is still a symlink to the repository docs; verify sdist/wheel behavior on supported platforms.
-- `ARCHITECTURE.md` still describes the removed “Shadow Document” approach and needs a refresh.
 - Remaining identifier/UI typos and low-value dead code can be cleaned up opportunistically.
 - The bundled config's `version: 0.9` is not currently checked; either validate it or remove the misleading version field.
 
