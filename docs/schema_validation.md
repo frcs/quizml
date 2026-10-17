@@ -122,3 +122,35 @@ schema's `allOf` array:
 
 With this schema, QuizML will now recognize the `geolocation` type and ensure
 that `latitude` and `longitude` are treated as numbers.
+
+### Extending the Schema Directly in `quizml.cfg` (`schema_extensions`)
+
+For common customizations—such as adding custom question fields (`topic`,
+`difficulty`) or a custom question type—you do not need to copy `schema.json`.
+Instead, declare `schema_extensions` directly in `_quizml/quizml.cfg`:
+
+```yaml
+schema_extensions:
+  header_properties:
+    semester:
+      type: string
+  question_properties:
+    topic:
+      type: string
+    difficulty:
+      type: integer
+  question_types:
+    code_review:
+      properties:
+        language:
+          type: string
+        snippet:
+          type: string
+          format: markdown
+      required: [question, language, snippet]
+```
+
+If you prefer a standalone schema file, you can eject the bundled schema with
+`quizml init --schema` (or point `schema_path:` in `quizml.cfg` or `_schema:` in
+a quiz header to either a `.json` or `.yaml` schema file).
+

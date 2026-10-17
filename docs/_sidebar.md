@@ -5,6 +5,7 @@
   - [Quick start](quickstart.md)
   - [Setting up your local LaTeX](config_latex.md)
   - [Usage](usage.md)
+  - [Module Workflow](module_workflow.md)
   - [QuizML vs R/exams](quizml_vs_rexams.md)
 
 - Writing a Test

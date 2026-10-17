@@ -47,7 +47,23 @@ syntax macro naming rules.
 !> All keys' values will be interpreted as Markdown. 
 
 !> If your key starts with the prefix `_` (eg. `_latexpreamble`), the
-value will not be interprated as markdown and it will not be turned into a macro
-by the LaTeX template. 
+value will not be interpreted as markdown and it will not be turned into a macro
+by the LaTeX template.
 
+### Built-in Control Keys (Optional)
 
+All header keys are optional, but the following `_`-prefixed keys have special
+meaning when present:
+
+- `_targets`: Target name or list of target names (e.g. `[pdf, preview]` or `bb`)
+  to build for this file when `-t`/`--target` is not passed on the CLI.
+- `_quizml`: Version constraint (e.g. `">=0.12,<0.13"` or `"~=0.12"`). QuizML
+  prints a warning if the running version does not satisfy the constraint.
+- `_schema`: Path to a custom JSON or YAML schema file for validating this quiz.
+- `_config`: Path to a custom `quizml.cfg` file for compiling this quiz.
+- `_figures_path`: Additional directory or list of directories searched for
+  figures and LaTeX inputs.
+- `_latexpreamble`: Raw LaTeX preamble declarations injected into equation and
+  document builds.
+
+Run `quizml pin exam.yaml` to stamp `_quizml` and `_targets` automatically.

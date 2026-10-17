@@ -32,16 +32,19 @@ flowchart LR
 | `quizml.markdown.latex_renderer` | Prepares Markdown content and images for LaTeX output. |
 | `quizml.renderer` | Renders text templates with Jinja2 or Word templates with `docxtpl`. |
 | `quizml.cli.compile` | Coordinates loading, target rendering, output writing, optional build commands, and watch mode. |
+| `quizml.cli.pin` | Stamps optional `_quizml`, `_targets`, and `_schema` header metadata, generates question `id`s, and freezes includes. |
 
 ## Data flow
 
-1. The CLI loads `quizml.cfg` and resolves selected targets. A target can be
-   selected by name or through an alias; its dependencies are included and
-   ordered before it.
+1. The CLI loads `quizml.cfg` (or `_config` from the quiz header) and resolves
+   selected targets (`--target`, header `_targets`, or `default_targets`). A
+   target can be selected by name or through an alias; its dependencies are
+   included and ordered before it.
 2. The loader reads the quiz's optional header and question list, expands
-   document-relative includes, and validates the resulting data against the
-   configured schema. The loaded document has top-level `header`, `questions`,
-   and `paths` values.
+   document-relative includes (supporting `select` by question `id` or 1-based
+   index), and validates the resulting data against the configured schema (with
+   any inline `schema_extensions` from `quizml.cfg` merged in). The loaded
+   document has top-level `header`, `questions`, and `paths` values.
 3. For each target, the Markdown transcoder parses Markdown fields and converts
    them to the configured representation (`html`, `latex`, or raw `markdown`).
    HTML targets can choose `png`, `svg`, `mathml`, or `passthrough` (client-side
@@ -65,15 +68,27 @@ flowchart LR
   mutated in-place during target rendering. QuizML's custom math and
   image-width tokens are registered only while parsing, to avoid leaking parser
   state to other users of Mistletoe.
-- Templates and assets are found through `FileLocator`; relative output paths,
-  template lookups, and build commands are anchored to the input quiz's
-  directory (or current working directory when reading from `stdin`). Target
-  `out`, `build_cmd`, and `descr_cmd` strings support `${inputdir}`,
-  `${inputbasename}`, `${inputstem}`, and sanitized scalar header variables
-  (`${<header_key>}`).
+- Templates, configs, schemas, and assets are found through `FileLocator`, which
+  walks up parent directories from `base_dir` and `cwd` (stopping at `.git` or
+  `pyproject.toml` repo boundaries) looking for `_quizml/` (and legacy
+  `quizml-templates/`), then checks the resolved config's directory, the user
+  config directory, and the packaged defaults. This allows `quizml init` to
+  eject only `_quizml/quizml.cfg` by default while inheriting unmodified
+  templates and schemas from the package.
+- Both `LatexRunner` and `compile_cmd_target` prepend the quiz directory,
+  included figure directories, and `FileLocator` search directories to
+  `TEXINPUTS` so custom `.cls`/`.sty` files, logos, and `\input{...}` assets
+  inside `_quizml/` are found automatically by LaTeX compilers.
+- Relative output paths, template lookups, and build commands are anchored to
+  the input quiz's directory (or current working directory when reading from
+  `stdin`). Target `out`, `build_cmd`, and `descr_cmd` strings support
+  `${inputdir}`, `${inputbasename}`, `${inputstem}`, and sanitized scalar header
+  variables (`${<header_key>}`).
 - Equation and SVG-to-PDF conversions use QuizML's shared cache, keyed on
   content, preamble/converter settings, DPI/scale, and external tool versions.
   Run `quizml cache clear` to remove cached conversions.
 - CLI subcommands keep `stdout` strictly reserved for data payloads (`fmt`,
-  `sample`, `compile -o -`, and tab-separated `targets`/`diff` output when
-  piped) and route all human diagnostics, banners, and errors to `stderr`.
+  `sample`, `pin -o -`, `compile -o -`, and tab-separated `targets`/`diff`
+  output when piped) and route all human diagnostics, banners, and errors to
+  `stderr`.
+
