@@ -141,7 +141,8 @@ def render(
     if template_filename.endswith(".docx"):
         from quizml import docx_renderer
 
-        return docx_renderer.render(context, template_filename)
+        docx_kwargs = {"jinja_filters": jinja_filters} if jinja_filters else {}
+        return docx_renderer.render(context, template_filename, **docx_kwargs)
 
     kwargs = {"jinja_filters": jinja_filters} if jinja_filters else {}
     return render_template(

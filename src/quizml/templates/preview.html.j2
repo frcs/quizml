@@ -1,6 +1,6 @@
-<| set ns = namespace(total_marks=0) -|>
+<| set ns = namespace(total_marks=0, q_idx=0) -|>
 <| set default_marks = {'mc': 2.5, 'ma': 2.5, 'tf': 2.5, 'essay': 5, 'matching': 2.5, 'ordering': 2.5, 'fill': 2.5, 'mfill': 2.5, 'num': 2.5} -|>
-<| for q in questions if q.type in default_marks -|>
+<| for q in questions if q.type != 'part' -|>
     <| set q_marks = q.marks | float if q.marks is defined else default_marks.get(q.type, 0) -|>
     <| set ns.total_marks = ns.total_marks + q_marks -|>
 <| endfor -|>
@@ -155,7 +155,13 @@
 			  title= "Shortcut: l">Slide Show</button>
     <ol class='question-list'>
 <| for q in questions |>
-<li class='question' id='Q<< loop.index >>' data-questionid='<< loop.index >>' style='vertical-align: top;'>
+<| if q.type == 'part' |>
+<li class='part' style='margin: 1.5em 0 0.5em 0; font-weight: 600; font-size: 110%;'>
+<< q.question >>
+</li>
+<| else |>
+<| set ns.q_idx = ns.q_idx + 1 -|>
+<li class='question' id='Q<< ns.q_idx >>' data-questionid='<< ns.q_idx >>' style='vertical-align: top;'>
 <| if q.type == 'essay' |>
 <div class='question-type'>Essay</div><div class='marks'><< q.marks >></div>
 <<q.question>>
@@ -341,8 +347,18 @@
   <p><i>answer:</i> << q.answer >> <| if q.tolerance is defined |>(+/- << q.tolerance >>)<| endif |></p>
 </div>
 
+<| else |>
+<div class='question-type'><< q.type >></div><div class='marks'><< q.marks if q.marks is defined else 0 >></div>
+<< q.question if q.question is defined else '' >>
+<| if q.answer is defined |>
+<div class='correct' style='background:#eee; max-width: 34.5em;
+			  padding: 1em; margin-bottom:1em; margin-top:1em'>
+  <p><i>answer:</i> << q.answer >></p>
+</div>
+<| endif |>
 <|- endif          |>
   </li>
+<| endif |>
 <| endfor |>
 	</ol>	
 
@@ -444,10 +460,6 @@
 		
 	});
 
-    // Auto-reload polling
-    // If livereload_port is defined (by compile.py --watch), we poll the local server
-    // otherwise we try to poll the file itself (works only if served via HTTP)
-    
     <| if livereload_port is defined |>
     var lastTimestamp = null;
     function checkServerUpdate() {
@@ -466,24 +478,6 @@
         });
     }
     setInterval(checkServerUpdate, 100);
-    <| else |>
-    var lastModifiedHeader = null;
-    function checkFileUpdate() {
-        fetch(window.location.href, {method: 'HEAD', cache: 'no-cache'})
-        .then(res => {
-            const lm = res.headers.get('Last-Modified');
-            if (lastModifiedHeader === null) {
-                lastModifiedHeader = lm;
-            } else if (lm && lm !== lastModifiedHeader) {
-                console.log("File changed, reloading...");
-                window.location.reload();
-            }
-        })
-        .catch(err => {
-            // Fails silently on file:// protocol usually
-        });
-    }
-    setInterval(checkFileUpdate, 100);
     <| endif |>
 	    
 </script>

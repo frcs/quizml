@@ -1,11 +1,13 @@
 import io
+import math
 
+import jinja2
 from jinja2 import TemplateError
 
 from .exceptions import QuizMLConfigError, TemplateRenderError
 
 
-def render(context, template_filename):
+def render(context, template_filename, jinja_filters=None):
     """
     Renders a docx template using docxtpl.
     Returns bytes of the rendered document.
@@ -19,9 +21,24 @@ def render(context, template_filename):
 
     try:
         doc = DocxTemplate(template_filename)
+        jinja_env = jinja2.Environment(
+            undefined=jinja2.StrictUndefined,
+            extensions=["jinja2.ext.do"],
+        )
+        jinja_env.globals["math"] = math
+        if jinja_filters:
+            from .renderer import _load_filter_callable
 
-        # DocxTemplate.render takes a context dict just like jinja2
-        doc.render(context)
+            if not isinstance(jinja_filters, dict):
+                raise QuizMLConfigError("The 'jinja_filters' setting must be a mapping.")
+            for name, spec in jinja_filters.items():
+                jinja_env.filters[name] = _load_filter_callable(spec)
+
+        # DocxTemplate.render takes a context dict and optional jinja_env
+        try:
+            doc.render(context, jinja_env=jinja_env)
+        except TypeError:
+            doc.render(context)
 
         # Save to a bytes buffer
         file_stream = io.BytesIO()

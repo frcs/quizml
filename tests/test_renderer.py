@@ -157,3 +157,79 @@ def test_custom_html_postprocessor(tmp_path):
         == "<div class='q'><p>Hello <strong>world</strong></p></div>"
     )
 
+
+def test_preview_template_supports_custom_types_part_dividers_and_no_static_polling():
+    import pathlib
+
+    preview_path = (
+        pathlib.Path(__file__).parent.parent
+        / "src"
+        / "quizml"
+        / "templates"
+        / "preview.html.j2"
+    )
+    yaml_data = {
+        "header": {"title": "Preview Quiz"},
+        "questions": [
+            {"type": "part", "question": "Part A"},
+            {
+                "type": "geolocation",
+                "marks": 3.5,
+                "question": "Find Dublin",
+                "answer": "53.3498 N, 6.2603 W",
+            },
+            {
+                "type": "essay",
+                "marks": 5,
+                "question": "Explain",
+                "answer": "Because.",
+            },
+        ],
+    }
+    html_static = render(yaml_data, str(preview_path))
+    assert "Total Possible Marks: 8.5" in html_static
+    assert "Part A" in html_static
+    assert "data-questionid='1'" in html_static
+    assert "data-questionid='2'" in html_static
+    assert "data-questionid='3'" not in html_static
+    assert "geolocation" in html_static
+    assert "Find Dublin" in html_static
+    assert "setInterval" not in html_static
+
+    html_watch = render(
+        yaml_data, str(preview_path), extra_context={"livereload_port": 35729}
+    )
+    assert "setInterval(checkServerUpdate, 100);" in html_watch
+
+
+def test_docx_renderer_receives_configured_jinja_env(monkeypatch):
+    from unittest.mock import MagicMock
+
+    from quizml import docx_renderer
+
+    captured = {}
+
+    class FakeDocxTemplate:
+        def __init__(self, filename):
+            captured["filename"] = filename
+
+        def render(self, context, jinja_env=None):
+            captured["context"] = context
+            captured["jinja_env"] = jinja_env
+
+        def save(self, stream):
+            stream.write(b"PK-fake-docx")
+
+    fake_mod = MagicMock(DocxTemplate=FakeDocxTemplate)
+    monkeypatch.setitem(__import__("sys").modules, "docxtpl", fake_mod)
+
+    out = docx_renderer.render(
+        {"header": {"title": "Exam"}},
+        "template.docx",
+        jinja_filters={"shout": lambda s: s.upper()},
+    )
+    assert out == b"PK-fake-docx"
+    assert "math" in captured["jinja_env"].globals
+    assert "shout" in captured["jinja_env"].filters
+
+
