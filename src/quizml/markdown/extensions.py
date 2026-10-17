@@ -6,7 +6,7 @@ from mistletoe.span_token import SpanToken
 
 class MathDisplay(BlockToken):
     pattern = re.compile(
-        r"(\$\$|\\\[|\\begin\{(equation|split|alignat|multline|gather|align|flalign|)(\*?)\})"
+        r"(\$\$|\\\[|\\begin\{(equation|split|alignat|multline|gather|align|flalign)(\*?)\})"
     )
 
     latex = ""

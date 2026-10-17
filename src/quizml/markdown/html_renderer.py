@@ -113,9 +113,7 @@ def _cache_hash(content, settings_str):
         (name for name in ("PNG", "SVG", "MathML") if settings_str.endswith(name)),
         "",
     )
-    return compute_hash(
-        content, settings_str, renderer_tool_versions(backend)
-    )
+    return compute_hash(content, settings_str, renderer_tool_versions(backend))
 
 
 def _cached_equations(eq_list, settings_str):
@@ -124,9 +122,10 @@ def _cached_equations(eq_list, settings_str):
     cached = {}
     to_compile = []
     for eq in eq_list:
-        rendered = get_from_cache(_cache_hash(eq.content, settings_str))
+        key = _equation_key(eq)
+        rendered = get_from_cache(_cache_hash(key, settings_str))
         if rendered:
-            cached[_equation_key(eq)] = rendered
+            cached[key] = rendered
         else:
             to_compile.append(eq)
     return cached, to_compile
@@ -135,8 +134,9 @@ def _cached_equations(eq_list, settings_str):
 def _store_equation(eq, settings_str, rendered, eq_dict):
     kind = "inline" if isinstance(eq, MathInline) else "display"
     logging.debug(f"[eq-{kind}] '{rendered}'")
-    eq_dict[_equation_key(eq)] = rendered
-    save_to_cache(_cache_hash(eq.content, settings_str), rendered)
+    key = _equation_key(eq)
+    eq_dict[key] = rendered
+    save_to_cache(_cache_hash(key, settings_str), rendered)
 
 
 def build_eq_dict_PNG(eq_list, opts):

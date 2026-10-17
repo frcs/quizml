@@ -1,4 +1,5 @@
 import hashlib
+import json
 import logging
 import os
 import shutil
@@ -9,7 +10,7 @@ from pathlib import Path
 from mistletoe.block_token import HTMLBlock
 from mistletoe.latex_renderer import LaTeXRenderer
 
-from ..cache import get_cache_dir
+from ..cache import get_cache_dir, renderer_tool_versions
 from ..paths import find_path
 from .extensions import ImageWithWidth, MathDisplay, MathInline
 
@@ -70,9 +71,7 @@ def resolve_image_path(src, base_dir=None, search_dirs=None):
     src_base_name = os.path.splitext(src)[0]
     for ext in [".pdf", ".png", ".jpg", ".jpeg"]:
         if found_in_search_dirs:
-            candidate = find_path(
-                src_base_name + ext, [os.path.dirname(actual_src)]
-            )
+            candidate = find_path(src_base_name + ext, [os.path.dirname(actual_src)])
             if candidate:
                 return src_base_name + ext
         candidate = find_path(src_base_name + ext, dirs_to_check)
@@ -84,7 +83,13 @@ def resolve_image_path(src, base_dir=None, search_dirs=None):
     # Keep generated conversions in the application cache, away from source assets.
     if os.path.exists(actual_src):
         svg_path = Path(actual_src).resolve()
-        digest = hashlib.sha256(svg_path.read_bytes()).hexdigest()
+        hasher = hashlib.sha256(svg_path.read_bytes())
+        hasher.update(
+            json.dumps(renderer_tool_versions("SVG_PDF"), sort_keys=True).encode(
+                "utf-8"
+            )
+        )
+        digest = hasher.hexdigest()
         cache_dir = get_cache_dir() / "svg-pdf"
         cache_dir.mkdir(parents=True, exist_ok=True)
         pdf_path = cache_dir / f"{digest}.pdf"
@@ -140,9 +145,13 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
 
     # fixing some default behaviour
     def render_image(self, token):
-        token.src = resolve_image_path(token.src, self.base_dir, self.search_dirs)
-        s = super().render_image(token)
-        return s[1:-1]
+        original_src = token.src
+        try:
+            token.src = resolve_image_path(token.src, self.base_dir, self.search_dirs)
+            s = super().render_image(token)
+            return s[1:-1]
+        finally:
+            token.src = original_src
 
     # fixing some default behaviour
     def render_figure(self, token):
@@ -150,6 +159,7 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
 
         if self.caption:
             return s[1:-1]
+        return s
 
 
 def get_latex_dict(ast_dict, base_dir=None, search_dirs=None):

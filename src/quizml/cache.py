@@ -52,7 +52,9 @@ def _tool_version(name):
     except (OSError, subprocess.TimeoutExpired):
         return f"unknown ({executable})"
     output = process.stdout or process.stderr
-    first_line = next((line.strip() for line in output.splitlines() if line.strip()), "")
+    first_line = next(
+        (line.strip() for line in output.splitlines() if line.strip()), ""
+    )
     return f"{executable}: {first_line or process.returncode}"
 
 
@@ -62,6 +64,7 @@ def renderer_tool_versions(backend):
         "PNG": ("pdflatex", "gs"),
         "SVG": ("latex", "dvisvgm"),
         "MathML": ("make4ht",),
+        "SVG_PDF": ("rsvg-convert", "inkscape"),
     }.get(backend, ())
     return {tool: _tool_version(tool) for tool in tools}
 
