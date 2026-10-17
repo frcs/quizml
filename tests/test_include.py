@@ -346,7 +346,9 @@ def test_count_and_loading_share_included_file_document_rules(tmp_path: Path):
 
     main_yaml = tmp_path / "main.yaml"
     main_yaml.write_text("---\n- _include: bank.yaml\n", encoding="utf-8")
-    with pytest.raises(QuizMLYamlSyntaxError, match="cannot have more than 2 documents"):
+    with pytest.raises(
+        QuizMLYamlSyntaxError, match="cannot have more than 2 documents"
+    ):
         load(str(main_yaml), validate=False)
 
 
@@ -466,3 +468,21 @@ title: Custom Exam
     rendered_tex = render_template(doc, template_path, locator.dirlist)
     assert "{../banks/physics/}" in rendered_tex
     assert "{../banks/physics/custom_assets/}" in rendered_tex
+
+
+def test_include_rejects_unknown_keys(tmp_path: Path):
+    bank = tmp_path / "bank.yaml"
+    bank.write_text("- type: essay\n  question: Q1\n", encoding="utf-8")
+    main = tmp_path / "main.yaml"
+    main.write_text("---\n- _include: bank.yaml\n  extra_key: 1\n", encoding="utf-8")
+
+    with pytest.raises(QuizMLYamlSyntaxError, match="Unknown directive"):
+        load(str(main), validate=False)
+
+
+def test_loads_converts_scalar_strings_to_plain_str():
+    doc, _ = loads(
+        "title: Plain\n---\n- type: essay\n  question: Hello\n", validate=False
+    )
+    assert type(doc["header"]["title"]) is str
+    assert type(doc["questions"][0]["type"]) is str
