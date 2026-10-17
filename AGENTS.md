@@ -27,7 +27,13 @@ Useful references:
   only when a missing decision blocks meaningful progress.
 - Follow the active task's instructions about tests and other checks. Report
   exactly what you ran.
-- Do not commit or push unless the user asks.
+- Do not commit or push unless the user asks, and always present changes and
+  the proposed commit message for approval first.
+- Keep Git commits atomic and focused on a single logical concern.
+- Write detailed, self-contained multi-line Git commit messages that explain
+  the problem or root cause, the motivation/impact, and the specific technical
+  solution. Never rely on external or temporary files to explain the context of
+  a commit.
 
 ## Python workflow
 
