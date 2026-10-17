@@ -486,3 +486,99 @@ def test_loads_converts_scalar_strings_to_plain_str():
     )
     assert type(doc["header"]["title"]) is str
     assert type(doc["questions"][0]["type"]) is str
+
+
+def test_question_id_and_title_and_duplicate_id_detection():
+    valid_yaml = """
+title: Exam
+---
+- id: q-backprop
+  title: Backpropagation
+  type: essay
+  marks: 10
+  question: Derive backpropagation.
+- id: q-cnn
+  title: CNN Receptive Field
+  type: num
+  marks: 5
+  question: Compute receptive field.
+  answer: 7
+"""
+    doc, _ = loads(valid_yaml, validate=True)
+    assert doc["questions"][0]["id"] == "q-backprop"
+    assert doc["questions"][0]["title"] == "Backpropagation"
+
+    dup_yaml = """
+---
+- id: dup-1
+  type: essay
+  question: First
+- id: dup-1
+  type: essay
+  question: Second
+"""
+    with pytest.raises(QuizMLYamlSyntaxError, match="Duplicate question id 'dup-1'"):
+        loads(dup_yaml, validate=True)
+
+
+def test_include_select_by_id_and_index(tmp_path: Path):
+    from types import SimpleNamespace
+
+    from quizml.cli.sample import run_sample
+
+    bank = tmp_path / "bank.yaml"
+    bank.write_text(
+        """
+- id: q-alpha
+  title: Alpha
+  type: essay
+  question: First question
+- id: q-beta
+  title: Beta
+  type: essay
+  question: Second question
+- id: q-gamma
+  title: Gamma
+  type: essay
+  question: Third question
+""",
+        encoding="utf-8",
+    )
+
+    exam = tmp_path / "exam.yaml"
+    exam.write_text(
+        """
+---
+- _include: bank.yaml
+  select:
+    - q-gamma
+    - 1
+""",
+        encoding="utf-8",
+    )
+
+    doc, _ = load(str(exam), validate=True)
+    assert [q["id"] for q in doc["questions"]] == ["q-gamma", "q-alpha"]
+    assert count_included_questions(
+        {"_include": "bank.yaml", "select": ["q-gamma", 1]}, base_dir=tmp_path
+    ) == 2
+
+    # Also verify quizml sample expands select:
+    sampled = tmp_path / "sampled.yaml"
+    run_sample(
+        SimpleNamespace(
+            file=str(exam), output=str(sampled), seed=None, quiet=True
+        )
+    )
+    sampled_doc, _ = load(str(sampled), validate=True)
+    assert [q["id"] for q in sampled_doc["questions"]] == ["q-gamma", "q-alpha"]
+
+    # Missing id raises a helpful error
+    bad_exam = tmp_path / "bad_exam.yaml"
+    bad_exam.write_text(
+        "---\n- _include: bank.yaml\n  select: [nonexistent-id]\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(QuizMLYamlSyntaxError, match="nonexistent-id"):
+        load(str(bad_exam), validate=True)
+

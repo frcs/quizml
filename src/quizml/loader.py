@@ -245,6 +245,12 @@ def count_included_questions(
         else:
             total += 1
 
+    if "select" in item:
+        try:
+            selectors = _normalize_select_list(item["select"])
+            return min(len(selectors), total)
+        except QuizMLYamlSyntaxError:
+            return total
     if "count" in item:
         try:
             requested = int(item["count"])
@@ -254,13 +260,53 @@ def count_included_questions(
     return total
 
 
+def _normalize_select_list(select_spec):
+    if isinstance(select_spec, list):
+        return [str(x).strip() for x in select_spec if str(x).strip()]
+    if isinstance(select_spec, (str, int)):
+        return [s.strip() for s in str(select_spec).split(",") if s.strip()]
+    raise QuizMLYamlSyntaxError(
+        "Include 'select' must be a list or comma-separated string of question IDs or 1-based indices."
+    )
+
+
+def _select_questions(questions, select_spec, source_label):
+    selectors = _normalize_select_list(select_spec)
+    by_id = {}
+    for idx, q in enumerate(questions):
+        if isinstance(q, dict) and q.get("id"):
+            by_id[str(q["id"]).strip()] = idx
+
+    selected = []
+    for sel in selectors:
+        if sel in by_id:
+            selected.append(questions[by_id[sel]])
+        elif sel.isdigit():
+            pos = int(sel)
+            if 1 <= pos <= len(questions):
+                selected.append(questions[pos - 1])
+            else:
+                raise QuizMLYamlSyntaxError(
+                    f"Include 'select' index {pos} is out of range (1..{len(questions)}) in '{source_label}'."
+                )
+        else:
+            raise QuizMLYamlSyntaxError(
+                f"Include 'select' ID '{sel}' not found in '{source_label}'."
+            )
+    return selected
+
+
 def _reject_include_sampling(item):
-    """Require sampling directives to be materialized with ``quizml sample``."""
-    unknown = sorted(set(item) - {"_include", "count", "seed"})
+    """Require random sampling directives to be materialized with ``quizml sample``."""
+    unknown = sorted(set(item) - {"_include", "count", "seed", "select"})
     if unknown:
         options = ", ".join(f"'{option}'" for option in unknown)
         raise QuizMLYamlSyntaxError(
             f"Unknown directive(s) in _include mapping: {options}."
+        )
+    if "select" in item and ("count" in item or "seed" in item):
+        raise QuizMLYamlSyntaxError(
+            "Cannot combine 'select' with 'count' or 'seed' in _include."
         )
     unsupported = sorted({"count", "seed"}.intersection(item))
     if unsupported:
@@ -283,8 +329,8 @@ def _resolve_includes(
 ) -> list:
     """Recursively resolves '- _include: filename.yaml' directives in the questions list.
 
-    Includes every question in source order and detects circular includes using
-    the visited set.
+    Includes every question in source order (or the subset specified by 'select')
+    and detects circular includes using the visited set.
     Accumulates figure search directories relative to root_dir.
     """
     if visited is None:
@@ -355,6 +401,10 @@ def _resolve_includes(
                 inc_text,
                 str(inc_path),
             )
+            if "select" in item:
+                sub_questions = _select_questions(
+                    sub_questions, item["select"], inc_file
+                )
 
             resolved.extend(sub_questions)
         else:
@@ -502,6 +552,15 @@ def loads(
             source_text=quizmlyaml_txt,
             source_path=filename,
         )
+        seen_ids = set()
+        for q in questions_data:
+            if isinstance(q, dict) and q.get("id"):
+                qid = str(q["id"]).strip()
+                if qid in seen_ids:
+                    raise QuizMLYamlSyntaxError(
+                        f"Duplicate question id '{qid}' in {filename}"
+                    )
+                seen_ids.add(qid)
     figure_dirs = list(dict.fromkeys(root_figure_dirs + accumulated_figure_dirs))
 
     # Validating questions against the schema
@@ -585,6 +644,8 @@ def apply_schema_extensions(schema, extensions):
         all_of = items.setdefault("allOf", [])
         base_q_props = {
             "type": {"type": "string"},
+            "id": {"type": "string"},
+            "title": {"type": "string"},
             "marks": {"type": "number", "default": "2.5"},
             "comments": {"$ref": "#/definitions/markdown"},
             "question": {"$ref": "#/definitions/markdown"},

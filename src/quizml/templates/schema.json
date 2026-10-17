@@ -23,6 +23,15 @@
         "materials": { "type": "string" },
         "additionalinformation": { "type": "string" },
         "_latexpreamble": { "type": "string" },
+        "_quizml": { "type": "string" },
+        "_schema": { "type": "string" },
+        "_config": { "type": "string" },
+        "_targets": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
         "_figures_path": {
           "oneOf": [
             { "type": "string" },
@@ -64,6 +73,8 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "id": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
             "cols": { "type": "integer", "default": "1" },
@@ -91,6 +102,8 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "id": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
             "cols": { "type": "integer", "default": "1" },
@@ -118,6 +131,8 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "id": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
             "question": { "$ref": "#/definitions/markdown" },
@@ -135,6 +150,8 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "id": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "4" },
             "comments": { "$ref": "#/definitions/markdown" },
             "question": { "$ref": "#/definitions/markdown" },
@@ -149,6 +166,8 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "id": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
             "question": { "$ref": "#/definitions/markdown" },
@@ -176,6 +195,8 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "id": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
             "cols": { "type": "integer", "default": "1" },
@@ -196,6 +217,8 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "id": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
             "question": { "$ref": "#/definitions/markdown" },
@@ -215,6 +238,8 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "id": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
             "question": { "$ref": "#/definitions/markdown" },
@@ -237,6 +262,8 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "id": { "type": "string" },
+            "title": { "type": "string" },
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
             "question": { "$ref": "#/definitions/markdown" },
@@ -254,6 +281,7 @@
         "then": {
           "properties": {
             "type": { "type": "string" },
+            "id": { "type": "string" },
             "title": {  "$ref": "#/definitions/markdown" },
             "marks": { "type": "number" },
             "question": { "$ref": "#/definitions/markdown" }

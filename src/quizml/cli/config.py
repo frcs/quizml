@@ -1,14 +1,99 @@
+import importlib.metadata
 import logging
 import os
 import pathlib
+import re
 from graphlib import CycleError, TopologicalSorter
 from string import Template
 
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
 
+from quizml.cli.errorhandler import err_console
 from quizml.cli.filelocator import FileLocator
 from quizml.exceptions import QuizMLConfigError
+
+
+def peek_yaml_header(yaml_filename):
+    """Best-effort peek at the first YAML document if it is a mapping header."""
+    if not yaml_filename or yaml_filename == "-":
+        return {}
+    try:
+        path = pathlib.Path(yaml_filename).expanduser()
+        if not path.is_file():
+            return {}
+        with path.open(encoding="utf-8") as f:
+            yaml = YAML(typ="safe")
+            first_doc = next(yaml.load_all(f), None)
+            if isinstance(first_doc, dict):
+                return first_doc
+    except (OSError, YAMLError):
+        return {}
+    return {}
+
+
+def _parse_version_tuple(version_str):
+    base = re.split(r"(?:\.dev|\+|a|b|rc|-)", str(version_str).strip(), maxsplit=1)[0]
+    parts = [int(p) for p in re.findall(r"\d+", base)]
+    while len(parts) < 3:
+        parts.append(0)
+    return tuple(parts[:3]), len(re.findall(r"\d+", base))
+
+
+def check_quizml_version(specifier, source_label="config"):
+    """Validate current quizml version against a comma-separated constraint string.
+
+    Prints a warning to stderr if the constraint is not satisfied and returns False.
+    """
+    if not specifier or not str(specifier).strip():
+        return True
+    try:
+        current_str = importlib.metadata.version("quizml")
+    except importlib.metadata.PackageNotFoundError:
+        return True
+
+    cur_tuple, _ = _parse_version_tuple(current_str)
+    clauses = [c.strip() for c in str(specifier).split(",") if c.strip()]
+    satisfied = True
+
+    for clause in clauses:
+        m = re.match(r"^(>=|<=|==|!=|~=| equals |>|<)?\s*(.+)$", clause)
+        if not m:
+            continue
+        op = (m.group(1) or "==").strip()
+        target_str = m.group(2).strip()
+        req_tuple, n_parts = _parse_version_tuple(target_str)
+
+        if op == ">=":
+            ok = cur_tuple >= req_tuple
+        elif op == "<=":
+            ok = cur_tuple <= req_tuple
+        elif op == ">":
+            ok = cur_tuple > req_tuple
+        elif op == "<":
+            ok = cur_tuple < req_tuple
+        elif op == "!=":
+            ok = cur_tuple[:n_parts] != req_tuple[:n_parts]
+        elif op == "~=":
+            upper = (
+                (req_tuple[0] + 1, 0, 0)
+                if n_parts <= 2
+                else (req_tuple[0], req_tuple[1] + 1, 0)
+            )
+            ok = req_tuple <= cur_tuple < upper
+        else:
+            ok = cur_tuple[: max(1, n_parts)] == req_tuple[: max(1, n_parts)]
+
+        if not ok:
+            satisfied = False
+            break
+
+    if not satisfied:
+        err_console.print(
+            f"[yellow]Warning:[/yellow] {source_label} expects quizml "
+            f"'{specifier}', but running quizml {current_str}."
+        )
+    return satisfied
 
 
 def _validate_targets_list(config):
@@ -34,10 +119,19 @@ def get_config(args):
     if getattr(args, "config", None):
         config_file = os.path.realpath(os.path.expanduser(args.config))
     else:
+        header_peek = peek_yaml_header(yaml_filename)
+        header_cfg = (
+            header_peek.get("_config") if isinstance(header_peek, dict) else None
+        )
+        cfg_ref = (
+            header_cfg.strip()
+            if isinstance(header_cfg, str) and header_cfg.strip()
+            else "quizml.cfg"
+        )
         try:
-            config_file = FileLocator(base_dir=base_dir).path("quizml.cfg")
+            config_file = FileLocator(base_dir=base_dir).path(cfg_ref)
         except FileNotFoundError as err:
-            raise QuizMLConfigError("Could not find config file quizml.cfg") from err
+            raise QuizMLConfigError(f"Could not find config file {cfg_ref}") from err
 
     logging.info(f"using config file:{config_file}")
 
@@ -61,6 +155,8 @@ def get_config(args):
     _validate_targets_list(config)
     config["yaml_filename"] = yaml_filename
     config["_config_dir"] = os.path.dirname(os.path.abspath(config_file))
+    if config.get("quizml_version"):
+        check_quizml_version(config["quizml_version"], config_file)
 
     return config
 
@@ -235,7 +331,17 @@ def get_target_list(args, config, yaml_data):
     # we compile a list of all the required target names
     target_names = args.target
     if not target_names:
-        target_names = config.get("default_targets")
+        header_targets = (
+            header_data.get("_targets") if isinstance(header_data, dict) else None
+        )
+        if header_targets:
+            target_names = (
+                [header_targets]
+                if isinstance(header_targets, str)
+                else list(header_targets)
+            )
+        else:
+            target_names = config.get("default_targets")
     target_names = expand_target_aliases(
         target_names, config["targets"], config.get("aliases", {})
     )

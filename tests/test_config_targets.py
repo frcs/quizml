@@ -342,3 +342,46 @@ def test_get_target_list_expands_header_variables_and_vars_alias(mock_dependenci
     assert targets[0]["context"] == {"watermark": "DRAFT", "solutions": True}
     assert targets[1]["fmt"] == "markdown"
 
+
+def test_get_target_list_respects_header_targets(mock_dependencies):
+    args = MagicMock()
+    args.target = None
+    args.yaml_filename = "quiz.yaml"
+    config = {
+        "yaml_filename": "quiz.yaml",
+        "default_targets": ["t1"],
+        "targets": [
+            {"name": "t1", "template": "t1.jinja"},
+            {"name": "t2", "template": "t2.jinja"},
+        ],
+    }
+    yaml_data = {"header": {"_targets": ["t2"]}}
+    targets = get_target_list(args, config, yaml_data)
+    assert [t["name"] for t in targets] == ["t2"]
+
+
+def test_get_config_respects_header_config_and_version_check(tmp_path):
+    from types import SimpleNamespace
+
+    from quizml.cli.config import check_quizml_version
+
+    custom_cfg = tmp_path / "custom.cfg"
+    custom_cfg.write_text(
+        "quizml_version: '>=0.1'\ntargets:\n  - name: preview\n    template: preview.html.j2\n",
+        encoding="utf-8",
+    )
+    quiz_file = tmp_path / "exam.yaml"
+    quiz_file.write_text(
+        "_config: custom.cfg\n---\n- type: essay\n  question: Q1\n",
+        encoding="utf-8",
+    )
+
+    cfg = get_config(SimpleNamespace(config=None, yaml_filename=str(quiz_file)))
+    assert cfg["_config_dir"] == str(tmp_path)
+
+    with patch("importlib.metadata.version", return_value="0.12.2"):
+        assert check_quizml_version(">=0.12,<0.13", "exam.yaml") is True
+        assert check_quizml_version("~=0.12", "exam.yaml") is True
+        assert check_quizml_version(">=99.0", "exam.yaml") is False
+
+

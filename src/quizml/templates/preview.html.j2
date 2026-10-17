@@ -162,6 +162,7 @@
 <| else |>
 <| set ns.q_idx = ns.q_idx + 1 -|>
 <li class='question' id='Q<< ns.q_idx >>' data-questionid='<< ns.q_idx >>' style='vertical-align: top;'>
+<| if q.title is defined and q.title |><span class='question-title' style='font-weight: 600; margin-right: 0.5em;'>— << q.title >></span><| endif |><| if q.id is defined and q.id |><code class='question-id' style='font-size: 85%; color: #666; margin-right: 0.5em;'>[<< q.id >>]</code><| endif |>
 <| if q.type == 'essay' |>
 <div class='question-type'>Essay</div><div class='marks'><< q.marks >></div>
 <<q.question>>

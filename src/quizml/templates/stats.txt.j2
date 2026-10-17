@@ -24,7 +24,8 @@
     <|- endif -|>
     <|- set q_em = q_marks * prob -|>
     <|- set q_lines = (q.get('question', '') | string).strip().splitlines() -|>
-    <|- set excerpt = (q_lines[0] if q_lines else '') ~ ("..." if q_lines|length > 1 else "") -|>
+    <|- set q_stem = (q_lines[0] if q_lines else '') ~ ("..." if q_lines|length > 1 else "") -|>
+    <|- set excerpt = ("**" ~ q.title ~ "** — " ~ q_stem) if (q.title is defined and q.title) else q_stem -|>
     <#- Update the totals using direct set -#>
     <|- set ns.total_marks = ns.total_marks + q_marks -|>
     <|- set ns.expected_mark = ns.expected_mark + q_em -|>

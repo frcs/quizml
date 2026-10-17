@@ -13,7 +13,12 @@ import quizml.markdown.markdown as md
 from quizml import renderer
 
 # Imported from refactored modules
-from quizml.cli.config import get_config, get_target_list
+from quizml.cli.config import (
+    check_quizml_version,
+    get_config,
+    get_target_list,
+    peek_yaml_header,
+)
 from quizml.cli.errorhandler import err_console
 from quizml.cli.filelocator import FileLocator
 from quizml.cli.livereload import LiveReloadServer
@@ -124,7 +129,15 @@ def compile(args, live_reload=None):
 
     # load Schema file
     locator = FileLocator(base_dir=base_dir, config_dir=config.get("_config_dir"))
-    schema_ref = config.get("schema_path", "schema.json")
+    header_peek = peek_yaml_header(args.yaml_filename)
+    header_schema = (
+        header_peek.get("_schema") if isinstance(header_peek, dict) else None
+    )
+    schema_ref = (
+        header_schema.strip()
+        if isinstance(header_schema, str) and header_schema.strip()
+        else config.get("schema_path", "schema.json")
+    )
     try:
         schema_path = locator.path(schema_ref)
     except FileNotFoundError as err:
@@ -139,6 +152,11 @@ def compile(args, live_reload=None):
         schema_path=schema_path,
         schema_extensions=config.get("schema_extensions"),
     )
+
+    if yaml_data.get("header", {}).get("_quizml"):
+        check_quizml_version(
+            yaml_data["header"]["_quizml"], str(args.yaml_filename)
+        )
 
     logging.debug(yaml_data)
 
@@ -176,11 +194,14 @@ def compile(args, live_reload=None):
     targets_quiet_output = []
     success_list = {}
     all_success = True
+    explicit_targets = bool(
+        args.target or yaml_data.get("header", {}).get("_targets")
+    )
 
     for _i, target in enumerate(target_list):
         # Build-command targets run only when included in explicit target
         # selection, directly or through an alias such as "build".
-        if ("build_cmd" in target) and not args.target:
+        if ("build_cmd" in target) and not explicit_targets:
             continue
 
         success = False
@@ -189,7 +210,7 @@ def compile(args, live_reload=None):
         # target only requires the execution of an external command,
         # ie. no python code required
         #
-        if ("build_cmd" in target) and args.target:
+        if ("build_cmd" in target) and explicit_targets:
             # need to check if there is a dependency,
             # and if this dependency compiled successfully
             deps = target.get("dep")

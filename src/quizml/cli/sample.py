@@ -133,10 +133,14 @@ def _expand(questions, base_dir, *, inherited_seed, stack, figure_dirs):
             append_items([question], [question_comments])
             continue
 
-        unknown_keys = set(question) - {"_include", "count", "seed"}
+        unknown_keys = set(question) - {"_include", "count", "seed", "select"}
         if unknown_keys:
             unknown = ", ".join(sorted(str(k) for k in unknown_keys))
             raise QuizMLError(f"Unknown key(s) on '_include' item: {unknown}")
+        if "select" in question and ("count" in question or "seed" in question):
+            raise QuizMLError(
+                "Cannot combine 'select' with 'count' or 'seed' on '_include' item"
+            )
 
         include_path = (base_dir / str(question["_include"])).expanduser().resolve()
         if include_path in stack:
@@ -160,7 +164,49 @@ def _expand(questions, base_dir, *, inherited_seed, stack, figure_dirs):
             figure_dirs=figure_dirs,
         )
 
-        if "count" in question:
+        if "select" in question:
+            select_spec = question["select"]
+            if isinstance(select_spec, list):
+                selectors = [str(x).strip() for x in select_spec if str(x).strip()]
+            elif isinstance(select_spec, (str, int)):
+                selectors = [
+                    s.strip() for s in str(select_spec).split(",") if s.strip()
+                ]
+            else:
+                raise QuizMLError(
+                    "Include 'select' must be a list or comma-separated string"
+                )
+            by_id = {
+                str(q["id"]).strip(): idx
+                for idx, q in enumerate(bank_questions)
+                if isinstance(q, dict) and q.get("id")
+            }
+            chosen_indices = []
+            for sel in selectors:
+                if sel in by_id:
+                    chosen_indices.append(by_id[sel])
+                elif sel.isdigit():
+                    pos = int(sel)
+                    if 1 <= pos <= len(bank_questions):
+                        chosen_indices.append(pos - 1)
+                    else:
+                        raise QuizMLError(
+                            f"Include 'select' index {pos} out of range in {question['_include']!s}"
+                        )
+                else:
+                    raise QuizMLError(
+                        f"Include 'select' ID '{sel}' not found in {question['_include']!s}"
+                    )
+            selected = CommentedSeq()
+            for source_index in chosen_indices:
+                selected.append(bank_questions[source_index])
+                comment = getattr(bank_questions, "ca", None)
+                if comment and source_index in comment.items:
+                    selected.ca.items[len(selected) - 1] = copy.deepcopy(
+                        comment.items[source_index]
+                    )
+            bank_questions = selected
+        elif "count" in question:
             try:
                 count = int(question["count"])
             except (TypeError, ValueError) as err:
