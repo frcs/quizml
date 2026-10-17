@@ -110,7 +110,13 @@ def _normalize_markdown_options(options):
     else:
         raise ValueError(f"Unknown Markdown output format: {output_format}")
     postprocess = markdown.get("html_postprocess")
-    if postprocess not in (None, "blackboard_html"):
+    valid_postprocess = (
+        postprocess is None
+        or postprocess == "blackboard_html"
+        or callable(postprocess)
+        or (isinstance(postprocess, str) and ":" in postprocess)
+    )
+    if not valid_postprocess:
         raise ValueError(f"Unknown HTML postprocessor: {postprocess}")
     if output_format == "latex" and postprocess is not None:
         raise ValueError("HTML postprocessing requires Markdown format 'html'.")
@@ -253,11 +259,15 @@ class MarkdownTranscoder:
         """
 
         opts = _normalize_markdown_options(opts)
+        fmt = opts.get("fmt")
+        if not fmt:
+            return {}
 
-        if opts["fmt"].startswith("html"):
+        if fmt.startswith("html"):
             return self.html_dict(opts)
-        elif opts["fmt"] == "latex":
+        elif fmt == "latex":
             return self.latex_dict(opts)
+        return {}
 
     def transcode_target(self, target=None):
         """transcodes MD entries in YAML struct
@@ -275,5 +285,9 @@ class MarkdownTranscoder:
         if not self.md_list:
             return self.yaml_data
 
-        target_dict = self.get_dict(opts=target)
+        opts = _normalize_markdown_options(target)
+        if not opts.get("fmt"):
+            return self.yaml_data
+
+        target_dict = self.get_dict(opts=opts)
         return transcode_md_in_yaml(self.yaml_data, target_dict)

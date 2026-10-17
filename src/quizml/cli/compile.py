@@ -67,11 +67,19 @@ def compile_target(target, transcoder, extra_context=None, template_search_dirs=
     import sys
 
     yaml_transcoded = transcoder.transcode_target(target)
+    merged_extra = {"target": target}
+    if isinstance(target.get("context"), dict):
+        merged_extra.update(target["context"])
+    if extra_context:
+        merged_extra.update(extra_context)
+    render_kwargs = {"template_search_dirs": template_search_dirs}
+    if target.get("jinja_filters"):
+        render_kwargs["jinja_filters"] = target["jinja_filters"]
     rendered_doc = renderer.render(
         yaml_transcoded,
         target["template"],
-        extra_context,
-        template_search_dirs=template_search_dirs,
+        merged_extra,
+        **render_kwargs,
     )
 
     try:

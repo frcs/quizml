@@ -287,7 +287,13 @@ def get_target_list(args, config, yaml_data):
             output_format = markdown.get("format", "html")
             math_backend = markdown.get("math", "png")
             postprocess = markdown.get("html_postprocess")
-            if postprocess not in (None, "blackboard_html"):
+            valid_postprocess = (
+                postprocess is None
+                or postprocess == "blackboard_html"
+                or callable(postprocess)
+                or (isinstance(postprocess, str) and ":" in postprocess)
+            )
+            if not valid_postprocess:
                 raise QuizMLConfigError(
                     f"Unknown HTML postprocessor '{postprocess}' in target '{target['name']}'."
                 )
@@ -343,6 +349,42 @@ def get_target_list(args, config, yaml_data):
             merged_tools.update(target_tools)
         if merged_tools:
             target["tools"] = merged_tools
+
+        merged_context = {}
+        global_context = config.get("context")
+        if global_context is not None:
+            if not isinstance(global_context, dict):
+                raise QuizMLConfigError(
+                    "Top-level 'context' setting must be a mapping."
+                )
+            merged_context.update(global_context)
+        target_context = t.get("context")
+        if target_context is not None:
+            if not isinstance(target_context, dict):
+                raise QuizMLConfigError(
+                    f"Target '{target['name']}' context setting must be a mapping."
+                )
+            merged_context.update(target_context)
+        if merged_context:
+            target["context"] = merged_context
+
+        merged_filters = {}
+        global_filters = config.get("jinja_filters")
+        if global_filters is not None:
+            if not isinstance(global_filters, dict):
+                raise QuizMLConfigError(
+                    "Top-level 'jinja_filters' setting must be a mapping."
+                )
+            merged_filters.update(global_filters)
+        target_filters = t.get("jinja_filters")
+        if target_filters is not None:
+            if not isinstance(target_filters, dict):
+                raise QuizMLConfigError(
+                    f"Target '{target['name']}' jinja_filters setting must be a mapping."
+                )
+            merged_filters.update(target_filters)
+        if merged_filters:
+            target["jinja_filters"] = merged_filters
 
         # resolves relative path for all files
         for key in filenames_to_resolve:

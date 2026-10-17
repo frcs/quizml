@@ -494,6 +494,41 @@ def inline_css(html_content, opts):
     return soup.body.decode_contents() if soup.body else out
 
 
+def _apply_html_postprocess(html_raw, postprocess, opts):
+    if postprocess is None:
+        return html_raw
+    if postprocess == "blackboard_html":
+        html_inlined = inline_css(html_raw, opts)
+        return strip_newlines_and_tabs(html_inlined)
+    if callable(postprocess):
+        try:
+            return postprocess(html_raw, opts)
+        except TypeError:
+            return postprocess(html_raw)
+    if isinstance(postprocess, str) and ":" in postprocess:
+        import importlib
+
+        from ..exceptions import QuizMLConfigError
+
+        mod_name, attr_name = postprocess.split(":", 1)
+        try:
+            module = importlib.import_module(mod_name)
+            func = getattr(module, attr_name)
+        except (ImportError, AttributeError) as err:
+            raise QuizMLConfigError(
+                f"Could not load HTML postprocessor '{postprocess}': {err}"
+            ) from err
+        if not callable(func):
+            raise QuizMLConfigError(
+                f"HTML postprocessor '{postprocess}' is not callable."
+            )
+        try:
+            return func(html_raw, opts)
+        except TypeError:
+            return func(html_raw)
+    raise ValueError(f"Unknown HTML postprocessor: {postprocess}")
+
+
 def get_html_dict(ast_dict, opts=None, base_dir=None, search_dirs=None):
     """
     Renders HTML for markdown entries from discrete AST documents.
@@ -515,18 +550,14 @@ def get_html_dict(ast_dict, opts=None, base_dir=None, search_dirs=None):
     else:
         eq_dict = build_eq_dict_PNG(eq_list, opts)
 
-    # 3. Render each document and inline CSS
+    # 3. Render each document and apply optional postprocessor
     md_dict = {}
+    postprocess = opts.get("html_postprocess")
     with QuizMLYamlHTMLRenderer(
         eq_dict, base_dir=base_dir, search_dirs=search_dirs
     ) as renderer:
         for txt, doc in ast_dict.items():
             html_raw = renderer.render(doc)
-            if opts.get("html_postprocess") == "blackboard_html":
-                html_inlined = inline_css(html_raw, opts)
-                html_clean = strip_newlines_and_tabs(html_inlined)
-            else:
-                html_clean = html_raw
-            md_dict[txt] = html_clean
+            md_dict[txt] = _apply_html_postprocess(html_raw, postprocess, opts)
 
     return md_dict

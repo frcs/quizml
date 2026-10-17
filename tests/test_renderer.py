@@ -83,3 +83,77 @@ def test_strict_undefined_reports_missing_template_variable(tmp_path):
 
     with pytest.raises(Jinja2SyntaxError, match="undefined variable"):
         render_template({}, template)
+
+
+def test_custom_jinja_filters_callable_and_module_spec(tmp_path):
+    template = tmp_path / "filters.j2"
+    template.write_text(
+        "<< header.title | shout >> - << 'hello world' | slugify >>",
+        encoding="utf-8",
+    )
+    yaml_data = {"header": {"title": "Exam"}, "questions": []}
+
+    result = render(
+        yaml_data,
+        str(template),
+        jinja_filters={
+            "shout": lambda s: f"{s.upper()}!",
+            "slugify": "urllib.parse:quote_plus",
+        },
+    )
+    assert result == "EXAM! - hello+world"
+
+
+def test_target_context_and_filters_in_compile_target(tmp_path):
+    from quizml.cli.compile import compile_target
+    from quizml.markdown.markdown import MarkdownTranscoder
+
+    template = tmp_path / "exam.j2"
+    template.write_text(
+        "Title: << header.title | upper_fn >> | Solutions: << show_solutions >> | Target: << target.name >>",
+        encoding="utf-8",
+    )
+    out_file = tmp_path / "out.txt"
+    yaml_data = {"header": {"title": "Midterm"}, "questions": []}
+    transcoder = MarkdownTranscoder(yaml_data, base_dir=str(tmp_path))
+    target = {
+        "name": "solutions-tex",
+        "template": str(template),
+        "out": str(out_file),
+        "context": {"show_solutions": True},
+        "jinja_filters": {"upper_fn": "builtins:str.upper"},
+    }
+    compile_target(target, transcoder)
+    assert (
+        out_file.read_text(encoding="utf-8")
+        == "Title: MIDTERM | Solutions: True | Target: solutions-tex"
+    )
+
+
+def test_custom_html_postprocessor(tmp_path):
+    from quizml.markdown.markdown import MarkdownTranscoder
+    from quizml.utils import MarkdownString
+
+    yamldoc = {
+        "header": {},
+        "questions": [
+            {
+                "type": "essay",
+                "question": MarkdownString("Hello **world**"),
+            }
+        ],
+    }
+    transcoder = MarkdownTranscoder(yamldoc, base_dir=str(tmp_path))
+    res = transcoder.transcode_target(
+        {
+            "markdown": {
+                "format": "html",
+                "html_postprocess": lambda html, opts: f"<div class='q'>{html.strip()}</div>",
+            }
+        }
+    )
+    assert (
+        res["questions"][0]["question"]
+        == "<div class='q'><p>Hello <strong>world</strong></p></div>"
+    )
+

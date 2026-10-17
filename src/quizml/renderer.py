@@ -1,11 +1,33 @@
+import importlib
 import math
 import pathlib
 from functools import lru_cache
 
 import jinja2
 
-from quizml.exceptions import Jinja2SyntaxError, TemplateRenderError
+from quizml.exceptions import Jinja2SyntaxError, QuizMLConfigError, TemplateRenderError
 from quizml.utils import msg_context, text_wrap
+
+
+def _load_filter_callable(spec):
+    if callable(spec):
+        return spec
+    if isinstance(spec, str) and ":" in spec:
+        mod_name, attr_path = spec.split(":", 1)
+        try:
+            obj = importlib.import_module(mod_name)
+            for attr_name in attr_path.split("."):
+                obj = getattr(obj, attr_name)
+        except (ImportError, AttributeError) as err:
+            raise QuizMLConfigError(
+                f"Could not load Jinja2 filter '{spec}': {err}"
+            ) from err
+        if not callable(obj):
+            raise QuizMLConfigError(f"Jinja2 filter '{spec}' is not callable.")
+        return obj
+    raise QuizMLConfigError(
+        f"Invalid Jinja2 filter specification '{spec}'. Expected a callable or 'module:function'."
+    )
 
 
 @lru_cache(maxsize=16)
@@ -26,14 +48,24 @@ def _get_jinja_env(search_dirs):
     return env
 
 
-def get_jinja_env(search_dirs=None):
-    """Return a cached environment configured for the supplied template paths."""
+def get_jinja_env(search_dirs=None, jinja_filters=None):
+    """Return an environment configured for the supplied template paths and filters."""
     if search_dirs is None:
         search_dirs = [pathlib.Path(__file__).parent / "templates"]
-    return _get_jinja_env(tuple(str(pathlib.Path(path)) for path in search_dirs))
+    base_env = _get_jinja_env(tuple(str(pathlib.Path(path)) for path in search_dirs))
+    if not jinja_filters:
+        return base_env
+    if not isinstance(jinja_filters, dict):
+        raise QuizMLConfigError("The 'jinja_filters' setting must be a mapping.")
+    env = base_env.overlay()
+    for name, spec in jinja_filters.items():
+        env.filters[name] = _load_filter_callable(spec)
+    return env
 
 
-def render_template(context, template_filename, search_dirs=None):
+def render_template(
+    context, template_filename, search_dirs=None, jinja_filters=None
+):
     if not template_filename:
         msg = "Template filename is missing, can't render jinja."
         raise Jinja2SyntaxError(msg)
@@ -45,7 +77,7 @@ def render_template(context, template_filename, search_dirs=None):
             template_search_dirs.extend(search_dirs)
         else:
             template_search_dirs.append(pathlib.Path(__file__).parent / "templates")
-        env = get_jinja_env(template_search_dirs)
+        env = get_jinja_env(template_search_dirs, jinja_filters=jinja_filters)
         template_name = template_path.name
         template_src, _, _ = env.loader.get_source(env, template_name)
         template = env.get_template(template_name)
@@ -86,7 +118,11 @@ def render_template(context, template_filename, search_dirs=None):
 
 
 def render(
-    yaml_data, template_filename, extra_context=None, template_search_dirs=None
+    yaml_data,
+    template_filename,
+    extra_context=None,
+    template_search_dirs=None,
+    jinja_filters=None,
 ):
     header = yaml_data["header"]
     paths = yaml_data.get("paths") or {
@@ -107,4 +143,7 @@ def render(
 
         return docx_renderer.render(context, template_filename)
 
-    return render_template(context, template_filename, template_search_dirs)
+    kwargs = {"jinja_filters": jinja_filters} if jinja_filters else {}
+    return render_template(
+        context, template_filename, template_search_dirs, **kwargs
+    )
