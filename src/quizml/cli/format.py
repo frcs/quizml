@@ -22,7 +22,7 @@ def is_q_comment(token):
 
 
 def is_blank_comment(token):
-    """Checks if a comment token is just an empty line."""
+    """Checks if a comment token is just an empty line (no '#' character)."""
     if not isinstance(token, CommentToken):
         return False
     return token.value.strip() == ""
@@ -33,7 +33,7 @@ def should_remove_comment(token):
 
 
 def clean_all_q_comments(data):
-    """Recursively removes all <Q#> comments and blank lines from a ruamel.yaml data structure."""
+    """Recursively removes all <Q#> comments and pure empty lines from a ruamel.yaml data structure."""
     if hasattr(data, "ca"):
         # 1. Clean object-level comments (pre/post)
         if data.ca.comment:
@@ -161,9 +161,9 @@ def format_yaml_text(txt, *, base_dir=Path("."), filename="<stdin>", wrap_width=
         res += "---\n"
     res += "---\n".join(doc + "\n" for doc in actual_docs)
 
-    # Convert to "- # <Q#>" convention
+    # Convert top-level (zero-indent) question comments to "- # <Q#>" convention
     res = re.sub(
-        r"^[ ]*(# <Q[0-9]+>(?:, <Q[0-9]+>)*)\n- ",
+        r"^(# <Q[0-9]+>(?:, <Q[0-9]+>)*)\n- ",
         r"- \1\n  ",
         res,
         flags=re.MULTILINE,

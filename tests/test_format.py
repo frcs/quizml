@@ -221,3 +221,19 @@ def test_fmt_reads_stdin(monkeypatch, capsys):
     monkeypatch.setattr(sys, "stdin", StringIO("- type: essay\n  question: Example\n"))
     main()
     assert "- # <Q1>" in capsys.readouterr().out
+
+
+def test_format_preserves_q_comment_inside_literal_block():
+    from quizml.cli.format import format_yaml_text
+
+    src = """- type: essay
+  question: |
+    Consider the following snippet:
+    # <Q1>
+    - item one
+    - item two
+"""
+    formatted = format_yaml_text(src)
+    assert "    # <Q1>\n    - item one\n" in formatted
+    assert "- # <Q1>\n  type: essay" in formatted
+

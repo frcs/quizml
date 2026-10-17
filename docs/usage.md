@@ -5,10 +5,11 @@ HTML content, LaTeX documents, and other configured targets.
 
 ## Compile
 
-Compile all configured targets:
+Compile all configured targets (or read from stdin with `-`):
 
 ```bash
 quizml compile quiz.yaml
+quizml sample bank.yaml | quizml compile - --target bb --quiet
 ```
 
 The shorthand `quizml quiz.yaml` is equivalent. Select targets or configured
@@ -24,17 +25,17 @@ Compile options:
 
 - `-t`, `--target TARGET`: compile a named target or configured alias; may be
   repeated.
-- `-w`, `--watch`: compile again when the input changes.
+- `-w`, `--watch`: compile again when the input or included files change.
 - `--config CONFIGFILE`: use a specific QuizML config file.
 - `--debug`, `--verbose`, `--quiet`: adjust diagnostic output.
 
 ## Other commands
 
 ```text
-quizml diff FILE FILE [FILE ...]
+quizml diff [--check] FILE FILE [FILE ...]
 quizml fmt [FILE|-] [-i | --check | --diff] [--wrap WIDTH]
-quizml sample FILE --output FILE [--seed SEED] [--force]
-quizml clean [PATH] [--dry-run] [--config CONFIGFILE]
+quizml sample [FILE|-] [-o FILE|-] [--seed SEED] [--force]
+quizml clean [PATH] [--dry-run] [--quiet] [--config CONFIGFILE]
 quizml cache clear
 quizml init {local,user}
 quizml docs [TOPIC] [--no-pager]
@@ -44,17 +45,19 @@ quizml completion {bash,zsh,fish}
 ```
 
 - `diff` lists questions from the first file that also appear in the other files.
+  Use `--check` to exit with status `1` when duplicates are found.
 - `fmt` reads a file or stdin and writes formatted YAML to stdout by default. Use
   `-i` to edit a file, `--check` for a non-writing check, or `--diff` to display
   the proposed changes. `--wrap WIDTH` opts into wrapping Markdown text.
 - `sample` expands question-bank includes and selects the requested questions,
-  writing a static YAML file that can be edited and committed. Include-level
-  `seed` values make selections reproducible; `--seed` supplies a seed when an
-  include does not specify one. Existing output files require `--force` to
-  replace.
+  reading from a file or `-` (stdin) and writing a static YAML document to
+  stdout (`-`) by default or to `--output FILE`. Include-level `seed` values
+  make selections reproducible; `--seed` supplies a seed when an include does
+  not specify one. Existing output files require `--force` to replace.
 - `clean` removes configured target outputs and their declared sidecars.
-  `--dry-run` lists candidates without deleting them; `--config` selects the
-  config file used to resolve targets.
+  `--dry-run` lists candidates without deleting them; `--quiet` suppresses
+  per-file status messages; `--config` selects the config file used to resolve
+  targets.
 - `cache clear` removes cached equation renderings and SVG-to-PDF conversions.
   `info` reports the cache location and its current size.
 - `init local` copies templates into `quizml-templates/`; `init user` copies

@@ -76,6 +76,36 @@ delimiters:
 * `<< ... >>`  for Expressions
 * `<# ... #>`  for Comments
 
+### Custom Target Context, Filters, and External Tools
+
+Targets (and top-level `quizml.cfg` settings) can define custom template
+variables (`context`), custom Jinja2 filters (`jinja_filters`), Markdown
+equation rendering parameters, and external binary overrides (`tools`):
+
+```yaml
+tools:
+  pdflatex: xelatex
+  gs: gs
+  dvisvgm: dvisvgm
+
+jinja_filters:
+  slugify: urllib.parse:quote_plus
+
+targets:
+  - name: solutions-tex
+    out: ${inputbasename}.solutions.tex
+    template: tcd-exam.tex.j2
+    markdown:
+      format: latex
+      svg_converter: "rsvg-convert -f pdf -o {output} {input}"
+    context:
+      show_solutions: true
+```
+
+For HTML targets, `markdown` also supports `png_dpi` (default `250`),
+`png_scale` (default `0.5`), `svg_scale` (default `1.2`), and custom
+`html_postprocess` hooks (`blackboard_html` or a `module:function` path).
+
 ## Setting up your local LaTeX
 
 To be able to compile the LaTeX targets, you will need to have the required

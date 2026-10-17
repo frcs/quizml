@@ -243,15 +243,22 @@ def compile_on_change(args, live_reload=None):
 
     full_yaml_path = os.path.abspath(args.yaml_filename)
     rebuild_event = threading.Event()
+    watched_exts = {".yaml", ".yml", ".j2", ".cfg", ".json", ".css", ".tex"}
+
+    def _should_trigger(path):
+        abs_path = os.path.abspath(path)
+        if abs_path == full_yaml_path:
+            return True
+        return pathlib.Path(abs_path).suffix.lower() in watched_exts
 
     class Handler(FileSystemEventHandler):
         def on_modified(self, event):
-            if os.path.abspath(event.src_path) == full_yaml_path:
+            if not event.is_directory and _should_trigger(event.src_path):
                 rebuild_event.set()
 
         def on_moved(self, event):
             # Support for editors that use atomic saves (write to tmp -> rename)
-            if os.path.abspath(event.dest_path) == full_yaml_path:
+            if not event.is_directory and _should_trigger(event.dest_path):
                 rebuild_event.set()
 
     observer = Observer()

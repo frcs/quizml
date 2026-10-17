@@ -44,9 +44,11 @@ flowchart LR
    and `paths` values.
 3. For each target, the Markdown transcoder parses Markdown fields and converts
    them to the configured representation. HTML targets can choose PNG, SVG, or
-   MathML equation output; LaTeX targets receive LaTeX-formatted content.
-4. The renderer supplies the document and paths to a Jinja or Word template.
-   Text templates use `<| ... |>` for blocks, `<< ... >>` for expressions, and
+   MathML equation output (with configurable DPI/scaling and optional custom
+   HTML postprocessors); LaTeX targets receive LaTeX-formatted content.
+4. The renderer supplies the document, paths, target metadata, and any custom
+   `context` variables or `jinja_filters` to a Jinja or Word template. Text
+   templates use `<| ... |>` for blocks, `<< ... >>` for expressions, and
    `<# ... #>` for comments. Undefined Jinja variables are errors.
 5. Targets with `build_cmd` run external commands after their dependencies
    succeed. The bundled `build` alias selects the standard exports and PDF
@@ -55,12 +57,15 @@ flowchart LR
 ## Design notes
 
 - YAML scalar values are initially preserved as strings, avoiding implicit
-  conversions such as `NO` to `false`. Schema types control coercion; plain
-  YAML `null` remains `None`.
-- Markdown documents are parsed individually. QuizML's custom math and
+  conversions such as `NO` to `false`. Schema types control coercion across both
+  `header` and `questions`; plain YAML `null` remains `None`.
+- Markdown documents are parsed individually into isolated ASTs that are never
+  mutated in-place during target rendering. QuizML's custom math and
   image-width tokens are registered only while parsing, to avoid leaking parser
   state to other users of Mistletoe.
-- Templates and assets are found through `FileLocator`; relative output paths
-  and build commands are based on the input quiz's directory.
-- Equation and SVG-to-PDF conversions use QuizML's shared cache. Run
+- Templates and assets are found through `FileLocator`; relative output paths,
+  template lookups, and build commands are anchored to the input quiz's
+  directory (or current working directory when reading from `stdin`).
+- Equation and SVG-to-PDF conversions use QuizML's shared cache, keyed on
+  content, preamble/converter settings, and external tool versions. Run
   `quizml cache clear` to remove cached conversions.
