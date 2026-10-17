@@ -38,9 +38,7 @@ def test_anyof_applies_every_matching_branch():
         },
     }
 
-    result = coerce_data(
-        {"questions": [{"enabled": "yes", "count": "3"}]}, schema
-    )
+    result = coerce_data({"questions": [{"enabled": "yes", "count": "3"}]}, schema)
 
     assert result["questions"] == [{"enabled": True, "count": 3}]
 
@@ -67,9 +65,7 @@ def test_allof_applies_every_matching_conditional_branch():
         schema,
     )
 
-    assert result["questions"] == [
-        {"kind": "example", "enabled": True, "count": 3}
-    ]
+    assert result["questions"] == [{"kind": "example", "enabled": True, "count": 3}]
 
 
 def test_oneof_applies_only_its_unique_matching_branch():
@@ -95,9 +91,7 @@ def test_oneof_applies_only_its_unique_matching_branch():
         },
     }
 
-    result = coerce_data(
-        {"questions": [{"kind": "enabled", "value": "off"}]}, schema
-    )
+    result = coerce_data({"questions": [{"kind": "enabled", "value": "off"}]}, schema)
 
     assert result["questions"] == [{"kind": "enabled", "value": False}]
 
@@ -113,14 +107,66 @@ def test_pattern_properties_apply_to_matching_keys():
     }
 
     result = coerce_data(
-        {
-            "questions": [
-                {"fixed": "1", "count_items": "2", "other": "yes"}
-            ]
-        },
+        {"questions": [{"fixed": "1", "count_items": "2", "other": "yes"}]},
         schema,
     )
 
-    assert result["questions"] == [
-        {"fixed": 1, "count_items": 2, "other": True}
-    ]
+    assert result["questions"] == [{"fixed": 1, "count_items": 2, "other": True}]
+
+
+def test_header_fields_coerced_from_definitions_header():
+    schema = {
+        "type": "array",
+        "definitions": {
+            "header": {
+                "type": "object",
+                "properties": {
+                    "midterm": {"type": "boolean"},
+                    "duration_mins": {"type": "integer"},
+                    "pass_mark": {"type": "number"},
+                    "title": {"type": "string"},
+                },
+            }
+        },
+        "items": {"type": "object"},
+    }
+    doc = {
+        "header": {
+            "midterm": "true",
+            "duration_mins": "90",
+            "pass_mark": "40.5",
+            "title": "Midterm Exam",
+        },
+        "questions": [],
+    }
+
+    result = coerce_data(doc, schema)
+    assert result["header"]["midterm"] is True
+    assert result["header"]["duration_mins"] == 90
+    assert result["header"]["pass_mark"] == 40.5
+    assert result["header"]["title"] == "Midterm Exam"
+
+
+def test_stats_template_renders_custom_question_types():
+    import os
+
+    from quizml import renderer
+
+    stats_path = os.path.join(
+        os.path.dirname(__file__), "../src/quizml/templates/stats.txt.j2"
+    )
+    doc = {
+        "header": {},
+        "questions": [
+            {"type": "part", "title": "Section 1"},
+            {
+                "type": "custom_code",
+                "marks": 10,
+                "question": "Write a sorting function.",
+            },
+        ],
+    }
+    rendered = renderer.render(doc, stats_path)
+    assert "custom_code" in rendered
+    assert "10.0" in rendered
+    assert "Write a sorting function." in rendered

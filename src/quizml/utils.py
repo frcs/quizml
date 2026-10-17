@@ -130,9 +130,11 @@ def _integer_string(checker, instance):
 
 
 def _boolean_string(checker, instance):
-    return isinstance(instance, str) and instance.lower() in {
-        "true", "false", "yes", "no", "on", "off"
-    } or isinstance(instance, bool)
+    return (
+        isinstance(instance, str)
+        and instance.lower() in {"true", "false", "yes", "no", "on", "off"}
+        or isinstance(instance, bool)
+    )
 
 
 _CoercionValidator = validators.extend(
@@ -153,9 +155,7 @@ def _applicable_schemas(data, schema, root_schema, ref_stack=()):
         return [
             active
             for sub_schema in schema
-            for active in _applicable_schemas(
-                data, sub_schema, root_schema, ref_stack
-            )
+            for active in _applicable_schemas(data, sub_schema, root_schema, ref_stack)
         ]
     if not isinstance(schema, dict):
         return []
@@ -180,9 +180,7 @@ def _applicable_schemas(data, schema, root_schema, ref_stack=()):
             )
 
     for sub_schema in schema.get("allOf", []):
-        applicable.extend(
-            _applicable_schemas(data, sub_schema, root_schema, ref_stack)
-        )
+        applicable.extend(_applicable_schemas(data, sub_schema, root_schema, ref_stack))
 
     for keyword in ("anyOf", "oneOf"):
         if keyword not in schema:
@@ -271,9 +269,7 @@ def coerce_data(yaml_data, schema):
                         key not in properties
                         and not matching_patterns
                         and "additionalProperties" in active
-                        and isinstance(
-                        active["additionalProperties"], dict
-                        )
+                        and isinstance(active["additionalProperties"], dict)
                     ):
                         child_schemas.append(active["additionalProperties"])
                 new_dict[key] = coerce_recursive(value, child_schemas)
@@ -295,8 +291,12 @@ def coerce_data(yaml_data, schema):
 
         return coerce_value(data, active_schemas)
 
-    if isinstance(yaml_data, dict) and "questions" in yaml_data and schema:
-        yaml_data["questions"] = coerce_recursive(yaml_data["questions"], schema)
+    if isinstance(yaml_data, dict) and schema:
+        if "questions" in yaml_data:
+            yaml_data["questions"] = coerce_recursive(yaml_data["questions"], schema)
+        header_schema = schema.get("definitions", {}).get("header")
+        if "header" in yaml_data and header_schema:
+            yaml_data["header"] = coerce_recursive(yaml_data["header"], header_schema)
 
     return yaml_data
 
