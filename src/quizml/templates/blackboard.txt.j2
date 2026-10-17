@@ -1,6 +1,6 @@
 <|- for q in questions -|>
 <|- if q.type == 'essay' -|>
-ESS<< "\t" >><< q.question.strip() >><< "\t" >><< q.answer.strip() >>
+ESS<< "\t" >><< q.question.strip() >><< "\t" >><< q.answer.strip() if q.answer is defined and q.answer else "" >>
 <|- elif q.type == 'tf' -|>
 TF<< "\t" >><< q.question.strip() >><< "\t" >><< q.answer >>
 <|- elif q.type == 'ma' -|>

@@ -67,12 +67,7 @@
 \setmonofont[Scale=0.8]{inconsolata}
 
 \usepackage[most]{tcolorbox}
-\usepackage{listings}
 \usepackage{xcolor}
-
-\usepackage{inconsolata}
-\usepackage{fontspec}
-\setmonofont[Scale=0.8]{inconsolata}
 
 
 \tcbset{
@@ -189,15 +184,13 @@
 
 \usepackage{subfig}
 \usepackage{changepage}
-\usepackage{booktabs}
 \usepackage[scale=2]{ccicons}
 \usepackage{verbatim}
 \usepackage[percent]{overpic}
 \usepackage[absolute,overlay]{textpos}
 
-\usepackage{array,booktabs}
+\usepackage{array}
 \usepackage{multirow}
-\usepackage{xspace}
 
 \usepackage{adjustbox}
 \captionsetup[subfigure]{labelformat=empty}
@@ -305,7 +298,6 @@
       \noindent \color{red} }
      { \medskip }
 \else
-	\usepackage{environ}
 	\NewEnviron{answer}{
     	\par  \medskip   \medskip
 
@@ -411,8 +403,10 @@ questions with multiple choices, mark all solutions that are correct
 \begin{multicols}{3}
 \begin{enumerate}
 <| set letter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' |>
-<| for q in questions +|>
-\item[{\bf Q.<<loop.index>>}]
+<| set ns = namespace(q_num=0) |>
+<| for q in questions if q.type != 'part' +|>
+<| set ns.q_num = ns.q_num + 1 |>
+\item[{\bf Q.<<ns.q_num>>}]
 <|- if q.type == 'essay' |>
 essay question
 <|- elif q.type == 'tf' |>
@@ -429,6 +423,10 @@ essay question
 \o<<letter[loop.index0]>>
 <|-     endif -|>
 <|-   endfor |>
+<|- elif q.type == 'matching' |>
+matching
+<|- elif q.type == 'ordering' |>
+ordering
 <|- elif q.type == 'fill' or q.type == 'mfill' |>
 fill-in
 <|- elif q.type == 'num' |>
@@ -446,13 +444,22 @@ numeric
 
 <| block question_list |>
 <| for q in questions |>
-<| if q.type == 'essay' |>
+<| if q.type == 'part' |>
+<|   if q.title is defined |>
+\section*{<<q.title>>}
+<|   endif |>
+<|   if q.question is defined |>
+<<q.question>>
+<|   endif |>
+<| elif q.type == 'essay' |>
 \begin{bbquestion}[<<q.marks>>]
 <<q.question>>
 \end{bbquestion}
+<| if q.answer is defined and q.answer |>
 \begin{answer}
 <<q.answer>>
 \end{answer}
+<| endif |>
 <| elif q.type == 'tf' |>
 \begin{bbquestion}[<<q.marks>>]
 <<q.question>>
@@ -552,6 +559,26 @@ numeric
 	  (a) & (1) \\	  
 <|-    endfor +|>
   \end{tabular}
+\end{bbquestion}
+<| elif q.type == 'ordering' |>
+\begin{bbquestion}[<<q.marks>>]
+<<q.question>>
+<|   if q.figure is defined |>
+\vspace{0.5em}
+<<q.figure>>
+<|   endif |>
+  \vspace{1em}
+<|   if q.get('cols', 1)|int > 1  |>
+\begin{multicols}{<<q['cols']>>}
+<|   endif           |>
+\begin{enumerate}\setlength\itemsep{0.25em}
+<|-   for a in q.choices |>
+    \item <<a>>
+<|-   endfor +|>
+\end{enumerate}
+<|   if q.get('cols', 1)|int > 1  |>
+\end{multicols}
+<|   endif           |>
 \end{bbquestion}
 <| elif q.type == 'fill' |>
 \begin{bbquestion}[<<q.marks>>]
