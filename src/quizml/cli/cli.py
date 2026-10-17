@@ -14,6 +14,7 @@ COMMANDS = {
     "compile",
     "diff",
     "fmt",
+    "sample",
     "clean",
     "init",
     "docs",
@@ -104,6 +105,27 @@ def build_parser():
         default="-",
         metavar="FILE",
         help="input file, or - for stdin",
+    )
+
+    sample_parser = subparsers.add_parser(
+        "sample",
+        help="expand and sample question-bank includes",
+        formatter_class=formatter,
+    )
+    sample_parser.add_argument("file", metavar="FILE", help="meta YAML input")
+    sample_parser.add_argument(
+        "-o",
+        "--output",
+        required=True,
+        metavar="FILE",
+        help="write static YAML here",
+    )
+    sample_parser.add_argument(
+        "--seed",
+        help="seed for sampled includes without their own seed",
+    )
+    sample_parser.add_argument(
+        "--force", action="store_true", help="replace an existing output file"
     )
     fmt_modes = fmt_parser.add_mutually_exclusive_group()
     fmt_modes.add_argument(
@@ -210,6 +232,11 @@ def _dispatch(args, parser):
         import quizml.cli.format
 
         return quizml.cli.format.run_format(args)
+
+    if args.command == "sample":
+        from quizml.cli.sample import run_sample
+
+        return run_sample(args)
 
     if args.command == "clean":
         from pathlib import Path

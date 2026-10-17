@@ -10,6 +10,7 @@
 *   Preserved included-file validation locations, centralized CLI error reporting, and wrapped external tool failures with concise diagnostics.
 *   Made the bundled question schema reject unknown question types and undeclared fields.
 *   Made `quizml clean` derive outputs from target configuration and support per-target cleanup suffixes.
+*   Added `quizml sample` to materialize seeded question-bank samples as static YAML files; compilation remains deterministic.
 
 <a name="0.12.0"></a>
 

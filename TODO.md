@@ -18,4 +18,5 @@ findings and their status are tracked in [CODE_REVIEW.md](CODE_REVIEW.md).
 
 - Consider a `shortname` field for a one-line question summary.
 - Evaluate a `part` keyword for grouping questions.
-- Review matching and ordering support across the LaTeX and HTML templates.
+- Design explicit display controls for matching and ordering questions, such as
+  a separate display order or matching presentation.

@@ -62,9 +62,9 @@ be true (potentially zero or all statements can be correct).
 ### Matching
 
 In Matching questions, the student is asked to map each statement (`A`) with its
-corresponding match (`B`). For n statements, there are factorial n
-possibilities. The (`A`,`B`) statements are shuffled when generating the exam
-(see how to set the random seed here).
+corresponding match (`B`). QuizML renders the pairs in the order provided in
+`choices`; it does not shuffle them. Separate display-order or matching-display
+controls may be useful in a future version.
 
 ```yaml
 - type: matching
@@ -133,8 +133,9 @@ Simple value and tolerance structure for numeric answers.
 !> **Note:** Blackboard Ultra has removed support for Ordering questions. It is currently only supported for HTML preview.
 
 In Ordering questions, the student is asked to rank each statement (`choices`) in
-correct order. The statements need to be entered in correct order. Shuffling
-occurs when generating the exam (see how to set the random seed here). 
+correct order. The statements are rendered in the order provided in `choices`;
+QuizML does not shuffle them. A separate display order may be useful in a future
+version.
 
 ```yaml
 - type: ordering

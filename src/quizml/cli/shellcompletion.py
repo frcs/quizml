@@ -6,6 +6,7 @@ COMMANDS = (
     "compile",
     "diff",
     "fmt",
+    "sample",
     "clean",
     "init",
     "docs",
@@ -18,6 +19,7 @@ OPTIONS = {
     "compile": "-h --help --config --debug --verbose --quiet -t --target -w --watch",
     "diff": "-h --help --config --debug --verbose --quiet",
     "fmt": "-h --help -i --in-place --check --diff --wrap",
+    "sample": "-h --help -o --output --seed --force",
     "clean": "-h --help --dry-run --config",
     "cache": "-h --help",
     "init": "-h --help",
@@ -79,7 +81,7 @@ def zsh():
         specs = " ".join(f"'{opt}[{opt}]'" for opt in opts.split())
         if command == "docs":
             positional = "'*:topic:->topic'"
-        elif command in {"compile", "diff", "fmt"}:
+        elif command in {"compile", "diff", "fmt", "sample"}:
             positional = "'*:yaml file:_files -g \"*.(yaml|yml)\"'"
         elif command == "clean":
             positional = "'*:path:_files -g \"*.(yaml|yml)\" -/'"
@@ -111,7 +113,7 @@ def fish():
     ]
     lines.extend(
         [
-            "complete -c quizml -n '__fish_seen_subcommand_from compile diff fmt' -F",
+            "complete -c quizml -n '__fish_seen_subcommand_from compile diff fmt sample' -F",
             "complete -c quizml -n '__fish_seen_subcommand_from init' -a 'local user'",
             "complete -c quizml -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'",
         ]

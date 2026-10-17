@@ -20,7 +20,6 @@ Typical usage example:
 
 import json
 import os
-import random
 from importlib.resources import files
 from pathlib import Path
 
@@ -218,11 +217,7 @@ def _include_path(filename, base_dir):
 def count_included_questions(
     item: dict, base_dir: Path, visited: set[Path] | None = None
 ) -> int:
-    """Calculates the number of questions contributed by an _include item.
-
-    Accounts for 'count' sampling and recursively counts nested _include items.
-    Falls back gracefully if the file cannot be accessed.
-    """
+    """Count the questions contributed by an include, recursively."""
     if visited is None:
         visited = set()
 
@@ -233,21 +228,11 @@ def count_included_questions(
     inc_path = _include_path(inc_file, base_dir)
 
     if not inc_path.is_file() or inc_path in visited:
-        if "count" in item:
-            try:
-                return max(0, int(item["count"]))
-            except (ValueError, TypeError):
-                pass
         return 1
 
     try:
         _, sub_questions, _ = _read_question_file(inc_path)
     except QuizMLYamlSyntaxError:
-        if "count" in item:
-            try:
-                return max(0, int(item["count"]))
-            except (ValueError, TypeError):
-                pass
         return 1
 
     new_visited = visited | {inc_path}
@@ -260,12 +245,22 @@ def count_included_questions(
 
     if "count" in item:
         try:
-            sample_count = max(0, int(item["count"]))
-            return min(sample_count, total)
-        except (ValueError, TypeError):
-            pass
-
+            requested = int(item["count"])
+        except (TypeError, ValueError):
+            return total
+        return min(max(requested, 0), total)
     return total
+
+
+def _reject_include_sampling(item):
+    """Require sampling directives to be materialized with ``quizml sample``."""
+    unsupported = sorted({"count", "seed"}.intersection(item))
+    if unsupported:
+        options = ", ".join(f"'{option}'" for option in unsupported)
+        raise QuizMLYamlSyntaxError(
+            f"Include sampling options {options} cannot be used while compiling. "
+            "Run 'quizml sample' to create a static quiz file first."
+        )
 
 
 def _resolve_includes(
@@ -280,8 +275,8 @@ def _resolve_includes(
 ) -> list:
     """Recursively resolves '- _include: filename.yaml' directives in the questions list.
 
-    Supports optional 'count' (for sampling) and 'seed' (for reproducible sampling).
-    Detects circular includes using the visited set.
+    Includes every question in source order and detects circular includes using
+    the visited set.
     Accumulates figure search directories relative to root_dir.
     """
     if visited is None:
@@ -300,6 +295,7 @@ def _resolve_includes(
                 "Unknown directive 'include'. Did you mean '_include'?"
             )
         if isinstance(item, dict) and "_include" in item:
+            _reject_include_sampling(item)
             inc_file = str(item["_include"]).strip()
             inc_path = _include_path(inc_file, base_dir)
 
@@ -351,25 +347,6 @@ def _resolve_includes(
                 inc_text,
                 str(inc_path),
             )
-
-            # Optional sampling
-            if "count" in item:
-                try:
-                    count = int(item["count"])
-                except (ValueError, TypeError) as err:
-                    raise QuizMLYamlSyntaxError(
-                        f"Include 'count' must be an integer, got '{item['count']}'"
-                    ) from err
-
-                if count < 0:
-                    raise QuizMLYamlSyntaxError(
-                        f"Include 'count' cannot be negative, got {count}"
-                    )
-
-                seed = item.get("seed")
-                rng = random.Random(seed) if seed is not None else random.Random()
-                if count < len(sub_questions):
-                    sub_questions = rng.sample(sub_questions, count)
 
             resolved.extend(sub_questions)
         else:

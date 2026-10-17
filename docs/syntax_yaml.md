@@ -127,7 +127,7 @@ title: Midterm Exam
 # Include all questions from a topic file
 - _include: topics/calculus.yaml
 
-# Include a random sample from a large question bank
+# Select three questions from a bank; sampling happens with `quizml sample`
 - _include: banks/linear_algebra.yaml
   count: 3
   seed: 42
@@ -138,9 +138,22 @@ title: Midterm Exam
 - **Recursive**: Included files can themselves include further sub-files. Cycle detection automatically prevents circular inclusions.
 - **Sub-file structure**: Included files can either be a standalone question list or contain their own header document; only questions are imported into the parent exam.
 
-#### Random Sampling (`count` & `seed`)
-- `count`: (Optional) Extracts a random sample of `count` questions from the target file without replacement.
-- `seed`: (Optional) Provides an integer or string seed for reproducible pseudo-random sampling across repeated builds or exam variations.
+#### Includes and sampling
+
+An include without `count` contributes every question from the referenced file
+in source order. An include with `count` describes a sample from that question
+bank. Materialize sampling explicitly:
+
+```bash
+quizml sample exam-main.yaml --output exam-A.yaml
+quizml compile exam-A.yaml --target pdf
+```
+
+Each sampled include needs a `seed` either in the YAML or supplied with
+`quizml sample --seed`. Sampling writes a static YAML file, preserving comments
+on the selected questions. Edit and commit that file as the version of the exam
+you intend to use. It compiles without reading the meta file or sampling again.
+QuizML compilation itself does not perform random selection.
 
 #### Figures & Image Paths in Included Files
 When including a file from a different directory that contains images (e.g. `![](fig/diagram.png)`), QuizML automatically handles figure resolution:

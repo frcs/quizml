@@ -33,6 +33,7 @@ Compile options:
 ```text
 quizml diff FILE FILE [FILE ...]
 quizml fmt [FILE|-] [-i | --check | --diff] [--wrap WIDTH]
+quizml sample FILE --output FILE [--seed SEED] [--force]
 quizml clean [PATH] [--dry-run] [--config CONFIGFILE]
 quizml cache clear
 quizml init {local,user}
@@ -46,6 +47,11 @@ quizml completion {bash,zsh,fish}
 - `fmt` reads a file or stdin and writes formatted YAML to stdout by default. Use
   `-i` to edit a file, `--check` for a non-writing check, or `--diff` to display
   the proposed changes. `--wrap WIDTH` opts into wrapping Markdown text.
+- `sample` expands question-bank includes and selects the requested questions,
+  writing a static YAML file that can be edited and committed. Include-level
+  `seed` values make selections reproducible; `--seed` supplies a seed when an
+  include does not specify one. Existing output files require `--force` to
+  replace.
 - `clean` removes configured target outputs and their declared sidecars.
   `--dry-run` lists candidates without deleting them; `--config` selects the
   config file used to resolve targets.
