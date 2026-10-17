@@ -1,95 +1,108 @@
 from pathlib import Path
+from string import Template
 
 from quizml.cli.errorhandler import err_console
 from quizml.exceptions import QuizMLConfigError
 
-# Suffixes relative to the YAML base stem (e.g. "exam" -> "exam" + suffix)
-KNOWN_TARGET_SUFFIXES = {
-    ".txt",
-    ".html",
-    ".tex",
-    ".solutions.tex",
-    ".pdf",
-    ".solutions.pdf",
-    ".docx",
-    ".csv",
-}
 
-# Intermediate LaTeX build artifact extensions
-LATEX_ARTIFACT_EXTENSIONS = {
-    ".aux",
-    ".log",
-    ".out",
-    ".fls",
-    ".fdb_latexmk",
-    ".synctex.gz",
-    ".toc",
-    ".nav",
-    ".snm",
-    ".vrb",
-    ".bbl",
-    ".blg",
-    ".dvi",
-    ".xdv",
-}
+def get_cleanup_candidates(yaml_path, targets):
+    """Return configured outputs and declared sidecars for one quiz file."""
+    yaml_path = Path(yaml_path).expanduser().resolve()
+    substitutions = {
+        "inputbasename": yaml_path.stem,
+        "inputstem": yaml_path.stem,
+        "inputdir": str(yaml_path.parent),
+    }
+    candidates = set()
 
+    for target in targets:
+        if not isinstance(target, dict):
+            raise QuizMLConfigError("Each configured target must be a mapping.")
+        output = target.get("out")
+        if not isinstance(output, str) or not output:
+            continue
 
-def get_cleanup_candidates(stem):
-    """Returns the set of filenames that are known build artifacts or targets for a given YAML stem."""
-    candidates = {f"{stem}{s}" for s in KNOWN_TARGET_SUFFIXES}
-    for base in (stem, f"{stem}.solutions"):
-        for ext in LATEX_ARTIFACT_EXTENSIONS:
-            candidates.add(f"{base}{ext}")
+        output = Template(output).safe_substitute(substitutions)
+        output_path = Path(output).expanduser()
+        if not output_path.is_absolute():
+            output_path = yaml_path.parent / output_path
+        output_path = output_path.resolve()
+        candidates.add(output_path)
+
+        extensions = target.get("clean_extensions", [])
+        if not isinstance(extensions, list) or any(
+            not isinstance(extension, str)
+            or len(extension) < 2
+            or not extension.startswith(".")
+            or "/" in extension
+            or "\\" in extension
+            or any(char in extension for char in "*?[]")
+            for extension in extensions
+        ):
+            name = target.get("name", "<unnamed>")
+            raise QuizMLConfigError(
+                f"Target '{name}' clean_extensions must be a list of file suffixes."
+            )
+
+        output_suffix = output_path.suffix
+        output_stem = (
+            output_path.name[: -len(output_suffix)] if output_suffix else output_path.name
+        )
+        for extension in extensions:
+            candidates.add(output_path.with_name(f"{output_stem}{extension}"))
+
     return candidates
 
 
-def cleanup_yaml_files(directory_path=".", dry_run=False, target_stems=None):
-    """
-    Looks at all .yaml files in a directory (or specific target_stems) and deletes
-    generated targets and LaTeX build artifacts matching their base names.
-    Non-target files (like .py, .md, .png, etc.) are never deleted.
+def _quiz_files(directory_path, target_stems):
+    directory = Path(directory_path)
+    if target_stems:
+        return [directory / f"{stem}.yaml" for stem in set(target_stems)]
+    return sorted(
+        path
+        for path in directory.iterdir()
+        if path.is_file() and path.suffix in (".yaml", ".yml")
+    )
 
-    Args:
-        directory_path (str): The directory to scan. Defaults to the current directory.
-        dry_run (bool): If True, only prints files that would be deleted without deleting them.
-        target_stems (iterable): Optional set/list of specific YAML stems to clean up.
-    """
-    dir_path = Path(directory_path)
+
+def cleanup_yaml_files(
+    directory_path=".",
+    dry_run=False,
+    target_stems=None,
+    targets=None,
+):
+    """Clean configured outputs and declared sidecars for quizzes in a directory."""
+    dir_path = Path(directory_path).expanduser()
     if not dir_path.is_dir():
         raise QuizMLConfigError(f"Directory not found: {directory_path}")
+    if targets is None:
+        raise QuizMLConfigError("Target configuration is required for cleanup.")
 
     err_console.print(f"Scanning directory: {dir_path.resolve()}")
+    quiz_files = _quiz_files(dir_path, target_stems)
+    err_console.print(f"Found {len(quiz_files)} YAML files to check.")
 
-    # 1. Identify base names of .yaml files to clean up
-    if target_stems:
-        yaml_stems = set(target_stems)
-    else:
-        yaml_stems = {
-            p.stem
-            for p in dir_path.iterdir()
-            if p.is_file() and p.suffix in (".yaml", ".yml")
-        }
-    err_console.print(f"Found {len(yaml_stems)} unique YAML stems to check.")
+    candidates = set()
+    for yaml_path in quiz_files:
+        candidates.update(get_cleanup_candidates(yaml_path, targets))
+    # A bad output configuration must never make clean remove a quiz source.
+    candidates = {
+        path for path in candidates if path.suffix.lower() not in {".yaml", ".yml"}
+    }
 
-    # 2. Build set of allowed filenames to clean up
-    allowed_to_delete = set()
-    for stem in yaml_stems:
-        allowed_to_delete.update(get_cleanup_candidates(stem))
-
-    # 3. Check directory for matches and delete safely
     deleted_files_count = 0
     errors = []
-    for path in dir_path.iterdir():
-        if path.is_file() and path.name in allowed_to_delete:
+    for path in sorted(candidates, key=str):
+        if path.is_file():
             if dry_run:
-                err_console.print(f"-> [Dry-run] Would delete: {path.name}")
+                err_console.print(f"-> [Dry-run] Would delete: {path}")
             else:
-                err_console.print(f"-> Deleting file: {path.name}")
+                err_console.print(f"-> Deleting file: {path}")
                 try:
                     path.unlink()
                     deleted_files_count += 1
-                except OSError as e:
-                    errors.append(f"Could not delete {path}: {e}")
+                except OSError as error:
+                    errors.append(f"Could not delete {path}: {error}")
 
     err_console.print("-" * 30)
     action = "Would delete" if dry_run else "Total files deleted"

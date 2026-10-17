@@ -18,7 +18,7 @@ OPTIONS = {
     "compile": "-h --help --config --debug --verbose --quiet -t --target -w --watch",
     "diff": "-h --help --config --debug --verbose --quiet",
     "fmt": "-h --help -i --in-place --check --diff --wrap",
-    "clean": "-h --help --dry-run",
+    "clean": "-h --help --dry-run --config",
     "cache": "-h --help",
     "init": "-h --help",
     "docs": "-h --help --no-pager",

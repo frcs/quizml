@@ -14,9 +14,11 @@ def test_target_list(mock_print_target_list):
 
 
 @patch("quizml.cli.cleanup.cleanup_yaml_files")
-def test_cleanup(mock_cleanup):
-    with patch.object(sys, "argv", ["quizml", "clean"]):
+@patch("quizml.cli.config.get_config", return_value={"targets": []})
+def test_cleanup(mock_get_config, mock_cleanup):
+    with patch.object(sys, "argv", ["quizml", "clean", "--config", "quizml.cfg"]):
         main()
+    assert mock_get_config.call_args.args[0].config == "quizml.cfg"
     mock_cleanup.assert_called_once()
 
 
@@ -56,7 +58,37 @@ def test_cleanup_safety(tmp_path):
         if not p.exists():
             p.write_text("precious authored file")
 
-    deleted_count = cleanup_yaml_files(str(tmp_path))
+    latex_sidecars = [
+        ".aux",
+        ".log",
+        ".out",
+        ".fls",
+        ".fdb_latexmk",
+        ".synctex.gz",
+        ".toc",
+        ".nav",
+        ".snm",
+        ".vrb",
+        ".bbl",
+        ".blg",
+        ".dvi",
+        ".xdv",
+    ]
+    targets = [
+        {"out": "${inputbasename}.txt"},
+        {"out": "${inputbasename}.html"},
+        {
+            "out": "${inputbasename}.tex",
+        },
+        {"out": "${inputbasename}.solutions.tex"},
+        {"out": "${inputbasename}.pdf", "clean_extensions": latex_sidecars},
+        {
+            "out": "${inputbasename}.solutions.pdf",
+            "clean_extensions": latex_sidecars,
+        },
+        {"out": "${inputbasename}.docx"},
+    ]
+    deleted_count = cleanup_yaml_files(str(tmp_path), targets=targets)
 
     # Verify all targets/artifacts were deleted
     assert deleted_count == len(targets_to_clean)
@@ -76,11 +108,106 @@ def test_cleanup_specific_target_stem(tmp_path):
     (tmp_path / "exam2.html").write_text("artifact")
 
     # Only clean exam1
-    deleted_count = cleanup_yaml_files(str(tmp_path), target_stems={"exam1"})
+    deleted_count = cleanup_yaml_files(
+        str(tmp_path), target_stems={"exam1"}, targets=[{"out": "${inputstem}.html"}]
+    )
 
     assert deleted_count == 1
     assert not (tmp_path / "exam1.html").exists()
     assert (tmp_path / "exam2.html").exists()
+
+
+def test_cleanup_custom_nested_output_and_sidecar(tmp_path):
+    from quizml.cli.cleanup import cleanup_yaml_files
+
+    (tmp_path / "exam.yaml").write_text("---\n[]")
+    output_dir = tmp_path / "artifacts"
+    output_dir.mkdir()
+    (output_dir / "exam.quizpack").write_text("output")
+    (output_dir / "exam.manifest").write_text("sidecar")
+    (output_dir / "unrelated.txt").write_text("keep")
+
+    deleted_count = cleanup_yaml_files(
+        str(tmp_path),
+        targets=[
+            {
+                "out": "artifacts/${inputbasename}.quizpack",
+                "clean_extensions": [".manifest"],
+            }
+        ],
+    )
+
+    assert deleted_count == 2
+    assert not (output_dir / "exam.quizpack").exists()
+    assert not (output_dir / "exam.manifest").exists()
+    assert (output_dir / "unrelated.txt").exists()
+
+
+def test_cleanup_absolute_output_path(tmp_path):
+    from quizml.cli.cleanup import cleanup_yaml_files
+
+    quiz_dir = tmp_path / "quizzes"
+    quiz_dir.mkdir()
+    (quiz_dir / "exam.yaml").write_text("---\n[]")
+    output = tmp_path / "published" / "exam.output"
+    output.parent.mkdir()
+    output.write_text("output")
+
+    deleted_count = cleanup_yaml_files(
+        str(quiz_dir), targets=[{"out": str(output)}]
+    )
+
+    assert deleted_count == 1
+    assert not output.exists()
+
+
+def test_cleanup_never_deletes_yaml_sources(tmp_path):
+    from quizml.cli.cleanup import cleanup_yaml_files
+
+    source = tmp_path / "exam.yaml"
+    source.write_text("---\n[]")
+
+    deleted_count = cleanup_yaml_files(
+        str(tmp_path), targets=[{"out": "${inputbasename}.yaml"}]
+    )
+
+    assert deleted_count == 0
+    assert source.exists()
+
+
+def test_cleanup_dry_run_preserves_configured_outputs(tmp_path):
+    from quizml.cli.cleanup import cleanup_yaml_files
+
+    (tmp_path / "exam.yaml").write_text("---\n[]")
+    output = tmp_path / "exam.custom"
+    output.write_text("output")
+
+    with patch("quizml.cli.cleanup.err_console.print") as mock_print:
+        deleted_count = cleanup_yaml_files(
+            str(tmp_path), dry_run=True, targets=[{"out": "${inputbasename}.custom"}]
+        )
+
+    assert deleted_count == 0
+    assert output.exists()
+    assert any("exam.custom" in str(call) for call in mock_print.call_args_list)
+
+
+def test_cleanup_rejects_path_like_clean_extensions(tmp_path):
+    from quizml.cli.cleanup import cleanup_yaml_files
+    from quizml.exceptions import QuizMLConfigError
+
+    (tmp_path / "exam.yaml").write_text("---\n[]")
+
+    with pytest.raises(QuizMLConfigError, match="clean_extensions"):
+        cleanup_yaml_files(
+            str(tmp_path),
+            targets=[
+                {
+                    "out": "${inputbasename}.pdf",
+                    "clean_extensions": ["../important.txt"],
+                }
+            ],
+        )
 
 
 @patch("quizml.cli.init.init_local")

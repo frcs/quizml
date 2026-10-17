@@ -33,7 +33,7 @@ Compile options:
 ```text
 quizml diff FILE FILE [FILE ...]
 quizml fmt [FILE|-] [-i | --check | --diff] [--wrap WIDTH]
-quizml clean [PATH] [--dry-run]
+quizml clean [PATH] [--dry-run] [--config CONFIGFILE]
 quizml cache clear
 quizml init {local,user}
 quizml docs [TOPIC] [--no-pager]
@@ -46,8 +46,9 @@ quizml completion {bash,zsh,fish}
 - `fmt` reads a file or stdin and writes formatted YAML to stdout by default. Use
   `-i` to edit a file, `--check` for a non-writing check, or `--diff` to display
   the proposed changes. `--wrap WIDTH` opts into wrapping Markdown text.
-- `clean` removes known build artifacts. `--dry-run` lists candidates without
-  deleting them.
+- `clean` removes configured target outputs and their declared sidecars.
+  `--dry-run` lists candidates without deleting them; `--config` selects the
+  config file used to resolve targets.
 - `cache clear` removes cached equation renderings and SVG-to-PDF conversions.
   `info` reports the cache location and its current size.
 - `init local` copies templates into `quizml-templates/`; `init user` copies

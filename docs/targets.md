@@ -53,6 +53,14 @@ extension; `${inputdir}` expands to the absolute input directory. This keeps
 outputs and build commands beside the source YAML even when QuizML is launched
 from another directory.
 
+#### `clean_extensions`
+
+Optional list of file suffixes for additional artifacts produced by this
+target, such as LaTeX's `.aux` and `.log` files. `quizml clean` always considers
+the target's configured `out`; for each suffix listed here, it also considers a
+file with that suffix and the same output stem. Suffixes must start with a dot
+and cannot include path separators or glob patterns.
+
  
 #### `descr`
  

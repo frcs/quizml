@@ -9,6 +9,7 @@
 *   Enabled Jinja template inheritance, includes, imports, and strict undefined-variable checks.
 *   Preserved included-file validation locations, centralized CLI error reporting, and wrapped external tool failures with concise diagnostics.
 *   Made the bundled question schema reject unknown question types and undeclared fields.
+*   Made `quizml clean` derive outputs from target configuration and support per-target cleanup suffixes.
 
 <a name="0.12.0"></a>
 

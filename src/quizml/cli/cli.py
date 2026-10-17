@@ -136,6 +136,9 @@ def build_parser():
     clean_parser.add_argument(
         "--dry-run", action="store_true", help="list without deleting"
     )
+    clean_parser.add_argument(
+        "--config", metavar="CONFIGFILE", help="use a specific QuizML config file"
+    )
 
     cache_parser = subparsers.add_parser(
         "cache", help="manage cached equation and image conversions"
@@ -210,17 +213,27 @@ def _dispatch(args, parser):
 
     if args.command == "clean":
         from pathlib import Path
+        from types import SimpleNamespace
 
         from quizml.cli.cleanup import cleanup_yaml_files
+        from quizml.cli.config import get_config
+
+        config = get_config(SimpleNamespace(config=args.config, yaml_filename=None))
+        targets = config.get("targets")
+        if not isinstance(targets, list):
+            raise QuizMLConfigError("The config file must define a list of targets.")
 
         path = Path(args.path)
         if path.is_dir() or (not path.exists() and not path.suffix):
-            result = cleanup_yaml_files(str(path), dry_run=args.dry_run)
+            result = cleanup_yaml_files(
+                str(path), dry_run=args.dry_run, targets=targets
+            )
         else:
             result = cleanup_yaml_files(
                 str(path.parent or Path(".")),
                 dry_run=args.dry_run,
                 target_stems={path.stem},
+                targets=targets,
             )
         return result is not None
 
