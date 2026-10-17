@@ -85,3 +85,26 @@ def test_wrap_markdown_semantics_preservation():
     # 3. Hard line break (ending with two spaces) is preserved
     res_hardbreak = wrap_markdown("Line one  \nhard break", 74)
     assert res_hardbreak == "Line one  \nhard break"
+
+
+def test_wrap_inline_code_with_dollar_and_image_width():
+    from quizml.cli.wrap import wrap_markdown
+
+    # Inline code containing '$' should not pair across words as an inline math span
+    src = (
+        "Use the `$PATH` variable and the `$HOME` variable in your shell script "
+        "whenever you need to locate user binaries."
+    )
+    wrapped = wrap_markdown(src, width=45)
+    assert "\n" in wrapped
+    assert "`$PATH`" in wrapped
+    assert "`$HOME`" in wrapped
+
+    # Image with {width=...} should stay together as a single token
+    img_src = (
+        "Here is an introductory sentence before the diagram "
+        "![Diagram label](figures/diagram.png){width=0.5\\linewidth} in the text."
+    )
+    wrapped_img = wrap_markdown(img_src, width=55)
+    assert "![Diagram label](figures/diagram.png){width=0.5\\linewidth}" in wrapped_img
+

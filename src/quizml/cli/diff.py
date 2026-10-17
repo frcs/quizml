@@ -110,7 +110,9 @@ def diff(args):
                         " […]" if len(lines) > 1 else ""
                     )
 
-        qstats.append({"type": qr.get("type", ""), "excerpt": long_excerpt})
+        qstats.append(
+            {"type": qr.get("type") or "unknown", "excerpt": long_excerpt}
+        )
 
         for f in other_files:
             dst_questions = filedata[f]["questions"]
@@ -132,8 +134,20 @@ def print_dups_table(qstats, quiet=False):
       * excerpt of the question statement
       * other files that match that question
     """
+    import sys
 
-    has_dups = False
+    has_dups = any("dups" in q for q in qstats)
+
+    if has_dups and not quiet and not sys.stdout.isatty():
+        for i, q in enumerate(qstats):
+            if "dups" in q:
+                excerpt_one_line = " ".join(str(q["excerpt"]).splitlines())
+                dups_str = ", ".join(q.get("dups", []))
+                sys.stdout.write(
+                    f"{i + 1}\t{q.get('type', 'unknown')}\t{excerpt_one_line}\t{dups_str}\n"
+                )
+        sys.stdout.flush()
+        return has_dups
 
     console = Console()
 
@@ -146,10 +160,9 @@ def print_dups_table(qstats, quiet=False):
 
     for i, q in enumerate(qstats):
         if "dups" in q:
-            has_dups = True
             table.add_row(
                 f"{i + 1}",
-                q.get("type", ""),
+                q.get("type", "unknown"),
                 q["excerpt"],
                 ", ".join(q.get("dups", "")),
             )

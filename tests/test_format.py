@@ -237,3 +237,34 @@ def test_format_preserves_q_comment_inside_literal_block():
     assert "    # <Q1>\n    - item one\n" in formatted
     assert "- # <Q1>\n  type: essay" in formatted
 
+
+def test_format_does_not_wrap_long_include_path(tmp_path):
+    from quizml.cli.format import format_yaml_text
+
+    nested_dir = (
+        tmp_path
+        / "very_long_directory_name_part_one"
+        / "very_long_directory_name_part_two"
+    )
+    nested_dir.mkdir(parents=True)
+    bank = nested_dir / "question_bank_file.yaml"
+    bank.write_text("- type: tf\n  question: Q?\n  answer: true\n", encoding="utf-8")
+
+    rel_path = str(bank.relative_to(tmp_path))
+    assert len(rel_path) > 60
+    src = f"- _include: {rel_path}\n"
+    formatted = format_yaml_text(src, base_dir=tmp_path)
+    assert f"_include: {rel_path}" in formatted
+    assert "_include: |" not in formatted
+
+
+def test_init_local_excludes_python_scripts(tmp_path, monkeypatch):
+    from quizml.cli.init import init_local
+
+    monkeypatch.chdir(tmp_path)
+    init_local()
+    dest = tmp_path / "quizml-templates"
+    assert dest.is_dir()
+    assert not list(dest.glob("*.py"))
+
+

@@ -47,7 +47,17 @@ def add_hyperlinks(descr_str, filename):
 
 
 def print_target_list(args):
+    import sys
+
     config = get_config(args)
+
+    if not sys.stdout.isatty():
+        for t in config.get("targets", []):
+            name = t.get("name", "<unnamed>")
+            descr = t.get("descr", name)
+            sys.stdout.write(f"{name}\t{descr}\n")
+        sys.stdout.flush()
+        return True
 
     table = Table(
         box=box.SIMPLE, collapse_padding=True, show_footer=False, show_header=False

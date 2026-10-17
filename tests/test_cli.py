@@ -482,3 +482,46 @@ targets:
 
     captured = capsys.readouterr()
     assert "TF\t<p>Piped question?</p>\tTrue" in captured.out
+
+
+def test_init_excludes_python_files(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    with patch.object(sys, "argv", ["quizml", "init", "local"]):
+        main()
+
+    dest_dir = tmp_path / "quizml-templates"
+    assert dest_dir.exists()
+    assert not (dest_dir / "__init__.py").exists()
+    assert not (dest_dir / "__pycache__").exists()
+    assert (dest_dir / "preview.html.j2").exists()
+
+
+def test_targets_non_tty_tab_separated(capsys):
+    with patch.object(sys, "argv", ["quizml", "targets"]):
+        with patch.object(sys.stdout, "isatty", return_value=False):
+            main()
+
+    captured = capsys.readouterr()
+    lines = [line for line in captured.out.strip().splitlines() if line]
+    assert len(lines) >= 1
+    assert "\t" in lines[0]
+    assert "┏" not in captured.out
+
+
+def test_diff_non_tty_tab_separated(tmp_path, capsys):
+    f1 = tmp_path / "q1.yaml"
+    f2 = tmp_path / "q2.yaml"
+    content = "- type: tf\n  question: Duplicate question?\n  answer: true\n"
+    f1.write_text(content, encoding="utf-8")
+    f2.write_text(content, encoding="utf-8")
+
+    with patch.object(sys, "argv", ["quizml", "diff", str(f1), str(f2)]):
+        with patch.object(sys.stdout, "isatty", return_value=False):
+            main()
+
+    captured = capsys.readouterr()
+    lines = [line for line in captured.out.strip().splitlines() if line]
+    assert len(lines) == 1
+    assert lines[0].startswith("1\ttf\tDuplicate question?\t")
+    assert "┏" not in captured.out
+

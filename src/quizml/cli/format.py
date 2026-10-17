@@ -32,8 +32,13 @@ def should_remove_comment(token):
     return is_q_comment(token) or is_blank_comment(token)
 
 
-def clean_all_q_comments(data):
-    """Recursively removes all <Q#> comments and pure empty lines from a ruamel.yaml data structure."""
+def clean_all_q_comments(data, *, strip_blank_lines=True):
+    """Recursively removes all <Q#> comments and (optionally) pure empty lines from a ruamel.yaml data structure."""
+    def _drop(token):
+        if is_q_comment(token):
+            return True
+        return strip_blank_lines and is_blank_comment(token)
+
     if hasattr(data, "ca"):
         # 1. Clean object-level comments (pre/post)
         if data.ca.comment:
@@ -42,12 +47,12 @@ def clean_all_q_comments(data):
                     data.ca.comment[c_idx] = [
                         t
                         for t in data.ca.comment[c_idx]
-                        if not should_remove_comment(t)
+                        if not _drop(t)
                     ]
 
         # 2. Clean end comments
         if hasattr(data.ca, "end") and data.ca.end:
-            data.ca.end = [t for t in data.ca.end if not should_remove_comment(t)]
+            data.ca.end = [t for t in data.ca.end if not _drop(t)]
 
         # 3. Clean item-level comments
         if data.ca.items:
@@ -59,18 +64,18 @@ def clean_all_q_comments(data):
                             comm_list_list[c_idx] = [
                                 t
                                 for t in comm_list_list[c_idx]
-                                if not should_remove_comment(t)
+                                if not _drop(t)
                             ]
-                        elif should_remove_comment(comm_list_list[c_idx]):
+                        elif _drop(comm_list_list[c_idx]):
                             comm_list_list[c_idx] = None
 
     # Recursive step
     if isinstance(data, dict):
         for v in data.values():
-            clean_all_q_comments(v)
+            clean_all_q_comments(v, strip_blank_lines=strip_blank_lines)
     elif isinstance(data, list):
         for item in data:
-            clean_all_q_comments(item)
+            clean_all_q_comments(item, strip_blank_lines=strip_blank_lines)
 
 
 def wrap_text_fields(data, wrap_width=None):
@@ -78,6 +83,8 @@ def wrap_text_fields(data, wrap_width=None):
 
     if isinstance(data, dict):
         for k, v in data.items():
+            if k == "_include":
+                continue
             if isinstance(v, str):
                 # Always format choices values or long strings as Literal Blocks
                 is_choice = k in ("x", "o", "A", "B") and len(v.strip()) > 0
@@ -102,7 +109,7 @@ def wrap_text_fields(data, wrap_width=None):
 def format_yaml_text(txt, *, base_dir=Path("."), filename="<stdin>", wrap_width=None):
     yaml = YAML()
     yaml.indent(mapping=2, sequence=2, offset=0)
-    yaml.width = 80
+    yaml.width = 4096
     yaml.preserve_quotes = True
 
     try:
@@ -118,7 +125,7 @@ def format_yaml_text(txt, *, base_dir=Path("."), filename="<stdin>", wrap_width=
             continue
 
         # Aggressive cleaning and text wrapping (if requested)
-        clean_all_q_comments(data)
+        clean_all_q_comments(data, strip_blank_lines=isinstance(data, list))
         wrap_text_fields(data, wrap_width=wrap_width)
 
         # Renumber questions if this part is a list

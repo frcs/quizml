@@ -13,7 +13,12 @@ def _copy_templates(dest_dir):
         raise QuizMLConfigError(f"Template directory not found at {pkg_template_dir}")
 
     try:
-        shutil.copytree(pkg_template_dir, dest_dir, dirs_exist_ok=True)
+        shutil.copytree(
+            pkg_template_dir,
+            dest_dir,
+            dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns("*.py", "__pycache__"),
+        )
         err_console.print(
             f"Successfully copied contents from {pkg_template_dir} to {dest_dir}"
         )
