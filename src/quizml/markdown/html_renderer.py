@@ -200,8 +200,12 @@ def build_eq_dict_PNG(eq_list, opts):
 
     latex_content = latex_preamble + latex_body + "\\end{document}\n"
 
+    runner_kwargs = {"tools": opts.get("tools")}
+    if opts.get("tex_search_dirs"):
+        runner_kwargs["tex_search_dirs"] = opts["tex_search_dirs"]
+
     try:
-        with LatexRunner(tools=opts.get("tools")) as latex_runner:
+        with LatexRunner(**runner_kwargs) as latex_runner:
             pdf_filename, depthratio = latex_runner.run_pdflatex(latex_content)
             if dpi == 250:
                 png_files = latex_runner.run_gs_png(pdf_filename)
@@ -300,8 +304,12 @@ def build_eq_dict_SVG(eq_list, opts):
 
     latex_content = latex_preamble + latex_body + "\\end{document}\n"
 
+    runner_kwargs = {"tools": opts.get("tools")}
+    if opts.get("tex_search_dirs"):
+        runner_kwargs["tex_search_dirs"] = opts["tex_search_dirs"]
+
     try:
-        with LatexRunner(tools=opts.get("tools")) as latex_runner:
+        with LatexRunner(**runner_kwargs) as latex_runner:
             dvi_path = latex_runner.run_latex_dvi(latex_content)
             if svg_scale == 1.2:
                 svg_files = latex_runner.run_dvisvgm_svg(dvi_path)
@@ -356,8 +364,12 @@ def build_eq_dict_MathML(eq_list, opts):
     latex_body = "\n".join(eq.content for eq in to_compile)
     latex_content = latex_preamble + latex_body + "\n\\end{document}\n"
 
+    runner_kwargs = {"tools": opts.get("tools")}
+    if opts.get("tex_search_dirs"):
+        runner_kwargs["tex_search_dirs"] = opts["tex_search_dirs"]
+
     try:
-        with LatexRunner(tools=opts.get("tools")) as latex_runner:
+        with LatexRunner(**runner_kwargs) as latex_runner:
             html_path = latex_runner.run_make4ht_mathml(latex_content)
             make4ht_out = html_path.read_text(encoding="utf-8", errors="replace")
 
@@ -549,8 +561,15 @@ def get_html_dict(ast_dict, opts=None, base_dir=None, search_dirs=None):
     """
     Renders HTML for markdown entries from discrete AST documents.
     """
-    if opts is None:
-        opts = {}
+    opts = dict(opts) if opts else {}
+    if "tex_search_dirs" not in opts:
+        tex_dirs = []
+        if base_dir:
+            tex_dirs.append(base_dir)
+        if search_dirs:
+            tex_dirs.extend(search_dirs)
+        if tex_dirs:
+            opts["tex_search_dirs"] = tex_dirs
 
     # 1. Collect all equations across all AST documents in batch
     eq_list = []

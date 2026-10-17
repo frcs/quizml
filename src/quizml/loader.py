@@ -534,7 +534,91 @@ def loads(
     return doc, schema
 
 
-def load(quizmlyaml_path, validate=True, schema_path=None):
+def apply_schema_extensions(schema, extensions):
+    """Return a deep copy of schema extended with header_properties, question_properties, and question_types."""
+    import copy
+
+    if not schema or not extensions:
+        return schema
+    if not isinstance(extensions, dict):
+        raise QuizMLYamlSyntaxError("'schema_extensions' must be a mapping.")
+
+    schema = copy.deepcopy(schema)
+    header_props = extensions.get("header_properties")
+    if header_props is not None:
+        if not isinstance(header_props, dict):
+            raise QuizMLYamlSyntaxError(
+                "'schema_extensions.header_properties' must be a mapping."
+            )
+        defs = schema.setdefault("definitions", {})
+        hdr = defs.setdefault(
+            "header", {"type": "object", "additionalProperties": True}
+        )
+        hdr.setdefault("properties", {}).update(header_props)
+
+    question_props = extensions.get("question_properties")
+    if question_props is not None:
+        if not isinstance(question_props, dict):
+            raise QuizMLYamlSyntaxError(
+                "'schema_extensions.question_properties' must be a mapping."
+            )
+        items = schema.setdefault("items", {"type": "object"})
+        items.setdefault("properties", {}).update(question_props)
+        for branch in items.get("allOf", []):
+            then_block = branch.get("then")
+            if isinstance(then_block, dict) and isinstance(
+                then_block.get("properties"), dict
+            ):
+                then_block["properties"].update(question_props)
+
+    question_types = extensions.get("question_types")
+    if question_types is not None:
+        if not isinstance(question_types, dict):
+            raise QuizMLYamlSyntaxError(
+                "'schema_extensions.question_types' must be a mapping."
+            )
+        items = schema.setdefault("items", {"type": "object"})
+        type_prop = items.setdefault("properties", {}).setdefault(
+            "type", {"type": "string", "enum": []}
+        )
+        enum_list = type_prop.setdefault("enum", [])
+        all_of = items.setdefault("allOf", [])
+        base_q_props = {
+            "type": {"type": "string"},
+            "marks": {"type": "number", "default": "2.5"},
+            "comments": {"$ref": "#/definitions/markdown"},
+            "question": {"$ref": "#/definitions/markdown"},
+            "figure": {"$ref": "#/definitions/markdown"},
+            "figure-split": {"type": "number"},
+        }
+        if isinstance(question_props, dict):
+            base_q_props.update(question_props)
+
+        for q_type, spec in question_types.items():
+            if not isinstance(spec, dict):
+                raise QuizMLYamlSyntaxError(
+                    f"Schema extension for question type '{q_type}' must be a mapping."
+                )
+            if q_type not in enum_list:
+                enum_list.append(q_type)
+            merged_props = copy.deepcopy(base_q_props)
+            if isinstance(spec.get("properties"), dict):
+                merged_props.update(spec["properties"])
+            then_schema = {
+                "properties": merged_props,
+                "required": spec.get("required", ["question"]),
+                "additionalProperties": spec.get("additionalProperties", False),
+            }
+            all_of.append(
+                {
+                    "if": {"properties": {"type": {"const": q_type}}},
+                    "then": then_schema,
+                }
+            )
+    return schema
+
+
+def load(quizmlyaml_path, validate=True, schema_path=None, schema_extensions=None):
     import sys
 
     if quizmlyaml_path == "-":
@@ -559,16 +643,24 @@ def load(quizmlyaml_path, validate=True, schema_path=None):
             if schema_path is None:
                 schema_resource = files("quizml").joinpath("templates", "schema.json")
                 schema_str = schema_resource.read_text(encoding="utf-8")
+                schema = json.loads(schema_str)
             else:
-                schema_str = Path(schema_path).read_text(encoding="utf-8")
-            schema = json.loads(schema_str)
+                schema_file = Path(schema_path)
+                schema_str = schema_file.read_text(encoding="utf-8")
+                if schema_file.suffix.lower() in (".yaml", ".yml"):
+                    yaml_parser = YAML(typ="safe")
+                    schema = yaml_parser.load(schema_str)
+                else:
+                    schema = json.loads(schema_str)
+            if schema_extensions:
+                schema = apply_schema_extensions(schema, schema_extensions)
         except FileNotFoundError as err:
             schema_name = schema_path or "packaged schema.json"
             raise QuizMLYamlSyntaxError(
                 f"Schema file not found: {schema_name}"
             ) from err
-        except json.JSONDecodeError as err:
-            raise QuizMLYamlSyntaxError(f"Invalid JSON in schema: {err}") from err
+        except (json.JSONDecodeError, YAMLError) as err:
+            raise QuizMLYamlSyntaxError(f"Invalid schema syntax: {err}") from err
         except TypeError as err:
             raise QuizMLYamlSyntaxError(
                 "Schema must be provided for validation when validate=True."
@@ -586,3 +678,4 @@ def load(quizmlyaml_path, validate=True, schema_path=None):
     doc["header"]["inputbasename"] = stem
 
     return doc, schema
+

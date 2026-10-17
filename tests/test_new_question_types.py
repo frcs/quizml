@@ -110,3 +110,64 @@ def test_new_question_types_rendering(tmp_path):
             assert "fill-in" in output
             assert "numeric" in output
             assert "acceptable answers" in output
+
+
+def test_schema_extensions_in_load(tmp_path):
+    quiz_yaml = tmp_path / "quiz.yaml"
+    quiz_yaml.write_text(
+        """
+semester: 2
+---
+- type: code_upload
+  question: Write a **sorting** function.
+  topic: algorithms
+  language: python
+  starter_code: |
+    ```python
+    def sort(xs):
+        pass
+    ```
+""",
+        encoding="utf-8",
+    )
+    extensions = {
+        "header_properties": {"semester": {"type": "integer"}},
+        "question_properties": {"topic": {"type": "string"}},
+        "question_types": {
+            "code_upload": {
+                "properties": {
+                    "language": {"type": "string"},
+                    "starter_code": {"$ref": "#/definitions/markdown"},
+                },
+                "required": ["question", "language"],
+            }
+        },
+    }
+    doc, schema = load(str(quiz_yaml), schema_extensions=extensions)
+    assert doc["header"]["semester"] == 2
+    assert doc["questions"][0]["type"] == "code_upload"
+    assert doc["questions"][0]["topic"] == "algorithms"
+    assert doc["questions"][0]["language"] == "python"
+    assert doc["questions"][0]["marks"] == 2.5
+
+
+def test_yaml_schema_file_loading(tmp_path):
+    from ruamel.yaml import YAML
+
+    schema_path = os.path.join("src", "quizml", "templates", "schema.json")
+    with open(schema_path, encoding="utf-8") as f:
+        schema_data = json.load(f)
+
+    yaml_schema = tmp_path / "custom_schema.yaml"
+    yaml_writer = YAML()
+    with yaml_schema.open("w", encoding="utf-8") as stream:
+        yaml_writer.dump(schema_data, stream)
+
+    quiz_yaml = tmp_path / "quiz.yaml"
+    quiz_yaml.write_text(
+        "- type: tf\n  question: YAML schema works?\n  answer: true\n",
+        encoding="utf-8",
+    )
+    doc, _ = load(str(quiz_yaml), schema_path=str(yaml_schema))
+    assert doc["questions"][0]["answer"] is True
+

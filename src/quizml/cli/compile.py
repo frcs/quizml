@@ -30,12 +30,17 @@ from quizml.exceptions import (
 from quizml.loader import load
 
 
-def compile_cmd_target(target, cwd=None):
+def compile_cmd_target(target, cwd=None, tex_search_dirs=None):
     """execute command line scripts of the post compilation targets."""
+    from quizml.markdown.latextools import build_tex_env
+
     command = shlex.split(target["build_cmd"])
+    run_kwargs = {"check": True, "capture_output": True, "text": True, "cwd": cwd}
+    if tex_search_dirs:
+        run_kwargs["env"] = build_tex_env(tex_search_dirs)
 
     try:
-        subprocess.run(command, check=True, capture_output=True, text=True, cwd=cwd)
+        subprocess.run(command, **run_kwargs)
     except subprocess.CalledProcessError as err:
         output = err.stderr or err.stdout or ""
         details = (
@@ -128,13 +133,19 @@ def compile(args, live_reload=None):
         ) from err
 
     # load QuizMLYaml file
-    yaml_data, schema = load(args.yaml_filename, validate=True, schema_path=schema_path)
+    yaml_data, schema = load(
+        args.yaml_filename,
+        validate=True,
+        schema_path=schema_path,
+        schema_extensions=config.get("schema_extensions"),
+    )
 
     logging.debug(yaml_data)
 
     # load all markdown entries into a list
     # and build dictionaries of their HTML and LaTeX translations
     transcoder = md.MarkdownTranscoder(yaml_data, schema, base_dir=base_dir)
+    tex_search_dirs = [base_dir, *transcoder.search_dirs, *locator.dirlist]
 
     # diplay stats about the questions
     if not args.quiet:
@@ -147,6 +158,7 @@ def compile(args, live_reload=None):
         raise QuizMLConfigError(str(err)) from err
 
     for target in target_list:
+        target.setdefault("tex_search_dirs", tex_search_dirs)
         if target.get("out") and target["out"] != "-":
             target["out"] = str(resolve_output_path(target["out"], input_dir))
 
@@ -189,7 +201,9 @@ def compile(args, live_reload=None):
                 dep_ok = success_list.get(deps, False)
 
             if dep_ok:
-                success = compile_cmd_target(target, cwd=input_dir)
+                success = compile_cmd_target(
+                    target, cwd=input_dir, tex_search_dirs=tex_search_dirs
+                )
             else:
                 success = False
 

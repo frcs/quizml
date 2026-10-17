@@ -74,3 +74,28 @@ def test_build_command_runs_from_source_directory(tmp_path):
         compile_cli.compile_cmd_target({"build_cmd": "make quiz.pdf"}, cwd=tmp_path)
 
     assert run.call_args.kwargs["cwd"] == tmp_path
+
+
+def test_build_command_injects_texinputs(tmp_path):
+    import os
+
+    from quizml.markdown.latextools import build_tex_env
+
+    template_dir = tmp_path / "_quizml"
+    template_dir.mkdir()
+    env = build_tex_env([tmp_path, template_dir], base_env={"TEXINPUTS": "/existing"})
+    assert env["TEXINPUTS"].startswith(
+        f"{tmp_path.resolve()}{os.pathsep}{template_dir.resolve()}{os.pathsep}"
+    )
+    assert env["TEXINPUTS"].endswith("/existing")
+
+    with patch("quizml.cli.compile.subprocess.run") as run:
+        compile_cli.compile_cmd_target(
+            {"build_cmd": "latexmk -xelatex quiz.tex"},
+            cwd=tmp_path,
+            tex_search_dirs=[tmp_path, template_dir],
+        )
+
+    passed_env = run.call_args.kwargs["env"]
+    assert str(template_dir.resolve()) in passed_env["TEXINPUTS"]
+

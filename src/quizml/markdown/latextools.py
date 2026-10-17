@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 import tempfile
@@ -11,6 +12,26 @@ from ..exceptions import (
     LatexToolError,
     Make4htNotFoundError,
 )
+
+
+def build_tex_env(search_dirs=None, base_env=None):
+    """Build an environment dict with search_dirs prepended to TEXINPUTS."""
+    env = dict(base_env if base_env is not None else os.environ)
+    if not search_dirs:
+        return env
+    clean_dirs = []
+    for d in search_dirs:
+        if d:
+            abs_d = os.path.abspath(str(d))
+            if abs_d not in clean_dirs:
+                clean_dirs.append(abs_d)
+    if not clean_dirs:
+        return env
+    existing = env.get("TEXINPUTS", "")
+    prefix = os.pathsep.join(clean_dirs)
+    # Trailing os.pathsep ensures kpathsea still searches standard TEXMF trees
+    env["TEXINPUTS"] = f"{prefix}{os.pathsep}{existing}"
+    return env
 
 
 def _trim_tool_log(*outputs):
@@ -46,9 +67,15 @@ def _communicate(process, tool_name):
 
 
 class LatexRunner:
-    def __init__(self, working_dir_prefix="quizml_latex_", tools=None):
+    def __init__(
+        self, working_dir_prefix="quizml_latex_", tools=None, tex_search_dirs=None
+    ):
         self.temp_dir = Path(tempfile.mkdtemp(prefix=working_dir_prefix))
         self.tools = dict(tools or {})
+        self.tex_search_dirs = list(tex_search_dirs or [])
+
+    def _tex_env(self):
+        return build_tex_env(self.tex_search_dirs) if self.tex_search_dirs else None
 
     def _tool_cmd(self, key, default):
         return self.tools.get(key, default)
@@ -61,12 +88,13 @@ class LatexRunner:
 
     @staticmethod
     def _run_checked(
-        command, tool_name, cwd, missing_error_cls=LatexNotFoundError
+        command, tool_name, cwd, missing_error_cls=LatexNotFoundError, env=None
     ):
+        run_kwargs = {"capture_output": True, "text": True, "cwd": cwd, "check": False}
+        if env is not None:
+            run_kwargs["env"] = env
         try:
-            process = subprocess.run(
-                command, capture_output=True, text=True, cwd=cwd, check=False
-            )
+            process = subprocess.run(command, **run_kwargs)
         except OSError as err:
             raise _launch_failure(tool_name, err, missing_error_cls) from err
         if process.returncode:
@@ -83,13 +111,20 @@ class LatexRunner:
 
         latex_filename.write_text(latex_content, encoding="utf-8")
 
+        popen_kwargs = {
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.PIPE,
+            "universal_newlines": True,
+            "cwd": self.temp_dir,
+        }
+        tex_env = self._tex_env()
+        if tex_env is not None:
+            popen_kwargs["env"] = tex_env
+
         try:
             process = subprocess.Popen(
                 [exe, "-interaction=nonstopmode", str(latex_filename)],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
-                cwd=self.temp_dir,
+                **popen_kwargs,
             )
         except OSError as err:
             raise _launch_failure(exe, err) from err
@@ -157,13 +192,20 @@ class LatexRunner:
 
         latex_filename.write_text(latex_content, encoding="utf-8")
 
+        popen_kwargs = {
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.PIPE,
+            "universal_newlines": True,
+            "cwd": self.temp_dir,
+        }
+        tex_env = self._tex_env()
+        if tex_env is not None:
+            popen_kwargs["env"] = tex_env
+
         try:
             process = subprocess.Popen(
                 [exe, "-interaction=nonstopmode", str(latex_filename)],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
-                cwd=self.temp_dir,
+                **popen_kwargs,
             )
         except OSError as err:
             raise _launch_failure(exe, err) from err
@@ -221,13 +263,20 @@ class LatexRunner:
 
         latex_filename.write_text(latex_content, encoding="utf-8")
 
+        popen_kwargs = {
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.PIPE,
+            "universal_newlines": True,
+            "cwd": self.temp_dir,
+        }
+        tex_env = self._tex_env()
+        if tex_env is not None:
+            popen_kwargs["env"] = tex_env
+
         try:
             process = subprocess.Popen(
                 [exe, "-x", str(latex_filename), "xhtml,html5,mathml"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
-                cwd=self.temp_dir,
+                **popen_kwargs,
             )
         except OSError as err:
             raise _launch_failure(exe, err, Make4htNotFoundError) from err
