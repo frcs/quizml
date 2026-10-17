@@ -1,8 +1,8 @@
 # QuizML Code Review Status
 
-*Updated: 2026-10-17 · Code revision: `de0b2cf` (`main`) · Scope: remaining work after the P0/P1 and selected P2 changes.*
+*Updated: 2026-10-17 · Code revision: `311e993` (`main`) · Scope: remaining work after the P0/P1 and selected P2 changes.*
 
-This file tracks remaining work after the changes through `de0b2cf`. The initial findings were based on `6ab38d7`; recommendations marked complete below are closed.
+This file tracks remaining work after the changes through `311e993`. The initial findings were based on `6ab38d7`; recommendations marked complete below are closed.
 
 ## Summary
 
@@ -45,6 +45,7 @@ The loader, renderer, Markdown parser, CLI state and equation cache handling hav
 - **A6:** target aliases can group configured outputs and build commands; the bundled `build` alias selects HTML, Blackboard, LaTeX, and PDF outputs. The ambiguous `--build` option was removed.
 - **A8:** cleanup derives exact outputs from target `out` values and additional sidecar suffixes from per-target `clean_extensions`; `quizml clean --config` selects the configuration.
 - **C11:** moved random question sampling into `quizml sample`, which materializes seeded selections as static YAML. Compilation remains deterministic.
+- **F2:** added focused coverage for header schema validation and external LaTeX tool failures, including missing executables, launch failures, nonzero exits, and invalid equation-depth output.
 
 ## Remaining work
 
@@ -57,10 +58,6 @@ The loader, renderer, Markdown parser, CLI state and equation cache handling hav
 - Question schema defaults remain unchanged; their string defaults are coerced according to the declared schema type.
 
 ### Lower priority
-
-#### F2 — Add tests around remaining high-risk paths
-
-The original test gaps for the fixed tokenizer, widths, equation counts, CLI failures, config interpolation, watch paths, cache invalidation, and cleanup with custom targets have been addressed. Add focused tests as work proceeds on header validation and the remaining external-tool error paths.
 
 #### G — Finish packaging and documentation hygiene
 

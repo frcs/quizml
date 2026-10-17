@@ -78,3 +78,40 @@ def test_default_schema_does_not_depend_on_cwd_template_lookup(tmp_path, monkeyp
 
     with pytest.raises(QuizMLYamlSyntaxError, match="not one of"):
         load(str(quiz_file))
+
+
+@pytest.mark.parametrize(
+    "yaml_text, expected_path",
+    [
+        ("title: null\n---\n- type: essay\n  question: Q\n", "title"),
+        (
+            "_figures_path: null\n---\n- type: essay\n  question: Q\n",
+            "_figures_path",
+        ),
+    ],
+)
+def test_default_schema_validates_known_header_fields(
+    tmp_path, yaml_text, expected_path
+):
+    quiz_file = tmp_path / "invalid-header.yaml"
+    quiz_file.write_text(yaml_text, encoding="utf-8")
+
+    with pytest.raises(QuizMLYamlSyntaxError) as exc_info:
+        load(str(quiz_file))
+
+    message = str(exc_info.value)
+    assert "Header schema validation error" in message
+    assert expected_path in message
+    assert "line ~1" in message
+
+
+def test_default_schema_allows_custom_header_metadata(tmp_path):
+    quiz_file = tmp_path / "custom-header.yaml"
+    quiz_file.write_text(
+        "custom_metadata: project-specific\n---\n- type: essay\n  question: Q\n",
+        encoding="utf-8",
+    )
+
+    document, _ = load(str(quiz_file))
+
+    assert document["header"]["custom_metadata"] == "project-specific"

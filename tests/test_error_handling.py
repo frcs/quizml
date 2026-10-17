@@ -8,9 +8,13 @@ from jinja2 import TemplateError
 from quizml import docx_renderer
 from quizml.cli.compile import compile_cmd_target
 from quizml.exceptions import (
+    DvisvgmNotFoundError,
+    GhostscriptNotFoundError,
     Jinja2SyntaxError,
     LatexCompilationError,
+    LatexNotFoundError,
     LatexToolError,
+    Make4htNotFoundError,
     QuizMLBuildError,
     TemplateRenderError,
 )
@@ -86,3 +90,77 @@ def test_docx_template_errors_use_template_error_type(monkeypatch):
 def test_latex_compilation_errors_are_latex_tool_errors():
     assert issubclass(LatexCompilationError, LatexToolError)
     assert issubclass(Jinja2SyntaxError, TemplateRenderError)
+
+
+@pytest.mark.parametrize(
+    "method, args, expected_error",
+    [
+        ("run_pdflatex", ("content",), LatexNotFoundError),
+        ("run_latex_dvi", ("content",), LatexNotFoundError),
+        ("run_gs_png", ("input.pdf",), GhostscriptNotFoundError),
+        ("run_dvisvgm_svg", ("input.dvi",), DvisvgmNotFoundError),
+        ("run_make4ht_mathml", ("content",), Make4htNotFoundError),
+    ],
+)
+def test_missing_latex_tools_raise_tool_specific_errors(
+    monkeypatch, method, args, expected_error
+):
+    monkeypatch.setattr("quizml.markdown.latextools.shutil.which", lambda _: None)
+
+    with LatexRunner() as runner:
+        with pytest.raises(expected_error):
+            getattr(runner, method)(*args)
+
+
+@pytest.mark.parametrize(
+    "method, args",
+    [
+        ("run_pdflatex", ("content",)),
+        ("run_latex_dvi", ("content",)),
+        ("run_make4ht_mathml", ("content",)),
+    ],
+)
+def test_latex_tool_launch_permission_errors_are_typed(monkeypatch, method, args):
+    monkeypatch.setattr("quizml.markdown.latextools.shutil.which", lambda _: "/tool")
+    monkeypatch.setattr(
+        "quizml.markdown.latextools.subprocess.Popen",
+        MagicMock(side_effect=PermissionError("permission denied")),
+    )
+
+    with LatexRunner() as runner:
+        with pytest.raises(LatexToolError, match="Could not start"):
+            getattr(runner, method)(*args)
+
+
+@pytest.mark.parametrize(
+    "method, args",
+    [
+        ("run_pdflatex", ("content",)),
+        ("run_latex_dvi", ("content",)),
+        ("run_make4ht_mathml", ("content",)),
+    ],
+)
+def test_latex_tool_nonzero_exit_is_reported(monkeypatch, method, args):
+    monkeypatch.setattr("quizml.markdown.latextools.shutil.which", lambda _: "/tool")
+    process = MagicMock(
+        returncode=1, communicate=lambda: ("routine output\n! tool failed", "")
+    )
+    monkeypatch.setattr(
+        "quizml.markdown.latextools.subprocess.Popen", lambda *_, **__: process
+    )
+
+    with LatexRunner() as runner:
+        with pytest.raises(LatexCompilationError, match="! tool failed"):
+            getattr(runner, method)(*args)
+
+
+def test_pdflatex_invalid_depth_output_is_reported(monkeypatch):
+    monkeypatch.setattr("quizml.markdown.latextools.shutil.which", lambda _: "/tool")
+    process = MagicMock(returncode=0, communicate=lambda: ("::: not-a-number", ""))
+    monkeypatch.setattr(
+        "quizml.markdown.latextools.subprocess.Popen", lambda *_, **__: process
+    )
+
+    with LatexRunner() as runner:
+        with pytest.raises(LatexCompilationError, match="invalid equation depth data"):
+            runner.run_pdflatex("content")
