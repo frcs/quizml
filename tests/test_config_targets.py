@@ -3,7 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from quizml.cli.config import get_target_list
+from quizml.cli.config import get_config, get_target_list
+from quizml.exceptions import QuizMLConfigError
 
 
 @pytest.fixture
@@ -106,8 +107,6 @@ def test_get_target_list_defaults_with_dependencies(mock_dependencies):
 
 
 def test_get_target_list_circular_dependency(mock_dependencies):
-    from quizml.exceptions import QuizMLConfigError
-
     args = MagicMock()
     args.target = ["t1"]
     args.yaml_filename = "test.yaml"
@@ -123,6 +122,54 @@ def test_get_target_list_circular_dependency(mock_dependencies):
 
     with pytest.raises(QuizMLConfigError, match="Circular dependency"):
         get_target_list(args, config, yaml_data)
+
+
+@pytest.mark.parametrize(
+    ("selected", "aliases"),
+    [(["consumer"], {}), (["build"], {"build": "consumer"})],
+)
+def test_get_target_list_rejects_unknown_dependencies(
+    mock_dependencies, selected, aliases
+):
+    args = MagicMock()
+    args.target = selected
+    args.yaml_filename = "test.yaml"
+    config = {
+        "yaml_filename": "test.yaml",
+        "aliases": aliases,
+        "targets": [
+            {
+                "name": "consumer",
+                "template": "consumer.jinja",
+                "descr": "Consumer",
+                "dep": "misspelled-producer",
+            }
+        ],
+    }
+
+    with pytest.raises(
+        QuizMLConfigError,
+        match="Target 'consumer' depends on unknown target 'misspelled-producer'",
+    ):
+        get_target_list(args, config, {"header": {}})
+
+
+@pytest.mark.parametrize("contents", ["null\n", "- one\n- two\n", "42\n"])
+def test_get_config_rejects_non_mapping_root(tmp_path, contents):
+    from types import SimpleNamespace
+
+    config_file = tmp_path / "quizml.cfg"
+    config_file.write_text(contents, encoding="utf-8")
+
+    with pytest.raises(QuizMLConfigError, match="YAML mapping at its root"):
+        get_config(SimpleNamespace(config=str(config_file), yaml_filename="quiz.yaml"))
+
+
+def test_get_config_reports_file_read_errors(tmp_path):
+    from types import SimpleNamespace
+
+    with pytest.raises(QuizMLConfigError, match="Could not read config file"):
+        get_config(SimpleNamespace(config=str(tmp_path), yaml_filename="quiz.yaml"))
 
 
 def test_get_target_list_with_list_dep(mock_dependencies):

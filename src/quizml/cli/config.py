@@ -33,6 +33,15 @@ def get_config(args):
     except YAMLError as err:
         s = f"Something went wrong while parsing the config file at:\n {config_file}\n\n {str(err)}"
         raise QuizMLConfigError(s) from err
+    except OSError as err:
+        raise QuizMLConfigError(
+            f"Could not read config file {config_file}: {err}"
+        ) from err
+
+    if not isinstance(config, dict):
+        raise QuizMLConfigError(
+            f"Config file {config_file} must contain a YAML mapping at its root."
+        )
 
     config["yaml_filename"] = args.yaml_filename
 
@@ -121,6 +130,19 @@ def sort_targets_topologically(targets, required_names=None):
     Sorts target configs topologically according to their 'dep' attribute.
     Guarantees dependencies are compiled before dependents.
     """
+    all_target_names = {t.get("name") for t in targets if t.get("name")}
+    for target in targets:
+        name = target.get("name", "<unnamed>")
+        dep = target.get("dep")
+        if not dep:
+            continue
+        dependencies = dep if isinstance(dep, list) else [dep]
+        for dependency in dependencies:
+            if dependency not in all_target_names:
+                raise QuizMLConfigError(
+                    f"Target '{name}' depends on unknown target '{dependency}'."
+                )
+
     target_by_name = {}
     for t in targets:
         name = t.get("name")
