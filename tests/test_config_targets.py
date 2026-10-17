@@ -268,3 +268,47 @@ def test_legacy_html_fmt_keeps_historical_postprocessing(mock_dependencies):
 
     assert target["fmt"] == "html-svg"
     assert target["html_postprocess"] == "blackboard_html"
+
+
+def test_get_target_list_substitutes_variables_before_filelocator(mock_dependencies):
+    args = MagicMock()
+    args.target = ["t1"]
+    args.yaml_filename = "quizzes/exam.yaml"
+    config = {
+        "yaml_filename": "quizzes/exam.yaml",
+        "targets": [
+            {
+                "name": "t1",
+                "template": "${inputstem}.j2",
+            }
+        ],
+    }
+
+    targets = get_target_list(args, config, {"header": {}})
+    assert targets[0]["template"] == "/abs/exam.j2"
+    assert targets[0]["descr"] == "t1"
+    assert targets[0]["out"] == ""
+    assert targets[0]["descr_cmd"] == ""
+
+
+def test_get_config_rejects_invalid_targets_list(tmp_path):
+    from types import SimpleNamespace
+
+    cfg = tmp_path / "quizml.cfg"
+    cfg.write_text("targets: not-a-list\n", encoding="utf-8")
+    with pytest.raises(QuizMLConfigError, match="list of target mappings"):
+        get_config(SimpleNamespace(config=str(cfg), yaml_filename="quiz.yaml"))
+
+
+def test_filelocator_prioritizes_base_dir_over_cwd(tmp_path):
+    from quizml.cli.filelocator import FileLocator
+
+    cwd_dir = tmp_path / "cwd"
+    base_dir = tmp_path / "quiz_dir"
+    cwd_dir.mkdir()
+    base_dir.mkdir()
+    (cwd_dir / "quizml.cfg").write_text("targets: []\n", encoding="utf-8")
+    (base_dir / "quizml.cfg").write_text("targets: []\n", encoding="utf-8")
+
+    locator = FileLocator(cwd=str(cwd_dir), base_dir=str(base_dir))
+    assert locator.path("quizml.cfg") == str(base_dir / "quizml.cfg")

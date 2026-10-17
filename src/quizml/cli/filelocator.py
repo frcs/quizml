@@ -14,7 +14,7 @@ class FileLocator:
     3. the install package templates dir
     """
 
-    def __init__(self, cwd=None):
+    def __init__(self, cwd=None, base_dir=None):
         """
         sets up default directories to search
         """
@@ -22,6 +22,7 @@ class FileLocator:
         self.app_dir = platformdirs.user_config_dir(appname="quizml", appauthor="frcs")
         self.user_template_dir = os.path.join(self.app_dir, "templates")
         self._cwd = os.path.abspath(cwd or os.getcwd())
+        self._base_dir = os.path.abspath(base_dir) if base_dir else None
 
     @property
     def cw_dir(self):
@@ -33,12 +34,19 @@ class FileLocator:
 
     @property
     def dirlist(self):
-        return [
+        dirs = []
+        if self._base_dir:
+            dirs.append(self._base_dir)
+            dirs.append(os.path.join(self._base_dir, "quizml-templates"))
+        for d in (
             self.cw_dir,
             self.local_template_dir,
             self.user_template_dir,
             self.pkg_template_dir,
-        ]
+        ):
+            if d not in dirs:
+                dirs.append(d)
+        return dirs
 
     def path(self, refpath, extra_search_dirs=None):
         """
@@ -54,9 +62,7 @@ class FileLocator:
             return str(found[0])
 
         if os.path.isabs(os.path.expanduser(refpath)):
-            raise FileNotFoundError(
-                f"Absolute file '{refpath}' does not exist."
-            )
+            raise FileNotFoundError(f"Absolute file '{refpath}' does not exist.")
 
         raise FileNotFoundError(
             f"Could not find '{refpath}' in search paths: {search_dirs}"

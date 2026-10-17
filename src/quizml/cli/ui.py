@@ -39,9 +39,11 @@ class QuizMLMarkdown(Markdown):
 
 
 def add_hyperlinks(descr_str, filename):
+    if not filename:
+        return descr_str or ""
     path = os.path.abspath(f"./{filename}")
     uri = f"[link=file://{path}]{filename}[/link]"
-    return descr_str.replace(filename, uri)
+    return (descr_str or filename).replace(filename, uri)
 
 
 def print_target_list(args):
@@ -54,8 +56,10 @@ def print_target_list(args):
     table.add_column("Name", no_wrap=True, justify="left")
     table.add_column("Descr", no_wrap=True, justify="left")
 
-    for t in config["targets"]:
-        table.add_row(t["name"], t["descr"])
+    for t in config.get("targets", []):
+        name = t.get("name", "<unnamed>")
+        descr = t.get("descr", name)
+        table.add_row(str(name), str(descr))
 
     print(table)
     return True
@@ -65,10 +69,16 @@ def print_stats_table(quiz, config):
     """
     prints a table with information about each question, using a user-defined jinja template.
     """
+    yaml_filename = config.get("yaml_filename")
+    base_dir = (
+        os.path.dirname(os.path.abspath(yaml_filename))
+        if yaml_filename and yaml_filename != "-"
+        else None
+    )
 
     template_name = config.get("stats_template", "stats.txt.j2")
     try:
-        locator = FileLocator()
+        locator = FileLocator(base_dir=base_dir)
         template_path = locator.path(template_name)
     except FileNotFoundError as err:
         raise QuizMLConfigError(f"Stats template '{template_name}' not found") from err
