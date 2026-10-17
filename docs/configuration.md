@@ -53,11 +53,12 @@ its dependencies. Aliases can include other aliases. Build-command targets
 such as `pdf` run only when selected directly, through an alias, or as a
 dependency of a selected target; they are skipped during an unqualified compile.
 
-As for the config file directory, any resource file or template file is defined
-as a relative path, the template is searched in:
-1. the local directory from which QuizML is called 
-2. the default application config dir 
-3. the install package templates dir
+As for the config file directory, any resource file or template file defined
+as a relative path is searched in:
+1. the directory containing the input YAML file (and its `quizml-templates` subdirectory)
+2. the local directory from which QuizML is called (and its `quizml-templates` subdirectory)
+3. the default application config dir (`quizml-templates`)
+4. the installed package `templates` dir
 
 
 ### Writing Your Own Rendering Templates

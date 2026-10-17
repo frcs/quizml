@@ -1,7 +1,6 @@
 # Backlog
 
-This is an informal list of ideas, not a release plan. The active code review
-findings and their status are tracked in [CODE_REVIEW.md](CODE_REVIEW.md).
+This is an informal list of ideas, not a release plan.
 
 ## User experience
 

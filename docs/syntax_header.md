@@ -32,13 +32,13 @@ non-letter character.  This is because the LaTeX template copies the keys
 accross as TeX macros:
 
 ```tex
-\def\descr{
+\def\infodescr{
     A very long exam
     
     You are all going to suffer.
 }
-\def\venue{Maxwell Theatre}
-\def\date{13/05/2024}
+\def\infovenue{Maxwell Theatre}
+\def\infodate{13/05/2024}
 ```
 
 Hence, as each key will be turned into a LaTeX macro, it must also follow LaTeX

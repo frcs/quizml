@@ -2,8 +2,9 @@
 
 You can control the layout of questions in QuizML to create more compact exams. This includes arranging questions in multiple columns and placing figures alongside the question text.
 
-!> Only the Latex template (`tcd-eleceng-latex`) fully implements these
-features. Other templates will silently ignore layout indications.
+!> The bundled LaTeX template (`tcd-exam.tex.j2`) and HTML preview template
+(`preview.html.j2`) implement these layout features (`cols`, `figure`, and
+`figure-split`). Other templates may ignore layout indications.
 
 ### Multiple Columns (`cols`)
 
@@ -17,16 +18,16 @@ The `cols` attribute takes an integer value representing the number of columns.
 **Example:**
 
 ```yaml
-- type: mc
+- type: ma
   question: Which of the following are primary colors?
   cols: 3
   choices:
-    - Red
-    - Green
-    - Blue
-    - Yellow
-    - Orange
-    - Purple
+    - x: Red
+    - x: Green
+    - x: Blue
+    - o: Yellow
+    - o: Orange
+    - o: Purple
 ```
 
 This will render the choices in three columns.
@@ -43,8 +44,8 @@ does not do much, the idea is to use it in conjonction with `figure-split`.
   question: Is this the image of a bee?
   figure: figures/bee.jpg
   choices:
-    - True
-    - False
+    - x: "Yes"
+    - o: "No"
 ```
 
 **Example with a Code Listing:**
@@ -75,10 +76,10 @@ will be used for the question text.
   figure: ![](figures/diagram.png)
   figure-split: 0.6
   choices:
-    - A diagram
-    - A photo
-    - A chart
-    - A graph
+    - x: A diagram
+    - o: A photo
+    - o: A chart
+    - o: A graph
 ```
 
 In this example, the figure will occupy 60% of the width, and the question

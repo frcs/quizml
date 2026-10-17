@@ -49,9 +49,17 @@ Output paths that are relative are resolved from the directory containing the
 input YAML file. Absolute output paths are used as given. Post-build commands
 run with that same input directory as their working directory. `${inputbasename}`
 and `${inputstem}` expand to the input filename without its directory or
-extension; `${inputdir}` expands to the absolute input directory. This keeps
-outputs and build commands beside the source YAML even when QuizML is launched
-from another directory.
+extension; `${inputdir}` expands to the absolute input directory. In addition,
+any top-level scalar field from the quiz YAML header (such as `${code}` or
+`${title}`) can be interpolated in `out`, `build_cmd`, and `descr_cmd` (with
+path separators sanitized to `_`). This keeps outputs and build commands beside
+the source YAML even when QuizML is launched from another directory.
+
+#### `context` / `vars`
+
+Optional mapping of extra variables passed to the target's Jinja2 template
+context (both `context` and `vars` are accepted as aliases, with `context`
+taking precedence if both are specified).
 
 #### `clean_extensions`
 
@@ -81,19 +89,25 @@ to the target's Jinja template.
 
 ##### `markdown.format`
 
-Choose the output representation: `html` or `latex`.
+Choose the output representation: `html`, `latex`, or `markdown` (which keeps
+authored Markdown strings untouched for downstream static-site generators or
+Pandoc/Quarto pipelines).
 
 ##### `markdown.math`
 
 For HTML output, choose how LaTeX equations are rendered: `png` (the default),
-`svg`, or `mathml`. The LaTeX output format does not use this setting.
+`svg`, `mathml`, or `passthrough` (which emits HTML `<span class="math inline">\( ... \)</span>`
+and `<div class="math display">\[ ... \]</div>` delimiters for client-side
+MathJax or KaTeX rendering without invoking external LaTeX tools). The LaTeX and
+raw Markdown output formats do not use this setting.
 
 ##### `markdown.html_postprocess`
 
 Set this to `blackboard_html` when the target needs Blackboard-specific HTML
-preparation. It inlines CSS and removes line breaks and tabs from rendered HTML
-fragments before the template consumes them. It does not select or imply an
-output file format; the target may write any format supported by its template.
+preparation, or to a custom `module:function` callable path. `blackboard_html`
+inlines CSS and removes line breaks and tabs from rendered HTML fragments before
+the template consumes them. It does not select or imply an output file format;
+the target may write any format supported by its template.
 
 The postprocessor is opt-in. Generic HTML targets receive the rendered HTML
 without Blackboard-specific changes. Existing templates can keep using fields

@@ -50,7 +50,7 @@ pythonpath = ["src"]
 line-length = 88
 
 # Target a specific Python version
-target-version = "py311"
+target-version = "py310"
 
 [tool.ruff.lint]
 # Enable specific rule sets
