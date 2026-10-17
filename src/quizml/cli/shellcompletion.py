@@ -14,15 +14,17 @@ COMMANDS = (
     "targets",
     "completion",
     "cache",
+    "pin",
 )
 OPTIONS = {
     "compile": "-h --help --config --debug --verbose --quiet -t --target -w --watch",
     "diff": "-h --help --debug --verbose --quiet --check",
     "fmt": "-h --help -i --in-place --check --diff --wrap",
     "sample": "-h --help -o --output --seed --force",
-    "clean": "-h --help --dry-run --config --quiet",
+    "pin": "-h --help --config --debug --verbose --quiet -o --output -t --target --add-ids --freeze-includes --seed -f --force",
+    "clean": "-h --help -r --recursive --dry-run --config --quiet",
     "cache": "-h --help",
-    "init": "-h --help",
+    "init": "-h --help -a --all --latex --html --bb --docx --schema -t --template -f --force",
     "docs": "-h --help --no-pager",
     "info": "-h --help",
     "targets": "-h --help --config --debug --verbose --quiet",
@@ -81,7 +83,7 @@ def zsh():
         specs = " ".join(f"'{opt}[{opt}]'" for opt in opts.split())
         if command == "docs":
             positional = "'*:topic:->topic'"
-        elif command in {"compile", "diff", "fmt", "sample"}:
+        elif command in {"compile", "diff", "fmt", "sample", "pin"}:
             positional = "'*:yaml file:_files -g \"*.(yaml|yml)\"'"
         elif command == "clean":
             positional = "'*:path:_files -g \"*.(yaml|yml)\" -/'"
@@ -113,7 +115,7 @@ def fish():
     ]
     lines.extend(
         [
-            "complete -c quizml -n '__fish_seen_subcommand_from compile diff fmt sample' -F",
+            "complete -c quizml -n '__fish_seen_subcommand_from compile diff fmt sample pin' -F",
             "complete -c quizml -n '__fish_seen_subcommand_from init' -a 'local user'",
             "complete -c quizml -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'",
         ]

@@ -15,6 +15,7 @@ COMMANDS = {
     "diff",
     "fmt",
     "sample",
+    "pin",
     "clean",
     "init",
     "docs",
@@ -138,6 +139,55 @@ def build_parser():
     sample_parser.add_argument(
         "--force", action="store_true", help="replace an existing output file"
     )
+
+    pin_parser = subparsers.add_parser(
+        "pin",
+        help="stamp version/target metadata, generate question IDs, or freeze includes",
+        formatter_class=formatter,
+    )
+    _add_common_options(pin_parser)
+    pin_parser.add_argument(
+        "file",
+        nargs="?",
+        default="-",
+        metavar="FILE",
+        help="input YAML file (updated in place by default), or - for stdin",
+    )
+    pin_parser.add_argument(
+        "-o",
+        "--output",
+        default=None,
+        metavar="FILE",
+        help="write pinned YAML to this file instead of updating in place",
+    )
+    pin_parser.add_argument(
+        "-t",
+        "--target",
+        action="append",
+        metavar="TARGET",
+        help="target to record in _targets; repeatable",
+    )
+    pin_parser.add_argument(
+        "--add-ids",
+        action="store_true",
+        help="generate deterministic IDs for questions missing an id field",
+    )
+    pin_parser.add_argument(
+        "--freeze-includes",
+        action="store_true",
+        help="expand _include directives in place",
+    )
+    pin_parser.add_argument(
+        "--seed",
+        help="seed for sampled includes when --freeze-includes is used",
+    )
+    pin_parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="overwrite existing header metadata or output file",
+    )
+
     fmt_modes = fmt_parser.add_mutually_exclusive_group()
     fmt_modes.add_argument(
         "-i",
@@ -165,6 +215,12 @@ def build_parser():
     )
     clean_parser.add_argument(
         "path", nargs="?", default=".", help="directory or YAML file"
+    )
+    clean_parser.add_argument(
+        "-r",
+        "--recursive",
+        action="store_true",
+        help="recursively scan subdirectories for quiz YAML files",
     )
     clean_parser.add_argument(
         "--dry-run", action="store_true", help="list without deleting"
@@ -306,6 +362,11 @@ def _dispatch(args, parser):
 
         return run_sample(args)
 
+    if args.command == "pin":
+        from quizml.cli.pin import run_pin
+
+        return run_pin(args)
+
     if args.command == "clean":
         from pathlib import Path
         from types import SimpleNamespace
@@ -326,12 +387,16 @@ def _dispatch(args, parser):
         if not isinstance(targets, list):
             raise QuizMLConfigError("The config file must define a list of targets.")
 
+        extra_clean = (
+            {"recursive": True} if getattr(args, "recursive", False) else {}
+        )
         if path.is_dir() or (not path.exists() and not path.suffix):
             result = cleanup_yaml_files(
                 str(path),
                 dry_run=args.dry_run,
                 targets=targets,
                 quiet=args.quiet,
+                **extra_clean,
             )
         else:
             result = cleanup_yaml_files(

@@ -32,6 +32,11 @@ def get_choices_content(q):
 
 
 def questions_are_similar(q1, q2):
+    id1 = str(q1.get("id") or "").strip()
+    id2 = str(q2.get("id") or "").strip()
+    if id1 and id2 and id1 == id2:
+        return True
+
     # Check type first
     if q1.get("type") != q2.get("type"):
         return False
@@ -45,12 +50,20 @@ def questions_are_similar(q1, q2):
     if matcher.ratio() < 0.9:  # 90% similarity
         return False
 
-    # Compare choices if they exist (normalized strict match)
+    # Compare choices if they exist (allow partial distractor edits when stem matches)
     c1 = get_choices_content(q1)
     c2 = get_choices_content(q2)
 
-    if c1 != c2:
-        return False
+    if c1 or c2:
+        if not c1 or not c2:
+            return False
+        overlap = len(set(c1) & set(c2))
+        min_needed = max(1, min(len(c1), len(c2)) // 2)
+        choice_ratio = difflib.SequenceMatcher(
+            None, "\n".join(c1), "\n".join(c2)
+        ).ratio()
+        if overlap < min_needed and choice_ratio < 0.65:
+            return False
 
     # Compare figure if they exist (normalized strict match)
     f1 = normalize_text(q1.get("figure", ""))

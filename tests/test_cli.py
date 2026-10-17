@@ -554,3 +554,135 @@ def test_diff_non_tty_tab_separated(tmp_path, capsys):
     assert lines[0].startswith("1\ttf\tDuplicate question?\t")
     assert "┏" not in captured.out
 
+
+def test_pin_stamps_metadata_adds_ids_and_freezes_includes(tmp_path):
+    from quizml.loader import load
+
+    bank = tmp_path / "bank.yaml"
+    bank.write_text(
+        """
+- title: Gradient Descent
+  type: essay
+  marks: 5
+  question: Explain stochastic gradient descent.
+""",
+        encoding="utf-8",
+    )
+
+    exam = tmp_path / "exam.yaml"
+    exam.write_text(
+        """
+- type: tf
+  marks: 2
+  question: Is ReLU linear?
+  answer: false
+- _include: bank.yaml
+""",
+        encoding="utf-8",
+    )
+
+    with patch.object(
+        sys,
+        "argv",
+        [
+            "quizml",
+            "pin",
+            str(exam),
+            "-t",
+            "pdf",
+            "--add-ids",
+            "--freeze-includes",
+            "--quiet",
+        ],
+    ):
+        main()
+
+    doc, _ = load(str(exam), validate=True)
+    assert "_quizml" in doc["header"]
+    assert doc["header"]["_targets"] == ["pdf"]
+    assert len(doc["questions"]) == 2
+    assert doc["questions"][0]["id"].startswith("is-relu-linear-")
+    assert doc["questions"][1]["id"].startswith("gradient-descent-")
+
+
+def test_diff_detects_matching_id_and_modified_distractor(tmp_path, capsys):
+    f1 = tmp_path / "exam_2025.yaml"
+    f2 = tmp_path / "exam_2026.yaml"
+    f1.write_text(
+        """
+- type: mc
+  question: Which activation function mitigates vanishing gradients best?
+  choices:
+    - x: ReLU
+    - o: Sigmoid
+    - o: Step function
+    - o: Cosine
+- id: q-backprop-1
+  type: essay
+  question: Derive the chain rule for a 2-layer MLP.
+""",
+        encoding="utf-8",
+    )
+    f2.write_text(
+        """
+- type: mc
+  question: Which activation function mitigates vanishing gradients best?
+  choices:
+    - x: ReLU
+    - o: Sigmoid
+    - o: Step function
+    - o: Hyperbolic tangent
+- id: q-backprop-1
+  type: essay
+  question: Completely reworded backpropagation derivation question.
+""",
+        encoding="utf-8",
+    )
+
+    with patch.object(sys, "argv", ["quizml", "diff", str(f1), str(f2)]):
+        with patch.object(sys.stdout, "isatty", return_value=False):
+            main()
+
+    captured = capsys.readouterr()
+    lines = [line for line in captured.out.strip().splitlines() if line]
+    assert len(lines) == 2
+
+
+def test_clean_recursive_and_header_variable_substitution(tmp_path):
+    from quizml.cli.cleanup import cleanup_yaml_files
+
+    sub = tmp_path / "2025-2026" / "midterm"
+    sub.mkdir(parents=True)
+    quiz = sub / "paper.yaml"
+    quiz.write_text(
+        "modulecode: 4C16\n---\n- type: essay\n  question: Q1\n",
+        encoding="utf-8",
+    )
+    artifact = sub / "4C16-paper.pdf"
+    artifact.write_text("pdf", encoding="utf-8")
+
+    # Non-recursive from root does not touch nested directory
+    assert (
+        cleanup_yaml_files(
+            str(tmp_path),
+            targets=[{"out": "${modulecode}-${inputstem}.pdf"}],
+            quiet=True,
+            recursive=False,
+        )
+        == 0
+    )
+    assert artifact.exists()
+
+    # Recursive from root cleans nested directory and expands ${modulecode}
+    assert (
+        cleanup_yaml_files(
+            str(tmp_path),
+            targets=[{"out": "${modulecode}-${inputstem}.pdf"}],
+            quiet=True,
+            recursive=True,
+        )
+        == 1
+    )
+    assert not artifact.exists()
+
+

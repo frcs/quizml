@@ -1,6 +1,7 @@
 from pathlib import Path
 from string import Template
 
+from quizml.cli.config import peek_yaml_header
 from quizml.cli.errorhandler import err_console
 from quizml.exceptions import QuizMLConfigError
 
@@ -8,11 +9,19 @@ from quizml.exceptions import QuizMLConfigError
 def get_cleanup_candidates(yaml_path, targets):
     """Return configured outputs and declared sidecars for one quiz file."""
     yaml_path = Path(yaml_path).expanduser().resolve()
-    substitutions = {
-        "inputbasename": yaml_path.stem,
-        "inputstem": yaml_path.stem,
-        "inputdir": str(yaml_path.parent),
-    }
+    substitutions = {}
+    header_data = peek_yaml_header(str(yaml_path))
+    if isinstance(header_data, dict):
+        for k, v in header_data.items():
+            if isinstance(v, (str, int, float, bool)):
+                substitutions[str(k)] = str(v)
+    substitutions.update(
+        {
+            "inputbasename": yaml_path.stem,
+            "inputstem": yaml_path.stem,
+            "inputdir": str(yaml_path.parent),
+        }
+    )
     candidates = set()
 
     for target in targets:
@@ -56,15 +65,31 @@ def get_cleanup_candidates(yaml_path, targets):
     return candidates
 
 
-def _quiz_files(directory_path, target_stems):
+def _quiz_files(directory_path, target_stems, recursive=False):
     directory = Path(directory_path)
     if target_stems:
         return [directory / f"{stem}.yaml" for stem in set(target_stems)]
-    return sorted(
-        path
-        for path in directory.iterdir()
-        if path.is_file() and path.suffix in (".yaml", ".yml")
-    )
+    if not recursive:
+        return sorted(
+            path
+            for path in directory.iterdir()
+            if path.is_file() and path.suffix in (".yaml", ".yml")
+        )
+
+    skipped_dirs = {"_quizml", "quizml-templates"}
+    found = []
+
+    def _walk(curr):
+        for entry in sorted(curr.iterdir()):
+            if entry.is_dir():
+                if entry.name.startswith(".") or entry.name in skipped_dirs:
+                    continue
+                _walk(entry)
+            elif entry.is_file() and entry.suffix in (".yaml", ".yml"):
+                found.append(entry)
+
+    _walk(directory)
+    return found
 
 
 def cleanup_yaml_files(
@@ -73,6 +98,7 @@ def cleanup_yaml_files(
     target_stems=None,
     targets=None,
     quiet=False,
+    recursive=False,
 ):
     """Clean configured outputs and declared sidecars for quizzes in a directory."""
     dir_path = Path(directory_path).expanduser()
@@ -83,7 +109,7 @@ def cleanup_yaml_files(
 
     if not quiet:
         err_console.print(f"Scanning directory: {dir_path.resolve()}")
-    quiz_files = _quiz_files(dir_path, target_stems)
+    quiz_files = _quiz_files(dir_path, target_stems, recursive=recursive)
     if not quiet:
         err_console.print(f"Found {len(quiz_files)} YAML files to check.")
 
