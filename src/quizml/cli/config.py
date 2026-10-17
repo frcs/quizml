@@ -274,6 +274,10 @@ def get_target_list(args, config, yaml_data):
                 "format",
                 "math",
                 "html_postprocess",
+                "png_dpi",
+                "png_scale",
+                "svg_scale",
+                "svg_converter",
             }
             if unknown_settings:
                 unknown = ", ".join(sorted(unknown_settings))
@@ -309,6 +313,9 @@ def get_target_list(args, config, yaml_data):
                     f"Unknown Markdown format '{output_format}' in target '{target['name']}'."
                 )
             target["html_postprocess"] = postprocess
+            for opt_key in ("png_dpi", "png_scale", "svg_scale", "svg_converter"):
+                if opt_key in markdown:
+                    target[opt_key] = markdown[opt_key]
         elif "fmt" in t:
             # Translate existing configuration values while users migrate.
             legacy_fmt = t["fmt"]
@@ -320,6 +327,22 @@ def get_target_list(args, config, yaml_data):
             target["html_postprocess"] = (
                 "blackboard_html" if legacy_fmt.startswith("html") else None
             )
+
+        merged_tools = {}
+        global_tools = config.get("tools")
+        if global_tools is not None:
+            if not isinstance(global_tools, dict):
+                raise QuizMLConfigError("Top-level 'tools' setting must be a mapping.")
+            merged_tools.update(global_tools)
+        target_tools = t.get("tools")
+        if target_tools is not None:
+            if not isinstance(target_tools, dict):
+                raise QuizMLConfigError(
+                    f"Target '{target['name']}' tools setting must be a mapping."
+                )
+            merged_tools.update(target_tools)
+        if merged_tools:
+            target["tools"] = merged_tools
 
         # resolves relative path for all files
         for key in filenames_to_resolve:

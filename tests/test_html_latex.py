@@ -239,3 +239,60 @@ def test_blackboard_html_postprocess_is_opt_in():
             )["md"]
             assert "\n" not in blackboard
             inline_css.assert_called_once()
+
+
+def test_inline_css_default_code_font_size():
+    from quizml.markdown.html_renderer import inline_css
+
+    out = inline_css("<pre><code>x = 1</code></pre>", {})
+    assert "font-size: 80%" in out or "font-size:80%" in out
+
+
+@patch("quizml.markdown.html_renderer.save_to_cache")
+@patch("quizml.markdown.html_renderer.get_from_cache", return_value=None)
+@patch(
+    "quizml.markdown.html_renderer.embed_base64",
+    return_value=(100, 50, "data:image/png;base64,fake"),
+)
+@patch("quizml.markdown.html_renderer.LatexRunner")
+def test_build_eq_dict_png_custom_dpi_scale_and_tools(
+    MockLatexRunner, mock_embed, mock_get_cache, mock_save_cache
+):
+    mock_runner = MockLatexRunner.return_value.__enter__.return_value
+    mock_runner.run_pdflatex.return_value = (Path("/tmp/fake.pdf"), [0.25])
+    mock_runner.run_gs_png.return_value = [Path("/tmp/img1.png")]
+
+    eq_list = [create_mock_inline(r"$x$")]
+    opts = {
+        "png_dpi": 300,
+        "png_scale": 1.0,
+        "tools": {"pdflatex": "xelatex", "gs": "custom-gs"},
+    }
+    eq_dict = build_eq_dict_PNG(eq_list, opts)
+    MockLatexRunner.assert_called_once_with(
+        tools={"pdflatex": "xelatex", "gs": "custom-gs"}
+    )
+    mock_runner.run_gs_png.assert_called_once_with(Path("/tmp/fake.pdf"), dpi=300)
+    assert "width='100'" in eq_dict["##Inline##$x$"]
+    assert "height='50'" in eq_dict["##Inline##$x$"]
+
+
+def test_convert_svg_to_pdf_custom_converter():
+    from quizml.markdown.latex_renderer import convert_svg_to_pdf
+
+    with patch("quizml.markdown.latex_renderer.subprocess.check_call") as mock_call:
+        ok = convert_svg_to_pdf(
+            "/tmp/in.svg",
+            "/tmp/out.pdf",
+            converter="my-svg2pdf --in {input} --out {output}",
+        )
+        assert ok is True
+        mock_call.assert_called_once()
+        assert mock_call.call_args[0][0] == [
+            "my-svg2pdf",
+            "--in",
+            "/tmp/in.svg",
+            "--out",
+            "/tmp/out.pdf",
+        ]
+

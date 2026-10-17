@@ -172,8 +172,14 @@ def build_eq_dict_PNG(eq_list, opts):
         + "\\begin{document}\n"
     )
 
+    dpi = opts.get("png_dpi", 250)
+    scale = float(opts.get("png_scale", 0.5))
+    tools = opts.get("tools") or {}
+
     # Check cache first
-    settings_str = latex_preamble + "PNG"
+    settings_str = (
+        f"{latex_preamble}|dpi={dpi}|scale={scale}|tools={sorted(tools.items())}|PNG"
+    )
     eq_dict, to_compile = _cached_equations(eq_list, settings_str)
 
     if not to_compile:
@@ -195,9 +201,12 @@ def build_eq_dict_PNG(eq_list, opts):
     latex_content = latex_preamble + latex_body + "\\end{document}\n"
 
     try:
-        with LatexRunner() as latex_runner:
+        with LatexRunner(tools=opts.get("tools")) as latex_runner:
             pdf_filename, depthratio = latex_runner.run_pdflatex(latex_content)
-            png_files = latex_runner.run_gs_png(pdf_filename)
+            if dpi == 250:
+                png_files = latex_runner.run_gs_png(pdf_filename)
+            else:
+                png_files = latex_runner.run_gs_png(pdf_filename, dpi=dpi)
 
             if len(png_files) != len(to_compile):
                 raise LatexCompilationError(
@@ -213,9 +222,9 @@ def build_eq_dict_PNG(eq_list, opts):
             for i, (eq, png_file) in enumerate(zip(to_compile, png_files, strict=True)):
                 w, h, data64 = embed_base64(png_file)
                 d = depthratio[i]
-                d_ = round(d * w * 0.5, 2)
-                w_ = round(w / 2)
-                h_ = round(h / 2)
+                d_ = round(d * w * scale, 2)
+                w_ = round(w * scale)
+                h_ = round(h * scale)
 
                 html_img = ""
                 if isinstance(eq, MathInline):
@@ -266,7 +275,11 @@ def build_eq_dict_SVG(eq_list, opts):
         + "\\begin{document}\n"
     )
 
-    settings_str = latex_preamble + "SVG"
+    svg_scale = opts.get("svg_scale", 1.2)
+    tools = opts.get("tools") or {}
+    settings_str = (
+        f"{latex_preamble}|scale={svg_scale}|tools={sorted(tools.items())}|SVG"
+    )
     eq_dict, to_compile = _cached_equations(eq_list, settings_str)
 
     if not to_compile:
@@ -288,9 +301,12 @@ def build_eq_dict_SVG(eq_list, opts):
     latex_content = latex_preamble + latex_body + "\\end{document}\n"
 
     try:
-        with LatexRunner() as latex_runner:
+        with LatexRunner(tools=opts.get("tools")) as latex_runner:
             dvi_path = latex_runner.run_latex_dvi(latex_content)
-            svg_files = latex_runner.run_dvisvgm_svg(dvi_path)
+            if svg_scale == 1.2:
+                svg_files = latex_runner.run_dvisvgm_svg(dvi_path)
+            else:
+                svg_files = latex_runner.run_dvisvgm_svg(dvi_path, scale=svg_scale)
 
             if len(svg_files) != len(to_compile):
                 raise LatexCompilationError(
@@ -330,7 +346,8 @@ def build_eq_dict_MathML(eq_list, opts):
         + "\\begin{document}\n"
     )
 
-    settings_str = latex_preamble + "MathML"
+    tools = opts.get("tools") or {}
+    settings_str = f"{latex_preamble}|tools={sorted(tools.items())}|MathML"
     eq_dict, to_compile = _cached_equations(eq_list, settings_str)
 
     if not to_compile:
@@ -340,7 +357,7 @@ def build_eq_dict_MathML(eq_list, opts):
     latex_content = latex_preamble + latex_body + "\n\\end{document}\n"
 
     try:
-        with LatexRunner() as latex_runner:
+        with LatexRunner(tools=opts.get("tools")) as latex_runner:
             html_path = latex_runner.run_make4ht_mathml(latex_content)
             make4ht_out = html_path.read_text(encoding="utf-8", errors="replace")
 
@@ -456,10 +473,10 @@ def inline_css(html_content, opts):
               line-height:1em;
         }
         code { 
-              font-family: ui-monospace,‘Cascadia Mono’,‘Segoe UI Mono’,
-                           ‘Segoe UI Mono’, Menlo, Monaco, Consolas, monospace;
-              font-size:80%;
-              line-height:1.5em;
+              font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono',
+                           Menlo, Monaco, Consolas, monospace;
+              font-size: 80%;
+              line-height: 1.5em;
         }
         """
 

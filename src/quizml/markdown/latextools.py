@@ -46,8 +46,12 @@ def _communicate(process, tool_name):
 
 
 class LatexRunner:
-    def __init__(self, working_dir_prefix="quizml_latex_"):
+    def __init__(self, working_dir_prefix="quizml_latex_", tools=None):
         self.temp_dir = Path(tempfile.mkdtemp(prefix=working_dir_prefix))
+        self.tools = dict(tools or {})
+
+    def _tool_cmd(self, key, default):
+        return self.tools.get(key, default)
 
     @staticmethod
     def _require_executable(name, error_cls, desc=None):
@@ -72,7 +76,8 @@ class LatexRunner:
         return process
 
     def run_pdflatex(self, latex_content: str):
-        self._require_executable("pdflatex", LatexNotFoundError)
+        exe = self._tool_cmd("pdflatex", "pdflatex")
+        self._require_executable(exe, LatexNotFoundError)
         latex_filename = self.temp_dir / "eq_list.tex"
         pdf_filename = self.temp_dir / "eq_list.pdf"
 
@@ -80,20 +85,20 @@ class LatexRunner:
 
         try:
             process = subprocess.Popen(
-                ["pdflatex", "-interaction=nonstopmode", str(latex_filename)],
+                [exe, "-interaction=nonstopmode", str(latex_filename)],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
                 cwd=self.temp_dir,
             )
         except OSError as err:
-            raise _launch_failure("pdflatex", err) from err
+            raise _launch_failure(exe, err) from err
 
-        stdout, stderr = _communicate(process, "pdflatex")
+        stdout, stderr = _communicate(process, exe)
 
         if process.returncode != 0:
             raise _process_failure(
-                "pdflatex", process.returncode, stdout, stderr
+                exe, process.returncode, stdout, stderr
             )
 
         # Parse depth ratio from stdout
@@ -118,24 +123,25 @@ class LatexRunner:
 
         return pdf_filename, depthratio
 
-    def run_gs_png(self, pdf_path: Path, output_prefix="eq_img_"):
-        self._require_executable("gs", GhostscriptNotFoundError, "gs (Ghostscript)")
+    def run_gs_png(self, pdf_path: Path, output_prefix="eq_img_", dpi=250):
+        exe = self._tool_cmd("gs", "gs")
+        self._require_executable(exe, GhostscriptNotFoundError, f"{exe} (Ghostscript)")
         output_template = self.temp_dir / f"{output_prefix}%05d.png"
 
         self._run_checked(
             [
-                "gs",
+                exe,
                 "-dBATCH",
                 "-q",
                 "-dNOPAUSE",
                 "-sDEVICE=pngalpha",
-                "-r250",
+                f"-r{dpi}",
                 "-dTextAlphaBits=4",
                 "-dGraphicsAlphaBits=4",
                 f"-sOutputFile={output_template}",
                 str(pdf_path),
             ],
-            "gs",
+            exe,
             self.temp_dir,
             missing_error_cls=GhostscriptNotFoundError,
         )
@@ -144,7 +150,8 @@ class LatexRunner:
         return sorted(self.temp_dir.glob(f"{output_prefix}*.png"))
 
     def run_latex_dvi(self, latex_content: str):
-        self._require_executable("latex", LatexNotFoundError)
+        exe = self._tool_cmd("latex", "latex")
+        self._require_executable(exe, LatexNotFoundError)
         latex_filename = self.temp_dir / "eq_list.tex"
         dvi_filename = self.temp_dir / "eq_list.dvi"
 
@@ -152,20 +159,20 @@ class LatexRunner:
 
         try:
             process = subprocess.Popen(
-                ["latex", "-interaction=nonstopmode", str(latex_filename)],
+                [exe, "-interaction=nonstopmode", str(latex_filename)],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
                 cwd=self.temp_dir,
             )
         except OSError as err:
-            raise _launch_failure("latex", err) from err
+            raise _launch_failure(exe, err) from err
 
-        stdout, stderr = _communicate(process, "latex")
+        stdout, stderr = _communicate(process, exe)
 
         if process.returncode != 0:
             raise _process_failure(
-                "latex", process.returncode, stdout, stderr
+                exe, process.returncode, stdout, stderr
             )
 
         err_msg = ""
@@ -181,24 +188,25 @@ class LatexRunner:
 
         return dvi_filename
 
-    def run_dvisvgm_svg(self, dvi_path: Path, output_prefix="eq_list"):
-        self._require_executable("dvisvgm", DvisvgmNotFoundError)
+    def run_dvisvgm_svg(self, dvi_path: Path, output_prefix="eq_list", scale=1.2):
+        exe = self._tool_cmd("dvisvgm", "dvisvgm")
+        self._require_executable(exe, DvisvgmNotFoundError)
         output_template = self.temp_dir / f"{output_prefix}-%p.svg"
 
         self._run_checked(
             [
-                "dvisvgm",
+                exe,
                 "-n",
                 "-v",
                 "1",
                 "-p",
                 "1-",
                 "-c",
-                "1.2,1.2",
+                f"{scale},{scale}",
                 f"-o{output_template}",
                 str(dvi_path),
             ],
-            "dvisvgm",
+            exe,
             self.temp_dir,
             missing_error_cls=DvisvgmNotFoundError,
         )
@@ -206,7 +214,8 @@ class LatexRunner:
         return sorted(self.temp_dir.glob(f"{output_prefix}-*.svg"))
 
     def run_make4ht_mathml(self, latex_content: str):
-        self._require_executable("make4ht", Make4htNotFoundError)
+        exe = self._tool_cmd("make4ht", "make4ht")
+        self._require_executable(exe, Make4htNotFoundError)
         latex_filename = self.temp_dir / "eq_list.tex"
         html_filename = self.temp_dir / "eq_list.html"
 
@@ -214,20 +223,20 @@ class LatexRunner:
 
         try:
             process = subprocess.Popen(
-                ["make4ht", "-x", str(latex_filename), "xhtml,html5,mathml"],
+                [exe, "-x", str(latex_filename), "xhtml,html5,mathml"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
                 cwd=self.temp_dir,
             )
         except OSError as err:
-            raise _launch_failure("make4ht", err, Make4htNotFoundError) from err
+            raise _launch_failure(exe, err, Make4htNotFoundError) from err
 
-        stdout, stderr = _communicate(process, "make4ht")
+        stdout, stderr = _communicate(process, exe)
 
         if process.returncode != 0:
             raise _process_failure(
-                "make4ht", process.returncode, stdout, stderr
+                exe, process.returncode, stdout, stderr
             )
 
         return html_filename

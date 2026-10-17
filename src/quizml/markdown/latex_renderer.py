@@ -15,11 +15,27 @@ from ..paths import find_path
 from .extensions import ImageWithWidth, MathDisplay, MathInline
 
 
-def convert_svg_to_pdf(svg_path, pdf_path):
+def convert_svg_to_pdf(svg_path, pdf_path, converter=None):
     """
-    Converts an SVG file to PDF using rsvg-convert or inkscape.
+    Converts an SVG file to PDF using rsvg-convert, inkscape, or a custom converter.
     """
-    if shutil.which("rsvg-convert"):
+    if converter:
+        import shlex
+
+        if isinstance(converter, str):
+            if "{input}" in converter or "{output}" in converter:
+                cmd = shlex.split(
+                    converter.format(input=svg_path, output=pdf_path)
+                )
+            elif converter == "rsvg-convert":
+                cmd = ["rsvg-convert", "-f", "pdf", "-o", pdf_path, svg_path]
+            elif converter == "inkscape":
+                cmd = ["inkscape", svg_path, "--export-filename=" + pdf_path]
+            else:
+                cmd = [*shlex.split(converter), svg_path, pdf_path]
+        else:
+            cmd = [str(part).format(input=svg_path, output=pdf_path) for part in converter]
+    elif shutil.which("rsvg-convert"):
         cmd = ["rsvg-convert", "-f", "pdf", "-o", pdf_path, svg_path]
     elif shutil.which("inkscape"):
         # Inkscape 1.0+ CLI
@@ -38,7 +54,7 @@ def convert_svg_to_pdf(svg_path, pdf_path):
         return False
 
 
-def resolve_image_path(src, base_dir=None, search_dirs=None):
+def resolve_image_path(src, base_dir=None, search_dirs=None, svg_converter=None):
     """
     Resolves the image path for LaTeX.
     Prioritizes PDF > PNG > JPG/JPEG.
@@ -85,9 +101,13 @@ def resolve_image_path(src, base_dir=None, search_dirs=None):
         svg_path = Path(actual_src).resolve()
         hasher = hashlib.sha256(svg_path.read_bytes())
         hasher.update(
-            json.dumps(renderer_tool_versions("SVG_PDF"), sort_keys=True).encode(
-                "utf-8"
-            )
+            json.dumps(
+                {
+                    "tools": renderer_tool_versions("SVG_PDF"),
+                    "converter": svg_converter or "",
+                },
+                sort_keys=True,
+            ).encode("utf-8")
         )
         digest = hasher.hexdigest()
         cache_dir = get_cache_dir() / "svg-pdf"
@@ -101,7 +121,14 @@ def resolve_image_path(src, base_dir=None, search_dirs=None):
         ) as temp_pdf:
             temp_pdf_path = Path(temp_pdf.name)
         try:
-            if convert_svg_to_pdf(str(svg_path), str(temp_pdf_path)):
+            conv_ok = (
+                convert_svg_to_pdf(
+                    str(svg_path), str(temp_pdf_path), converter=svg_converter
+                )
+                if svg_converter
+                else convert_svg_to_pdf(str(svg_path), str(temp_pdf_path))
+            )
+            if conv_ok:
                 temp_pdf_path.replace(pdf_path)
                 return str(pdf_path)
         finally:
@@ -116,9 +143,10 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
     implements render for custom spans MathInline, MathDisplay, ImageWithWidth
     """
 
-    def __init__(self, base_dir=None, search_dirs=None):
+    def __init__(self, base_dir=None, search_dirs=None, svg_converter=None):
         self.base_dir = base_dir
         self.search_dirs = search_dirs or []
+        self.svg_converter = svg_converter
         super().__init__(MathInline, MathDisplay, ImageWithWidth, HTMLBlock)
 
     def render_document(self, token):
@@ -133,7 +161,15 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
         return token.content.strip()
 
     def render_image_with_width(self, token) -> str:
-        src = resolve_image_path(token.src, self.base_dir, self.search_dirs)
+        kwargs = (
+            {"svg_converter": self.svg_converter} if self.svg_converter else {}
+        )
+        src = resolve_image_path(
+            token.src,
+            self.base_dir,
+            self.search_dirs,
+            **kwargs,
+        )
         return "\\includegraphics[width=" + token.width + "]{" + src + "}"
 
     def render_html_block(self, token):
@@ -147,7 +183,15 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
     def render_image(self, token):
         original_src = token.src
         try:
-            token.src = resolve_image_path(token.src, self.base_dir, self.search_dirs)
+            kwargs = (
+                {"svg_converter": self.svg_converter} if self.svg_converter else {}
+            )
+            token.src = resolve_image_path(
+                token.src,
+                self.base_dir,
+                self.search_dirs,
+                **kwargs,
+            )
             s = super().render_image(token)
             return s[1:-1]
         finally:
@@ -162,13 +206,17 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
         return s
 
 
-def get_latex_dict(ast_dict, base_dir=None, search_dirs=None):
+def get_latex_dict(ast_dict, base_dir=None, search_dirs=None, opts=None):
     """
     Renders LaTeX for markdown entries from discrete AST documents.
     """
+    opts = opts or {}
+    svg_converter = opts.get("svg_converter") or (opts.get("tools") or {}).get(
+        "svg_converter"
+    )
     md_dict = {}
     with QuizMLYamlLaTeXRenderer(
-        base_dir=base_dir, search_dirs=search_dirs
+        base_dir=base_dir, search_dirs=search_dirs, svg_converter=svg_converter
     ) as renderer:
         for txt, doc in ast_dict.items():
             latex_content = renderer.render(doc)

@@ -85,6 +85,10 @@ def _normalize_markdown_options(options):
     """Translate the public Markdown settings into renderer options."""
     options = dict(options or {})
     markdown = options.get("markdown")
+    if isinstance(markdown, dict):
+        for key in ("png_dpi", "png_scale", "svg_scale", "svg_converter"):
+            if key in markdown and key not in options:
+                options[key] = markdown[key]
     if markdown is None or "fmt" in options:
         return options
     if not isinstance(markdown, dict):
@@ -187,6 +191,7 @@ class MarkdownTranscoder:
 
         html_pre = opts.get("html_pre", "")
         html_css = opts.get("html_css", "")
+        tools = opts.get("tools") or {}
         key = (
             opts.get("fmt", "html")
             + ":PRE:"
@@ -195,6 +200,8 @@ class MarkdownTranscoder:
             + html_css
             + "POSTPROCESS:"
             + str(opts.get("html_postprocess", ""))
+            + f":DPI:{opts.get('png_dpi', '')}:SCALE:{opts.get('png_scale', '')}:{opts.get('svg_scale', '')}"
+            + f":TOOLS:{sorted(tools.items())}"
         )
         if key in self.cache_dict:
             return self.cache_dict[key]
@@ -219,14 +226,17 @@ class MarkdownTranscoder:
         if not self.md_list:
             return {}
 
-        if opts is None:
-            opts = {}
-
-        key = opts.get("fmt", "latex")
+        opts = _normalize_markdown_options(opts)
+        tools = opts.get("tools") or {}
+        svg_conv = opts.get("svg_converter") or tools.get("svg_converter", "")
+        key = f"{opts.get('fmt', 'latex')}:SVG_CONV:{svg_conv}"
         if key in self.cache_dict:
             return self.cache_dict[key]
         d = get_latex_dict(
-            self.ast_dict, base_dir=self.base_dir, search_dirs=self.search_dirs
+            self.ast_dict,
+            base_dir=self.base_dir,
+            search_dirs=self.search_dirs,
+            opts=opts,
         )
         self.cache_dict[key] = d
         return d
