@@ -86,9 +86,6 @@ def build_parser():
         help="target to compile; repeatable",
     )
     compile_parser.add_argument(
-        "--build", action="store_true", help="run build commands"
-    )
-    compile_parser.add_argument(
         "-w", "--watch", action="store_true", help="watch for changes"
     )
 

@@ -42,6 +42,7 @@ The loader, renderer, Markdown parser, CLI state and equation cache handling hav
 - **D/B8:** redundant equation re-raises now add renderer context, the deprecated `LatexEqError` type has been removed, subprocess launch/build failures are typed with concise bounded diagnostics, and Jinja/DOCX render failures use template-specific errors.
 - **A5:** the curses docs browser is removed in the working tree. LiveReload remains instance-owned.
 - **A7:** watch mode recursively observes the input file's parent directory, and LiveReload binds to loopback.
+- **A6:** target aliases can group configured outputs and build commands; the bundled `build` alias selects HTML, Blackboard, LaTeX, and PDF outputs. The ambiguous `--build` option was removed.
 
 ## Remaining work
 
@@ -54,10 +55,6 @@ The loader, renderer, Markdown parser, CLI state and equation cache handling hav
 - Question schema defaults remain unchanged; their string defaults are coerced according to the declared schema type.
 
 ### Lower priority
-
-#### A6 — Make build-target selection explicit
-
-Requesting any target currently enables build commands in the selected dependency set. Consider requiring `--build` or explicitly selecting the build target instead of enabling build commands as a side effect of `-t`.
 
 #### A8 — Derive cleanup candidates from target configuration
 

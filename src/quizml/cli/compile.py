@@ -141,8 +141,9 @@ def compile(args, live_reload=None):
     all_success = True
 
     for _i, target in enumerate(target_list):
-        # skipping build target if build option is not on
-        if ("build_cmd" in target) and not (args.build or args.target):
+        # Build-command targets run only when included in explicit target
+        # selection, directly or through an alias such as "build".
+        if ("build_cmd" in target) and not args.target:
             continue
 
         success = False
@@ -151,7 +152,7 @@ def compile(args, live_reload=None):
         # target only requires the execution of an external command,
         # ie. no python code required
         #
-        if ("build_cmd" in target) and (args.build or args.target):
+        if ("build_cmd" in target) and args.target:
             # need to check if there is a dependency,
             # and if this dependency compiled successfully
             deps = target.get("dep")

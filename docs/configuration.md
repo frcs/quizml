@@ -37,7 +37,21 @@ default_targets:
   - latex
 ```
 
-If `default_targets` is not defined, all targets are compiled by default.
+If `default_targets` is not defined, all render targets are compiled by default;
+targets with `build_cmd` are skipped unless selected explicitly.
+
+Named aliases group targets into workflows that can be selected with
+`--target`. For example:
+
+```yaml
+aliases:
+  build: [html-preview, latex, bb, pdf, pdf-solutions]
+```
+
+Then `quizml compile quiz.yaml --target build` selects each listed target and
+its dependencies. Aliases can include other aliases. Build-command targets
+such as `pdf` run only when selected directly, through an alias, or as a
+dependency of a selected target; they are skipped during an unqualified compile.
 
 As for the config file directory, any resource file or template file is defined
 as a relative path, the template is searched in:

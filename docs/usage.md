@@ -11,19 +11,19 @@ Compile all configured targets:
 quizml compile quiz.yaml
 ```
 
-The shorthand `quizml quiz.yaml` is equivalent. Select targets with repeated
-`-t`/`--target` options, run build commands with `--build`, or watch for file
-changes with `-w`/`--watch`:
+The shorthand `quizml quiz.yaml` is equivalent. Select targets or configured
+target aliases with repeated `-t`/`--target` options, or watch for file changes
+with `-w`/`--watch`:
 
 ```bash
-quizml compile quiz.yaml --target bb --target pdf --build
+quizml compile quiz.yaml --target build
 quizml compile -w quiz.yaml
 ```
 
 Compile options:
 
 - `-t`, `--target TARGET`: compile a named target; may be repeated.
-- `--build`: run the selected targets' post-build commands.
+- `--target TARGET`: may name a target alias from `quizml.cfg`, such as `build`.
 - `-w`, `--watch`: compile again when the input changes.
 - `--config CONFIGFILE`: use a specific QuizML config file.
 - `--debug`, `--verbose`, `--quiet`: adjust diagnostic output.

@@ -71,5 +71,5 @@ Common commands:
 - `quizml docs [TOPIC]`: Display documentation.
 - `quizml init local` / `quizml init user`: Copy the default templates.
 
-Compilation options include `-t TARGET`, `--build`, `-w`/`--watch`, `--config`,
+Compilation options include `-t TARGET` (including configured target aliases), `-w`/`--watch`, `--config`,
 `--debug`, `--verbose`, and `--quiet`.

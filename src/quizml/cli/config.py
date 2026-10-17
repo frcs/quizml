@@ -71,6 +71,51 @@ def get_required_target_names_set(name, targets):
     return required_set
 
 
+def expand_target_aliases(names, targets, aliases):
+    """Expand selected aliases to configured target names."""
+    if not names:
+        return names
+    if not isinstance(aliases, dict):
+        raise QuizMLConfigError("The 'aliases' config setting must be a mapping.")
+
+    target_names = {target.get("name") for target in targets if target.get("name")}
+    collisions = target_names.intersection(aliases)
+    if collisions:
+        names = ", ".join(sorted(collisions))
+        raise QuizMLConfigError(f"Target aliases conflict with target names: {names}.")
+    expanded = []
+    active = []
+
+    def expand(name):
+        if name in aliases:
+            if name in active:
+                cycle = " -> ".join([*active, name])
+                raise QuizMLConfigError(f"Circular target alias detected: {cycle}")
+            value = aliases[name]
+            if isinstance(value, str):
+                members = [value]
+            elif isinstance(value, list) and all(
+                isinstance(item, str) for item in value
+            ):
+                members = value
+            else:
+                raise QuizMLConfigError(
+                    f"Target alias '{name}' must be a target name or a list of target names."
+                )
+            active.append(name)
+            for member in members:
+                expand(member)
+            active.pop()
+        elif name in target_names:
+            expanded.append(name)
+        else:
+            raise QuizMLConfigError(f"Unknown target or target alias '{name}'.")
+
+    for name in names if isinstance(names, list) else [names]:
+        expand(name)
+    return list(dict.fromkeys(expanded))
+
+
 def sort_targets_topologically(targets, required_names=None):
     """
     Sorts target configs topologically according to their 'dep' attribute.
@@ -137,6 +182,9 @@ def get_target_list(args, config, yaml_data):
     target_names = args.target
     if not target_names:
         target_names = config.get("default_targets")
+    target_names = expand_target_aliases(
+        target_names, config["targets"], config.get("aliases", {})
+    )
 
     required_target_names_set = get_required_target_names_set(
         target_names, config["targets"]
