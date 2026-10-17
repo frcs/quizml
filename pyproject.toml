@@ -28,7 +28,7 @@ description = """
   Tool for converting a list of questions in yaml/markdown to a\
   BlackBoard test or to a Latex exam source file"""
 readme = "README.md"
-license = {text = "GPLv3"}
+license = "GPL-3.0-only"
 keywords = ["BlackBoard", "exam", "test", "quiz", "MCQ",  "YAML", "Markdown", "Latex"]
 
 [project.urls]
@@ -77,7 +77,7 @@ dev = [
 ]
 
 [tool.setuptools.package-data]
-quizml = ["templates/*", "docs/*"]
+quizml = ["templates/*"]
 
 [tool.setuptools_scm]
 

@@ -11,6 +11,7 @@
 *   Made the bundled question schema reject unknown question types and undeclared fields.
 *   Made `quizml clean` derive outputs from target configuration and support per-target cleanup suffixes.
 *   Added `quizml sample` to materialize seeded question-bank samples as static YAML files; compilation remains deterministic.
+*   Included CLI documentation in built packages and removed the unused bundled config version marker.
 
 <a name="0.12.0"></a>
 

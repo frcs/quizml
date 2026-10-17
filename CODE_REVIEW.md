@@ -1,8 +1,8 @@
 # QuizML Code Review Status
 
-*Updated: 2026-10-17 · Code revision: `311e993` (`main`) · Scope: remaining work after the P0/P1 and selected P2 changes.*
+*Updated: 2026-10-17 · Code revision: `0ca39cd` (`main`) · Scope: remaining work after the P0/P1 and selected P2 changes.*
 
-This file tracks remaining work after the changes through `311e993`. The initial findings were based on `6ab38d7`; recommendations marked complete below are closed.
+This file tracks remaining work after the changes through `0ca39cd`. The initial findings were based on `6ab38d7`; recommendations marked complete below are closed.
 
 ## Summary
 
@@ -10,7 +10,7 @@ The major P0 and P1 work is complete. QuizML now has explicit CLI subcommands, n
 
 The schema walker now supports the constructs needed by the project, including local `$ref`, `allOf`, conditionals, `anyOf`, `oneOf` and `patternProperties`. It intentionally does not implement all of JSON Schema; `not` remains out of scope. Question types and fields are constrained by the bundled schema.
 
-The loader, renderer, Markdown parser, CLI state and equation cache handling have also been refactored to reduce cross-layer dependencies and process-wide state. The watch-mode, generated-path and cache-lifecycle findings are now addressed. Remaining work is mostly lower-priority correctness and maintenance: error-policy cleanup, header schema semantics and packaging hygiene.
+The loader, renderer, Markdown parser, CLI state and equation cache handling have also been refactored to reduce cross-layer dependencies and process-wide state. The watch-mode, generated-path, cache-lifecycle, header-schema, and packaging findings are now addressed. Remaining work is mostly lower-priority error-policy cleanup.
 
 ## Completed
 
@@ -46,25 +46,13 @@ The loader, renderer, Markdown parser, CLI state and equation cache handling hav
 - **A8:** cleanup derives exact outputs from target `out` values and additional sidecar suffixes from per-target `clean_extensions`; `quizml clean --config` selects the configuration.
 - **C11:** moved random question sampling into `quizml sample`, which materializes seeded selections as static YAML. Compilation remains deterministic.
 - **F2:** added focused coverage for header schema validation and external LaTeX tool failures, including missing executables, launch failures, nonzero exits, and invalid equation-depth output.
+- **E2–E4:** validates known header fields while allowing custom metadata; preserves the distinction between plain YAML `null` and quoted `"null"`; fills question defaults and coerces them to their declared schema types.
+- **G:** source distributions now build wheels with packaged CLI documentation, independent of the repository docs symlink. Package-template paths remain filesystem-based because template lookup and copying use filesystem APIs; wheel contents were verified. Removed the unused config version marker, modernized the SPDX license declaration, and confirmed Ruff is clean. The misspelled `anwser` example in the schema guide is intentional to demonstrate validation.
 
 ## Remaining work
 
-### Medium priority
-
-#### E2–E4 — Header and YAML scalar semantics
-
-- The bundled schema validates commonly used header fields and `_figures_path`; additional header keys remain allowed for template-specific metadata.
-- Plain YAML `null` becomes Python `None`, while quoted `"null"` remains a string. Known string fields reject null; unknown extension fields may contain it.
-- Question schema defaults remain unchanged; their string defaults are coerced according to the declared schema type.
-
-### Lower priority
-
-#### G — Finish packaging and documentation hygiene
-
-- Template paths are still assembled from `__file__`; consider `importlib.resources` for package data.
-- `src/quizml/docs` is still a symlink to the repository docs; verify sdist/wheel behavior on supported platforms.
-- Remaining identifier/UI typos and low-value dead code can be cleaned up opportunistically.
-- The bundled config's `version: 0.9` is not currently checked; either validate it or remove the misleading version field.
+No currently tracked findings remain. See the deferred items below for work
+that remains explicitly out of scope.
 
 ## Deferred or explicitly out of scope
 

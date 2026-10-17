@@ -1,0 +1,5 @@
+# Include the documentation as project files so build_py can package it in the
+# quizml package. The repository's package docs symlink is not a source file.
+recursive-include docs *
+exclude src/quizml/docs
+prune src/quizml/docs
