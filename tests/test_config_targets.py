@@ -312,3 +312,33 @@ def test_filelocator_prioritizes_base_dir_over_cwd(tmp_path):
 
     locator = FileLocator(cwd=str(cwd_dir), base_dir=str(base_dir))
     assert locator.path("quizml.cfg") == str(base_dir / "quizml.cfg")
+
+
+def test_get_target_list_expands_header_variables_and_vars_alias(mock_dependencies):
+    args = MagicMock()
+    args.target = ["pdf", "quarto"]
+    args.yaml_filename = "quiz.yaml"
+    config = {
+        "yaml_filename": "quiz.yaml",
+        "vars": {"watermark": "DRAFT"},
+        "targets": [
+            {
+                "name": "pdf",
+                "template": "exam.tex.j2",
+                "out": "${modulecode}-${examyear}-${inputstem}.tex",
+                "vars": {"solutions": True},
+            },
+            {
+                "name": "quarto",
+                "template": "exam.qmd.j2",
+                "out": "${modulecode}.qmd",
+                "markdown": {"format": "markdown"},
+            },
+        ],
+    }
+    yaml_data = {"header": {"modulecode": "4C16", "examyear": 2026}}
+    targets = get_target_list(args, config, yaml_data)
+    assert targets[0]["out"] == "4C16-2026-quiz.tex"
+    assert targets[0]["context"] == {"watermark": "DRAFT", "solutions": True}
+    assert targets[1]["fmt"] == "markdown"
+

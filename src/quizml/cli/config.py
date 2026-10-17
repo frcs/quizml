@@ -211,11 +211,21 @@ def get_target_list(args, config, yaml_data):
         inputstem = input_path.stem
         inputdir = str(input_path.parent)
 
-    subs = {
-        "inputbasename": inputstem,
-        "inputstem": inputstem,
-        "inputdir": inputdir,
-    }
+    subs = {}
+    header_data = (
+        yaml_data.get("header", {}) if isinstance(yaml_data, dict) else {}
+    )
+    if isinstance(header_data, dict):
+        for k, v in header_data.items():
+            if isinstance(v, (str, int, float, bool)):
+                subs[str(k)] = str(v)
+    subs.update(
+        {
+            "inputbasename": inputstem,
+            "inputstem": inputstem,
+            "inputdir": inputdir,
+        }
+    )
     filenames_to_resolve = ["template", "html_css", "html_pre", "latex_pre"]
     files_to_read_now = ["html_css", "html_pre", "latex_pre"]
     locator = FileLocator(base_dir=inputdir)
@@ -247,7 +257,7 @@ def get_target_list(args, config, yaml_data):
     for t in ordered_targets:
         target = {}
 
-        # resolves $inputbasename, $inputstem, $inputdir safely
+        # resolves $inputbasename, $inputstem, $inputdir, and scalar header vars safely
         for key, val in t.items():
             if isinstance(val, str):
                 target[key] = Template(val).safe_substitute(subs)
@@ -303,11 +313,21 @@ def get_target_list(args, config, yaml_data):
                         "markdown.html_postprocess can only be used with markdown.format: html."
                     )
                 target["fmt"] = "latex"
+            elif output_format in ("markdown", "none"):
+                if postprocess is not None:
+                    raise QuizMLConfigError(
+                        "markdown.html_postprocess can only be used with markdown.format: html."
+                    )
+                target["fmt"] = "markdown"
             elif output_format == "html":
                 backend_fmt = {
                     "png": "html",
                     "svg": "html-svg",
                     "mathml": "html-mathml",
+                    "passthrough": "html-passthrough",
+                    "mathjax": "html-passthrough",
+                    "katex": "html-passthrough",
+                    "none": "html-passthrough",
                 }.get(math_backend)
                 if backend_fmt is None:
                     raise QuizMLConfigError(
@@ -351,20 +371,22 @@ def get_target_list(args, config, yaml_data):
             target["tools"] = merged_tools
 
         merged_context = {}
-        global_context = config.get("context")
-        if global_context is not None:
-            if not isinstance(global_context, dict):
-                raise QuizMLConfigError(
-                    "Top-level 'context' setting must be a mapping."
-                )
-            merged_context.update(global_context)
-        target_context = t.get("context")
-        if target_context is not None:
-            if not isinstance(target_context, dict):
-                raise QuizMLConfigError(
-                    f"Target '{target['name']}' context setting must be a mapping."
-                )
-            merged_context.update(target_context)
+        for ctx_key in ("vars", "context"):
+            global_ctx = config.get(ctx_key)
+            if global_ctx is not None:
+                if not isinstance(global_ctx, dict):
+                    raise QuizMLConfigError(
+                        f"Top-level '{ctx_key}' setting must be a mapping."
+                    )
+                merged_context.update(global_ctx)
+        for ctx_key in ("vars", "context"):
+            target_ctx = t.get(ctx_key)
+            if target_ctx is not None:
+                if not isinstance(target_ctx, dict):
+                    raise QuizMLConfigError(
+                        f"Target '{target['name']}' {ctx_key} setting must be a mapping."
+                    )
+                merged_context.update(target_ctx)
         if merged_context:
             target["context"] = merged_context
 

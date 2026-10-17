@@ -296,3 +296,31 @@ def test_convert_svg_to_pdf_custom_converter():
             "/tmp/out.pdf",
         ]
 
+
+def test_passthrough_math_and_raw_markdown_format(tmp_path):
+    from quizml.markdown.markdown import MarkdownTranscoder
+    from quizml.utils import MarkdownString
+
+    yamldoc = {
+        "header": {},
+        "questions": [
+            {
+                "type": "essay",
+                "question": MarkdownString("Inline $x^2$ and\n\n$$y = mx + c$$"),
+            }
+        ],
+    }
+    transcoder = MarkdownTranscoder(yamldoc, base_dir=str(tmp_path))
+
+    html_doc = transcoder.transcode_target(
+        {"markdown": {"format": "html", "math": "passthrough"}}
+    )
+    rendered_q = html_doc["questions"][0]["question"]
+    assert '<span class="math inline">\\(x^2\\)</span>' in rendered_q
+    assert '<div class="math display">\\[y = mx + c\\]</div>' in rendered_q
+
+    raw_doc = transcoder.transcode_target({"markdown": {"format": "markdown"}})
+    assert raw_doc["questions"][0]["question"] == "Inline $x^2$ and\n\n$$y = mx + c$$"
+    assert type(raw_doc["questions"][0]["question"]) is str
+
+

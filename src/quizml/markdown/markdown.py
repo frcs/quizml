@@ -97,12 +97,18 @@ def _normalize_markdown_options(options):
     output_format = markdown.get("format", "html")
     if output_format == "latex":
         options["fmt"] = "latex"
+    elif output_format in ("markdown", "none"):
+        options["fmt"] = "markdown"
     elif output_format == "html":
         math_backend = markdown.get("math", "png")
         renderer_format = {
             "png": "html",
             "svg": "html-svg",
             "mathml": "html-mathml",
+            "passthrough": "html-passthrough",
+            "mathjax": "html-passthrough",
+            "katex": "html-passthrough",
+            "none": "html-passthrough",
         }.get(math_backend)
         if renderer_format is None:
             raise ValueError(f"Unknown Markdown math backend: {math_backend}")
@@ -118,7 +124,7 @@ def _normalize_markdown_options(options):
     )
     if not valid_postprocess:
         raise ValueError(f"Unknown HTML postprocessor: {postprocess}")
-    if output_format == "latex" and postprocess is not None:
+    if output_format != "html" and postprocess is not None:
         raise ValueError("HTML postprocessing requires Markdown format 'html'.")
     options["html_postprocess"] = postprocess
     return options
@@ -267,6 +273,8 @@ class MarkdownTranscoder:
             return self.html_dict(opts)
         elif fmt == "latex":
             return self.latex_dict(opts)
+        elif fmt == "markdown":
+            return {md_str: str(md_str) for md_str in self.ast_dict}
         return {}
 
     def transcode_target(self, target=None):

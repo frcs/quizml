@@ -380,6 +380,19 @@ def build_eq_dict_MathML(eq_list, opts):
     return eq_dict
 
 
+def build_eq_dict_passthrough(eq_list):
+    """Returns a dictionary of pass-through LaTeX equations wrapped in HTML spans/divs."""
+    eq_dict = {}
+    for eq in eq_list:
+        key = _equation_key(eq)
+        escaped = escape_LaTeX(eq.content)
+        if isinstance(eq, MathInline):
+            eq_dict[key] = f'<span class="math inline">{escaped}</span>'
+        else:
+            eq_dict[key] = f'<div class="math display">{escaped}</div>'
+    return eq_dict
+
+
 class QuizMLYamlHTMLRenderer(HTMLRenderer):
     """customised mistletoe renderer for HTML
 
@@ -445,10 +458,13 @@ def get_html(doc, opts):
 
     eq_list = get_eq_list_from_doc(doc)
 
-    if opts.get("fmt", "") == "html-svg":
+    fmt = opts.get("fmt", "")
+    if fmt == "html-svg":
         eq_dict = build_eq_dict_SVG(eq_list, opts)
-    elif opts.get("fmt", "") == "html-mathml":
+    elif fmt == "html-mathml":
         eq_dict = build_eq_dict_MathML(eq_list, opts)
+    elif fmt == "html-passthrough":
+        eq_dict = build_eq_dict_passthrough(eq_list)
     else:
         eq_dict = build_eq_dict_PNG(eq_list, opts)
 
@@ -547,6 +563,8 @@ def get_html_dict(ast_dict, opts=None, base_dir=None, search_dirs=None):
         eq_dict = build_eq_dict_SVG(eq_list, opts)
     elif fmt == "html-mathml":
         eq_dict = build_eq_dict_MathML(eq_list, opts)
+    elif fmt == "html-passthrough":
+        eq_dict = build_eq_dict_passthrough(eq_list)
     else:
         eq_dict = build_eq_dict_PNG(eq_list, opts)
 
