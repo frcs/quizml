@@ -1,8 +1,8 @@
-# Managing a Module Across Academic Years
+## Managing a Module Across Academic Years <!-- {docsify-ignore} -->
 
 This guide describes recommended repository layouts and workflows for lecturers managing weekly Blackboard MCQs, midterms, final exams, and question banks over multiple academic years.
 
-## Recommended Repository Layout
+### Recommended Repository Layout
 
 Place your module-wide QuizML configuration and custom templates in a root `_quizml/` directory. QuizML automatically walks up parent directories from the quiz file being compiled to discover `_quizml/` (as well as `quizml.cfg`), so you can compile any quiz from the repository root or from inside a subfolder:
 
@@ -32,7 +32,7 @@ EE401-Deep-Learning/
         └── final.yaml
 ```
 
-## Tiered Initialization (`quizml init`)
+### Tiered Initialization (`quizml init`)
 
 Instead of copying every bundled file into your repository, `quizml init` creates only what you want to customize and inherits everything else from the installed QuizML package:
 
@@ -54,7 +54,7 @@ quizml init --all
 
 Existing files in `_quizml/` are never overwritten unless you pass `--force` (`-f`).
 
-## Question IDs, Titles, and Cherry-Picking (`select`)
+### Question IDs, Titles, and Cherry-Picking (`select`)
 
 Give questions in your `bank/*.yaml` files an optional `id` and `title`:
 
@@ -86,7 +86,7 @@ For randomized weekly quizzes, use `count` and `seed` with `quizml sample`:
 quizml sample 2025-2026/bbq/week01.meta.yaml -o 2025-2026/bbq/week01.yaml
 ```
 
-## Checking for Reused Questions Across Years (`quizml diff`)
+### Checking for Reused Questions Across Years (`quizml diff`)
 
 Before finalizing an exam paper, check whether any questions overlap with previous years' papers:
 
@@ -96,7 +96,7 @@ quizml diff 2025-2026/exams/final.yaml 2024-2025/exams/final.yaml 2023-2024/exam
 
 `quizml diff` matches questions that share the same `id`, or that have the same question type and $\ge 90\%$ stem similarity with overlapping choices (catching reused MCQs even when a distractor was tweaked). Pass `--check` in CI scripts to exit non-zero if duplicates are detected.
 
-## Archiving and Pinning Past Exams (`quizml pin`)
+### Archiving and Pinning Past Exams (`quizml pin`)
 
 All header metadata (`_targets`, `_quizml`, `_schema`, `_config`) is completely optional while drafting. Once an exam paper is finalized and sent to the Examinations Office, freeze and stamp it with `quizml pin`:
 

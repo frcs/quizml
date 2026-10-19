@@ -1,6 +1,6 @@
-# Utils
+## Utils <!-- {docsify-ignore} -->
 
-## Diff
+### Diff
 
 The `diff` command allows you to check whether some questions can be found in
 other tests. For instance:

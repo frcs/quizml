@@ -1,4 +1,4 @@
-## Custom Schema Validation
+## Custom Schema Validation <!-- {docsify-ignore} -->
 
 QuizML uses a powerful schema validation system to ensure that your quiz files
 are structured correctly. This not only catches errors but also provides a

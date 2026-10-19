@@ -1,9 +1,9 @@
-# Command-line usage
+## Command-line Usage <!-- {docsify-ignore} -->
 
 QuizML converts questions written in YAML and Markdown into Blackboard-compatible
 HTML content, LaTeX documents, and other configured targets.
 
-## Compile
+### Compile
 
 Compile all configured targets (or read from stdin with `-`):
 
@@ -29,7 +29,7 @@ Compile options:
 - `--config CONFIGFILE`: use a specific QuizML config file.
 - `--debug`, `--verbose`, `--quiet`: adjust diagnostic output.
 
-## Other commands
+### Other Commands
 
 ```text
 quizml diff [--check] FILE FILE [FILE ...]
@@ -81,7 +81,7 @@ All commands accept `--help`; `quizml --help` lists commands and `quizml
 COMMAND --help` lists that command's options. Use `--version` to print the
 installed version.
 
-## Migration from the flag-based CLI
+### Migration from the Flag-Based CLI
 
 The compile shorthand remains available. Other modes are now subcommands:
 

@@ -1,4 +1,4 @@
-## Configuration File and Target Templates
+## Configuration File and Target Templates <!-- {docsify-ignore} -->
 
 After reading the QuizMLYaml file and converting the markdown entries into LaTeX or
 HTML, QuizML uses jinja2 templates to render the various targets (BlackBoard
@@ -107,7 +107,7 @@ For HTML targets, `markdown` also supports `png_dpi` (default `250`),
 `png_scale` (default `0.5`), `svg_scale` (default `1.2`), and custom
 `html_postprocess` hooks (`blackboard_html` or a `module:function` path).
 
-## Setting up your local LaTeX
+### Setting up your local LaTeX
 
 To be able to compile the LaTeX targets, you will need to have the required
 LaTeX assets `.sty` `.cls` and other images.

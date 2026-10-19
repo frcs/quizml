@@ -1,4 +1,4 @@
-## Question Layout
+## Question Layout <!-- {docsify-ignore} -->
 
 You can control the layout of questions in QuizML to create more compact exams. This includes arranging questions in multiple columns and placing figures alongside the question text.
 
