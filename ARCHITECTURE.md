@@ -73,7 +73,7 @@ flowchart LR
   `pyproject.toml` repo boundaries) looking for `_quizml/` (and legacy
   `quizml-templates/`), then checks the resolved config's directory, the user
   config directory, and the packaged defaults. This allows `quizml init` to
-  eject only `_quizml/quizml.cfg` by default while inheriting unmodified
+  copy only `_quizml/quizml.cfg` by default while inheriting unmodified
   templates and schemas from the package.
 - Both `LatexRunner` and `compile_cmd_target` prepend the quiz directory,
   included figure directories, and `FileLocator` search directories to

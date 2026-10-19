@@ -150,7 +150,7 @@ schema_extensions:
       required: [question, language, snippet]
 ```
 
-If you prefer a standalone schema file, you can eject the bundled schema with
+If you prefer a standalone schema file, you can copy the bundled schema with
 `quizml init --schema` (or point `schema_path:` in `quizml.cfg` or `_schema:` in
 a quiz header to either a `.json` or `.yaml` schema file).
 

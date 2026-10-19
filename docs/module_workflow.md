@@ -1,10 +1,10 @@
 ## Managing a Module Across Academic Years <!-- {docsify-ignore} -->
 
-This guide describes recommended repository layouts and workflows for lecturers managing weekly Blackboard MCQs, midterms, final exams, and question banks over multiple academic years.
+This guide illustrates example repository layouts and workflows for lecturers managing weekly Blackboard MCQs, midterms, final exams, and question banks over multiple academic years.
 
-### Recommended Repository Layout
+### Example Repository Layout
 
-Place your module-wide QuizML configuration and custom templates in a root `_quizml/` directory. QuizML automatically walks up parent directories from the quiz file being compiled to discover `_quizml/` (as well as `quizml.cfg`), so you can compile any quiz from the repository root or from inside a subfolder:
+For instance, you can place your module-wide QuizML configuration and custom templates in a root `_quizml/` directory. QuizML automatically walks up parent directories from the quiz file being compiled to discover `_quizml/` (as well as `quizml.cfg`), so you can compile any quiz from the repository root or from inside a subfolder:
 
 ```text
 EE401-Deep-Learning/
@@ -40,14 +40,14 @@ Instead of copying every bundled file into your repository, `quizml init` create
 # Minimal setup: creates only _quizml/quizml.cfg
 quizml init
 
-# Eject only the LaTeX exam templates and math preamble for university branding
+# Copy only the LaTeX exam templates and math preamble for university branding
 quizml init --latex
 
-# Eject the HTML preview or Blackboard templates
+# Copy the HTML preview or Blackboard templates
 quizml init --html
 quizml init --bb
 
-# Eject a specific file or everything
+# Copy a specific template or all bundled files
 quizml init -t tcd-exam.tex.j2
 quizml init --all
 ```

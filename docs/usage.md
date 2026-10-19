@@ -68,7 +68,7 @@ quizml completion {bash,zsh,fish}
   `info` reports the cache location and its current size.
 - `init` creates `_quizml/quizml.cfg` by default (or initializes the user config
   directory when `user` is given). Pass `--latex`, `--html`, `--bb`, `--docx`,
-  `--schema`, `-t FILE`, or `--all` to eject specific bundled templates into
+  `--schema`, `-t FILE`, or `--all` to copy specific bundled templates into
   `_quizml/`, and `-f`/`--force` to overwrite existing files.
 - `docs` displays a topic or the full guide. With no topic, behavior depends on
   whether output is a terminal; use `--no-pager` to disable the pager.

@@ -120,7 +120,7 @@ QuizML uses standard **Jinja2** templates with custom delimiters (`<| ... |>`, `
   ```bash
   quizml init
   ```
-- All templates (`tcd-exam.tex.j2`, `blackboard.txt.j2`, `preview.html.j2`) can be ejected into your local `_quizml/` directory as plain text files you can edit with standard Jinja2.
+- All templates (`tcd-exam.tex.j2`, `blackboard.txt.j2`, `preview.html.j2`) can be copied into your local `_quizml/` directory as plain text files you can edit with standard Jinja2.
 - R/exams templates, by comparison, are deeply intertwined with R internals, XML generators, and complex Pandoc filters.
 
 ---
