@@ -648,6 +648,7 @@ def apply_schema_extensions(schema, extensions):
             "title": {"type": "string"},
             "marks": {"type": "number", "default": "2.5"},
             "comments": {"$ref": "#/definitions/markdown"},
+            "feedback": {"$ref": "#/definitions/markdown"},
             "question": {"$ref": "#/definitions/markdown"},
             "figure": {"$ref": "#/definitions/markdown"},
             "figure-split": {"type": "number"},

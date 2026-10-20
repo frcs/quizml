@@ -63,6 +63,27 @@ def test_default_schema_rejects_unknown_types_and_fields(
         load(str(quiz_file))
 
 
+def test_default_schema_allows_feedback_field(tmp_path):
+    quiz_text = (
+        "- type: tf\n"
+        "  question: True or false?\n"
+        "  answer: true\n"
+        "  feedback: Good job!\n"
+        "- type: mc\n"
+        "  question: Pick one\n"
+        "  choices:\n"
+        "    - x: Correct\n"
+        "    - o: Incorrect\n"
+        "  feedback: Detailed *markdown* feedback\n"
+    )
+    quiz_file = tmp_path / "feedback.yaml"
+    quiz_file.write_text(quiz_text, encoding="utf-8")
+
+    document, _ = load(str(quiz_file))
+    assert document["questions"][0]["feedback"] == "Good job!"
+    assert document["questions"][1]["feedback"] == "Detailed *markdown* feedback"
+
+
 def test_default_schema_does_not_depend_on_cwd_template_lookup(tmp_path, monkeypatch):
     template_dir = tmp_path / "quizml-templates"
     template_dir.mkdir()
