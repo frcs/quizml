@@ -29,8 +29,13 @@ def build_tex_env(search_dirs=None, base_env=None):
         return env
     existing = env.get("TEXINPUTS", "")
     prefix = os.pathsep.join(clean_dirs)
-    # Trailing os.pathsep ensures kpathsea still searches standard TEXMF trees
-    env["TEXINPUTS"] = f"{prefix}{os.pathsep}{existing}"
+    if existing:
+        if not existing.endswith(os.pathsep):
+            existing = f"{existing}{os.pathsep}"
+        env["TEXINPUTS"] = f"{prefix}{os.pathsep}{existing}"
+    else:
+        # Trailing os.pathsep ensures kpathsea still searches standard TEXMF trees
+        env["TEXINPUTS"] = f"{prefix}{os.pathsep}"
     return env
 
 

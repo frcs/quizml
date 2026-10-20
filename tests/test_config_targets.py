@@ -385,3 +385,29 @@ def test_get_config_respects_header_config_and_version_check(tmp_path):
         assert check_quizml_version(">=99.0", "exam.yaml") is False
 
 
+def test_get_config_resolves_texinputs_relative_to_config_dir(tmp_path):
+    from types import SimpleNamespace
+
+    cfg_dir = tmp_path / "cfg_sub"
+    cfg_dir.mkdir()
+    shared_dir = tmp_path / "shared"
+    shared_dir.mkdir()
+
+    cfg_file = cfg_dir / "quizml.cfg"
+    cfg_file.write_text(
+        "texinputs:\n"
+        "  - ../shared\n"
+        "  - /absolute/path\n"
+        "targets:\n"
+        "  - name: dummy\n"
+        "    template: dummy.j2\n",
+        encoding="utf-8",
+    )
+
+    cfg = get_config(SimpleNamespace(config=str(cfg_file), yaml_filename="quiz.yaml"))
+    assert cfg["texinputs"] == [
+        str(shared_dir.resolve()),
+        "/absolute/path",
+    ]
+
+

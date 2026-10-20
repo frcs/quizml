@@ -154,7 +154,28 @@ def get_config(args):
 
     _validate_targets_list(config)
     config["yaml_filename"] = yaml_filename
-    config["_config_dir"] = os.path.dirname(os.path.abspath(config_file))
+    config_dir = os.path.dirname(os.path.abspath(config_file))
+    config["_config_dir"] = config_dir
+
+    raw_texinputs = config.get("texinputs", [])
+    if isinstance(raw_texinputs, (str, bytes)):
+        raw_texinputs = [raw_texinputs]
+    elif not isinstance(raw_texinputs, list):
+        raw_texinputs = []
+
+    resolved_texinputs = []
+    for item in raw_texinputs:
+        if item:
+            item_str = str(item).strip()
+            if item_str:
+                if os.path.isabs(item_str):
+                    resolved_texinputs.append(os.path.abspath(item_str))
+                else:
+                    resolved_texinputs.append(
+                        os.path.abspath(os.path.join(config_dir, item_str))
+                    )
+    config["texinputs"] = resolved_texinputs
+
     if config.get("quizml_version"):
         check_quizml_version(config["quizml_version"], config_file)
 

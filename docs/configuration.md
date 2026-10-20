@@ -107,42 +107,25 @@ For HTML targets, `markdown` also supports `png_dpi` (default `250`),
 `png_scale` (default `0.5`), `svg_scale` (default `1.2`), and custom
 `html_postprocess` hooks (`blackboard_html` or a `module:function` path).
 
-### Setting up your local LaTeX
+### Configuring LaTeX Search Paths (`texinputs`)
 
-To be able to compile the LaTeX targets, you will need to have the required
-LaTeX assets `.sty` `.cls` and other images.
+To compile LaTeX targets or render equation images, TeX needs to locate any
+custom `.cls`, `.sty`, or graphic assets. QuizML automatically searches:
+1. The quiz document directory and included figure directories.
+2. Any `_quizml/` directory discovered in the current or parent project directories.
+3. Extra paths declared under `texinputs` in `quizml.cfg`.
 
-The best way is to copy these templates in the local TEXMF tree so that LaTeX
-can see them. To know where your local tree is, you can run this command in the
-terminal:
+Relative paths in `texinputs` are resolved relative to the directory containing
+`quizml.cfg`:
 
-```bash
-kpsewhich -var-value=TEXMFHOME
+```yaml
+texinputs:
+  - shared
+  - ../exams/shared
 ```
 
-In my case it says that my local TEXMF tree is located at
-`~/Library/texmf/`. You can create a dedicated directory for your templates,
-e.g., 
-
-```bash
-mkdir -p  ~/Library/texmf/tex/latex/quizml-templates/
-```
-
-I can then copy the required templates to that location:
-
-```bash
-unzip quizml-latex-templates.zip ~/Library/texmf/tex/latex/quizml-templates/
-```
-
-and then update LaTeX:
-```bash
-texhash ~/Library/texmf/tex/latex/quizml-templates/
-```
-
-At that point you should be able to compile your LaTeX targets from anywhere.
-
-
-Alternatively,
-```bash
-set TEXINPUTS=/path/to/package/a/c/b/c/d
-```
+QuizML prepends these directories to `TEXINPUTS` before invoking TeX tools
+(`latexmk`, `xelatex`, `dvisvgm`), ensuring standard system TEXMF trees remain
+accessible as fallbacks via a trailing delimiter. Alternatively, global assets
+can be placed in your local user TEXMF tree (`~/Library/texmf` on macOS or
+`~/texmf` on Linux).

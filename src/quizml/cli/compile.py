@@ -163,7 +163,13 @@ def compile(args, live_reload=None):
     # load all markdown entries into a list
     # and build dictionaries of their HTML and LaTeX translations
     transcoder = md.MarkdownTranscoder(yaml_data, schema, base_dir=base_dir)
-    tex_search_dirs = [base_dir, *transcoder.search_dirs, *locator.dirlist]
+    config_texinputs = config.get("texinputs", [])
+    tex_search_dirs = [
+        base_dir,
+        *config_texinputs,
+        *transcoder.search_dirs,
+        *locator.dirlist,
+    ]
 
     # diplay stats about the questions
     if not args.quiet:

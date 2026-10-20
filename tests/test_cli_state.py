@@ -87,7 +87,10 @@ def test_build_command_injects_texinputs(tmp_path):
     assert env["TEXINPUTS"].startswith(
         f"{tmp_path.resolve()}{os.pathsep}{template_dir.resolve()}{os.pathsep}"
     )
-    assert env["TEXINPUTS"].endswith("/existing")
+    assert env["TEXINPUTS"].endswith(f"/existing{os.pathsep}")
+
+    env_empty = build_tex_env([tmp_path, template_dir], base_env={"TEXINPUTS": ""})
+    assert env_empty["TEXINPUTS"].endswith(os.pathsep)
 
     with patch("quizml.cli.compile.subprocess.run") as run:
         compile_cli.compile_cmd_target(
