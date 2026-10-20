@@ -8,7 +8,7 @@
 <# we do not include 'type' and keys starting with '_'      #>
 <| if header                                               -|>
 <|   for key, value in header.items()                      -|>
-<|     if (not key.startswith('_'))                        -|>
+<|     if (not key.startswith('_')) and value is not none  -|>
 \def \info<<key>> {<<value>>}
 <|     endif                                               -|>
 <|  endfor                                                 -|>

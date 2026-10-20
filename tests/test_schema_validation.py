@@ -83,9 +83,9 @@ def test_default_schema_does_not_depend_on_cwd_template_lookup(tmp_path, monkeyp
 @pytest.mark.parametrize(
     "yaml_text, expected_path",
     [
-        ("title: null\n---\n- type: essay\n  question: Q\n", "title"),
+        ("title: [1, 2]\n---\n- type: essay\n  question: Q\n", "title"),
         (
-            "_figures_path: null\n---\n- type: essay\n  question: Q\n",
+            "_figures_path: {invalid: true}\n---\n- type: essay\n  question: Q\n",
             "_figures_path",
         ),
     ],
@@ -103,6 +103,29 @@ def test_default_schema_validates_known_header_fields(
     assert "Header schema validation error" in message
     assert expected_path in message
     assert "line ~1" in message
+
+
+def test_default_schema_allows_empty_and_null_header_fields(tmp_path):
+    quiz_text = (
+        "examvenue:\n"
+        "title: null\n"
+        "instructions: null\n"
+        "_figures_path: null\n"
+        "_targets: null\n"
+        "---\n"
+        "- type: tf\n"
+        "  question: Is empty header allowed?\n"
+        "  answer: true\n"
+    )
+    quiz_file = tmp_path / "empty-header.yaml"
+    quiz_file.write_text(quiz_text, encoding="utf-8")
+
+    document, _ = load(str(quiz_file))
+    assert document["header"]["examvenue"] is None
+    assert document["header"]["title"] is None
+    assert document["header"]["instructions"] is None
+    assert document["header"]["_targets"] is None
+    assert document["paths"]["figure_dirs"] == []
 
 
 def test_default_schema_allows_custom_header_metadata(tmp_path):

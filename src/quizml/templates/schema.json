@@ -7,35 +7,37 @@
     "header": {
       "type": "object",
       "properties": {
-        "author": { "type": "string" },
-        "date": { "type": "string" },
-        "title": { "type": "string" },
-        "examtime": { "type": "string" },
-        "examdate": { "type": "string" },
-        "examyear": { "type": "string" },
-        "examvenue": { "type": "string" },
-        "examsemester": { "type": "string" },
-        "programmeyear": { "type": "string" },
-        "modulename": { "type": "string" },
-        "modulecode": { "type": "string" },
-        "examiner": { "type": "string" },
-        "instructions": { "type": "string" },
-        "materials": { "type": "string" },
-        "additionalinformation": { "type": "string" },
-        "_latexpreamble": { "type": "string" },
-        "_quizml": { "type": "string" },
-        "_schema": { "type": "string" },
-        "_config": { "type": "string" },
+        "author": { "type": ["string", "null"] },
+        "date": { "type": ["string", "null"] },
+        "title": { "type": ["string", "null"] },
+        "examtime": { "type": ["string", "null"] },
+        "examdate": { "type": ["string", "null"] },
+        "examyear": { "type": ["string", "null"] },
+        "examvenue": { "type": ["string", "null"] },
+        "examsemester": { "type": ["string", "null"] },
+        "programmeyear": { "type": ["string", "null"] },
+        "modulename": { "type": ["string", "null"] },
+        "modulecode": { "type": ["string", "null"] },
+        "examiner": { "type": ["string", "null"] },
+        "instructions": { "type": ["string", "null"] },
+        "materials": { "type": ["string", "null"] },
+        "additionalinformation": { "type": ["string", "null"] },
+        "_latexpreamble": { "type": ["string", "null"] },
+        "_quizml": { "type": ["string", "null"] },
+        "_schema": { "type": ["string", "null"] },
+        "_config": { "type": ["string", "null"] },
         "_targets": {
           "oneOf": [
             { "type": "string" },
-            { "type": "array", "items": { "type": "string" } }
+            { "type": "array", "items": { "type": "string" } },
+            { "type": "null" }
           ]
         },
         "_figures_path": {
           "oneOf": [
             { "type": "string" },
-            { "type": "array", "items": { "type": "string" } }
+            { "type": "array", "items": { "type": "string" } },
+            { "type": "null" }
           ]
         }
       },
