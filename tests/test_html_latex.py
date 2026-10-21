@@ -324,3 +324,30 @@ def test_passthrough_math_and_raw_markdown_format(tmp_path):
     assert type(raw_doc["questions"][0]["question"]) is str
 
 
+def test_build_eq_dict_mathml_with_macros():
+    from quizml.markdown.html_renderer import build_eq_dict_MathML
+
+    eq_list = [
+        create_mock_inline(r"$\bx \in \R^d$"),
+        create_mock_display(r"$$\norm{\bx} \le 1$$"),
+    ]
+    opts = {
+        "fmt": "html-mathml",
+        "html_pre": (
+            "\\newcommand{\\R}{\\mathbb{R}}\n"
+            "\\newcommand{\\bx}{\\mathbf{x}}\n"
+            "\\newcommand{\\norm}[1]{\\left\\|#1\\right\\|}\n"
+        ),
+    }
+    res = build_eq_dict_MathML(eq_list, opts)
+    assert len(res) == 2
+    q1_math = res[r"##Inline##$\bx \in \R^d$"]
+    assert "<math" in q1_math
+    assert 'display="inline"' in q1_math or "display='inline'" in q1_math
+
+    q2_math = res[r"##Display##$$\norm{\bx} \le 1$$"]
+    assert "<math" in q2_math
+    assert 'display="block"' in q2_math or "display='block'" in q2_math
+
+
+

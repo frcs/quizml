@@ -60,10 +60,17 @@ def _tool_version(name):
 
 def renderer_tool_versions(backend):
     """Return the external tools whose versions can affect a renderer's output."""
+    if backend == "MathML":
+        try:
+            import latex2mathml
+
+            return {"latex2mathml": getattr(latex2mathml, "__version__", "installed")}
+        except ImportError:
+            return {"latex2mathml": "not found"}
+
     tools = {
         "PNG": ("pdflatex", "gs"),
         "SVG": ("latex", "dvisvgm"),
-        "MathML": ("make4ht",),
         "SVG_PDF": ("rsvg-convert", "inkscape"),
     }.get(backend, ())
     return {tool: _tool_version(tool) for tool in tools}

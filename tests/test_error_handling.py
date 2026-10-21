@@ -14,7 +14,6 @@ from quizml.exceptions import (
     LatexCompilationError,
     LatexNotFoundError,
     LatexToolError,
-    Make4htNotFoundError,
     QuizMLBuildError,
     TemplateRenderError,
 )
@@ -99,7 +98,6 @@ def test_latex_compilation_errors_are_latex_tool_errors():
         ("run_latex_dvi", ("content",), LatexNotFoundError),
         ("run_gs_png", ("input.pdf",), GhostscriptNotFoundError),
         ("run_dvisvgm_svg", ("input.dvi",), DvisvgmNotFoundError),
-        ("run_make4ht_mathml", ("content",), Make4htNotFoundError),
     ],
 )
 def test_missing_latex_tools_raise_tool_specific_errors(
@@ -117,7 +115,6 @@ def test_missing_latex_tools_raise_tool_specific_errors(
     [
         ("run_pdflatex", ("content",)),
         ("run_latex_dvi", ("content",)),
-        ("run_make4ht_mathml", ("content",)),
     ],
 )
 def test_latex_tool_launch_permission_errors_are_typed(monkeypatch, method, args):
@@ -137,7 +134,6 @@ def test_latex_tool_launch_permission_errors_are_typed(monkeypatch, method, args
     [
         ("run_pdflatex", ("content",)),
         ("run_latex_dvi", ("content",)),
-        ("run_make4ht_mathml", ("content",)),
     ],
 )
 def test_latex_tool_nonzero_exit_is_reported(monkeypatch, method, args):

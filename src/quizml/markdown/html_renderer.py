@@ -3,6 +3,7 @@ import logging
 import re
 
 import css_inline
+import latex2mathml.converter
 from bs4 import BeautifulSoup
 from mistletoe import span_token
 from mistletoe.html_renderer import HTMLRenderer
@@ -17,6 +18,7 @@ from ..exceptions import LatexCompilationError, MarkdownAttributeError
 from .extensions import ImageWithWidth, MathDisplay, MathInline
 from .image_embedding import embed_base64
 from .latextools import LatexRunner
+from .macros import LatexMacroExpander, preprocess_latex_for_mathml
 from .utils import append_unique
 
 
@@ -336,58 +338,57 @@ def build_eq_dict_SVG(eq_list, opts):
     return eq_dict
 
 
+def strip_math_delimiters(content: str) -> str:
+    r"""Strips outer math delimiters ($...$, $$...$$, \(...\), \[...\])."""
+    s = content.strip()
+    if s.startswith("$$") and s.endswith("$$") and len(s) >= 4:
+        return s[2:-2].strip()
+    if s.startswith(r"\[") and s.endswith(r"\]") and len(s) >= 4:
+        return s[2:-2].strip()
+    if s.startswith("$") and s.endswith("$") and len(s) >= 2:
+        return s[1:-1].strip()
+    if s.startswith(r"\(") and s.endswith(r"\)") and len(s) >= 4:
+        return s[2:-2].strip()
+    return s
+
+
 def build_eq_dict_MathML(eq_list, opts):
     """returns a dictionary of MATHML eqs from a list of LaTeX equations.
 
-    LaTeX equations are compiled into MATHML using make4ht.
+    LaTeX equations are converted to MathML using latex2mathml with in-memory macro expansion.
     """
     if not eq_list:
         return {}
 
     template_latex_preamble = opts.get("html_pre", "\\usepackage{amsmath}\n")
     user_latex_preamble = opts.get("user_pre", "")
+    full_preamble = template_latex_preamble + "\n" + user_latex_preamble
 
-    latex_preamble = (
-        "\\documentclass{article}\n"
-        + template_latex_preamble
-        + user_latex_preamble
-        + "\\begin{document}\n"
-    )
-
-    tools = opts.get("tools") or {}
-    settings_str = f"{latex_preamble}|tools={sorted(tools.items())}|MathML"
+    settings_str = f"{full_preamble}|MathML"
     eq_dict, to_compile = _cached_equations(eq_list, settings_str)
 
     if not to_compile:
         return eq_dict
 
-    latex_body = "\n".join(eq.content for eq in to_compile)
-    latex_content = latex_preamble + latex_body + "\n\\end{document}\n"
+    expander = LatexMacroExpander(full_preamble)
 
-    runner_kwargs = {"tools": opts.get("tools")}
-    if opts.get("tex_search_dirs"):
-        runner_kwargs["tex_search_dirs"] = opts["tex_search_dirs"]
+    for eq in to_compile:
+        clean_latex = strip_math_delimiters(eq.content)
+        expanded_latex = expander.expand(clean_latex)
+        preprocessed_latex = preprocess_latex_for_mathml(expanded_latex)
+        disp_mode = "inline" if isinstance(eq, MathInline) else "block"
+        try:
+            mathml = latex2mathml.converter.convert(
+                preprocessed_latex, display=disp_mode
+            )
+            mathml = re.sub(r"&(?![a-zA-Z0-9#]+;)", "&amp;", mathml)
+        except Exception as err:
+            raise LatexCompilationError(
+                f"latex2mathml failed on equation: {eq.content}\n"
+                f"Expanded: {preprocessed_latex}\nError: {err}"
+            ) from err
 
-    try:
-        with LatexRunner(**runner_kwargs) as latex_runner:
-            html_path = latex_runner.run_make4ht_mathml(latex_content)
-            make4ht_out = html_path.read_text(encoding="utf-8", errors="replace")
-
-            regex = r"(<math.*?<\/math>)"
-            eq_list_str = re.findall(regex, make4ht_out, re.DOTALL)
-
-            if len(eq_list_str) != len(to_compile):
-                raise LatexCompilationError(
-                    "Mismatch between number of equations and make4ht output.\n"
-                    f"Expected {len(to_compile)}, got {len(eq_list_str)}."
-                )
-
-            for i, eq in enumerate(to_compile):
-                mathml = eq_list_str[i]
-                _store_equation(eq, settings_str, mathml, eq_dict)
-
-    except LatexCompilationError as e:
-        raise LatexCompilationError(f"MathML equation rendering failed: {e}") from e
+        _store_equation(eq, settings_str, mathml, eq_dict)
 
     return eq_dict
 

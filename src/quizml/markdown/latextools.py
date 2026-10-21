@@ -10,7 +10,6 @@ from ..exceptions import (
     LatexCompilationError,
     LatexNotFoundError,
     LatexToolError,
-    Make4htNotFoundError,
 )
 
 
@@ -259,41 +258,6 @@ class LatexRunner:
         )
 
         return sorted(self.temp_dir.glob(f"{output_prefix}-*.svg"))
-
-    def run_make4ht_mathml(self, latex_content: str):
-        exe = self._tool_cmd("make4ht", "make4ht")
-        self._require_executable(exe, Make4htNotFoundError)
-        latex_filename = self.temp_dir / "eq_list.tex"
-        html_filename = self.temp_dir / "eq_list.html"
-
-        latex_filename.write_text(latex_content, encoding="utf-8")
-
-        popen_kwargs = {
-            "stdout": subprocess.PIPE,
-            "stderr": subprocess.PIPE,
-            "universal_newlines": True,
-            "cwd": self.temp_dir,
-        }
-        tex_env = self._tex_env()
-        if tex_env is not None:
-            popen_kwargs["env"] = tex_env
-
-        try:
-            process = subprocess.Popen(
-                [exe, "-x", str(latex_filename), "xhtml,html5,mathml"],
-                **popen_kwargs,
-            )
-        except OSError as err:
-            raise _launch_failure(exe, err, Make4htNotFoundError) from err
-
-        stdout, stderr = _communicate(process, exe)
-
-        if process.returncode != 0:
-            raise _process_failure(
-                exe, process.returncode, stdout, stderr
-            )
-
-        return html_filename
 
     def cleanup(self):
         if self.temp_dir.exists():
