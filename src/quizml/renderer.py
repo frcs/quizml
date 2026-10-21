@@ -138,13 +138,20 @@ def render(
     if extra_context:
         context.update(extra_context)
 
-    if template_filename.endswith(".docx"):
+    str_template = str(template_filename)
+    if str_template.endswith(".docx"):
         from quizml import docx_renderer
 
         docx_kwargs = {"jinja_filters": jinja_filters} if jinja_filters else {}
-        return docx_renderer.render(context, template_filename, **docx_kwargs)
+        return docx_renderer.render(context, str_template, **docx_kwargs)
+
+    p = pathlib.Path(str_template)
+    if p.is_dir() or "qti" in p.name.lower():
+        from quizml.qti_renderer import render_qti
+
+        return render_qti(context, p)
 
     kwargs = {"jinja_filters": jinja_filters} if jinja_filters else {}
     return render_template(
-        context, template_filename, template_search_dirs, **kwargs
+        context, str_template, template_search_dirs, **kwargs
     )

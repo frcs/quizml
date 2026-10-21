@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<quiz identifier="<< qti.assessment_ident >>"
+      xmlns="http://canvas.instructure.com/xsd/cccv1p0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://canvas.instructure.com/xsd/cccv1p0 https://canvas.instructure.com/xsd/cccv1p0.xsd">
+  <title><< qti.title | e >></title>
+  <description><< qti.description | e >></description>
+  <quiz_type><< qti.quiz_type >></quiz_type>
+<| if qti.time_limit is not none |>
+  <time_limit><< qti.time_limit >></time_limit>
+<| endif |>
+<| if qti.due_at |>
+  <due_at><< qti.due_at >></due_at>
+<| endif |>
+  <allowed_attempts><< qti.allowed_attempts >></allowed_attempts>
+  <scoring_policy><< qti.scoring_policy >></scoring_policy>
+  <shuffle_answers><< "true" if qti.shuffle_answers else "false" >></shuffle_answers>
+<| if qti.hide_results |>
+  <hide_results><< qti.hide_results >></hide_results>
+<| endif |>
+<| if qti.show_correct_answers_at |>
+  <show_correct_answers_at><< qti.show_correct_answers_at >></show_correct_answers_at>
+<| endif |>
+  <one_question_at_a_time><< "true" if qti.one_question_at_a_time else "false" >></one_question_at_a_time>
+  <cant_go_back><< "true" if qti.cant_go_back else "false" >></cant_go_back>
+<| if qti.access_code |>
+  <access_code><< qti.access_code | e >></access_code>
+<| endif |>
+<| if qti.ip_filter |>
+  <ip_filter><< qti.ip_filter | e >></ip_filter>
+<| endif |>
+</quiz>
