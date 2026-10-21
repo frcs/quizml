@@ -447,6 +447,12 @@ def get_target_list(args, config, yaml_data):
                         "markdown.html_postprocess can only be used with markdown.format: html."
                     )
                 target["fmt"] = "markdown"
+            elif output_format == "docx":
+                if postprocess is not None:
+                    raise QuizMLConfigError(
+                        "markdown.html_postprocess can only be used with markdown.format: html."
+                    )
+                target["fmt"] = "docx"
             elif output_format == "html":
                 backend_fmt = {
                     "png": "html",
@@ -473,7 +479,7 @@ def get_target_list(args, config, yaml_data):
         elif "fmt" in t:
             # Translate existing configuration values while users migrate.
             legacy_fmt = t["fmt"]
-            if legacy_fmt not in ("latex", "html", "html-svg", "html-mathml"):
+            if legacy_fmt not in ("latex", "html", "html-svg", "html-mathml", "docx"):
                 raise QuizMLConfigError(f"Unknown legacy fmt value '{legacy_fmt}'.")
             target["fmt"] = legacy_fmt
             # Legacy HTML formats historically applied the Blackboard-oriented

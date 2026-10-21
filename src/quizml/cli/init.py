@@ -10,7 +10,7 @@ BUNDLE_GROUPS = {
     "latex": ["tcd-exam.tex.j2", "tcd-exam-solutions.tex.j2", "math-preamble.tex"],
     "html": ["preview.html.j2", "markdown-html.css", "math-preamble.tex"],
     "bb": ["blackboard.txt.j2", "markdown-html.css", "math-preamble.tex"],
-    "docx": ["prototype.docx"],
+    "docx": ["prototype.docx", "tcd-exam.docx"],
     "schema": ["schema.json"],
 }
 

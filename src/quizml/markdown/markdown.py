@@ -99,6 +99,8 @@ def _normalize_markdown_options(options):
         options["fmt"] = "latex"
     elif output_format in ("markdown", "none"):
         options["fmt"] = "markdown"
+    elif output_format == "docx":
+        options["fmt"] = "docx"
     elif output_format == "html":
         math_backend = markdown.get("math", "png")
         renderer_format = {
@@ -253,6 +255,28 @@ class MarkdownTranscoder:
         self.cache_dict[key] = d
         return d
 
+    def docx_dict(self, opts=None):
+        """Returns a Word OpenXML dictionary of all MD entries in the YAML data."""
+        if not self.md_list:
+            return {}
+
+        if opts is None:
+            opts = {}
+
+        key = opts.get("fmt", "docx")
+        if key in self.cache_dict:
+            return self.cache_dict[key]
+        from quizml.markdown.docx import get_docx_dict
+
+        d = get_docx_dict(
+            self.ast_dict,
+            opts=opts,
+            base_dir=self.base_dir,
+            search_dirs=self.search_dirs,
+        )
+        self.cache_dict[key] = d
+        return d
+
     def get_dict(self, opts=None):
         """Returns a dictionary of all transcoded MD entries in the YAML data
 
@@ -275,6 +299,8 @@ class MarkdownTranscoder:
             return self.latex_dict(opts)
         elif fmt == "markdown":
             return {md_str: str(md_str) for md_str in self.ast_dict}
+        elif fmt == "docx":
+            return self.docx_dict(opts)
         return {}
 
     def transcode_target(self, target=None):
