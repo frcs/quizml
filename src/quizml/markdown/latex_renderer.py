@@ -2,6 +2,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -137,6 +138,33 @@ def resolve_image_path(src, base_dir=None, search_dirs=None, svg_converter=None)
     return src if found_in_search_dirs else actual_src
 
 
+_LATEX_INLINE_CODE_ESCAPES = {
+    "\\": r"\textbackslash{}",
+    "{": r"\{",
+    "}": r"\}",
+    "$": r"\$",
+    "&": r"\&",
+    "#": r"\#",
+    "^": r"\textasciicircum{}",
+    "_": r"\_",
+    "~": r"\textasciitilde{}",
+    "%": r"\%",
+    "<": r"\textless{}",
+    ">": r"\textgreater{}",
+    "|": r"\textbar{}",
+}
+_LATEX_CODE_ESCAPE_PATTERN = re.compile(r"[\\{}$&#\^_~%<>|]")
+
+
+def escape_latex_code(text: str) -> str:
+    """
+    Escapes special LaTeX characters for code text within \\texttt{...}.
+    """
+    return _LATEX_CODE_ESCAPE_PATTERN.sub(
+        lambda m: _LATEX_INLINE_CODE_ESCAPES[m.group(0)], text
+    )
+
+
 class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
     """
     customised mistletoe renderer for LaTeX
@@ -153,6 +181,12 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
         # we need to redefine this to strip out
         # \begin{document} ... \end{document}
         return self.render_inner(token)
+
+    def render_inline_code(self, token):
+        # Use \texttt with escaped characters instead of \verb so inline code can
+        # be safely embedded inside macro arguments (\textbf, \textit, headings, etc.)
+        code = token.children[0].content if token.children else ""
+        return f"\\texttt{{{escape_latex_code(code)}}}"
 
     def render_math_inline(self, token):
         return token.content.strip()

@@ -78,6 +78,55 @@ def test_markdown_transcoding_latex():
     assert r"\includegraphics" in latex_md_dict[key_c0]  # ![pic] -> \includegraphics
 
 
+def test_markdown_transcoding_latex_inline_code_nested():
+    """Verify inline code nested in bold or italics renders with \\texttt and no \\verb."""
+    q_text = MarkdownString(
+        "**Submodule `F` (Shared Encoder) [1.5 marks]:**\n\n*See `module_b`.*"
+    )
+    yamldoc = {
+        "header": {},
+        "questions": [
+            {
+                "type": "essay",
+                "question": q_text,
+            }
+        ],
+    }
+    transcoder = MarkdownTranscoder(yamldoc, None)
+    latex_dict = transcoder.get_dict(opts={"markdown": {"format": "latex"}})
+    rendered = latex_dict[q_text]
+
+    assert r"\textbf{Submodule \texttt{F} (Shared Encoder) [1.5 marks]:}" in rendered
+    assert r"\textit{See \texttt{module\_b}.}" in rendered
+    assert r"\verb" not in rendered
+
+
+def test_markdown_transcoding_latex_inline_code_special_chars():
+    """Verify inline code with special LaTeX characters is properly escaped inside \\texttt."""
+    q_text = MarkdownString(
+        "Use `func(a_b, &c, 50%, $10, #id, {key}, x^2, ~home, \\path, <T>, a|b)`."
+    )
+    yamldoc = {
+        "header": {},
+        "questions": [
+            {
+                "type": "essay",
+                "question": q_text,
+            }
+        ],
+    }
+    transcoder = MarkdownTranscoder(yamldoc, None)
+    latex_dict = transcoder.get_dict(opts={"markdown": {"format": "latex"}})
+    rendered = latex_dict[q_text]
+
+    expected_code = (
+        r"\texttt{func(a\_b, \&c, 50\%, \$10, \#id, \{key\}, x\textasciicircum{}2, "
+        r"\textasciitilde{}home, \textbackslash{}path, \textless{}T\textgreater{}, a\textbar{}b)}"
+    )
+    assert expected_code in rendered
+    assert r"\verb" not in rendered
+
+
 def test_markdown_transcoding_with_headings():
     """Verify that markdown containing headings does not break document splitting."""
     q1_text = MarkdownString(
