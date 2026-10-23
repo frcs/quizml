@@ -61,6 +61,13 @@ Optional mapping of extra variables passed to the target's Jinja2 template
 context (both `context` and `vars` are accepted as aliases, with `context`
 taking precedence if both are specified).
 
+#### `dep`
+
+Name of a target (or list of target names) that this target depends on. QuizML
+resolves dependencies recursively and guarantees they are compiled before their
+dependents in topological order. For example, `pdf-solutions` depends on
+`latex-solutions`, which in turn depends on `latex`.
+
 #### `clean_extensions`
 
 Optional list of file suffixes for additional artifacts produced by this

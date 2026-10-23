@@ -1,4 +1,5 @@
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -408,6 +409,24 @@ def test_get_config_resolves_texinputs_relative_to_config_dir(tmp_path):
     assert cfg["texinputs"] == [
         str(shared_dir.resolve()),
         "/absolute/path",
+    ]
+
+
+def test_default_config_latex_solutions_dependency_chain():
+    """Verify that latex-solutions depends on latex and pdf-solutions orders dependencies correctly."""
+    args = SimpleNamespace(
+        config=None, target=["pdf-solutions"], yaml_filename="exam.yaml", verbose=False
+    )
+    cfg = get_config(args)
+    latex_sol = next(t for t in cfg["targets"] if t.get("name") == "latex-solutions")
+    assert latex_sol.get("dep") == "latex"
+
+    yaml_data = {"header": {"inputbasename": "exam"}}
+    targets = get_target_list(args, cfg, yaml_data)
+    assert [t["name"] for t in targets] == [
+        "latex",
+        "latex-solutions",
+        "pdf-solutions",
     ]
 
 
