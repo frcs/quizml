@@ -8,15 +8,15 @@ import docx
 import docxtpl
 import pytest
 
-from quizml.docx_renderer import render_docx
-from quizml.loader import loads
+from quizml.rendering import render_docx
 from quizml.templates.create_tcd_docx_template import create_tcd_docx_template
+from quizml.yaml import loads
 
 
 @pytest.fixture(scope="module")
 def tcd_docx_template_path():
     """Returns path to the packaged tcd-exam.docx template."""
-    from quizml.cli.filelocator import FileLocator
+    from quizml.paths import FileLocator
 
     return pathlib.Path(FileLocator().path("tcd-exam.docx"))
 
@@ -68,7 +68,7 @@ additionalinformation: 'Laplace tables provided.'
   marks: 10
   question: 'Discuss modulation schemes.'
 """
-    doc_dict, _ = loads(yaml_text)
+    doc_dict = loads(yaml_text)
     rendered_bytes = render_docx(
         {"header": doc_dict["header"], "questions": doc_dict["questions"]},
         tcd_docx_template_path,
@@ -164,7 +164,7 @@ modulecode: 'TEST101'
   question: 'Explain Fourier Transform.'
   answer: 'Fourier transform decomposes a signal into sinusoids.'
 """
-    doc_dict, _ = loads(yaml_text)
+    doc_dict = loads(yaml_text)
 
     # 1. Student mode
     student_bytes = render_docx(
@@ -288,7 +288,7 @@ modulecode: 'CS7001'
   - o: 'FPR < 1% & TPR > 99%'
   - x: 'FPR >= 5% && TPR < 80%'
 """
-    doc_dict, _ = loads(yaml_text)
+    doc_dict = loads(yaml_text)
     rendered_bytes = render_docx(
         {
             "header": doc_dict["header"],
@@ -388,7 +388,7 @@ materials: |
   - x: 'A subset of ML'
   - o: 'A database'
 """
-    doc_dict, _ = loads(yaml_text)
+    doc_dict = loads(yaml_text)
     transcoder = MarkdownTranscoder(doc_dict)
     target = {"name": "docx", "template": str(tcd_docx_template_path), "fmt": "docx"}
     yaml_transcoded = transcoder.transcode_target(target)
@@ -439,7 +439,7 @@ modulecode: 'EEU44C16'
   marks: 5.0
   question: 'Question 3'
 """
-    doc_dict, _ = loads(yaml_text)
+    doc_dict = loads(yaml_text)
 
     # 1. Student Mode
     std_bytes = render_docx(
@@ -494,7 +494,7 @@ midterm: true
   - x: 'Right'
   - o: 'Wrong'
 """
-    doc_dict, _ = loads(yaml_text)
+    doc_dict = loads(yaml_text)
     rendered_bytes = render_docx(
         {"header": doc_dict["header"], "questions": doc_dict["questions"]},
         tcd_docx_template_path,

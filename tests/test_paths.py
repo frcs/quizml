@@ -1,5 +1,4 @@
-from quizml.cli.filelocator import FileLocator
-from quizml.paths import find_path
+from quizml.paths import FileLocator, find_path
 
 
 def test_find_path_uses_search_directory_order(tmp_path):

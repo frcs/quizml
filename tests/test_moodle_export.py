@@ -5,9 +5,9 @@ from pathlib import Path
 
 from quizml.cli.compile import compile_target
 from quizml.cli.config import get_config, get_target_list
-from quizml.loader import load, loads
 from quizml.markdown.markdown import MarkdownTranscoder
-from quizml.renderer import render
+from quizml.rendering import render
+from quizml.yaml import load, loads
 
 
 def test_moodle_export_all_question_types():
@@ -97,7 +97,7 @@ instructions: "Answer all questions."
   question: "Explain gradient descent."
   answer: "Model answer explaining optimization steps..."
 """
-    yaml_doc, _ = loads(yaml_text)
+    yaml_doc = loads(yaml_text)
 
     transcoder = MarkdownTranscoder(yaml_doc)
     yaml_transcoded = transcoder.transcode_target({"fmt": "html-mathml"})
@@ -231,7 +231,7 @@ title: "Pipeline Moodle Test"
         config=None, target=["moodle"], yaml_filename=str(quiz_file)
     )
     config = get_config(args)
-    yaml_doc, schema = load(str(quiz_file), validate=True)
+    yaml_doc = load(str(quiz_file), validate=True)
 
     targets = get_target_list(args, config, yaml_doc)
 
@@ -244,7 +244,7 @@ title: "Pipeline Moodle Test"
     out_file = tmp_path / "output.xml"
     target["out"] = str(out_file)
 
-    transcoder = MarkdownTranscoder(yaml_doc, schema=schema, base_dir=str(tmp_path))
+    transcoder = MarkdownTranscoder(yaml_doc, base_dir=str(tmp_path))
     compile_target(target, transcoder)
     assert out_file.exists()
 
@@ -299,14 +299,14 @@ title: "Math and Tables Quiz"
         config=None, target=["moodle"], yaml_filename=str(quiz_file)
     )
     config = get_config(args)
-    yaml_doc, schema = load(str(quiz_file), validate=True)
+    yaml_doc = load(str(quiz_file), validate=True)
 
     targets = get_target_list(args, config, yaml_doc)
 
     out_file = tmp_path / "moodle_output.xml"
     targets[0]["out"] = str(out_file)
 
-    transcoder = MarkdownTranscoder(yaml_doc, schema=schema, base_dir=str(tmp_path))
+    transcoder = MarkdownTranscoder(yaml_doc, base_dir=str(tmp_path))
     compile_target(targets[0], transcoder)
     assert out_file.exists()
 

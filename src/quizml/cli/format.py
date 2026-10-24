@@ -1,182 +1,18 @@
+"""CLI adapter for YAML formatting."""
+
 import difflib
-import io
-import re
 from pathlib import Path
 
-from ruamel.yaml import YAML
-from ruamel.yaml.error import StreamMark, YAMLError
-from ruamel.yaml.scalarstring import LiteralScalarString
-from ruamel.yaml.tokens import CommentToken
-
-from ..exceptions import QuizMLError
-from ..loader import count_included_questions
-
-
-def is_q_comment(token):
-    """Checks if a comment token matches the <Q#> or <Q1>, <Q2> pattern."""
-    if not isinstance(token, CommentToken):
-        return False
-    # Matches "# <Q12>" or list like "# <Q10>, <Q11>, <Q12>" with any whitespace
-    val = token.value.strip()
-    return bool(re.match(r"^#[ \t]*<Q[0-9]+>(?:[ \t]*,[ \t]*<Q[0-9]+>)*$", val))
-
-
-def is_blank_comment(token):
-    """Checks if a comment token is just an empty line (no '#' character)."""
-    if not isinstance(token, CommentToken):
-        return False
-    return token.value.strip() == ""
-
-
-def should_remove_comment(token):
-    return is_q_comment(token) or is_blank_comment(token)
-
-
-def clean_all_q_comments(data, *, strip_blank_lines=True):
-    """Recursively removes all <Q#> comments and (optionally) pure empty lines from a ruamel.yaml data structure."""
-    def _drop(token):
-        if is_q_comment(token):
-            return True
-        return strip_blank_lines and is_blank_comment(token)
-
-    if hasattr(data, "ca"):
-        # 1. Clean object-level comments (pre/post)
-        if data.ca.comment:
-            for c_idx in range(len(data.ca.comment)):
-                if isinstance(data.ca.comment[c_idx], list):
-                    data.ca.comment[c_idx] = [
-                        t
-                        for t in data.ca.comment[c_idx]
-                        if not _drop(t)
-                    ]
-
-        # 2. Clean end comments
-        if hasattr(data.ca, "end") and data.ca.end:
-            data.ca.end = [t for t in data.ca.end if not _drop(t)]
-
-        # 3. Clean item-level comments
-        if data.ca.items:
-            for k in data.ca.items:
-                comm_list_list = data.ca.items[k]
-                if comm_list_list:
-                    for c_idx in range(len(comm_list_list)):
-                        if isinstance(comm_list_list[c_idx], list):
-                            comm_list_list[c_idx] = [
-                                t
-                                for t in comm_list_list[c_idx]
-                                if not _drop(t)
-                            ]
-                        elif _drop(comm_list_list[c_idx]):
-                            comm_list_list[c_idx] = None
-
-    # Recursive step
-    if isinstance(data, dict):
-        for v in data.values():
-            clean_all_q_comments(v, strip_blank_lines=strip_blank_lines)
-    elif isinstance(data, list):
-        for item in data:
-            clean_all_q_comments(item, strip_blank_lines=strip_blank_lines)
-
-
-def wrap_text_fields(data, wrap_width=None):
-    from .wrap import wrap_markdown
-
-    if isinstance(data, dict):
-        for k, v in data.items():
-            if k == "_include":
-                continue
-            if isinstance(v, str):
-                # Always format choices values or long strings as Literal Blocks
-                is_choice = k in ("x", "o", "A", "B") and len(v.strip()) > 0
-                if "\n" in v or len(v) > 60 or is_choice:
-                    # Skip header keys starting with _
-                    if k.startswith("_"):
-                        data[k] = LiteralScalarString(v.strip() + "\n")
-                        continue
-                    if wrap_width is not None:
-                        val = wrap_markdown(v.strip(), width=wrap_width)
-                    else:
-                        val = v.strip()
-                    if val:
-                        data[k] = LiteralScalarString(val + "\n")
-            elif isinstance(v, (dict, list)):
-                wrap_text_fields(v, wrap_width=wrap_width)
-    elif isinstance(data, list):
-        for item in data:
-            wrap_text_fields(item, wrap_width=wrap_width)
-
-
-def format_yaml_text(txt, *, base_dir=Path("."), filename="<stdin>", wrap_width=None):
-    yaml = YAML()
-    yaml.indent(mapping=2, sequence=2, offset=0)
-    yaml.width = 4096
-    yaml.preserve_quotes = True
-
-    try:
-        docs = list(yaml.load_all(txt))
-    except YAMLError as err:
-        raise QuizMLError(f"YAML parsing error in {filename}: {err}") from err
-
-    formatted_parts = []
-    dummy_mark = StreamMark(None, 0, 0, 0)
-
-    for data in docs:
-        if data is None or (isinstance(data, str) and not data.strip()):
-            continue
-
-        # Aggressive cleaning and text wrapping (if requested)
-        clean_all_q_comments(data, strip_blank_lines=isinstance(data, list))
-        wrap_text_fields(data, wrap_width=wrap_width)
-
-        # Renumber questions if this part is a list
-        if isinstance(data, list):
-            q_counter = 1
-            for q_idx, item in enumerate(data):
-                prefix = "\n" if q_idx > 0 else ""
-                if isinstance(item, dict) and "_include" in item:
-                    n_q = count_included_questions(item, base_dir=base_dir)
-                    if n_q > 0:
-                        q_tags = [f"<Q{q_counter + i}>" for i in range(n_q)]
-                        new_comment = f"{prefix}# {', '.join(q_tags)}\n"
-                        q_counter += n_q
-                    else:
-                        new_comment = None
-                else:
-                    new_comment = f"{prefix}# <Q{q_counter}>\n"
-                    q_counter += 1
-
-                if new_comment is not None:
-                    if q_idx not in data.ca.items:
-                        data.ca.items[q_idx] = [None, [], None, None]
-
-                    if data.ca.items[q_idx][1] is None:
-                        data.ca.items[q_idx][1] = []
-
-                    # Append so it stays right before the hyphen line
-                    data.ca.items[q_idx][1].append(
-                        CommentToken(new_comment, dummy_mark, None, 0)
-                    )
-
-        buf = io.StringIO()
-        yaml.dump(data, buf)
-        formatted_parts.append(buf.getvalue().strip())
-
-    # Re-join documents
-    actual_docs = [part for part in formatted_parts if part.strip()]
-    res = ""
-    if txt.startswith("---"):
-        res += "---\n"
-    res += "---\n".join(doc + "\n" for doc in actual_docs)
-
-    # Convert top-level (zero-indent) question comments to "- # <Q#>" convention
-    res = re.sub(
-        r"^(# <Q[0-9]+>(?:, <Q[0-9]+>)*)\n- ",
-        r"- \1\n  ",
-        res,
-        flags=re.MULTILINE,
-    )
-
-    return res
+from quizml.exceptions import QuizMLError
+from quizml.yaml.format import (
+    clean_all_q_comments,
+    format_yaml_text,
+    is_blank_comment,
+    is_q_comment,
+    should_remove_comment,
+    wrap_markdown,
+    wrap_text_fields,
+)
 
 
 def run_format(args):
@@ -228,3 +64,15 @@ def run_format(args):
 
     sys.stdout.write(formatted)
     return True
+
+
+__all__ = [
+    "clean_all_q_comments",
+    "format_yaml_text",
+    "is_blank_comment",
+    "is_q_comment",
+    "run_format",
+    "should_remove_comment",
+    "wrap_markdown",
+    "wrap_text_fields",
+]

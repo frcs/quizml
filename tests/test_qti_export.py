@@ -7,13 +7,13 @@ from pathlib import Path
 
 from quizml.cli.compile import compile_target
 from quizml.cli.config import get_config, get_target_list
-from quizml.loader import load, loads
 from quizml.markdown.markdown import MarkdownTranscoder
-from quizml.qti_renderer import (
+from quizml.rendering.qti import (
     _derive_duration_from_examtime,
     prepare_qti_context,
     render_qti,
 )
+from quizml.yaml import load, loads
 
 
 def test_derive_duration_from_examtime():
@@ -135,7 +135,7 @@ _qti:
   - "Two"
   - "Three"
 """
-    yaml_doc, _ = loads(yaml_text)
+    yaml_doc = loads(yaml_text)
 
     transcoder = MarkdownTranscoder(yaml_doc)
     yaml_transcoded = transcoder.transcode_target({"fmt": "html-mathml"})
@@ -222,7 +222,7 @@ _qti:
         config=None, target=["qti"], yaml_filename=str(quiz_file)
     )
     config = get_config(args)
-    yaml_doc, _ = load(str(quiz_file), validate=False)
+    yaml_doc = load(str(quiz_file), validate=False)
 
     targets = get_target_list(args, config, yaml_doc)
     assert len(targets) == 1
@@ -246,10 +246,8 @@ def test_qti_export_with_image_and_backward_compatibility(tmp_path):
     # Test with examples/quiz1.yaml which contains an SVG image reference and math equations
     import argparse
 
-    from quizml.loader import load
-
     quiz_path = Path(__file__).parent.parent / "examples" / "quiz1.yaml"
-    yaml_doc, _ = load(str(quiz_path), validate=True)
+    yaml_doc = load(str(quiz_path), validate=True)
 
     args = argparse.Namespace(
         config=None, target=["qti"], yaml_filename=str(quiz_path)
@@ -295,7 +293,7 @@ title: "Exam with Sections"
   question: "Calculus is fun."
   answer: true
 """
-    yaml_doc, _ = loads(yaml_text)
+    yaml_doc = loads(yaml_text)
 
     transcoder = MarkdownTranscoder(yaml_doc)
     yaml_transcoded = transcoder.transcode_target({"fmt": "html-mathml"})

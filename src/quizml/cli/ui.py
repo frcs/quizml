@@ -6,11 +6,11 @@ from rich.padding import Padding
 from rich.panel import Panel
 from rich.table import Table, box
 
-from quizml import renderer
+from quizml import rendering
 from quizml.cli.config import get_config
 from quizml.cli.errorhandler import err_console
-from quizml.cli.filelocator import FileLocator
 from quizml.exceptions import QuizMLConfigError
+from quizml.paths import FileLocator
 
 
 class CustomTableElement(TableElement):
@@ -93,7 +93,7 @@ def print_stats_table(quiz, config):
     except FileNotFoundError as err:
         raise QuizMLConfigError(f"Stats template '{template_name}' not found") from err
 
-    rendered = renderer.render_template(quiz, template_path, locator.dirlist)
+    rendered = rendering.render_template(quiz, template_path, locator.dirlist)
 
     # Padding arguments: (top, right, bottom, left)
     text_to_print = Padding(QuizMLMarkdown(rendered), (0, 0, 1, 4))

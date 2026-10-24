@@ -1,4 +1,4 @@
-"""IMS QTI 1.2 package renderer and ZIP packager."""
+"""IMS QTI 1.2 and 2.1 package renderer and ZIP packager."""
 
 import base64
 import hashlib
@@ -10,7 +10,7 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
 
-from quizml.renderer import render_template
+from quizml.rendering.jinja import render_template
 
 
 def _slugify(text: str) -> str:
@@ -71,7 +71,6 @@ def prepare_qti_context(context: dict) -> dict:
     release_solutions = qti_opts.get("release_solutions", release_results)
     release_date = qti_opts.get("release_date")
 
-    # Canvas mapping for result release
     show_correct_answers_at = qti_opts.get("show_correct_answers_at")
     if show_correct_answers_at is None and release_solutions in (
         "after_due_date",
@@ -134,19 +133,7 @@ def _clean_choice_text(val) -> str:
 def _process_qti_html(
     html_str: str, media_store: dict, qti_version: str = "1.2"
 ) -> tuple[str, list[str]]:
-    """Sanitizes HTML for QTI: cleans tables and handles media assets.
-
-    LMSs like Blackboard Ultra flatten HTML tables when nested in <div>, using
-    <thead>/<tbody>, or when burdened with complex inline CSS styles.
-    Similarly, Blackboard Ultra intercepts <img src="..."> tags during QTI 2.1
-    question bank import and rewrites them to broken WebDAV paths (//bbcswebdavnull).
-    Per Anthology documentation, HTML object tags (<object>) are imported natively.
-
-    :param html_str: Raw XHTML / HTML string.
-    :param media_store: Dict collecting {relative_filename: bytes}.
-    :param qti_version: "1.2" or "2.1"
-    :return: (cleaned_xhtml, list_of_referenced_media_files)
-    """
+    """Sanitizes HTML for QTI: cleans tables and handles media assets."""
     if not html_str:
         return "", []
 
@@ -154,7 +141,6 @@ def _process_qti_html(
     soup = BeautifulSoup(str(html_str), "html.parser")
     referenced_media = []
 
-    # 1. Clean tables and styles for LMS compatibility
     for s in soup.find_all("style"):
         s.decompose()
 
@@ -170,7 +156,6 @@ def _process_qti_html(
         for cell in table.find_all(["th", "td"]):
             cell.attrs = {}
 
-    # 2. Extract embedded images (data URIs) and normalize tags
     for img in soup.find_all("img"):
         src = img.get("src", "")
         if not src.startswith("data:image/"):
@@ -206,8 +191,6 @@ def _process_qti_html(
         if img_bytes:
             img_hash = hashlib.md5(img_bytes).hexdigest()[:10]
             if qti_version == "2.1":
-                # Blackboard QTI 2.1 expects bare filenames at package root (e.g. img_xxxx.png)
-                # and items under items/ reference them via relative "../img_xxxx.png".
                 fname = f"img_{img_hash}.{ext}"
                 img["src"] = f"../{fname}"
             else:
@@ -297,7 +280,12 @@ def _process_questions_for_qti(
     return processed
 
 
-def _render_qti12(qti_ctx: dict, tdir: Path) -> bytes:
+def _render_qti12(
+    qti_ctx: dict,
+    tdir: Path,
+    search_dirs=None,
+    jinja_filters=None,
+) -> bytes:
     """Renders a QTI 1.2 package directory into an in-memory ZIP archive."""
     media_store: dict[str, bytes] = {}
     render_ctx = dict(qti_ctx)
@@ -306,9 +294,14 @@ def _render_qti12(qti_ctx: dict, tdir: Path) -> bytes:
     )
     render_ctx["all_media_files"] = list(media_store.keys())
 
-    quiz_xml = render_template(render_ctx, tdir / "quiz.xml.j2")
-    manifest_xml = render_template(render_ctx, tdir / "imsmanifest.xml.j2")
-    meta_xml = render_template(render_ctx, tdir / "assessment_meta.xml.j2")
+    kwargs = {"jinja_filters": jinja_filters} if jinja_filters else {}
+    quiz_xml = render_template(render_ctx, tdir / "quiz.xml.j2", search_dirs, **kwargs)
+    manifest_xml = render_template(
+        render_ctx, tdir / "imsmanifest.xml.j2", search_dirs, **kwargs
+    )
+    meta_xml = render_template(
+        render_ctx, tdir / "assessment_meta.xml.j2", search_dirs, **kwargs
+    )
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
@@ -321,7 +314,12 @@ def _render_qti12(qti_ctx: dict, tdir: Path) -> bytes:
     return buf.getvalue()
 
 
-def _render_qti21(qti_ctx: dict, tdir: Path) -> bytes:
+def _render_qti21(
+    qti_ctx: dict,
+    tdir: Path,
+    search_dirs=None,
+    jinja_filters=None,
+) -> bytes:
     """Renders a QTI 2.1 package directory into an in-memory ZIP archive."""
     media_store: dict[str, bytes] = {}
     processed_questions = _process_questions_for_qti(
@@ -348,9 +346,12 @@ def _render_qti21(qti_ctx: dict, tdir: Path) -> bytes:
     render_ctx["all_media_files"] = list(media_store.keys())
     render_ctx["all_media_resources"] = media_resources
 
-    manifest_xml = render_template(render_ctx, tdir / "imsmanifest.xml.j2")
+    kwargs = {"jinja_filters": jinja_filters} if jinja_filters else {}
+    manifest_xml = render_template(
+        render_ctx, tdir / "imsmanifest.xml.j2", search_dirs, **kwargs
+    )
     assessment_xml = (
-        render_template(render_ctx, tdir / "assessment.xml.j2")
+        render_template(render_ctx, tdir / "assessment.xml.j2", search_dirs, **kwargs)
         if (tdir / "assessment.xml.j2").exists()
         else None
     )
@@ -366,10 +367,9 @@ def _render_qti21(qti_ctx: dict, tdir: Path) -> bytes:
             item_ctx = dict(render_ctx)
             item_ctx["q"] = item_q
             item_ctx["item_index"] = idx
-            item_xml = render_template(item_ctx, item_template)
+            item_xml = render_template(item_ctx, item_template, search_dirs, **kwargs)
             zf.writestr(f"items/item_{idx}.xml", item_xml.encode("utf-8"))
 
-        # Write media assets to root, items/, and images/ for maximum LMS compatibility
         for fname, bdata in media_store.items():
             zf.writestr(fname, bdata)
             zf.writestr(f"items/{fname}", bdata)
@@ -378,20 +378,24 @@ def _render_qti21(qti_ctx: dict, tdir: Path) -> bytes:
     return buf.getvalue()
 
 
-def render_qti(context: dict, template_dir: Path | str) -> bytes:
-    """Renders a multi-file QTI (1.2 or 2.1) package directory into an in-memory ZIP archive (bytes).
-
-    :param context: Render context containing 'header' and 'questions'.
-    :param template_dir: Path to directory containing QTI templates.
-    :return: Binary zip archive content.
-    """
+def render_qti(
+    context: dict,
+    template_dir: Path | str,
+    search_dirs=None,
+    jinja_filters=None,
+) -> bytes:
+    """Renders a multi-file QTI (1.2 or 2.1) package directory into an in-memory ZIP archive (bytes)."""
     tdir = Path(template_dir)
     qti_ctx = prepare_qti_context(context)
 
     if (tdir / "quiz.xml.j2").exists():
-        return _render_qti12(qti_ctx, tdir)
+        return _render_qti12(
+            qti_ctx, tdir, search_dirs=search_dirs, jinja_filters=jinja_filters
+        )
     elif (tdir / "item.xml.j2").exists():
-        return _render_qti21(qti_ctx, tdir)
+        return _render_qti21(
+            qti_ctx, tdir, search_dirs=search_dirs, jinja_filters=jinja_filters
+        )
     else:
         raise FileNotFoundError(
             f"No recognizable QTI template found in {tdir} (expected quiz.xml.j2 or item.xml.j2)"

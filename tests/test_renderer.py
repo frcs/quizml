@@ -4,7 +4,7 @@ import tempfile
 import pytest
 
 from quizml.exceptions import Jinja2SyntaxError
-from quizml.renderer import render, render_template
+from quizml.rendering import render, render_template
 
 
 def test_render_template_success():
@@ -132,7 +132,7 @@ def test_target_context_and_filters_in_compile_target(tmp_path):
 
 def test_custom_html_postprocessor(tmp_path):
     from quizml.markdown.markdown import MarkdownTranscoder
-    from quizml.utils import MarkdownString
+    from quizml.yaml import MarkdownString
 
     yamldoc = {
         "header": {},
@@ -205,7 +205,7 @@ def test_preview_template_supports_custom_types_part_dividers_and_no_static_poll
 def test_docx_renderer_receives_configured_jinja_env(monkeypatch):
     from unittest.mock import MagicMock
 
-    from quizml import docx_renderer
+    from quizml.rendering import docx as docx_renderer
 
     captured = {}
 

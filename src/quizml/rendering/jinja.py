@@ -1,3 +1,5 @@
+"""Jinja2 template rendering engine with QuizML custom delimiters."""
+
 import importlib
 import math
 import pathlib
@@ -5,8 +7,15 @@ from functools import lru_cache
 
 import jinja2
 
-from quizml.exceptions import Jinja2SyntaxError, QuizMLConfigError, TemplateRenderError
-from quizml.utils import msg_context, text_wrap
+from quizml.exceptions import (
+    Jinja2SyntaxError,
+    QuizMLConfigError,
+    TemplateRenderError,
+    msg_context,
+    text_wrap,
+)
+
+DEFAULT_TEMPLATES_DIR = pathlib.Path(__file__).resolve().parent.parent / "templates"
 
 
 def _load_filter_callable(spec):
@@ -51,7 +60,7 @@ def _get_jinja_env(search_dirs):
 def get_jinja_env(search_dirs=None, jinja_filters=None):
     """Return an environment configured for the supplied template paths and filters."""
     if search_dirs is None:
-        search_dirs = [pathlib.Path(__file__).parent / "templates"]
+        search_dirs = [DEFAULT_TEMPLATES_DIR]
     base_env = _get_jinja_env(tuple(str(pathlib.Path(path)) for path in search_dirs))
     if not jinja_filters:
         return base_env
@@ -76,7 +85,7 @@ def render_template(
         if search_dirs:
             template_search_dirs.extend(search_dirs)
         else:
-            template_search_dirs.append(pathlib.Path(__file__).parent / "templates")
+            template_search_dirs.append(DEFAULT_TEMPLATES_DIR)
         env = get_jinja_env(template_search_dirs, jinja_filters=jinja_filters)
         template_name = template_path.name
         template_src, _, _ = env.loader.get_source(env, template_name)
@@ -115,43 +124,3 @@ def render_template(
         ) from exc
 
     return render_content
-
-
-def render(
-    yaml_data,
-    template_filename,
-    extra_context=None,
-    template_search_dirs=None,
-    jinja_filters=None,
-):
-    header = yaml_data["header"]
-    paths = yaml_data.get("paths") or {
-        "figure_dirs": header.get("_figures_path", [])
-    }
-    context = {
-        "header": header,
-        "questions": yaml_data["questions"],
-        "paths": paths,
-        # "total_marks" : get_total_marks(yaml_data)
-    }
-
-    if extra_context:
-        context.update(extra_context)
-
-    str_template = str(template_filename)
-    if str_template.endswith(".docx"):
-        from quizml import docx_renderer
-
-        docx_kwargs = {"jinja_filters": jinja_filters} if jinja_filters else {}
-        return docx_renderer.render(context, str_template, **docx_kwargs)
-
-    p = pathlib.Path(str_template)
-    if p.is_dir() or "qti" in p.name.lower():
-        from quizml.qti_renderer import render_qti
-
-        return render_qti(context, p)
-
-    kwargs = {"jinja_filters": jinja_filters} if jinja_filters else {}
-    return render_template(
-        context, str_template, template_search_dirs, **kwargs
-    )

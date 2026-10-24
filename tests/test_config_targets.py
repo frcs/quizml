@@ -11,7 +11,7 @@ from quizml.exceptions import QuizMLConfigError
 @pytest.fixture
 def mock_dependencies():
     with (
-        patch("quizml.cli.config.FileLocator.path", autospec=True) as mock_path,
+        patch("quizml.build.config.FileLocator.path", autospec=True) as mock_path,
         patch("pathlib.Path.read_text") as mock_read,
     ):
         mock_path.side_effect = lambda _self, x: f"/abs/{x}"
@@ -302,7 +302,7 @@ def test_get_config_rejects_invalid_targets_list(tmp_path):
 
 
 def test_filelocator_prioritizes_base_dir_over_cwd(tmp_path):
-    from quizml.cli.filelocator import FileLocator
+    from quizml.paths import FileLocator
 
     cwd_dir = tmp_path / "cwd"
     base_dir = tmp_path / "quiz_dir"

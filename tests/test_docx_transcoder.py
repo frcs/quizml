@@ -3,9 +3,9 @@
 import mistletoe as mt
 import pytest
 
-from quizml.loader import load
 from quizml.markdown.docx import QuizMLYamlDocxRenderer
 from quizml.markdown.markdown import MarkdownTranscoder, _setup_mistletoe_tokens
+from quizml.yaml import load
 
 
 @pytest.fixture(autouse=True)
@@ -104,7 +104,7 @@ modulecode: 'PHYS101'
 """
     quiz_file = tmp_path / "quiz.yaml"
     quiz_file.write_text(yaml_text, encoding="utf-8")
-    doc_dict, _ = load(str(quiz_file))
+    doc_dict = load(str(quiz_file))
     transcoder = MarkdownTranscoder(doc_dict)
     target = {"fmt": "docx"}
     transcoded = transcoder.transcode_target(target)

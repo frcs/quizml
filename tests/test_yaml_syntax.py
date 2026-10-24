@@ -1,6 +1,6 @@
 import os
 
-from quizml.loader import load
+from quizml.yaml import load
 
 
 def test_yaml_syntax():
@@ -43,7 +43,7 @@ def test_yaml_syntax():
             "cols": 1,
         },
     ]
-    yamldoc, _ = load(yaml_file)
+    yamldoc = load(yaml_file)
 
     # Helper to strip strings recursively
     def strip_strings(data):
@@ -59,7 +59,7 @@ def test_yaml_syntax():
 
 
 def test_horizontal_rule_in_markdown_question():
-    from quizml.loader import loads
+    from quizml.yaml import loads
 
     quiz_yaml = """title: Math Quiz
 ---
@@ -71,7 +71,7 @@ def test_horizontal_rule_in_markdown_question():
     Section below divider
   answer: true
 """
-    doc, _ = loads(quiz_yaml, validate=False)
+    doc = loads(quiz_yaml, validate=False)
     assert doc["header"]["title"] == "Math Quiz"
     assert len(doc["questions"]) == 1
     q_text = doc["questions"][0]["question"]
@@ -90,7 +90,7 @@ def test_unicode_yaml_loading(tmp_path):
   answer: true
 """
     f.write_text(content, encoding="utf-8")
-    doc, _ = load(str(f), validate=False)
+    doc = load(str(f), validate=False)
     assert "€" in doc["header"]["title"]
     assert "數學" in doc["header"]["title"]
     assert "vérité" in doc["questions"][0]["question"]

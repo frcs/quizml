@@ -1,7 +1,7 @@
-"""quizml exceptions.
+"""QuizML exceptions and diagnostic formatting helpers."""
 
-This module contains the custom exception classes used throughout the quizml project.
-"""
+import os
+import textwrap
 
 
 class QuizMLError(Exception):
@@ -58,12 +58,6 @@ class DvisvgmNotFoundError(LatexToolError):
     pass
 
 
-class Make4htNotFoundError(LatexToolError):
-    """Raised when the make4ht executable is not found."""
-
-    pass
-
-
 class LatexCompilationError(LatexToolError):
     """Raised when the LaTeX compilation fails."""
 
@@ -92,3 +86,28 @@ class Jinja2SyntaxError(TemplateRenderError):
     """Raised for errors during Jinja2 template rendering."""
 
     pass
+
+
+def text_wrap(msg):
+    """Wrap diagnostic message to terminal width."""
+    try:
+        w, _ = os.get_terminal_size(0)
+    except OSError:
+        w = 80
+    return textwrap.fill(msg, w - 5)
+
+
+def msg_context_line(lines, lineo, charno=None, highlight=False):
+    if lineo < 1 or lineo > len(lines):
+        return ""
+    if highlight:
+        return f"❱ {lineo:>4} │  {lines[lineo - 1]}\n"
+    return f"  {lineo:>4} │ {lines[lineo - 1]}\n"
+
+
+def msg_context(lines, lineo, charno=None):
+    """Format a 3-line source snippet around a 1-based line number."""
+    msg = msg_context_line(lines, lineo - 1, charno, highlight=False)
+    msg += msg_context_line(lines, lineo, charno, highlight=True)
+    msg += msg_context_line(lines, lineo + 1, charno, highlight=False)
+    return msg

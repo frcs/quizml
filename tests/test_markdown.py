@@ -3,9 +3,8 @@ import os
 import pytest
 from mistletoe import block_token, span_token
 
-from quizml.loader import load
 from quizml.markdown.markdown import MarkdownTranscoder
-from quizml.utils import MarkdownString
+from quizml.yaml import MarkdownString, load
 
 
 @pytest.fixture(autouse=True)
@@ -18,8 +17,8 @@ def test_markdown_transcoding_html():
     pkg_dirname = os.path.dirname(__file__)
     yaml_file = os.path.join(pkg_dirname, "fixtures", "test-markdown.yaml")
 
-    yamldoc, schema = load(yaml_file, validate=True)
-    transcoder = MarkdownTranscoder(yamldoc, schema)
+    yamldoc = load(yaml_file, validate=True)
+    transcoder = MarkdownTranscoder(yamldoc)
 
     # Test HTML conversion
     html_md_dict = transcoder.get_dict(
@@ -56,8 +55,8 @@ def test_markdown_transcoding_latex():
     pkg_dirname = os.path.dirname(__file__)
     yaml_file = os.path.join(pkg_dirname, "fixtures", "test-markdown.yaml")
 
-    yamldoc, schema = load(yaml_file, validate=True)
-    transcoder = MarkdownTranscoder(yamldoc, schema)
+    yamldoc = load(yaml_file, validate=True)
+    transcoder = MarkdownTranscoder(yamldoc)
 
     # Test LaTeX conversion
     latex_md_dict = transcoder.get_dict(opts={"markdown": {"format": "latex"}})
@@ -92,7 +91,7 @@ def test_markdown_transcoding_latex_inline_code_nested():
             }
         ],
     }
-    transcoder = MarkdownTranscoder(yamldoc, None)
+    transcoder = MarkdownTranscoder(yamldoc)
     latex_dict = transcoder.get_dict(opts={"markdown": {"format": "latex"}})
     rendered = latex_dict[q_text]
 
@@ -115,7 +114,7 @@ def test_markdown_transcoding_latex_inline_code_special_chars():
             }
         ],
     }
-    transcoder = MarkdownTranscoder(yamldoc, None)
+    transcoder = MarkdownTranscoder(yamldoc)
     latex_dict = transcoder.get_dict(opts={"markdown": {"format": "latex"}})
     rendered = latex_dict[q_text]
 
@@ -229,7 +228,7 @@ def test_inputbasename_with_underscore_not_escaped():
 def test_latex_template_graphicspath():
     import os
 
-    from quizml import renderer
+    from quizml import rendering as renderer
 
     template_path = os.path.join(
         os.path.dirname(__file__), "../src/quizml/templates/tcd-exam.tex.j2"
@@ -343,7 +342,7 @@ def test_html_renderer_separates_inline_and_display_equation_keys():
 
 
 def test_templates_handle_optional_essay_answer_and_part_ordering(tmp_path):
-    from quizml import renderer
+    from quizml import rendering as renderer
 
     yaml_path = tmp_path / "exam.yaml"
     yaml_path.write_text(
@@ -366,10 +365,10 @@ title: Template Test
         encoding="utf-8",
     )
 
-    yamldoc, schema = load(str(yaml_path), validate=True)
+    yamldoc = load(str(yaml_path), validate=True)
     assert yamldoc["header"]["inputbasename"] == "exam"
 
-    transcoder = MarkdownTranscoder(yamldoc, schema, base_dir=str(tmp_path))
+    transcoder = MarkdownTranscoder(yamldoc, base_dir=str(tmp_path))
     tex_doc = transcoder.transcode_target({"markdown": {"format": "latex"}})
     tex_template = os.path.join(
         os.path.dirname(__file__), "../src/quizml/templates/tcd-exam.tex.j2"

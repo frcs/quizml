@@ -1,7 +1,6 @@
 """Microsoft Word OpenXML Mistletoe renderer for QuizML markdown AST."""
 
 import logging
-import os
 import re
 
 import latex2mathml.converter
@@ -15,6 +14,7 @@ from quizml.markdown.extensions import ImageWithWidth, MathDisplay, MathInline
 from quizml.markdown.html_renderer import strip_math_delimiters
 from quizml.markdown.image_embedding import convert_css_values_to_pixels
 from quizml.markdown.macros import LatexMacroExpander, preprocess_latex_for_mathml
+from quizml.paths import find_path
 
 
 def xml_escape(text: str) -> str:
@@ -343,16 +343,11 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
         return self.render_inner(token)
 
     def _resolve_image_path(self, src: str) -> str:
-        if os.path.isabs(src) and os.path.exists(src):
-            return src
         dirs = list(self.search_dirs)
         if self.base_dir:
             dirs.append(self.base_dir)
-        for d in dirs:
-            cand = os.path.normpath(os.path.join(d, src))
-            if os.path.exists(cand):
-                return cand
-        return src
+        found = find_path(src, dirs)
+        return str(found[0]) if found else src
 
     def render_image(self, token):
         resolved = self._resolve_image_path(token.src)

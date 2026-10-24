@@ -1,45 +1,115 @@
-"""
-Markdown classes requried by mistletoe for parsing
-
-"""
+"""Markdown transcoding engine and standalone API for QuizML."""
 
 import os
 import threading
+from collections.abc import Iterable
 from contextlib import contextmanager
+from typing import Any
 
 import mistletoe as mt
 
 import quizml.markdown.extensions as mte
-from quizml.utils import get_md_list_from_yaml, transcode_md_in_yaml
+from quizml.markdown.options import normalize_markdown_options
+from quizml.yaml.schema import MarkdownString
 
 from .html_renderer import get_html_dict
 from .latex_renderer import get_latex_dict
 
-"""
- MarkdownTranscoder 
-
- This modules defines the MarkdownTranscoder class, that can be
- used to render markdown entries in a YAML struct into HTML or LaTeX
- targets.
-
- Example:
-
-    import quizml.markdown as md
-    import quizml.loader as loader
-
-    yaml_data = loader.load("test.yaml", schema=True)
-    
-    transcoder = md.MarkdownTranscoder(yaml_data)
-
-    target = {'markdown': {'format': 'html', 'math': 'svg'},
-              'html_css': user_html_css,
-              'html_pre': user_html_pre}
-    yaml_transcoded = transcoder.transcode_target(target)
-
-"""
-
+_normalize_markdown_options = normalize_markdown_options
 
 _MISTLETOE_TOKEN_LOCK = threading.RLock()
+
+
+def iter_nodes(data, key_filter=None):
+    """Generator that yields all leaf nodes in the data structure."""
+    if isinstance(data, list):
+        for item in data:
+            yield from iter_nodes(item, key_filter)
+    elif isinstance(data, dict):
+        for k, v in data.items():
+            if key_filter and not key_filter(k):
+                continue
+            yield from iter_nodes(v, key_filter)
+    else:
+        yield data
+
+
+def map_nodes(data, fn, key_filter=None):
+    """Recursively applies fn to all leaf nodes in the data structure."""
+    if isinstance(data, list):
+        return [map_nodes(item, fn, key_filter) for item in data]
+    elif isinstance(data, dict):
+        new_dict = type(data)()
+        for k, v in data.items():
+            if key_filter and not key_filter(k):
+                new_dict[k] = v
+            else:
+                new_dict[k] = map_nodes(v, fn, key_filter)
+        return new_dict
+    else:
+        return fn(data)
+
+
+def get_md_list_from_yaml(yaml_data):
+    """List all Markdown entries in the YAML document."""
+    md_list = []
+
+    def header_key_filter(key):
+        non_md_keys = ["type", "inputbasename"]
+        return (key not in non_md_keys) and not key.startswith("_")
+
+    if isinstance(yaml_data, dict) and (
+        "header" in yaml_data or "questions" in yaml_data
+    ):
+        if "header" in yaml_data:
+            for node in iter_nodes(yaml_data["header"], header_key_filter):
+                if isinstance(node, str):
+                    md_list.append(str(node))
+
+        if "questions" in yaml_data:
+            for node in iter_nodes(yaml_data["questions"]):
+                if isinstance(node, MarkdownString):
+                    md_list.append(str(node))
+    else:
+        for node in iter_nodes(yaml_data, header_key_filter):
+            if isinstance(node, str):
+                md_list.append(str(node))
+
+    return md_list
+
+
+def transcode_md_in_yaml(yaml_data, md_dict):
+    """Translate all Markdown strings in yaml_data using md_dict."""
+
+    def transform_questions(node):
+        if isinstance(node, MarkdownString) and node in md_dict:
+            return md_dict[node]
+        return node
+
+    def transform_header(node):
+        if isinstance(node, str) and node in md_dict:
+            return md_dict[node]
+        return node
+
+    def header_key_filter(key):
+        return key != "inputbasename" and not key.startswith("_")
+
+    if isinstance(yaml_data, dict) and (
+        "header" in yaml_data or "questions" in yaml_data
+    ):
+        new_doc = type(yaml_data)()
+        for k, v in yaml_data.items():
+            if k == "header":
+                new_doc[k] = map_nodes(v, transform_header, header_key_filter)
+            elif k == "questions":
+                new_doc[k] = map_nodes(v, transform_questions)
+            else:
+                new_doc[k] = v
+        if hasattr(yaml_data, "schema") and hasattr(new_doc, "schema"):
+            new_doc.schema = yaml_data.schema
+        return new_doc
+    else:
+        return map_nodes(yaml_data, transform_header, header_key_filter)
 
 
 def _setup_mistletoe_tokens():
@@ -81,68 +151,43 @@ def _parse_markdown_documents(markdown_texts):
         return {text: mt.Document(text) for text in markdown_texts}
 
 
-def _normalize_markdown_options(options):
-    """Translate the public Markdown settings into renderer options."""
-    options = dict(options or {})
-    markdown = options.get("markdown")
-    if isinstance(markdown, dict):
-        for key in ("png_dpi", "png_scale", "svg_scale", "svg_converter"):
-            if key in markdown and key not in options:
-                options[key] = markdown[key]
-    if markdown is None or "fmt" in options:
-        return options
-    if not isinstance(markdown, dict):
-        raise ValueError("The markdown option must be a mapping.")
-
-    output_format = markdown.get("format", "html")
-    if output_format == "latex":
-        options["fmt"] = "latex"
-    elif output_format in ("markdown", "none"):
-        options["fmt"] = "markdown"
-    elif output_format == "docx":
-        options["fmt"] = "docx"
-    elif output_format == "html":
-        math_backend = markdown.get("math", "png")
-        renderer_format = {
-            "png": "html",
-            "svg": "html-svg",
-            "mathml": "html-mathml",
-            "passthrough": "html-passthrough",
-            "mathjax": "html-passthrough",
-            "katex": "html-passthrough",
-            "none": "html-passthrough",
-        }.get(math_backend)
-        if renderer_format is None:
-            raise ValueError(f"Unknown Markdown math backend: {math_backend}")
-        options["fmt"] = renderer_format
-    else:
-        raise ValueError(f"Unknown Markdown output format: {output_format}")
-    postprocess = markdown.get("html_postprocess")
-    valid_postprocess = (
-        postprocess is None
-        or postprocess == "blackboard_html"
-        or callable(postprocess)
-        or (isinstance(postprocess, str) and ":" in postprocess)
-    )
-    if not valid_postprocess:
-        raise ValueError(f"Unknown HTML postprocessor: {postprocess}")
-    if output_format != "html" and postprocess is not None:
-        raise ValueError("HTML postprocessing requires Markdown format 'html'.")
-    options["html_postprocess"] = postprocess
-    return options
+def _build_target_options(target: dict[str, Any] | None = None, **kwargs) -> dict[str, Any]:
+    opts = dict(target or {})
+    if kwargs:
+        md_keys = {
+            "format",
+            "math",
+            "html_postprocess",
+            "png_dpi",
+            "png_scale",
+            "svg_scale",
+            "svg_converter",
+        }
+        md_sub = dict(opts.get("markdown") or {}) if isinstance(opts.get("markdown"), dict) else {}
+        for k, v in kwargs.items():
+            if k in md_keys:
+                md_sub[k] = v
+            else:
+                opts[k] = v
+        if md_sub:
+            opts["markdown"] = md_sub
+    return opts
 
 
 class MarkdownTranscoder:
-    def __init__(self, yaml_data, schema=None, base_dir=None):
+    def __init__(self, yaml_data, base_dir=None, search_dirs=None):
         self.yaml_data = yaml_data
-        self.schema = schema
         path_context = (
             yaml_data.get("paths", {}) if isinstance(yaml_data, dict) else {}
         )
 
         if base_dir is None:
             input_dir = path_context.get("input_dir")
-            inputbasename = yaml_data.get("header", {}).get("inputbasename", "")
+            inputbasename = (
+                yaml_data.get("header", {}).get("inputbasename", "")
+                if isinstance(yaml_data, dict)
+                else ""
+            )
             if input_dir:
                 self.base_dir = os.path.abspath(input_dir)
             elif inputbasename:
@@ -152,13 +197,19 @@ class MarkdownTranscoder:
         else:
             self.base_dir = os.path.abspath(base_dir)
 
-        figures_rel = path_context.get(
-            "figure_dirs", yaml_data.get("header", {}).get("_figures_path", [])
-        )
-        if isinstance(figures_rel, str):
-            figures_rel = [figures_rel]
-        elif not isinstance(figures_rel, list):
-            figures_rel = []
+        if search_dirs is not None:
+            figures_rel = list(search_dirs)
+        else:
+            figures_rel = path_context.get(
+                "figure_dirs",
+                yaml_data.get("header", {}).get("_figures_path", [])
+                if isinstance(yaml_data, dict)
+                else [],
+            )
+            if isinstance(figures_rel, str):
+                figures_rel = [figures_rel]
+            elif not isinstance(figures_rel, list):
+                figures_rel = []
 
         self.search_dirs = []
         for p in figures_rel:
@@ -171,37 +222,22 @@ class MarkdownTranscoder:
             else:
                 self.search_dirs.append(os.path.normpath(os.path.abspath(p)))
 
-        # the dictionary of rendered entries will be cached
         self.cache_dict = {}
-
-        # read yaml_data and collect all MD entries into a single list
         self.md_list = get_md_list_from_yaml(yaml_data)
 
         if not self.md_list:
             self.ast_dict = {}
             return
 
-        # Parse each unique markdown string into its own isolated AST Document
         unique_md = list(dict.fromkeys(self.md_list))
         self.ast_dict = _parse_markdown_documents(unique_md)
 
     def html_dict(self, opts=None):
-        """Returns a HTML dictionary of all MD entries in the YAML data
-
-        Note:
-            the rendered HTML dictionary is cached
-
-        Args:
-            opts (:dict): optional `markdown`, `html_pre`, and `html_css` settings
-
-        Returns:
-            a dictionary where each key corresponds to the MD string
-            and the value is the rendered HTML
-        """
+        """Returns a cached HTML dictionary of all MD entries in the YAML data."""
         if not self.md_list:
             return {}
 
-        opts = _normalize_markdown_options(opts)
+        opts = normalize_markdown_options(opts)
 
         html_pre = opts.get("html_pre", "")
         html_css = opts.get("html_css", "")
@@ -226,21 +262,11 @@ class MarkdownTranscoder:
         return d
 
     def latex_dict(self, opts=None):
-        """Returns a LaTeX dictionary of all MD entries in the YAML data
-
-        Note:
-            the rendered LaTeX dictionary is cached
-
-        Args:
-
-        Returns:
-            a dictionary where each key corresponds to the MD string
-            and the value is the rendered LaTeX
-        """
+        """Returns a cached LaTeX dictionary of all MD entries in the YAML data."""
         if not self.md_list:
             return {}
 
-        opts = _normalize_markdown_options(opts)
+        opts = normalize_markdown_options(opts)
         tools = opts.get("tools") or {}
         svg_conv = opts.get("svg_converter") or tools.get("svg_converter", "")
         key = f"{opts.get('fmt', 'latex')}:SVG_CONV:{svg_conv}"
@@ -256,14 +282,14 @@ class MarkdownTranscoder:
         return d
 
     def docx_dict(self, opts=None):
-        """Returns a Word OpenXML dictionary of all MD entries in the YAML data."""
+        """Returns a cached Word OpenXML dictionary of all MD entries in the YAML data."""
         if not self.md_list:
             return {}
 
-        if opts is None:
-            opts = {}
-
-        key = opts.get("fmt", "docx")
+        opts = normalize_markdown_options(opts)
+        html_pre = opts.get("html_pre", "")
+        user_pre = opts.get("user_pre", "")
+        key = f"{opts.get('fmt', 'docx')}:PRE:{html_pre}:USER_PRE:{user_pre}"
         if key in self.cache_dict:
             return self.cache_dict[key]
         from quizml.markdown.docx import get_docx_dict
@@ -278,17 +304,8 @@ class MarkdownTranscoder:
         return d
 
     def get_dict(self, opts=None):
-        """Returns a dictionary of all transcoded MD entries in the YAML data
-
-        Args:
-            opts (:dict): target options, including a `markdown` settings mapping
-
-        Returns:
-            the dictionary where each key corresponds to found MD strings
-            and its value is the corresponding rendered HTML or LaTeX
-        """
-
-        opts = _normalize_markdown_options(opts)
+        """Returns a dictionary of all transcoded MD entries in the YAML data."""
+        opts = normalize_markdown_options(opts)
         fmt = opts.get("fmt")
         if not fmt:
             return {}
@@ -304,24 +321,65 @@ class MarkdownTranscoder:
         return {}
 
     def transcode_target(self, target=None):
-        """transcodes MD entries in YAML struct
-
-        Args:
-            target (:dict): target format with target['fmt'] = 'html' or 'latex'
-            with also optional keys for each render.
-        Returns:
-            a YAML struct where each MD string has been replaced with its HTML
-            or laTeX equivalent.
-        """
+        """Transcodes MD entries in YAML struct for a target."""
         if target is None:
             target = {}
 
         if not self.md_list:
             return self.yaml_data
 
-        opts = _normalize_markdown_options(target)
+        opts = normalize_markdown_options(target)
         if not opts.get("fmt"):
             return self.yaml_data
 
         target_dict = self.get_dict(opts=opts)
         return transcode_md_in_yaml(self.yaml_data, target_dict)
+
+
+def transcode(yaml_data, target=None, *, base_dir=None, search_dirs=None, **kwargs):
+    """Transcode all Markdown fields in a QuizML document or dict."""
+    opts = _build_target_options(target, **kwargs)
+    transcoder = MarkdownTranscoder(
+        yaml_data, base_dir=base_dir, search_dirs=search_dirs
+    )
+    return transcoder.transcode_target(opts)
+
+
+def transcode_many(
+    markdown_texts: Iterable[str],
+    target=None,
+    *,
+    base_dir=None,
+    search_dirs=None,
+    **kwargs,
+) -> dict[str, str]:
+    """Transcode a collection of Markdown strings into a `{source: rendered}` mapping."""
+    texts = [MarkdownString(str(t)) for t in markdown_texts]
+    if not texts:
+        return {}
+    opts = _build_target_options(target, **kwargs)
+    if "fmt" not in opts and "markdown" not in opts:
+        opts["markdown"] = {"format": "html"}
+    doc = {"questions": texts}
+    transcoder = MarkdownTranscoder(doc, base_dir=base_dir, search_dirs=search_dirs)
+    return transcoder.get_dict(opts)
+
+
+def transcode_text(
+    markdown_text: str,
+    target=None,
+    *,
+    base_dir=None,
+    search_dirs=None,
+    **kwargs,
+) -> str:
+    """Transcode a single Markdown string into HTML, LaTeX, or Word OpenXML."""
+    text = str(markdown_text)
+    rendered_map = transcode_many(
+        [text],
+        target=target,
+        base_dir=base_dir,
+        search_dirs=search_dirs,
+        **kwargs,
+    )
+    return rendered_map.get(text, text)

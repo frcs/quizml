@@ -70,7 +70,7 @@ def test_output_paths_resolve_from_source_directory(tmp_path):
 
 
 def test_build_command_runs_from_source_directory(tmp_path):
-    with patch("quizml.cli.compile.subprocess.run") as run:
+    with patch("quizml.build.compiler.subprocess.run") as run:
         compile_cli.compile_cmd_target({"build_cmd": "make quiz.pdf"}, cwd=tmp_path)
 
     assert run.call_args.kwargs["cwd"] == tmp_path
@@ -92,7 +92,7 @@ def test_build_command_injects_texinputs(tmp_path):
     env_empty = build_tex_env([tmp_path, template_dir], base_env={"TEXINPUTS": ""})
     assert env_empty["TEXINPUTS"].endswith(os.pathsep)
 
-    with patch("quizml.cli.compile.subprocess.run") as run:
+    with patch("quizml.build.compiler.subprocess.run") as run:
         compile_cli.compile_cmd_target(
             {"build_cmd": "latexmk -xelatex quiz.tex"},
             cwd=tmp_path,

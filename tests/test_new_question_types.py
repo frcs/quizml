@@ -3,8 +3,8 @@ import os
 
 from jsonschema import validate
 
-from quizml.loader import load
-from quizml.renderer import render
+from quizml.rendering import render
+from quizml.yaml import load
 
 
 def test_new_question_types_schema_validation():
@@ -78,7 +78,7 @@ def test_new_question_types_rendering(tmp_path):
     temp_yaml.write_text(questions_yaml, encoding="utf-8")
 
     # Load using the updated schema
-    doc, _ = load(str(temp_yaml))
+    doc = load(str(temp_yaml))
 
     # Test rendering with each updated template
     templates = [
@@ -143,7 +143,7 @@ semester: 2
             }
         },
     }
-    doc, schema = load(str(quiz_yaml), schema_extensions=extensions)
+    doc = load(str(quiz_yaml), schema_extensions=extensions)
     assert doc["header"]["semester"] == 2
     assert doc["questions"][0]["type"] == "code_upload"
     assert doc["questions"][0]["topic"] == "algorithms"
@@ -168,6 +168,6 @@ def test_yaml_schema_file_loading(tmp_path):
         "- type: tf\n  question: YAML schema works?\n  answer: true\n",
         encoding="utf-8",
     )
-    doc, _ = load(str(quiz_yaml), schema_path=str(yaml_schema))
+    doc = load(str(quiz_yaml), schema_path=str(yaml_schema))
     assert doc["questions"][0]["answer"] is True
 

@@ -299,7 +299,7 @@ def test_convert_svg_to_pdf_custom_converter():
 
 def test_passthrough_math_and_raw_markdown_format(tmp_path):
     from quizml.markdown.markdown import MarkdownTranscoder
-    from quizml.utils import MarkdownString
+    from quizml.yaml import MarkdownString
 
     yamldoc = {
         "header": {},

@@ -1,3 +1,5 @@
+"""Word (.docx) template renderer using docxtpl."""
+
 import io
 import logging
 import math
@@ -8,7 +10,8 @@ import jinja2
 from jinja2 import TemplateError
 from markupsafe import Markup
 
-from .exceptions import QuizMLConfigError, TemplateRenderError
+from quizml.exceptions import QuizMLConfigError, TemplateRenderError
+from quizml.rendering.jinja import _load_filter_callable
 
 
 def _xml_escape(text: str) -> str:
@@ -24,10 +27,8 @@ def _ensure_run_xml(val, part=None) -> Markup:
         return Markup("")
     s = _clean_docx_str(str(val), part=part)
     if "<w:p" in s:
-        # Strip outer paragraph tags
         s = re.sub(r"^<w:p[^>]*>(?:<w:pPr>.*?</w:pPr>)?", "", s, flags=re.DOTALL)
         s = re.sub(r"</w:p>$", "", s, flags=re.DOTALL)
-        # Convert internal paragraph breaks into run breaks
         s = re.sub(
             r"</w:p>\s*<w:p[^>]*>(?:<w:pPr>.*?</w:pPr>)?",
             "<w:r><w:br/></w:r>",
@@ -145,7 +146,6 @@ def _clean_docx_str(s: str, part=None) -> str:
     if not isinstance(s, str) or not s:
         return s
 
-    # Resolve any image markers into OpenXML drawing elements
     def _replace_img(m):
         img_path = m.group(1)
         width_val = float(m.group(2))
@@ -160,70 +160,15 @@ def _clean_docx_str(s: str, part=None) -> str:
         return ""
 
     s = re.sub(r"<!--QUIZML_IMG:([^:]+):([^>]+)-->", _replace_img, s)
-
-    # Strip <style> blocks
     s = re.sub(r"<style[^>]*>.*?</style>", "", s, flags=re.DOTALL)
-    # Strip or unwrap div and span tags
     s = re.sub(r"</?(?:div|span)[^>]*>", "", s)
     return s
 
 
-def _prepare_context_for_docx(context: dict, part=None) -> dict:
-    """Prepares template context, ensuring questions and choices have valid OpenXML structures."""
-    new_ctx = dict(context)
-
-    # Sanitize header fields: instructions and additionalinformation as block XML, others as clean plain text
-    if "header" in new_ctx and isinstance(new_ctx["header"], dict):
-        new_header = dict(new_ctx["header"])
-        for k, v in new_header.items():
-            if k == "instructions":
-                new_header[k] = _format_instructions_xml(v, part=part)
-            elif k == "additionalinformation":
-                new_header[k] = _ensure_block_xml(v, part=part) if v else Markup("")
-            elif isinstance(v, str):
-                new_header[k] = _xml_to_plain_text(v)
-        if "instructions" not in new_header or not new_header["instructions"]:
-            new_header["instructions"] = _format_instructions_xml("", part=part)
-        if (
-            "additionalinformation" not in new_header
-            or not new_header["additionalinformation"]
-        ):
-            new_header["additionalinformation"] = Markup("")
-        new_ctx["header"] = new_header
-
-    questions = new_ctx.get("questions", [])
-    prepared_questions = []
-
-    for q in questions:
-        q_copy = dict(q)
-        if "question" in q_copy:
-            q_copy["question"] = _ensure_block_xml(q_copy["question"], part=part)
-        if (
-            q_copy.get("type") == "essay"
-            and "answer" in q_copy
-            and isinstance(q_copy["answer"], (str, Markup))
-        ):
-            # Essay or model answers as blocks
-            q_copy["answer"] = _ensure_block_xml(q_copy["answer"], part=part)
-
-        if "choices" in q_copy and isinstance(q_copy["choices"], list):
-            prepared_choices = []
-            for c in q_copy["choices"]:
-                if isinstance(c, dict):
-                    c_copy = {}
-                    for k, v in c.items():
-                        c_copy[k] = _ensure_run_xml(v, part=part)
-                    prepared_choices.append(c_copy)
-                else:
-                    prepared_choices.append(_ensure_run_xml(c, part=part))
-            q_copy["choices"] = prepared_choices
-
-        prepared_questions.append(q_copy)
-
-    new_ctx["questions"] = prepared_questions
-
-    # Candidate identification box
-    hdr = new_ctx.get("header", {})
+def _build_exam_sheet_context(context: dict) -> dict:
+    """Computes candidate_info and answer_sheet_rows for exam templates."""
+    hdr = context.get("header", {})
+    questions = context.get("questions", [])
     raw_midterm = hdr.get("midterm") or hdr.get("infomidterm")
     is_midterm = bool(
         raw_midterm
@@ -233,7 +178,7 @@ def _prepare_context_for_docx(context: dict, part=None) -> dict:
         )
     )
     digit_line = "⓪ ① ② ③ ④ ⑤ ⑥ ⑦ ⑧ ⑨"
-    new_ctx["candidate_info"] = {
+    candidate_info = {
         "is_midterm": is_midterm,
         "line1_label": "Student Name" if is_midterm else "Exam Number",
         "line2_label": "Student Number" if is_midterm else "Seat Number ",
@@ -249,10 +194,9 @@ def _prepare_context_for_docx(context: dict, part=None) -> dict:
         ),
     }
 
-    # Generate answer sheet rows for multi-column grid
-    is_sol = bool(new_ctx.get("solutions"))
-    open_letters = [chr(0x24B6 + i) for i in range(26)]  # Ⓐ, Ⓑ, Ⓒ, ...
-    filled_letters = [chr(0x1F150 + i) for i in range(26)]  # 🅐, 🅑, 🅒, ...
+    is_sol = bool(context.get("solutions"))
+    open_letters = [chr(0x24B6 + i) for i in range(26)]
+    filled_letters = [chr(0x1F150 + i) for i in range(26)]
 
     items = []
     for q_idx, q in enumerate(questions, start=1):
@@ -316,10 +260,68 @@ def _prepare_context_for_docx(context: dict, part=None) -> dict:
                 "c2": col2[r] if r < len(col2) else empty_cell,
                 "c3": col3[r] if r < len(col3) else empty_cell,
             })
-        new_ctx["answer_sheet_rows"] = sheet_rows
+        answer_sheet_rows = sheet_rows
     else:
-        new_ctx["answer_sheet_rows"] = []
+        answer_sheet_rows = []
 
+    return {
+        "candidate_info": candidate_info,
+        "answer_sheet_rows": answer_sheet_rows,
+    }
+
+
+def _prepare_context_for_docx(context: dict, part=None) -> dict:
+    """Prepares template context, ensuring questions and choices have valid OpenXML structures."""
+    new_ctx = dict(context)
+
+    if "header" in new_ctx and isinstance(new_ctx["header"], dict):
+        new_header = dict(new_ctx["header"])
+        for k, v in new_header.items():
+            if k == "instructions":
+                new_header[k] = _format_instructions_xml(v, part=part)
+            elif k == "additionalinformation":
+                new_header[k] = _ensure_block_xml(v, part=part) if v else Markup("")
+            elif isinstance(v, str):
+                new_header[k] = _xml_to_plain_text(v)
+        if "instructions" not in new_header or not new_header["instructions"]:
+            new_header["instructions"] = _format_instructions_xml("", part=part)
+        if (
+            "additionalinformation" not in new_header
+            or not new_header["additionalinformation"]
+        ):
+            new_header["additionalinformation"] = Markup("")
+        new_ctx["header"] = new_header
+
+    questions = new_ctx.get("questions", [])
+    prepared_questions = []
+
+    for q in questions:
+        q_copy = dict(q)
+        if "question" in q_copy:
+            q_copy["question"] = _ensure_block_xml(q_copy["question"], part=part)
+        if (
+            q_copy.get("type") == "essay"
+            and "answer" in q_copy
+            and isinstance(q_copy["answer"], (str, Markup))
+        ):
+            q_copy["answer"] = _ensure_block_xml(q_copy["answer"], part=part)
+
+        if "choices" in q_copy and isinstance(q_copy["choices"], list):
+            prepared_choices = []
+            for c in q_copy["choices"]:
+                if isinstance(c, dict):
+                    c_copy = {}
+                    for k, v in c.items():
+                        c_copy[k] = _ensure_run_xml(v, part=part)
+                    prepared_choices.append(c_copy)
+                else:
+                    prepared_choices.append(_ensure_run_xml(c, part=part))
+            q_copy["choices"] = prepared_choices
+
+        prepared_questions.append(q_copy)
+
+    new_ctx["questions"] = prepared_questions
+    new_ctx.update(_build_exam_sheet_context(new_ctx))
     return new_ctx
 
 
@@ -336,11 +338,8 @@ def _ensure_editable_bytes(docx_bytes: bytes) -> bytes:
     ) as zout:
         for item in zin.infolist():
             name = item.filename
-            # Strip all customXml (SharePoint forms, schemas, documentManagement)
             if name.startswith("customXml/"):
                 continue
-
-            # Strip docProps/custom.xml (ContentTypeId linking to SharePoint document library)
             if name == "docProps/custom.xml":
                 continue
 
@@ -394,10 +393,7 @@ def _ensure_editable_bytes(docx_bytes: bytes) -> bytes:
 
 
 def render(context, template_filename, jinja_filters=None):
-    """Renders a docx template using docxtpl.
-
-    Returns bytes of the rendered document.
-    """
+    """Renders a docx template using docxtpl and returns bytes."""
     try:
         from docxtpl import DocxTemplate
     except ImportError as err:
@@ -416,8 +412,6 @@ def render(context, template_filename, jinja_filters=None):
         )
         jinja_env.globals["math"] = math
         if jinja_filters:
-            from .renderer import _load_filter_callable
-
             if not isinstance(jinja_filters, dict):
                 raise QuizMLConfigError("The 'jinja_filters' setting must be a mapping.")
             for name, spec in jinja_filters.items():
@@ -434,7 +428,6 @@ def render(context, template_filename, jinja_filters=None):
             except TypeError:
                 doc.render(prepared_context)
 
-        # Save to a bytes buffer
         file_stream = io.BytesIO()
         doc.save(file_stream)
         file_stream.seek(0)
@@ -450,5 +443,4 @@ def render(context, template_filename, jinja_filters=None):
         ) from err
 
 
-# Backwards compatibility alias
 render_docx = render

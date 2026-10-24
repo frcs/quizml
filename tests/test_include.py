@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from quizml.exceptions import QuizMLYamlSyntaxError
-from quizml.loader import count_included_questions, load, loads
+from quizml.yaml import count_included_questions, load, loads
 
 
 def test_basic_include(tmp_path: Path):
@@ -40,7 +40,7 @@ title: Exam with Included Questions
         encoding="utf-8",
     )
 
-    doc, _ = load(str(main_yaml), validate=False)
+    doc = load(str(main_yaml), validate=False)
     questions = doc["questions"]
     assert len(questions) == 4
     assert questions[0]["question"] == "Main Question 1"
@@ -74,7 +74,7 @@ title: Test Exam
         encoding="utf-8",
     )
 
-    doc, _ = load(str(main_yaml), validate=False)
+    doc = load(str(main_yaml), validate=False)
     assert doc["header"]["title"] == "Test Exam"
     # Sub-file header is ignored; only questions are spliced
     assert "author" not in doc["header"]
@@ -121,7 +121,7 @@ title: Final Exam
         encoding="utf-8",
     )
 
-    doc, _ = load(str(main_yaml), validate=False)
+    doc = load(str(main_yaml), validate=False)
     assert len(doc["questions"]) == 2
     assert doc["questions"][0]["question"] == "Intro question"
     assert doc["questions"][1]["question"] == "What is 2 + 2?"
@@ -216,7 +216,7 @@ def test_include_loads_all_questions_in_source_order(tmp_path: Path):
         encoding="utf-8",
     )
 
-    doc, _ = load(str(main_yaml), validate=False)
+    doc = load(str(main_yaml), validate=False)
     assert [q["question"] for q in doc["questions"]] == ["Q1", "Q2"]
 
 
@@ -231,7 +231,7 @@ def test_include_with_loads_and_base_dir(tmp_path: Path):
 ---
 - _include: sub.yaml
 """
-    doc, _ = loads(txt, validate=False, base_dir=tmp_path)
+    doc = loads(txt, validate=False, base_dir=tmp_path)
     assert len(doc["questions"]) == 1
     assert doc["questions"][0]["question"] == "SubQ"
 
@@ -259,7 +259,7 @@ title: Exam
     )
 
     # validate=True loads default schema.json
-    doc, _ = load(str(main_yaml), validate=True)
+    doc = load(str(main_yaml), validate=True)
     assert len(doc["questions"]) == 1
     assert doc["questions"][0]["marks"] == 5.0
 
@@ -392,7 +392,7 @@ title: Final Exam
         encoding="utf-8",
     )
 
-    doc, _ = load(str(exam_yaml), validate=True)
+    doc = load(str(exam_yaml), validate=True)
     # Included asset directories are carried separately from user metadata.
     assert "_figures_path" not in doc["header"]
     assert "../banks/physics" in doc["paths"]["figure_dirs"]
@@ -444,7 +444,7 @@ title: Custom Exam
         encoding="utf-8",
     )
 
-    doc, _ = load(str(exam_yaml), validate=True)
+    doc = load(str(exam_yaml), validate=True)
     assert "_figures_path" not in doc["header"]
     # Both the bank directory and its custom_assets directory are accumulated
     fig_paths = doc["paths"]["figure_dirs"]
@@ -460,8 +460,8 @@ title: Custom Exam
     assert len(rendered_q) == 1
 
     # Verify LaTeX graphicspath contains both directories
-    from quizml.cli.filelocator import FileLocator
-    from quizml.renderer import render_template
+    from quizml.paths import FileLocator
+    from quizml.rendering import render_template
 
     locator = FileLocator()
     template_path = locator.path("tcd-exam.tex.j2")
@@ -481,7 +481,7 @@ def test_include_rejects_unknown_keys(tmp_path: Path):
 
 
 def test_loads_converts_scalar_strings_to_plain_str():
-    doc, _ = loads(
+    doc = loads(
         "title: Plain\n---\n- type: essay\n  question: Hello\n", validate=False
     )
     assert type(doc["header"]["title"]) is str
@@ -504,7 +504,7 @@ title: Exam
   question: Compute receptive field.
   answer: 7
 """
-    doc, _ = loads(valid_yaml, validate=True)
+    doc = loads(valid_yaml, validate=True)
     assert doc["questions"][0]["id"] == "q-backprop"
     assert doc["questions"][0]["title"] == "Backpropagation"
 
@@ -557,7 +557,7 @@ def test_include_select_by_id_and_index(tmp_path: Path):
         encoding="utf-8",
     )
 
-    doc, _ = load(str(exam), validate=True)
+    doc = load(str(exam), validate=True)
     assert [q["id"] for q in doc["questions"]] == ["q-gamma", "q-alpha"]
     assert count_included_questions(
         {"_include": "bank.yaml", "select": ["q-gamma", 1]}, base_dir=tmp_path
@@ -570,7 +570,7 @@ def test_include_select_by_id_and_index(tmp_path: Path):
             file=str(exam), output=str(sampled), seed=None, quiet=True
         )
     )
-    sampled_doc, _ = load(str(sampled), validate=True)
+    sampled_doc = load(str(sampled), validate=True)
     assert [q["id"] for q in sampled_doc["questions"]] == ["q-gamma", "q-alpha"]
 
     # Missing id raises a helpful error

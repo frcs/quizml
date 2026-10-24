@@ -556,7 +556,7 @@ def test_diff_non_tty_tab_separated(tmp_path, capsys):
 
 
 def test_pin_stamps_metadata_adds_ids_and_freezes_includes(tmp_path):
-    from quizml.loader import load
+    from quizml.yaml import load
 
     bank = tmp_path / "bank.yaml"
     bank.write_text(
@@ -597,7 +597,7 @@ def test_pin_stamps_metadata_adds_ids_and_freezes_includes(tmp_path):
     ):
         main()
 
-    doc, _ = load(str(exam), validate=True)
+    doc = load(str(exam), validate=True)
     assert "_quizml" in doc["header"]
     assert doc["header"]["_targets"] == ["pdf"]
     assert len(doc["questions"]) == 2

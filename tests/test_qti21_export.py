@@ -7,9 +7,9 @@ from pathlib import Path
 
 from quizml.cli.compile import compile_target
 from quizml.cli.config import get_config, get_target_list
-from quizml.loader import load, loads
 from quizml.markdown.markdown import MarkdownTranscoder
-from quizml.qti_renderer import render_qti
+from quizml.rendering import render_qti
+from quizml.yaml import load, loads
 
 
 def test_qti21_render_produces_valid_zip_and_xml():
@@ -82,7 +82,7 @@ _qti:
   - "Second"
   - "Third"
 """
-    yaml_doc, _ = loads(yaml_text)
+    yaml_doc = loads(yaml_text)
 
     transcoder = MarkdownTranscoder(yaml_doc)
     yaml_transcoded = transcoder.transcode_target({"fmt": "html-mathml"})
@@ -222,7 +222,7 @@ _qti:
         config=None, target=["qti21"], yaml_filename=str(quiz_file)
     )
     config = get_config(args)
-    yaml_doc, _ = load(str(quiz_file), validate=False)
+    yaml_doc = load(str(quiz_file), validate=False)
 
     targets = get_target_list(args, config, yaml_doc)
     assert len(targets) == 1
@@ -246,10 +246,8 @@ def test_qti21_export_with_image_and_html_tables(tmp_path):
     # Test with examples/quiz1.yaml which contains SVG image and Math
     import argparse
 
-    from quizml.loader import load
-
     quiz_path = Path(__file__).parent.parent / "examples" / "quiz1.yaml"
-    yaml_doc, _ = load(str(quiz_path), validate=True)
+    yaml_doc = load(str(quiz_path), validate=True)
 
     args = argparse.Namespace(
         config=None, target=["qti21"], yaml_filename=str(quiz_path)
@@ -289,7 +287,7 @@ def test_qti21_export_with_image_and_html_tables(tmp_path):
 
 
 def test_qti21_table_and_media_cleaning():
-    from quizml.qti_renderer import _process_qti_html
+    from quizml.rendering.qti import _process_qti_html
 
     html_with_table_and_data_uri = (
         '<div class="confmat">'

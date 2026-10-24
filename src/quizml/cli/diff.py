@@ -1,138 +1,25 @@
-import difflib
-import os
+"""CLI adapter for comparing questions across quiz files."""
 
 from rich.console import Console
 from rich.table import Table, box
 
 from quizml.cli.errorhandler import err_console
-from quizml.exceptions import QuizMLConfigError
-from quizml.loader import load
-
-
-def normalize_text(text):
-    """Normalize whitespace and case."""
-    if not isinstance(text, str):
-        return str(text)
-    return " ".join(text.strip().lower().split())
-
-
-def get_choices_content(q):
-    """Extracts choices content as a sorted list of strings."""
-    choices = q.get("choices", [])
-    content = []
-    if isinstance(choices, list):
-        for c in choices:
-            # Handle list of dicts or strings
-            if isinstance(c, dict):
-                for v in c.values():
-                    content.append(normalize_text(v))
-            else:
-                content.append(normalize_text(str(c)))
-    return sorted(content)
-
-
-def questions_are_similar(q1, q2):
-    id1 = str(q1.get("id") or "").strip()
-    id2 = str(q2.get("id") or "").strip()
-    if id1 and id2 and id1 == id2:
-        return True
-
-    # Check type first
-    if q1.get("type") != q2.get("type"):
-        return False
-
-    # Compare question text
-    t1 = normalize_text(q1.get("question", ""))
-    t2 = normalize_text(q2.get("question", ""))
-
-    # Fuzzy match threshold for question text
-    matcher = difflib.SequenceMatcher(None, t1, t2)
-    if matcher.ratio() < 0.9:  # 90% similarity
-        return False
-
-    # Compare choices if they exist (allow partial distractor edits when stem matches)
-    c1 = get_choices_content(q1)
-    c2 = get_choices_content(q2)
-
-    if c1 or c2:
-        if not c1 or not c2:
-            return False
-        overlap = len(set(c1) & set(c2))
-        min_needed = max(1, min(len(c1), len(c2)) // 2)
-        choice_ratio = difflib.SequenceMatcher(
-            None, "\n".join(c1), "\n".join(c2)
-        ).ratio()
-        if overlap < min_needed and choice_ratio < 0.65:
-            return False
-
-    # Compare figure if they exist (normalized strict match)
-    f1 = normalize_text(q1.get("figure", ""))
-    f2 = normalize_text(q2.get("figure", ""))
-
-    if f1 != f2:
-        return False
-
-    return True
+from quizml.yaml.diff import (
+    compare_quiz_files,
+    get_choices_content,
+    normalize_text,
+    questions_are_similar,
+)
 
 
 def diff(args):
-    """
-    finds if questions can be found in other exams
-    called with the --diff flag.
-    """
-
-    # remove duplicate files from list
-    # this is useful when using something like exam*.yaml in arguments
+    """Find if questions can be found in other exams."""
     files = [args.yaml_filename]
     for item in args.otherfiles:
         if item not in files:
             files.append(item)
 
-    # we load all the files. For speed, We do not do any schema checking.
-    filedata = {}
-    for f in files:
-        if not os.path.exists(f):
-            raise QuizMLConfigError(f"File {f} not found")
-        # Skip schema checks for speed; values are compared as strings.
-        filedata[f], _ = load(f, validate=False)
-
-    # checking for duplicate questions
-    ref_yaml = filedata[files[0]]
-    ref_questions = ref_yaml["questions"]
-
-    other_files = files[1:]
-
-    qstats = []
-
-    for i, qr in enumerate(ref_questions):
-        lines = str(qr.get("question", "")).splitlines()
-        long_excerpt = (lines[0] if lines else "") + (" […]" if len(lines) > 1 else "")
-
-        if "choices" in qr and isinstance(qr["choices"], list):
-            for ans in qr["choices"]:
-                val_str = ""
-                if isinstance(ans, dict):
-                    # Concatenate values of keys like x, o, true, false
-                    val_str = " ".join([str(v) for v in ans.values()])
-                else:
-                    val_str = str(ans)
-
-                lines = val_str.splitlines()
-                if lines:
-                    long_excerpt += f"\n  * {lines[0]}" + (
-                        " […]" if len(lines) > 1 else ""
-                    )
-
-        qstats.append(
-            {"type": qr.get("type") or "unknown", "excerpt": long_excerpt}
-        )
-
-        for f in other_files:
-            dst_questions = filedata[f]["questions"]
-            for _j, qd in enumerate(dst_questions):
-                if questions_are_similar(qr, qd):
-                    qstats[i].setdefault("dups", []).append(f)
-
+    qstats = compare_quiz_files(files)
     has_dups = print_dups_table(qstats, quiet=getattr(args, "quiet", False))
     if getattr(args, "check", False) and has_dups:
         return False
@@ -140,13 +27,7 @@ def diff(args):
 
 
 def print_dups_table(qstats, quiet=False):
-    """
-    prints a table with information about each question, including:
-      * question id
-      * question type
-      * excerpt of the question statement
-      * other files that match that question
-    """
+    """Print a table with information about duplicate questions."""
     import sys
 
     has_dups = any("dups" in q for q in qstats)
@@ -187,3 +68,13 @@ def print_dups_table(qstats, quiet=False):
         err_console.print("no dups found")
 
     return has_dups
+
+
+__all__ = [
+    "compare_quiz_files",
+    "diff",
+    "get_choices_content",
+    "normalize_text",
+    "print_dups_table",
+    "questions_are_similar",
+]

@@ -72,7 +72,7 @@ title: Test
 
 
 def test_wrap_markdown_semantics_preservation():
-    from quizml.cli.wrap import wrap_markdown
+    from quizml.yaml.format import wrap_markdown
 
     # 1. Hyphen does not turn into list item
     res_hyphen = wrap_markdown("a" * 73 + " - b c", 74)
@@ -88,7 +88,7 @@ def test_wrap_markdown_semantics_preservation():
 
 
 def test_wrap_inline_code_with_dollar_and_image_width():
-    from quizml.cli.wrap import wrap_markdown
+    from quizml.yaml.format import wrap_markdown
 
     # Inline code containing '$' should not pair across words as an inline math span
     src = (

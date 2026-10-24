@@ -4,7 +4,7 @@ import pytest
 
 from quizml.cli.sample import run_sample
 from quizml.exceptions import QuizMLError
-from quizml.loader import load
+from quizml.yaml import load
 
 
 def test_sample_preserves_figures_path_without_root_header(tmp_path):
@@ -20,7 +20,7 @@ def test_sample_preserves_figures_path_without_root_header(tmp_path):
 
     run_sample(SimpleNamespace(file=str(meta), output=str(out), seed="42", force=True))
 
-    doc, _ = load(str(out), validate=False)
+    doc = load(str(out), validate=False)
     assert doc["paths"]["figure_dirs"] == ["bank"]
     assert "_figures_path: [bank]" in out.read_text(
         encoding="utf-8"
@@ -47,7 +47,7 @@ def test_sample_preserves_figure_directory_order(tmp_path):
 
     run_sample(SimpleNamespace(file=str(meta), output=str(out), seed="42", force=True))
 
-    doc, _ = load(str(out), validate=False)
+    doc = load(str(out), validate=False)
     assert doc["paths"]["figure_dirs"] == ["z_bank", "a_bank"]
 
 
@@ -74,7 +74,7 @@ def test_sample_derives_distinct_seeds_across_multiple_includes(tmp_path):
         SimpleNamespace(file=str(meta), output=str(out), seed="shared-seed", force=True)
     )
 
-    doc, _ = load(str(out), validate=False)
+    doc = load(str(out), validate=False)
     qs = [q["question"] for q in doc["questions"]]
     b1_indices = [int(q.split("_")[1]) for q in qs[:3]]
     b2_indices = [int(q.split("_")[1]) for q in qs[3:]]

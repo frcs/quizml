@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from quizml.utils import MarkdownString, coerce_data
+from quizml.yaml.schema import MarkdownString, coerce_data
 
 
 def test_builtin_schema_conditions_refs_and_nested_coercion():
@@ -150,7 +150,7 @@ def test_header_fields_coerced_from_definitions_header():
 def test_stats_template_renders_custom_question_types():
     import os
 
-    from quizml import renderer
+    from quizml import rendering as renderer
 
     stats_path = os.path.join(
         os.path.dirname(__file__), "../src/quizml/templates/stats.txt.j2"

@@ -3,7 +3,7 @@ import os
 import pytest
 
 from quizml.exceptions import QuizMLYamlSyntaxError
-from quizml.loader import load
+from quizml.yaml import load
 
 
 def test_incorrect_01():
@@ -79,7 +79,7 @@ def test_default_schema_allows_feedback_field(tmp_path):
     quiz_file = tmp_path / "feedback.yaml"
     quiz_file.write_text(quiz_text, encoding="utf-8")
 
-    document, _ = load(str(quiz_file))
+    document = load(str(quiz_file))
     assert document["questions"][0]["feedback"] == "Good job!"
     assert document["questions"][1]["feedback"] == "Detailed *markdown* feedback"
 
@@ -141,7 +141,7 @@ def test_default_schema_allows_empty_and_null_header_fields(tmp_path):
     quiz_file = tmp_path / "empty-header.yaml"
     quiz_file.write_text(quiz_text, encoding="utf-8")
 
-    document, _ = load(str(quiz_file))
+    document = load(str(quiz_file))
     assert document["header"]["examvenue"] is None
     assert document["header"]["title"] is None
     assert document["header"]["instructions"] is None
@@ -156,6 +156,6 @@ def test_default_schema_allows_custom_header_metadata(tmp_path):
         encoding="utf-8",
     )
 
-    document, _ = load(str(quiz_file))
+    document = load(str(quiz_file))
 
     assert document["header"]["custom_metadata"] == "project-specific"

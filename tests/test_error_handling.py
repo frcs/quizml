@@ -5,8 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from jinja2 import TemplateError
 
-from quizml import docx_renderer
-from quizml.cli.compile import compile_cmd_target
+from quizml.build import compile_cmd_target
 from quizml.exceptions import (
     DvisvgmNotFoundError,
     GhostscriptNotFoundError,
@@ -18,6 +17,7 @@ from quizml.exceptions import (
     TemplateRenderError,
 )
 from quizml.markdown.latextools import LatexRunner, _communicate
+from quizml.rendering import docx as docx_renderer
 
 
 def test_latex_launch_permission_error_is_typed():
@@ -59,7 +59,7 @@ def test_build_failure_output_is_limited_to_last_40_lines():
     output = "\n".join(f"line {i}" for i in range(60))
     failure = subprocess.CalledProcessError(1, ["fake-tool"], stderr=output)
     with (
-        patch("quizml.cli.compile.subprocess.run", side_effect=failure),
+        patch("quizml.build.compiler.subprocess.run", side_effect=failure),
         pytest.raises(QuizMLBuildError) as exc_info,
     ):
         compile_cmd_target({"build_cmd": "fake-tool"})

@@ -32,8 +32,8 @@ __pycache__/
 # emacs temp files
 \#*
 
-build
-dist
+/build/
+/dist/
 
 *~
 localtest/

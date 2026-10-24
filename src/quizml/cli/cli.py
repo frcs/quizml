@@ -449,7 +449,7 @@ def _dispatch(args, parser):
     if args.command == "info":
         import json
 
-        from quizml.cli.filelocator import FileLocator
+        from quizml.paths import FileLocator
 
         from ..cache import CACHE_DIR, get_cache_size
 
