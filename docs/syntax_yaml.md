@@ -1,17 +1,11 @@
-## Test File Syntax <!-- {docsify-ignore} -->
+# Quiz structure <!-- {docsify-ignore} -->
 
-QuizML takes in a YAML file. [YAML](https://en.wikipedia.org/wiki/YAML) is a
-generic human-readable data-serialization language, typically used for
-configuration files, and it is used here to define the questions' statements,
-marks, type, answers, etc.
+A QuizML file is a YAML document containing a list of questions. An optional
+[header section](syntax_header.md) can hold metadata such as the quiz title,
+course, or date. Separate the header from the question list with `---`. Question
+text and answers use [Markdown and LaTeX equations](syntax_md.md).
 
-One motivation behind using YAML is that all text entries (e.g., question
-statements, answers, etc.) can be written in
-[Markdown](https://en.wikipedia.org/wiki/Markdown), and with a few extensions,
-it is possible write LaTeX equations, and it will be very similar, in feel and
-capabilities to LaTeX.
-
-Below is an longer example of what an exam script would look like:
+Here is an example with a header and four questions:
 
 ```yaml
 author: François Pitié
@@ -24,9 +18,9 @@ examvenue: online
 examsemester: Semester 2
 programmeyear: Senior Sophister
 modulename: Image and Video Processing
-modulecode: EEU44C08-1 
+modulecode: EEU44C08-1
 examiner: Dr. F. Pitié
-instructions: "" 
+instructions: ""
 materials: ""
 additionalinformation: ""
 _latexpreamble: |
@@ -36,26 +30,26 @@ _latexpreamble: |
 
 - # <Q1>
   type: mc
-  marks: 5           
+  marks: 5
   question: |
     If vector ${\bf w}$ is of dimension $3 \times 1$ and matrix ${\bf A}$ of
     dimension $5 \times 3$, then what is the dimension of $\left({\bf w}^{\top}{\bf
     A}^{\top}{\bf A}{\bf w}\right)^{\top}$?
-  cols: 3    
+  cols: 3
   choices:
-    - o:  $5 \times 5$
-    - o:  $3 \times 3$
-    - o:  $3 \times 1$
-    - x:  $1 \times 1$
-    - o:  $1 \times 5$
-    - o:  $1 \times 3$
+    - o: $5 \times 5$
+    - o: $3 \times 3$
+    - o: $3 \times 1$
+    - x: $1 \times 1$
+    - o: $1 \times 5$
+    - o: $1 \times 3$
 
 - # <Q2>
   type: ma
-  marks: 5         
+  marks: 5
   question: |
     Consider the binary class dataset below (with 2 features $(x_1, x_2)\in\R^2$
-    and 2 classes (cross and circle). Select all suitable classification
+    and 2 classes, cross and circle). Select all suitable classification
     techniques for this dataset.
 
     ![](figures/dataset-4.png){ width=30em }
@@ -72,8 +66,6 @@ _latexpreamble: |
   question: |
     Match the images to their corresponding PSD (the DC component is at the
     center of the PSD image).
-
-    Explain your choices.     
   choices:
     - A: |
         ![](figures/psd-16-ori.png){width=30em}
@@ -83,14 +75,6 @@ _latexpreamble: |
         ![](figures/psd-13-ori.png){width=30em}
       B: |
         ![](figures/psd-13-psd.png){width=30em}
-    - A: |
-        ![](figures/psd-01-ori.png){width=30em}
-      B: |
-        ![](figures/psd-01-psd.png){width=30em}
-    - A: |
-        ![](figures/psd-25-blur.png){width=30em}
-      B: |
-        ![](figures/psd-25-psd-blur.png){width=30em}
 
 - # <Q4>
   type: essay
@@ -101,70 +85,45 @@ _latexpreamble: |
     $\frac{1}{2}$.
   answer: |
     See handouts for a detailed answer.
-        
 ```
 
+QuizML uses its schema to validate question fields and coerce their values,
+preventing YAML implicit-typing surprises. See
+[Schema validation](schema_validation.md) for details.
 
-?> QuizML avoids some of the YAML oddities such as the [Norway
-Problem](https://hitchdev.com/strictyaml/why/implicit-typing-removed) by
-interpreting yaml fields according to the provided schema definition (see
-[Schema Validation](schema_validation.md) for more information).
+## Reusing questions with `_include`
 
-
-### Question Banking with `_include`
-
-To organize large exams into modular topic files or reuse common question banks, QuizML supports the `- _include:` directive directly inside the questions list:
+For larger exams or modular topic files, `- _include:` imports questions from
+another YAML file:
 
 ```yaml
 title: Midterm Exam
 ---
-# Inline question
 - type: essay
   marks: 5
   question: Introduce yourself and state your student ID.
-  answer: Model answer
 
-# Include all questions from a topic file
+# Include every question from a topic file
 - _include: topics/calculus.yaml
 
-# Select three questions from a bank; sampling happens with `quizml sample`
+# Cherry-pick specific questions by ID or 1-based index
 - _include: banks/linear_algebra.yaml
-  count: 3
-  seed: 42
+  select: [eigenvalues-intro, 4]
 ```
 
-#### Relative Paths & Nesting
-- **Document-relative**: Included paths are resolved relative to the directory of the file referencing them.
-- **Recursive**: Included files can themselves include further sub-files. Cycle detection automatically prevents circular inclusions.
-- **Sub-file structure**: Included files can either be a standalone question list or contain their own header document; only questions are imported into the parent exam.
+Included paths are resolved relative to the file containing the `_include`
+directive, and includes can be nested. Any figures referenced by an included
+file are resolved relative to that file's directory automatically.
 
-#### Includes and sampling
+For randomized sampling (`count` and `seed` with `quizml sample`), duplicate
+detection (`quizml diff`), and freezing exams (`quizml pin`), see
+[Question banks](module_workflow.md).
 
-An include without `count` contributes every question from the referenced file
-in source order. An include with `count` describes a sample from that question
-bank. Materialize sampling explicitly:
+## Formatting and question numbering (`quizml fmt`)
 
-```bash
-quizml sample exam-main.yaml --output exam-A.yaml
-quizml compile exam-A.yaml --target pdf
-```
+Run `quizml fmt exam.yaml -i` to format YAML in place and stamp `# <Q1>`
+comments on each question and `_include` entry:
 
-Each sampled include needs a `seed` either in the YAML or supplied with
-`quizml sample --seed`. Sampling writes a static YAML file, preserving comments
-on the selected questions. Edit and commit that file as the version of the exam
-you intend to use. It compiles without reading the meta file or sampling again.
-QuizML compilation itself does not perform random selection.
-
-#### Figures & Image Paths in Included Files
-When including a file from a different directory that contains images (e.g. `![](fig/diagram.png)`), QuizML automatically handles figure resolution:
-- The included file's base directory is automatically registered as a figure search directory relative to the parent exam.
-- Any `_figures_path` declared in the included file's own header (e.g. `custom_assets/`) is resolved relative to that sub-file and added to the parent exam's figure search paths.
-- Both HTML Base64 embedding and LaTeX compilation (`\graphicspath`) resolve these assets seamlessly without altering question text or assuming magic subfolders.
-
-#### Automatic Renumbering & Searchability (`quizml fmt`)
-Run `quizml fmt exam.yaml -i` to renumber questions in place and decorate
-includes with all the question numbers they introduce. By default, `quizml fmt`
-writes formatted YAML to stdout without changing the input file.
 ```yaml
 - # <Q1>
   type: essay
@@ -177,6 +136,6 @@ writes formatted YAML to stdout without changing the input file.
   type: essay
   question: Next question
 ```
-This preserves fast text-search workflows (`/<Q3>` in your text editor jumps directly to the include containing Q3).
 
-
+This makes it easy to jump directly to a question number (such as `/<Q3>`) in
+your text editor, even when questions come from included files.

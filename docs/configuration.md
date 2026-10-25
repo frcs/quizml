@@ -1,131 +1,115 @@
-## Configuration File and Target Templates <!-- {docsify-ignore} -->
+# Project setup <!-- {docsify-ignore} -->
 
-After reading the QuizMLYaml file and converting the markdown entries into LaTeX or
-HTML, QuizML uses jinja2 templates to render the various targets (BlackBoard
-compatible quiz, HTML preview or LaTeX).
+QuizML uses `quizml.cfg` to define output targets and shared project settings.
+Out of the box, QuizML uses its bundled configuration and templates; create a
+project config only when you want to customize targets, templates, or schema
+rules.
 
+## Initialize a project (`quizml init`)
 
+Run `quizml init` in your project root to create `_quizml/quizml.cfg`:
 
-### Defining Your Own Targets
+```bash
+# Create _quizml/quizml.cfg (inherits bundled templates by default)
+quizml init
 
-The configuration file defines the list of all the targets. For instance, the
-BlackBoard csv quiz file can be defined as the following target:
+# Copy specific bundled templates into _quizml/ for customization
+quizml init --latex
+quizml init --html
+quizml init --bb
+quizml init --docx
+quizml init --schema
 
-```yaml
-  - out       : ${inputbasename}.txt     # template for outputfilename.
-                                         # ${inputbasename} refers to the basename of the quiz
-                                         # (eg. mcq-01.yaml => mcq-01)
-    descr     : BlackBoard CSV           # description for the target. 
-    descr_cmd : ${inputbasename}.txt     # command to use (here we have no suggestion, so just print output path)
-    markdown:
-      format: html
-      math: svg
-      html_postprocess: blackboard_html
-    html_pre  : math-preamble.tex  # latex preamble for generating the equations in the markdown > html conversion
-    html_css  : markdown-html.css    # CSS used for inline styling the HTML render.
-                                         # e.g. it can be used to stye <code></code>, tables, line separation, etc.
-    template  : blackboard.txt.j2                 # filename for the jinja template used
+# Copy an individual template file or all bundled assets
+quizml init -t tcd-exam.tex.j2
+quizml init --all
 ```
 
-### Default Targets
+To initialize a per-user configuration shared across projects, run
+`quizml init user`. Existing files are never overwritten unless you pass
+`--force` (`-f`).
 
-You can specify a subset of targets to be compiled by default when no `--target` option is provided.
+## How QuizML finds configuration and assets
+
+When compiling a quiz, QuizML searches for `quizml.cfg` in the following order:
+
+1. An explicit path passed via `--config FILE` on the CLI or `_config:` in the
+   quiz YAML header.
+2. `_quizml/quizml.cfg` or `quizml.cfg` in the quiz file's directory or any
+   ancestor directory up to the repository root (as well as from the current
+   working directory).
+3. The user configuration directory (reported by `quizml info`).
+4. The bundled package defaults.
+
+Any relative template, CSS, preamble, or schema path referenced by `quizml.cfg`
+is searched in `_quizml/` and the directory containing the active `quizml.cfg`
+before falling back to user and package defaults. Run
+`quizml compile --verbose quiz.yaml` to inspect the exact config and template
+paths resolved for a build.
+
+## Default targets and aliases
+
+In `quizml.cfg`, `default_targets` controls which targets are built when
+`quizml compile` is run without `--target`. If `default_targets` is omitted,
+QuizML compiles all render targets and skips targets with a `build_cmd` (such
+as `pdf`) unless they are requested explicitly.
+
+Use `aliases` to group targets into named workflows selectable with `--target`:
 
 ```yaml
 default_targets:
   - html-preview
-  - latex
-```
+  - bb
 
-If `default_targets` is not defined, all render targets are compiled by default;
-targets with `build_cmd` are skipped unless selected explicitly.
-
-Named aliases group targets into workflows that can be selected with
-`--target`. For example:
-
-```yaml
 aliases:
-  build: [html-preview, latex, bb, pdf, pdf-solutions]
+  build:
+    - bb
+    - html-preview
+    - pdf
+    - pdf-solutions
 ```
 
-Then `quizml compile quiz.yaml --target build` selects each listed target and
-its dependencies. Aliases can include other aliases. Build-command targets
-such as `pdf` run only when selected directly, through an alias, or as a
-dependency of a selected target; they are skipped during an unqualified compile.
+Running `quizml compile quiz.yaml --target build` compiles all listed targets
+and their dependencies in topological order.
 
-As for the config file directory, any resource file or template file defined
-as a relative path is searched in:
-1. the directory containing the input YAML file (and its `quizml-templates` subdirectory)
-2. the local directory from which QuizML is called (and its `quizml-templates` subdirectory)
-3. the default application config dir (`quizml-templates`)
-4. the installed package `templates` dir
+## Project-level settings
 
-
-### Writing Your Own Rendering Templates
-
-Templates are rendered with Jinja2. The [Jinja2 Template Designer
-Documentation](https://jinja.palletsprojects.com/en/3.1.x/templates/) provides
-complete information about how to write jinja2 templates.
-
-The default templates used in QuizML can be found in the `templates`
-directory. (Again, use `--verbose` to know which template is actually being
-used)
-
-Note that to be compatible with both LaTeX and HTML, we use the following
-delimiters:
-* `<| ... |>`  for Statements
-* `<< ... >>`  for Expressions
-* `<# ... #>`  for Comments
-
-### Custom Target Context, Filters, and External Tools
-
-Targets (and top-level `quizml.cfg` settings) can define custom template
-variables (`context`), custom Jinja2 filters (`jinja_filters`), Markdown
-equation rendering parameters, and external binary overrides (`tools`):
+Beyond `targets`, `default_targets`, and `aliases`, `quizml.cfg` supports
+several top-level settings:
 
 ```yaml
+# Custom schema file or inline schema extensions
+schema_path: schema.json
+schema_extensions:
+  question_properties:
+    topic: { type: string }
+
+# Extra directories searched by LaTeX (prepended to TEXINPUTS)
+texinputs:
+  - shared
+  - ../exam-assets
+
+# Custom Jinja2 filters (name: module:callable)
+jinja_filters:
+  slugify: urllib.parse:quote_plus
+
+# Override external binary names or paths
 tools:
   pdflatex: xelatex
   gs: gs
   dvisvgm: dvisvgm
-
-jinja_filters:
-  slugify: urllib.parse:quote_plus
-
-targets:
-  - name: solutions-tex
-    out: ${inputbasename}.solutions.tex
-    template: tcd-exam.tex.j2
-    markdown:
-      format: latex
-      svg_converter: "rsvg-convert -f pdf -o {output} {input}"
-    context:
-      show_solutions: true
 ```
 
-For HTML targets, `markdown` also supports `png_dpi` (default `250`),
-`png_scale` (default `0.5`), `svg_scale` (default `1.2`), and custom
-`html_postprocess` hooks (`blackboard_html` or a `module:function` path).
+### LaTeX asset paths (`texinputs`)
 
-### Configuring LaTeX Search Paths (`texinputs`)
+When compiling LaTeX targets or rendering SVG/PNG equations, TeX searches for
+custom `.cls`, `.sty`, and image files in:
+1. The quiz directory and any included question-bank figure directories.
+2. Discovered `_quizml/` project directories.
+3. Directories listed under `texinputs` in `quizml.cfg` (resolved relative to
+   the directory containing `quizml.cfg`).
+4. Your system's standard `TEXMF` trees.
 
-To compile LaTeX targets or render equation images, TeX needs to locate any
-custom `.cls`, `.sty`, or graphic assets. QuizML automatically searches:
-1. The quiz document directory and included figure directories.
-2. Any `_quizml/` directory discovered in the current or parent project directories.
-3. Extra paths declared under `texinputs` in `quizml.cfg`.
-
-Relative paths in `texinputs` are resolved relative to the directory containing
-`quizml.cfg`:
-
-```yaml
-texinputs:
-  - shared
-  - ../exams/shared
-```
-
-QuizML prepends these directories to `TEXINPUTS` before invoking TeX tools
-(`latexmk`, `xelatex`, `dvisvgm`), ensuring standard system TEXMF trees remain
-accessible as fallbacks via a trailing delimiter. Alternatively, global assets
-can be placed in your local user TEXMF tree (`~/Library/texmf` on macOS or
-`~/texmf` on Linux).
+See [Targets](targets.md), [Templates](writing_templates.md), and
+[Schema validation](schema_validation.md) for details on customizing individual
+outputs.

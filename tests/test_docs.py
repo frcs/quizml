@@ -32,7 +32,7 @@ def test_parse_sidebar():
     questions_item = next(
         item for item in items if item.filename == "syntax_questions.md"
     )
-    assert questions_item.title == "Questions Syntax"
+    assert questions_item.title == "Question types"
 
 
 def test_handle_docs_list_non_tty(capsys):
@@ -166,7 +166,7 @@ def test_cli_docs_integration(capsys):
         with patch("sys.stdout.isatty", return_value=False):
             main()
     captured = capsys.readouterr()
-    assert "Quick Start" in captured.out
+    assert "Quick start" in captured.out
 
 
 def test_cli_docs_no_pager_integration(capsys):
@@ -174,4 +174,4 @@ def test_cli_docs_no_pager_integration(capsys):
         with patch("sys.stdout.isatty", return_value=True):
             main()
     captured = capsys.readouterr()
-    assert "Quick Start" in captured.out
+    assert "Quick start" in captured.out

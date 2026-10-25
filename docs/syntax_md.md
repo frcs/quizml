@@ -1,110 +1,55 @@
+# Markdown and equations <!-- {docsify-ignore} -->
 
-## Markdown Syntax <!-- {docsify-ignore} -->
+Question text, choices, answers, feedback, and ordinary header values use
+Markdown. QuizML converts these fields according to each target's
+`markdown` configuration. Underscore-prefixed header keys are reserved for
+QuizML controls or raw template values and are not transcoded as Markdown.
 
-All yaml entries, including the question statements and answers, will be
-interpreted as Markdown (except if key is prefixed with `_` as discussed in 
-[header section](header)).
+## Markdown formatting
 
-### Basic Markdown Syntax 
+QuizML supports CommonMark syntax, including emphasis, links, lists, inline
+code, fenced code blocks, tables, and images:
 
-Text Tags can be found here:
+```markdown
+Use **bold**, *italic*, or `inline code`.
 
-https://commonmark.org/help/
+1. First step
+2. Second step
 
-````markdown
-In this question we can use __bold__, *italic*.
-
-images can be inserted this way: 
-
-![](figures/bee.jpg)
-
-You can define lists this way:
-
-* List
-* List
-* List
-
-or like this: 
-
-1. One
-2. Two
-3. Three
-
-Code can be included inline `like this` or as a block:
-
-```c
-void main(int argc, char* argv[])
-{
-    return 0;
-}
-```
-````
-
-
-
-### Markdown Extensions
-
-QuizML implements the following Markdown extensions for integrating LaTeX
-equations and images.
-
-#### Images
-
-Images can be included using standard Markdown syntax. We can also set the image size as an attribute:
-
-```
 ![](figures/bee.jpg){width=30em}
 ```
 
-**Supported Formats:**
-* **HTML:** Supports all standard web formats (JPG, PNG, SVG, GIF, etc.).
-* **LaTeX:** Supports PDF, PNG, and JPG.
+Images use standard Markdown syntax with an optional `{width=...}` attribute.
+Paths are resolved relative to the quiz file (or the included file where the
+question is defined) and any directories listed in `_figures_path`.
 
-**Automatic Fallback for LaTeX:**
-If you use an `.svg` image in your Markdown, QuizML attempts to handle it gracefully for LaTeX output:
-1.  It first checks if a `.pdf`, `.png`, or `.jpg` version of the same image exists (e.g., `figures/bee.png`).
-2.  If found, it uses that file instead.
-3.  If not found, and if tools like `rsvg-convert` or `inkscape` are installed, it attempts to convert the `.svg` to `.pdf` automatically. The converted PDF is stored in QuizML's user cache, leaving the source image directory unchanged.
+Supported image formats depend on the output target:
+- **HTML, QTI, Moodle, and Word**: PNG, JPEG, and SVG (embedded as Base64 data URIs in HTML, packaged into the ZIP archive in QTI, or inserted as OpenXML drawings in Word).
+- **LaTeX / PDF**: PDF, PNG, and JPEG. When a question references an `.svg` image, QuizML automatically uses a matching `.pdf`/`.png`/`.jpg` sibling if present, or converts the SVG using a configured `svg_converter` tool.
 
-This means you can use SVG for high-quality web previews while keeping a PNG copy for LaTeX compatibility without needing extra tools.
+## Equations
 
-#### LaTeX
+Use `$...$` or `\(...\)` for inline math and `$$...$$`, `\[...\]`, or a LaTeX
+math environment for display math. Place display math delimiters or environment
+boundaries on their own lines:
 
-You can use inline LaTeX expressions using both `$`, and `\(`, `\)`
-delimiters and also display equations with `$$` but also `\[`, but also the
-following environments `equation`, `split` `alignat` `multline` `gather` `align`
-`flalign`:
-
-
-```
-this can be done inline with $sin(x)$, \(t\) or as a display equation:
+```markdown
+The energy is $E = mc^2$.
 
 $$
-	E(w) = \int_x \sin(x^2w) dx
+E = mc^2
 $$
 
-\begin{align*} 
-2x - 5y &=  8 \\ 
-3x + 9y &=  -12
+\begin{align*}
+2x - 5y &= 8 \\
+3x + 9y &= -12
 \end{align*}
 ```
 
-Note that for display equations, these must treated as blocks, with delimiters
-(eg. `\begin{align*}` and `\end{align*}`) being alone on their line. For
-instance, this wouldn't work:
+Custom LaTeX macros (`\newcommand`, `\DeclareMathOperator`, etc.) defined in the
+target's `html_pre` file (`math-preamble.tex` by default) or in the quiz
+header's `_latexpreamble` are available across all equation backends—including
+pure-Python MathML and Word Office Math (`OMML`) as well as LaTeX/SVG/PNG
+renders.
 
-```
-We can't have this inline \begin{equation} A = B + C \end{equation} 
-```
-Instead you will need to do this:
-
-```
-We can have this:
-\begin{equation} 
-A = B + C 
-\end{equation} 
-```
-
-
-
-
-
+See [Targets](targets.md) for configuring `markdown.format` and `markdown.math`.

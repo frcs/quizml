@@ -1,65 +1,69 @@
-## Quick Start <!-- {docsify-ignore} -->
+# Quick start <!-- {docsify-ignore} -->
 
-### Installation 
+QuizML turns a YAML quiz into one or more configured outputs. You can write a
+quiz with any text editor; Python 3.10 or newer is required to install and run
+QuizML.
 
-This is a command line application written in Python. Assuming that you have
-python and pip installed, you can simply install it with:
+## 1. Install QuizML
 
-```shell-session
-$ pip install quizml
+```bash
+python -m pip install quizml
 ```
 
-### LaTeX
+## 2. Write a quiz
 
-You will need a LaTeX installation with `gs` and `pdflatex` (e.g.,
-[MacTeX](https://www.tug.org/mactex/) or `texlive`). 
+Save this as `quiz.yaml`:
 
-You might also want to install `librsvg` to automatically convert `.svg` files
-to `.pdf`.
+```yaml
+title: A short practice quiz
+---
+- type: mc
+  marks: 1
+  question: Which planet is known as the Red Planet?
+  choices:
+    - x: Mars
+    - o: Venus
+    - o: Jupiter
 
-
-### Configuration File and Templates
-
-Out-of-the-box, QuizML comes with a number of template targets:
-
-* BlackBoard test
-* LaTeX exam 
-* HTML preview
-
-If you only care about the BlackBoard tests and/or the HTML preview, then QuizML
-should just work fine as it is.
-
-If you want to use the LaTeX exam target, chances are that you'll want to adapt
-the template to your liking, e.g. at the very least changing the University
-name, etc.
-
-To do this, you'll need to edit the config file and the templates that are
-provided.
-
-More details are given in the [configuration section](configuration) about how
-to specify template targets and in the [LaTeX setup section](config_latex).
-
-To get you started,
-
-```shell-session
-$ quizml init local
-```
-This will copy a default `quizml.cfg` and all the provided templates to a newly
-created 
-`quizml-templates/` sub-directory. 
-
-Alternatively you can make a user-level install with:
-
-```shell-session
-$ quizml init user
+- type: tf
+  marks: 1
+  question: Earth orbits the Sun.
+  answer: true
 ```
 
-In this case `quizml.cfg` and the rest of the files will be moved to the default
-user configuration directory (eg. `~/Library/Application\ Support/quizml/` on my
-mac).
+QuizML uses YAML for question fields and Markdown for question text. See
+[Quiz structure](syntax_yaml.md) and [Question types](syntax_questions.md) for
+more examples.
 
+## 3. Compile and inspect
 
+```bash
+quizml compile quiz.yaml
+```
 
+QuizML writes the outputs selected by the current configuration beside the
+input file. The bundled configuration includes Blackboard (`bb`), HTML preview
+(`html-preview`), LaTeX (`latex`, `pdf`), Word (`docx`), QTI (`qti`, `qti21`),
+and Moodle XML (`moodle`) targets. Select a particular target with `--target`:
 
+```bash
+quizml compile quiz.yaml --target html-preview
+quizml compile quiz.yaml --target bb
+```
 
+Open the HTML output in a browser to review the questions. To see the targets
+available in your configuration, run `quizml targets`.
 
+Some targets use external tools. For example, building a PDF requires a LaTeX
+compiler, and rendering equations as SVG or PNG requires LaTeX tools. Other
+targets (such as QTI, Moodle XML, and Word) render equations directly as MathML
+or Office Math without external tools. See [Targets](targets.md) for details.
+
+## Next steps
+
+- Learn the [quiz file structure](syntax_yaml.md), [question types](syntax_questions.md),
+  and [Markdown features](syntax_md.md).
+- Read [command-line usage](usage.md) to format files, sample question banks,
+  or compile in watch mode.
+- Customize outputs in [Project setup](configuration.md), [Targets](targets.md),
+  and [Templates](writing_templates.md).

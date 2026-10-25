@@ -3,29 +3,19 @@
 
 - [**Getting started**](README.md)
   - [Quick start](quickstart.md)
-  - [Setting up your local LaTeX](config_latex.md)
-  - [Usage](usage.md)
-  - [Module Workflow](module_workflow.md)
+  - [Command-line usage](usage.md)
+- Writing quizzes
+  - [Quiz structure](syntax_yaml.md)
+  - [Header fields](syntax_header.md)
+  - [Question types](syntax_questions.md)
+  - [Markdown and equations](syntax_md.md)
+  - [Question layout](question_layout.md)
+  - [Question banks](module_workflow.md)
+- Configuration
+  - [Project setup](configuration.md)
+  - [Targets](targets.md)
+  - [Templates](writing_templates.md)
+  - [Schema validation](schema_validation.md)
+- Reference
   - [QuizML vs R/exams](quizml_vs_rexams.md)
-
-- Writing a Test
-  - [Test File Syntax](syntax_yaml.md)
-  - [Questions Syntax](syntax_questions.md)
-  - [Question Layout](question_layout.md)
-  - [Header Section](syntax_header.md)
-  - [Markdown Syntax](syntax_md.md)
-
-- Customisation 
-  - [Configuration File](config_files.md)
-  - [Writing Targets](targets.md)
-  - [Writing Templates](writing_templates.md)
-  - [Schema Validation](schema_validation.md)
-  
-- [Changelog](changelog.md)
-
-
-
-
-
-
-
+  - [Changelog](changelog.md)

@@ -1,19 +1,33 @@
-## Question Types Syntax <!-- {docsify-ignore} -->
+# Question Types Syntax <!-- {docsify-ignore} -->
 
-QuizML supports several types of questions. 
+QuizML supports the question types listed below. Fields and accepted values are
+validated by the [bundled schema](schema_validation.md).
+
+## Common question fields
+
+Every question requires `type` and `question` (except `part`, where `question`
+is optional) and accepts these optional fields:
+
+- `marks`: Point value for the question (defaults to `2.5`, or `4` for `essay`).
+- `id`: Stable string identifier used for [cherry-picking (`select`), duplicate checking (`diff`), and pinning (`pin`)](module_workflow.md).
+- `title`: Short question title used in LMS exports (QTI, Moodle) and previews.
+- `feedback`: General Markdown feedback shown to students after submission.
+- `comments`: Internal Markdown notes or grading rubrics (excluded from student views).
+- `figure`, `figure-split`, `cols`: Optional [layout controls](question_layout.md).
 
 ### Essay
 
-The student is expected to write down a few sentences. The `answer` field
-provides an indicative answer that can be used as guideline for marking.
+The student writes an open-ended response. The optional `answer` field provides
+an indicative solution or grading guide.
 
 ```yaml
 - type: essay
   marks: 14
   question: |
-    my question statement in Mardown
+    Explain the difference between L1 and L2 regularization.
   answer: |
-    a suggestion for how to answer that essay question   
+    L1 adds the sum of absolute weights (promoting sparsity); L2 adds the sum
+    of squared weights.
 ```
 
 ### True/False
@@ -22,49 +36,47 @@ provides an indicative answer that can be used as guideline for marking.
 - type: tf
   marks: 4
   question: |
-    question statement goes here...
+    Earth orbits the Sun.
   answer: true
 ```
 
 ### Multiple Choice
 
-In multiple choice questions, only one answer/statement is correct. The correct
-statements are indicated with `- x:` and the incorrectd ones with `- o:`.
+Only one choice is correct. Mark the correct choice with `- x:` and incorrect
+choices with `- o:`.
 
 ```yaml
 - type: mc
   marks: 4
   question: |
-    question statement goes here...
+    Which planet is known as the Red Planet?
   choices:
-    - x:  text for answer 1
-    - o:  text for answer 2
-    - o:  text for answer 3
-    - o:  text for answer 4
+    - x: Mars
+    - o: Venus
+    - o: Jupiter
+    - o: Saturn
 ```
 
 ### Multiple Answers
 
-This is the same as for multiple choices, except that more than one answer can
-be true (potentially zero or all statements can be correct).
+Same syntax as Multiple Choice, except that any number of choices can be marked
+correct (`- x:`).
 
 ```yaml
 - type: ma
   marks: 4
   question: |
-    question statement goes here...
+    Select all prime numbers.
   choices:
-    - x:  text for answer 1
-    - x:  text for answer 2
-    - o:  text for answer 3
-    - x:  text for answer 4
+    - x: 2
+    - x: 3
+    - o: 4
+    - x: 5
 ```
+
 ### Matching
 
-In Matching questions, the student is asked to map each statement (`A`) with its
-corresponding match (`B`). QuizML renders the pairs in the order provided in
-`choices`; it does not shuffle them. Separate display-order or matching-display
-controls may be useful in a future version.
+The student maps each prompt `A` to its corresponding match `B`.
 
 ```yaml
 - type: matching
@@ -73,7 +85,7 @@ controls may be useful in a future version.
     Match the following trees to their typical height.
   choices:
     - A: Japanese Maple (Acer palmatum)
-      B: 15-25 feet
+      B: 15–25 feet
     - A: Flowering Dogwood (Cornus florida)
       B: 30–40 feet
     - A: Coast Redwood (Sequoia sempervirens)
@@ -82,9 +94,9 @@ controls may be useful in a future version.
       B: 60–80 feet
 ```
 
-### Fill in the Blank (fill)
+### Fill in the Blank (`fill`)
 
-Used for a single blank. The `answers` field provides a list of acceptable correct variations.
+Used for a single blank. The `answers` field lists acceptable correct strings.
 
 ```yaml
 - type: fill
@@ -97,9 +109,10 @@ Used for a single blank. The `answers` field provides a list of acceptable corre
     - cyan
 ```
 
-### Fill in Multiple Blanks (mfill)
+### Fill in Multiple Blanks (`mfill`)
 
-Uses a dictionary to map variables (defined in brackets `[ ]` in the question) to their acceptable answers.
+Maps placeholder variables (written in brackets `[ ]` in the question text) to
+lists of acceptable answers.
 
 ```yaml
 - type: mfill
@@ -115,27 +128,25 @@ Uses a dictionary to map variables (defined in brackets `[ ]` in the question) t
       - Blue
 ```
 
-### Calculated Numeric (num)
+### Calculated Numeric (`num`)
 
-Simple value and tolerance structure for numeric answers.
+Numeric answer with an optional `tolerance`.
 
 ```yaml
 - type: num
   marks: 5
   question: |
-     What is the value of $\pi$ to two decimal places?
+    What is the value of $\pi$ to two decimal places?
   answer: 3.14
   tolerance: 0.01
 ```
 
 ### Ordering
 
-!> **Note:** Blackboard Ultra has removed support for Ordering questions. It is currently only supported for HTML preview.
+The student ranks the items in `choices` into the correct sequence.
 
-In Ordering questions, the student is asked to rank each statement (`choices`) in
-correct order. The statements are rendered in the order provided in `choices`;
-QuizML does not shuffle them. A separate display order may be useful in a future
-version.
+!> Blackboard Classic accepts Ordering rows, but Blackboard Ultra does not
+support Ordering questions via text import (use `qti21` for Blackboard Ultra).
 
 ```yaml
 - type: ordering
@@ -149,20 +160,21 @@ version.
     - Mars
 ```
 
-### Support
+## Bundled template support
 
-The following table summarises the support for each question type across the different output templates:
+The table below summarizes which question types are supported by each bundled
+target template:
 
-| Type | Name | Blackboard | LaTeX | HTML | Word |
-| :--- | :--- | :---: | :---: | :---: | :---: |
-| `essay` | [Essay](#essay) | ✅ | ✅ | ✅ | ✅ |
-| `tf` | [True/False](#true-false) | ✅ | ✅ | ✅ | ✅ |
-| `mc` | [Multiple Choice](#multiple-choice) | ✅ | ✅ | ✅ | ✅ |
-| `ma` | [Multiple Answers](#multiple-answers) | ✅ | ✅ | ✅ | ✅ |
-| `matching` | [Matching](#matching) | ✅ | ✅ | ✅ | ❌ |
-| `ordering` | [Ordering](#ordering) | ❌ (1) | ❌ | ✅ | ❌ |
-| `fill` | [Fill in the Blank](#fill-in-the-blank-fill) | ✅ | ✅ | ✅ | ❌ |
-| `mfill` | [Fill in Multiple Blanks](#fill-in-multiple-blanks-mfill) | ✅ | ✅ | ✅ | ❌ |
-| `num` | [Calculated Numeric](#calculated-numeric-num) | ✅ | ✅ | ✅ | ❌ |
+| Type | Name | Blackboard (`bb`) | LaTeX / PDF | HTML preview | QTI (`qti`, `qti21`) | Moodle (`moodle`) | Word (`docx`) |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| `essay` | [Essay](#essay) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `tf` | [True/False](#true-false) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `mc` | [Multiple Choice](#multiple-choice) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `ma` | [Multiple Answers](#multiple-answers) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `matching` | [Matching](#matching) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `ordering` | [Ordering](#ordering) | ✅ (1) | ✅ | ✅ | ✅ | ✅ | ❌ |
+| `fill` | [Fill in the Blank](#fill-in-the-blank-fill) | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| `mfill` | [Fill in Multiple Blanks](#fill-in-multiple-blanks-mfill) | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| `num` | [Calculated Numeric](#calculated-numeric-num) | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
 
-*(1) Removed in Blackboard Ultra.*
+*(1) Blackboard Ultra does not support Ordering questions in tab-delimited text imports.*

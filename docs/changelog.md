@@ -1,4 +1,4 @@
-# Changelog
+# Changelog <!-- {docsify-ignore} -->
 
 ## [Unreleased]
 
@@ -12,6 +12,9 @@
 *   Made `quizml clean` derive outputs from target configuration and support per-target cleanup suffixes.
 *   Added `quizml sample` to materialize seeded question-bank samples as static YAML files; compilation remains deterministic.
 *   Included CLI documentation in built packages and removed the unused bundled config version marker.
+
+**Docs:**
+*   Reworked the getting-started guide around the current CLI and made LaTeX setup optional and output-specific.
 
 <a name="0.12.0"></a>
 

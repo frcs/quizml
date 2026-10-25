@@ -1,73 +1,54 @@
 # QuizML
 
-> QuizML converts quizzes written in YAML and Markdown into Blackboard,
-> HTML, LaTeX, PDF, and Word outputs.
+QuizML converts quizzes written in YAML and Markdown into configurable outputs
+such as Blackboard imports, HTML previews, Word documents, QTI packages, Moodle
+XML, and LaTeX sources or PDFs.
 
-[![Documentation](https://img.shields.io/badge/docs-frcs.github.io%2Fquizml-blue)](https://frcs.github.io/quizml)
+[Read the documentation](https://frcs.github.io/quizml) or start with the
+[quick start](https://frcs.github.io/quizml/#/quickstart).
 
-Install QuizML with pip:
+Install QuizML with Python 3.10 or newer:
 
 ```bash
-pip install quizml
+python -m pip install quizml
 ```
 
-Some output formats require a LaTeX installation and supporting tools such as
-Ghostscript. TeX Live and MacTeX are common options. See the
-[LaTeX setup guide](docs/config_latex.md) for details.
-
-Questions are written in YAML with Markdown content.
-
-Here is a minimal `quiz.yaml` example:
+Save a quiz as `quiz.yaml`:
 
 ```yaml
 - type: mc
   marks: 5
-  question: |
-    If vector ${\bf w}$ is of dimension $3 \times 1$ and
-    matrix ${\bf A}$ of dimension $5 \times 3$,
-    then what is the dimension of
-    $\left({\bf w}^{\top}{\bf A}^{\top}{\bf A}{\bf w}\right)^{\top}$?
+  question: Which planet is known as the Red Planet?
   choices:
-    - o: $5\times 5$
-    - o: $3\times 3$
-    - o: $3\times 1$
-    - x: $1\times 1$
+    - x: Mars
+    - o: Venus
+    - o: Jupiter
 
 - type: tf
   marks: 5
-  question: |
-    Is this the image of a tree?
-    
-    ![](figures/bee.jpg){ width=30em }
-    
+  question: Is this statement true?
   answer: false
 ```
 
-Then generate the configured outputs, including a Blackboard import file,
-LaTeX source, and an HTML preview:
+Compile the quiz using its configured targets:
 
-```shell-session
-$ quizml quiz1.yaml
-
-  Q  Type  Marks  #  Exp  Question Statement
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  1   mc     5.0  4  1.2  If vector ${\bf w}$ is of dimension $3 \times 1$ ...
-  2   tf     5.0  2  2.5  Is this the image of a tree?
-
-  Total: 10.0 (with random expected mark at 37.5%)
-
-╭──────────────────────────────── Target Outputs ───────────────────────────────╮
-│                                                                               │
-│   Blackboard test  quiz1.txt                                                  │
-│   html preview     quiz1.html                                                 │
-│   latex            latexmk -xelatex -pvc quiz1.tex                            │
-│   Latex solutions  latexmk -xelatex -pvc quiz1.solutions.tex                  │
-│                                                                               │
-╰───────────────────────────────────────────────────────────────────────────────╯
+```bash
+quizml compile quiz.yaml
 ```
 
-The rendered outputs look like this:
+Choose an individual target with `--target`, for example
+`quizml compile quiz.yaml --target html-preview`. Available targets depend on
+your configuration. Some outputs, such as PDFs or equation images, require
+external rendering tools; see the [target guide](https://frcs.github.io/quizml/#/targets)
+if you need them.
 
-<img src="docs/figures/demo-output-carousel.gif" width="100%" />
+The animation below shows examples of rendered QuizML outputs.
 
+<img src="docs/figures/demo-output-carousel.gif" width="100%" alt="Examples of QuizML output formats" />
 
+## Documentation
+
+- [Quick start](https://frcs.github.io/quizml/#/quickstart)
+- [Quiz structure](https://frcs.github.io/quizml/#/syntax_yaml)
+- [Command-line usage](https://frcs.github.io/quizml/#/usage)
+- [Project setup](https://frcs.github.io/quizml/#/configuration)

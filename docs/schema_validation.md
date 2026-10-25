@@ -1,133 +1,34 @@
-## Custom Schema Validation <!-- {docsify-ignore} -->
+# Schema validation <!-- {docsify-ignore} -->
 
-QuizML uses a powerful schema validation system to ensure that your quiz files
-are structured correctly. This not only catches errors but also provides a
-robust and predictable way of interpreting your data, avoiding common YAML
-pitfalls.
+QuizML validates every quiz against a [JSON Schema](https://json-schema.org/)
+and uses the schema to coerce values into predictable Python types. Questions in
+included files are validated at their point of definition so error messages
+report the exact file and line number.
 
-This system is built upon the `jsonschema` library (see
-[here](https://json-schema.org/)), and you can leverage it to create your own
-custom question types or modify existing ones.
+## Schema-driven type coercion
 
-### The "Norway Problem": A Common YAML Pitfall
+Standard YAML parsers implicitly convert unquoted scalars like `NO`, `on`, or
+`3.10` into booleans or floats. QuizML avoids these pitfalls with a two-step
+loading pipeline:
 
-One of the most well-known issues with YAML is its aggressive implicit
-typing. For example, if you have a field for a country code:
+1. Every YAML scalar is initially parsed as a plain string.
+2. Each string is coerced into its target type (`string`, `number`, `integer`,
+   `boolean`, or `markdown`) according to the active JSON Schema.
 
-```yaml
-- type: mc
-  question: What is the country code for Norway?
-  choices:
-    - o: SW
-    - o: DK
-    - x: NO
-```
+For example, in a multiple-choice question where choices have `"type": "string"`,
+an unquoted choice `- x: NO` remains the string `"NO"` instead of becoming
+`False`. In a True/False question where `answer` has `"type": "boolean"`,
+`answer: no` or `answer: false` is coerced to the boolean `False`.
 
-A standard YAML parser will see `NO` and automatically convert it to the boolean
-value `False`. This is often not the desired behavior and can lead to silent
-bugs. This is known as the "Norway Problem".
+The bundled schema rejects unknown question types and undeclared question
+fields (`additionalProperties: false`), catching typos such as `mcq` or
+`anwser` early.
 
-### The QuizML Solution: Schema-Driven Parsing
+## Extending the schema in `quizml.cfg` (`schema_extensions`)
 
-QuizML solves this problem with a two-stage loading process that prioritises
-your declared intent over YAML's guesswork.
-
-#### Stage 1: Load Everything as Strings
-
-First, QuizML reads your YAML file but deliberately ignores all of YAML's
-automatic typing. Every scalar value—be it `NO`, `true`, `5`, or `3.14`—is
-initially loaded as a plain string.
-
-#### Stage 2: Coerce Types Based on the Schema
-
-Next, QuizML uses a JSON schema file (by default, the `schema.json` file in your
-default templates/config directory) to intelligently convert those strings into
-the correct data types. The schema acts as the single source of truth for what
-each field should be.
-
-Let's revisit the "Norway problem" example. The default `schema.json` specifies
-that multiple-choice answers (`o` and `x`) should be strings:
-
-```json
-// from schema.json, for "mc" type questions
-"choices": {
-  "type": "array",
-  "items": {
-    "type": "object",
-    "properties": {
-      "x": { "type": "string" },
-      "o": { "type": "string" }
-    }
-  }
-}
-```
-
-Because the schema for `x` is `"type": "string"`, QuizML ensures that the value
-`"NO"` remains a string.
-
-However, for a true/false question type, the schema specifies the answer should
-be a boolean:
-
-```json
-// from schema.json, for "tf" type questions
-"answer": { "type": ["boolean", "string"] }
-```
-
-In this case, if your YAML is `answer: no`, it will be correctly coerced into
-the boolean `False`. This approach gives you full control and predictability.
-
-### Using a Custom Schema
-
-You can extend QuizML by providing your own schema. This is useful for:
-- Defining entirely new question types.
-- Adding custom fields to existing types.
-- Changing the data types of existing fields.
-
-You can specify a path to your custom schema in your `quizml.cfg` file:
-
-```yaml
-schema_path: my_custom_schema.json
-```
-
-When you compile with `quizml`, it will use your new schema for validation.
-
-Questions in included files are validated where they are defined. A validation
-error therefore names the included file and its source line.
-
-The bundled schema accepts only its declared question types and fields. This
-catches misspellings such as `mcq` or `anwser`, but it also means custom fields
-must be declared in a custom schema. Start from the bundled `schema.json`, add
-the field to the matching question type's `properties`; that properties list is
-the allowlist enforced by `additionalProperties: false`.
-
-For example, if you wanted to create a new question type `geolocation` that
-requires numeric latitude and longitude, you could add this to your custom
-schema's `allOf` array:
-
-```json
-{
-  "if": { "properties": { "type": { "const": "geolocation" } } },
-  "then": {
-    "properties": {
-      "type": { "type": "string" },
-      "marks": { "type": ["number", "string"], "default": "2.5" },        
-      "question": { "type": "string" },
-      "latitude": { "type": "number" },
-      "longitude": { "type": "number" }
-    },
-    "required": ["question", "latitude", "longitude"]
-  }
-}
-```
-
-With this schema, QuizML will now recognize the `geolocation` type and ensure
-that `latitude` and `longitude` are treated as numbers.
-
-### Extending the Schema Directly in `quizml.cfg` (`schema_extensions`)
-
-For common customizations—such as adding custom question fields (`topic`,
-`difficulty`) or a custom question type—you do not need to copy `schema.json`.
-Instead, declare `schema_extensions` directly in `_quizml/quizml.cfg`:
+To add custom metadata fields to questions or headers—or to define a new
+question type—declare `schema_extensions` directly in `_quizml/quizml.cfg`
+without copying the full schema file:
 
 ```yaml
 schema_extensions:
@@ -150,7 +51,16 @@ schema_extensions:
       required: [question, language, snippet]
 ```
 
-If you prefer a standalone schema file, you can copy the bundled schema with
-`quizml init --schema` (or point `schema_path:` in `quizml.cfg` or `_schema:` in
-a quiz header to either a `.json` or `.yaml` schema file).
+Fields declared with `format: markdown` are automatically transcoded to HTML,
+LaTeX, or Word OpenXML alongside built-in Markdown fields.
 
+## Using a standalone schema file
+
+If you need full control over the JSON Schema, copy the bundled `schema.json`
+into `_quizml/` with `quizml init --schema` (see
+[Project setup](configuration.md)), or point `schema_path:` in `quizml.cfg` (or
+`_schema:` in a quiz header) to a custom `.json` or `.yaml` schema file:
+
+```yaml
+schema_path: my_custom_schema.json
+```

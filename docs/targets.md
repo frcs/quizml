@@ -1,155 +1,118 @@
-## Writing Your Own Targets  <!-- {docsify-ignore} -->
+# Output targets <!-- {docsify-ignore} -->
 
+Targets are defined under the `targets:` list in `quizml.cfg`. Each target
+describes one output artifact: its output filename, Markdown conversion
+options, template, and optional post-processing command.
 
-### Target Definition in the Configuration File
+## Bundled targets
 
-The configuration file defines the list of all the targets. For instance, the
-BlackBoard csv quiz file can be defined as the following target:
+Run `quizml targets` to list the targets available in your active configuration.
+The bundled `quizml.cfg` provides:
+
+| Target | Output | Description |
+| :--- | :--- | :--- |
+| `bb` | `${inputbasename}.txt` | Blackboard tab-delimited import file |
+| `html-preview` | `${inputbasename}.html` | Standalone HTML preview with embedded assets |
+| `latex` | `${inputbasename}.tex` | LaTeX exam source (`tcd-exam.tex.j2`) |
+| `latex-solutions` | `${inputbasename}.solutions.tex` | LaTeX exam source with solutions |
+| `pdf` | `${inputbasename}.pdf` | Compiled PDF exam (via `latexmk -xelatex`) |
+| `pdf-solutions` | `${inputbasename}.solutions.pdf` | Compiled PDF exam with solutions |
+| `docx` | `${inputbasename}.docx` | Word exam paper (`tcd-exam.docx`) |
+| `docx-solutions` | `${inputbasename}.solutions.docx` | Word exam paper with solutions |
+| `qti` / `qti12` | `${inputbasename}.qti.zip` | IMS QTI 1.2 package (Canvas, Brightspace) |
+| `qti21` | `${inputbasename}.qti21.zip` | IMS QTI 2.1 package (Blackboard Ultra) |
+| `moodle` | `${inputbasename}.xml` | Moodle XML question bank |
+
+## Target definition example
 
 ```yaml
-- name      : bb
-  out       : ${inputbasename}.txt
-  descr     : Blackboard test
-  descr_cmd : ${inputbasename}.txt
-  markdown:
-    format: html
-    math: svg
-    html_postprocess: blackboard_html
-  html_pre  : math-preamble.tex
-  html_css  : markdown-html.css
-  template  : blackboard.txt.j2
+targets:
+  - name: bb
+    descr: Blackboard test
+    out: ${inputbasename}.txt
+    descr_cmd: ${inputbasename}.txt
+    markdown:
+      format: html
+      math: svg
+      html_postprocess: blackboard_html
+    html_pre: math-preamble.tex
+    html_css: markdown-html.css
+    template: blackboard.txt.j2
 ```
 
+## Target fields
 
-As for the config file directory, any resource file or template file is defined
-as a relative path, the template is searched in:
-1. the local directory from which QuizML is called 
-2. the local templates subdirectory
-3. the default application config dir 
-4. the install package templates dir
+### `name` and `descr`
 
+`name` is the unique identifier passed to `--target`. `descr` is the short
+human-readable description shown by `quizml targets`.
 
-### Target Configuration
+### `out` and `descr_cmd`
 
+`out` is the output filename template. Relative output paths are resolved from
+the directory containing the input YAML file. Available variables:
+- `${inputbasename}` / `${inputstem}`: Input filename without directory or extension.
+- `${inputdir}`: Absolute path to the input YAML file's directory.
+- Any top-level scalar field from the quiz YAML header (e.g. `${modulecode}` or
+  `${title}`), with path separators sanitized to `_`.
 
-#### `name`
+`descr_cmd` is the suggested command or output path displayed in the build
+summary table after compilation.
 
-unique identifier for that target.
+### `template`
 
-#### `out`
+Path or name of the template used to render the target, resolved through
+QuizML's [configuration search paths](configuration.md):
+- **Jinja2 text templates** (`.j2`, `.tex`, `.html`, `.xml`, `.txt`): Rendered
+  with QuizML's LaTeX-friendly Jinja2 delimiters (see [Templates](writing_templates.md)).
+- **Word templates** (`.docx`): Rendered into a `.docx` file via `docxtpl` with
+  native Word OpenXML (`w:p`) paragraphs and Office Math (`m:oMath`) equations.
+- **QTI package directories** (`qti12`, `qti21`): Packaged into an IMS Content
+  Package `.zip` archive with bundled media files and `imsmanifest.xml`.
 
-template of the output filename. In the example above, `${inputbasename}` refers
-to the basename of the quiz. 
+### `markdown`
 
-E.g., in the example above,
+Controls how Markdown fields in the header and questions are transcoded before
+rendering:
 
-`quizml test-01.yaml` will produce a file called `test-01.txt`
+- **`markdown.format`**:
+  - `html`: Standard HTML fragments.
+  - `latex`: LaTeX markup.
+  - `docx`: Word OpenXML (`RichText` / subdocument XML) for `.docx` templates.
+  - `markdown`: Keeps raw Markdown strings untouched (useful for downstream
+    Pandoc or Quarto pipelines).
+- **`markdown.math`** (used when `markdown.format` is `html`):
+  - `svg`: Renders equations to inline SVGs using `dvisvgm` (requires LaTeX).
+  - `png`: Renders equations to Base64 PNGs using `pdflatex` + Ghostscript (`gs`).
+  - `mathml`: Converts LaTeX equations to MathML in pure Python (no external
+    LaTeX installation required; used by `qti`, `qti21`, and `moodle`).
+  - `passthrough`: Emits `<span class="math inline">\(...\)</span>` and
+    `<div class="math display">\[...\]</div>` for client-side MathJax or KaTeX.
+- **`markdown.html_postprocess`**:
+  - Set to `blackboard_html` (to inline CSS and strip newlines/tabs for
+    Blackboard text imports) or a custom `module:function` callable.
+- **Additional options**: `svg_scale` (default `1.2`), `png_dpi` (default `250`),
+  `png_scale` (default `0.5`), and `svg_converter` (command template for
+  converting `.svg` figures to `.pdf` in LaTeX targets).
 
-Output paths that are relative are resolved from the directory containing the
-input YAML file. Absolute output paths are used as given. Post-build commands
-run with that same input directory as their working directory. `${inputbasename}`
-and `${inputstem}` expand to the input filename without its directory or
-extension; `${inputdir}` expands to the absolute input directory. In addition,
-any top-level scalar field from the quiz YAML header (such as `${code}` or
-`${title}`) can be interpolated in `out`, `build_cmd`, and `descr_cmd` (with
-path separators sanitized to `_`). This keeps outputs and build commands beside
-the source YAML even when QuizML is launched from another directory.
+### `html_pre` and `html_css`
 
-#### `context` / `vars`
+- `html_pre`: LaTeX preamble file supplying macros for equation rendering
+  (defaults to `math-preamble.tex`).
+- `html_css`: CSS stylesheet used for HTML rendering and `blackboard_html`
+  inlining (defaults to `markdown-html.css`).
 
-Optional mapping of extra variables passed to the target's Jinja2 template
-context (both `context` and `vars` are accepted as aliases, with `context`
-taking precedence if both are specified).
+### `context` (or `vars`)
 
-#### `dep`
+Optional mapping of extra variables merged into the template context for this
+target (for example, `context: { solutions: true }` on `docx-solutions`).
 
-Name of a target (or list of target names) that this target depends on. QuizML
-resolves dependencies recursively and guarantees they are compiled before their
-dependents in topological order. For example, `pdf-solutions` depends on
-`latex-solutions`, which in turn depends on `latex`.
+### `dep`, `build_cmd`, and `clean_extensions`
 
-#### `clean_extensions`
-
-Optional list of file suffixes for additional artifacts produced by this
-target, such as LaTeX's `.aux` and `.log` files. `quizml clean` always considers
-the target's configured `out`; for each suffix listed here, it also considers a
-file with that suffix and the same output stem. Suffixes must start with a dot
-and cannot include path separators or glob patterns.
-
- 
-#### `descr`
- 
-Description for the target. 
-
-#### `descr_cmd` 
-
-Suggestion for the command to use after the quizml build.
-
-In the example above, there is no post-build require, so we simply output the
-path of the generated rendered BlackBoard test.
-
-
-#### `markdown`
-
-This mapping controls how Markdown fields are transcoded before they are passed
-to the target's Jinja template.
-
-##### `markdown.format`
-
-Choose the output representation: `html`, `latex`, or `markdown` (which keeps
-authored Markdown strings untouched for downstream static-site generators or
-Pandoc/Quarto pipelines).
-
-##### `markdown.math`
-
-For HTML output, choose how LaTeX equations are rendered: `png` (the default),
-`svg`, `mathml`, or `passthrough` (which emits HTML `<span class="math inline">\( ... \)</span>`
-and `<div class="math display">\[ ... \]</div>` delimiters for client-side
-MathJax or KaTeX rendering without invoking external LaTeX tools). The LaTeX and
-raw Markdown output formats do not use this setting.
-
-##### `markdown.html_postprocess`
-
-Set this to `blackboard_html` when the target needs Blackboard-specific HTML
-preparation, or to a custom `module:function` callable path. `blackboard_html`
-inlines CSS and removes line breaks and tabs from rendered HTML fragments before
-the template consumes them. It does not select or imply an output file format;
-the target may write any format supported by its template.
-
-The postprocessor is opt-in. Generic HTML targets receive the rendered HTML
-without Blackboard-specific changes. Existing templates can keep using fields
-such as `q.question` because post-processing happens before Jinja rendering.
-
-
-In the example above Blackboard needs HTML fragments with equation SVGs, so
-`markdown.format` is `html`, `markdown.math` is `svg`, and the HTML postprocessor
-is enabled.
-
-Older configuration files may still use `fmt`. QuizML maps `latex` to LaTeX,
-`html` to HTML with PNG equations, `html-svg` to HTML with SVG equations, and
-`html-mathml` to HTML with MathML equations. Move these values to the `markdown`
-mapping when updating your config. Add `html_postprocess: blackboard_html` only
-for targets that need the Blackboard-specific treatment. While an old `fmt`
-setting remains, QuizML preserves its historical HTML post-processing behavior;
-new `markdown` mappings only post-process HTML when explicitly configured.
-
-#### `html_pre`
-
-Path to latex preamble file used when generating the equations in the markdown
-to html conversion. 
-
-In the example above we use quizml's default which is `math-preamble.tex`.
-
-#### `html_css` 
-
-Path to the CSS file used for inline styling the HTML render. E.g. it can be
-used to style code, tables, line separation, etc.
-
-In the example above we default to quizml's default which is
-`markdown-html.css`.
-
-!> Note that the new version of BlackBoard tests strip out any CSS information.
-
-#### `template` 
-
-filename/path for the jinja template used
+- `dep`: Target name (or list of target names) that must be built before this
+  target. Dependencies are resolved recursively in topological order.
+- `build_cmd`: Shell command executed from the input YAML file's directory after
+  template rendering (or after dependencies complete, for build-only targets
+  like `pdf`).
+- `clean_extensions`: List of dot-prefixed file suffixes (such as `[.aux, .log, .fls]`)
+  that `quizml clean` should remove alongside the target's `out` file.

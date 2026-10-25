@@ -1,116 +1,61 @@
-## Writing Your Own Rendering Templates <!-- {docsify-ignore} -->
+# Customize templates <!-- {docsify-ignore} -->
 
-Templates are rendered with Jinja2. The [Jinja2 Template Designer
-Documentation](https://jinja.palletsprojects.com/en/3.1.x/templates/) provides
-complete information about how to write jinja2 templates.
+QuizML renders text outputs with Jinja2, Word documents with `docxtpl`, and QTI
+packages from directory templates. To customize a bundled template, copy it into
+`_quizml/` using `quizml init` (see [Project setup](configuration.md)).
 
-Templates can include, import, and extend other templates found through the
-same search paths as configured target templates. Give an extending template a
-different filename from its parent to avoid loading itself recursively. The
-packaged `tcd-exam.tex.j2` template exposes `preamble`, `document_start`,
-`solution_key`, `question_list`, and `document_end` blocks for targeted
-overrides. For example:
+Run `quizml compile --verbose quiz.yaml` to verify which template file is
+selected during a build.
+
+## Jinja text templates
+
+To avoid conflicts with LaTeX braces and percent signs, QuizML's Jinja2
+environment uses custom delimiters:
+
+- `<| ... |>` for statements and control flow
+- `<< ... >>` for expressions
+- `<# ... #>` for comments
+
+A minimal template loops over `questions` and reads metadata from `header`:
+
+```jinja
+<| for q in questions |>
+Question << loop.index >> (<< q.marks >> marks):
+<< q.question >>
+<| endfor |>
+```
+
+All Markdown fields in `header` and `questions` are already transcoded according
+to the target's `markdown` settings before they reach the template.
+
+### Template inheritance
+
+Templates can `extends`, `include`, and `import` other templates resolved
+through QuizML's template search paths. Give an extending template a different
+filename from its parent so it does not resolve to itself.
+
+The bundled `tcd-exam.tex.j2` template defines overridable blocks (`preamble`,
+`document_start`, `solution_key`, `question_list`, and `document_end`):
 
 ```jinja
 <| extends "tcd-exam.tex.j2" |>
 
 <| block preamble |>
 << super() >>
-\\newcommand{\\myexamcommand}{...}
+\newcommand{\myexamcommand}{...}
 <| endblock |>
 ```
 
-QuizML uses strict undefined-variable handling. A misspelled or absent value
-raises a template error instead of silently rendering as empty text. Guard
-optional question fields with `is defined`, or provide a fallback with
-`default`, for example `<< q.comments | default('') >>`.
+### Strict undefined variables
 
-The default templates used in QuizML can be found in the `templates`
-directory. 
+QuizML uses strict undefined-variable checking so typos in template expressions
+fail immediately rather than rendering as empty strings. Guard optional fields
+with `is defined` or the `default` filter:
 
-?> Because they are multiple possible locations for the templates, it can
-sometimes be confusing to know which file is being edited. Use `--verbose` to
-know which template is actually being used.
-
-
-### Minimal Example
-
-A template can contain variables and expressions, which get replaced when the
-template is rendered.
-
-Here is a minimal example of template for LaTeX, where we make a enumeration of
-all questions 
-
-
-```jinja-tex
-\begin{enumerate}
-<| for q in questions +|>
-\item[{\bf Q.<<loop.index>>}] <<q.question>>
-<| endfor |>
-\end{enumerate}
+```jinja
+<< q.comments | default('') >>
 ```
 
-The output would look like something like this:
-
-```jinja-tex
-\begin{enumerate}
-\item[{\bf Q1}] This is statement for question 1
-\item[{\bf Q2}] This is statement for question 2
-\item[{\bf Q3}] This is statement for question 3
-\end{enumerate}
-```
-
-
-### Jinja Delimiters
-
-Note that to be compatible with both LaTeX and HTML, we use the following
-delimiters:
-* `<| ... |>`  for Statements
-* `<< ... >>`  for Expressions
-* `<# ... #>`  for Comments
-
-
-### Questions Information
-
-The questions can be accessed with `questions`. The variable is a list of
-dictionary, and has the same structure as per the yaml syntax specified in .
-
-For instance, this code would generate an HTML list of the types of questions:
-
-```jinja-html
-<ol>
-<| for q in questions +|>
-<li> 
-<| if q.type == 'essay' |>
-Short Essay
-<|- elif q.type == 'mc'  -|>
-Multiple Choice
-<|- elif q.type == 'ma'  -|>
-Multiple Answers
-<|- else -|>
-Other type
-<|- endif |>
-</li>
-</ol>
-```
-
-
-### Header Information
-
-The header information is stored in `header`.
-
-For instance, this is how we can save the header keys/vales for keys that do not
-start with `_` as LaTeX macros:
-
-
-```jinja-tex
-<# passing the header variables to template  #>
-<# we do not include 'type' and 'pre_' keys  #>
-<| if header                                               -|>
-<|   for key, value in header.items()                      -|>
-<|     if (key != 'type') and (not key.startswith('_'))     |>
-\def \info<<key>> {<<value>>}
-<|     endif                                                |>
-<|-  endfor                                                 |>
-<|-endif                                                    |>
-```
+See the [Jinja template documentation](https://jinja.palletsprojects.com/en/3.1.x/templates/)
+for the full template language reference, and [Targets](targets.md) for passing
+extra `context` variables or custom `jinja_filters`.
