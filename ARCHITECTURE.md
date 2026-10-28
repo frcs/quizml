@@ -22,7 +22,7 @@ flowchart LR
 | Component | Responsibility |
 | --- | --- |
 | `quizml.paths` | Finds configuration, schema, template, and supporting files across local, ancestor `_quizml/`, user, and package paths (`FileLocator`, `find_path`). |
-| `quizml.yaml` | Loads and validates YAML quizzes (`load`, `loads` returning `QuizDocument`), resolves and samples `_include` directives, and provides pure YAML formatting (`format_yaml_text`), metadata pinning (`pin_yaml_text`), and duplicate detection (`compare_quiz_files`). |
+| `quizml.yaml` | Loads and validates YAML quizzes (`load`, `loads` returning `QuizDocument`), resolves and samples `_include` directives, and provides pure YAML formatting (`format_yaml_text`), metadata pinning (`pin_yaml_text`), duplicate detection (`compare_quiz_files`), and question search (`grep_questions`). |
 | `quizml.markdown` | Normalizes Markdown options (`normalize_markdown_options`) and transcodes Markdown strings or documents into HTML, LaTeX, or Word OpenXML (`MarkdownTranscoder`, `transcode`, `transcode_text`, `transcode_many`). |
 | `quizml.markdown.html_renderer` | Produces HTML math (PNG, SVG, MathML via `latex2mathml`, or passthrough) and embeds or references generated images. |
 | `quizml.markdown.latex_renderer` | Prepares Markdown content and images for LaTeX output. |

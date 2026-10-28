@@ -33,6 +33,7 @@ Compile options:
 ## Other commands
 
 ```text
+quizml grep PATTERN [PATH ...] [-i] [-F] [-v] [--field FIELD] [-t TYPE] [-u] [-l] [-c] [--table] [-o FILE]
 quizml diff [--check] FILE FILE [FILE ...]
 quizml fmt [FILE|-] [-i | --check | --diff] [--wrap WIDTH]
 quizml sample [FILE|-] [-o FILE|-] [--seed SEED] [--force]
@@ -46,6 +47,14 @@ quizml targets [--config CONFIGFILE]
 quizml completion {bash,zsh,fish}
 ```
 
+- `grep` (or `search`): searches questions across quiz YAML files or standard input
+  for a regular expression or fixed string (`-F`), outputting complete matching
+  questions in valid QuizML YAML with provenance comments (`# file: <Q#>`). Use
+  `-i` for case-insensitivity, `-u`/`--unique` to deduplicate identical or similar
+  questions across exams, `--field` to restrict search to specific fields (such as
+  `figure` or `question`), `-t`/`--type` to filter question types, `-l` to print
+  only filenames with matches, `-c` for counts, and `--table`/`--summary` for a
+  Rich table view.
 - `diff`: lists questions from the first file that also appear in the other files
   (matching by question `id` or by stem and choice similarity). Use `--check`
   to exit with status `1` when duplicates are found.

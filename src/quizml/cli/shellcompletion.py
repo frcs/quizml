@@ -15,11 +15,15 @@ COMMANDS = (
     "completion",
     "cache",
     "pin",
+    "grep",
+    "search",
 )
 OPTIONS = {
     "compile": "-h --help --config --debug --verbose --quiet -t --target -w --watch",
     "diff": "-h --help --debug --verbose --quiet --check",
     "fmt": "-h --help -i --in-place --check --diff --wrap",
+    "grep": "-h --help --debug --verbose --quiet -i --ignore-case -F --fixed-strings -v --invert-match --field -t --type -u --unique -l --files-with-matches -c --count --table --summary -o --output --no-provenance -r --recursive --no-recursive --wrap",
+    "search": "-h --help --debug --verbose --quiet -i --ignore-case -F --fixed-strings -v --invert-match --field -t --type -u --unique -l --files-with-matches -c --count --table --summary -o --output --no-provenance -r --recursive --no-recursive --wrap",
     "sample": "-h --help -o --output --seed --force",
     "pin": "-h --help --config --debug --verbose --quiet -o --output -t --target --add-ids --freeze-includes --seed -f --force",
     "clean": "-h --help -r --recursive --dry-run --config --quiet",

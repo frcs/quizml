@@ -14,6 +14,8 @@ COMMANDS = {
     "compile",
     "diff",
     "fmt",
+    "grep",
+    "search",
     "sample",
     "pin",
     "clean",
@@ -101,6 +103,108 @@ def build_parser():
         help="exit nonzero if duplicate questions are found",
     )
     diff_parser.add_argument("files", nargs="+", metavar="FILE")
+
+    grep_parser = subparsers.add_parser(
+        "grep",
+        aliases=["search"],
+        help="search questions across quiz files",
+        formatter_class=formatter,
+    )
+    _add_common_options(grep_parser, include_config=False)
+    grep_parser.add_argument(
+        "pattern", metavar="PATTERN", help="search string or regular expression"
+    )
+    grep_parser.add_argument(
+        "paths",
+        nargs="*",
+        default=None,
+        metavar="PATH",
+        help="files or directories to search (default: current directory)",
+    )
+    grep_parser.add_argument(
+        "-i",
+        "--ignore-case",
+        action="store_true",
+        help="ignore case distinctions in pattern",
+    )
+    grep_parser.add_argument(
+        "-F",
+        "--fixed-strings",
+        action="store_true",
+        help="interpret pattern as fixed strings, not regular expressions",
+    )
+    grep_parser.add_argument(
+        "-v",
+        "--invert-match",
+        action="store_true",
+        help="select non-matching questions",
+    )
+    grep_parser.add_argument(
+        "--field",
+        metavar="FIELD",
+        help="search only within a specific question field (e.g. question, figure, choices)",
+    )
+    grep_parser.add_argument(
+        "-t",
+        "--type",
+        metavar="TYPE",
+        help="filter by question type (e.g. mc, ma, tf)",
+    )
+    grep_parser.add_argument(
+        "-u",
+        "--unique",
+        action="store_true",
+        help="deduplicate identical or similar questions across files",
+    )
+    grep_parser.add_argument(
+        "-l",
+        "--files-with-matches",
+        action="store_true",
+        help="print only filenames of matching files",
+    )
+    grep_parser.add_argument(
+        "-c",
+        "--count",
+        action="store_true",
+        help="print count of matching questions",
+    )
+    grep_parser.add_argument(
+        "--table",
+        "--summary",
+        action="store_true",
+        dest="summary",
+        help="display matching questions in a summary table",
+    )
+    grep_parser.add_argument(
+        "-o",
+        "--output",
+        metavar="FILE",
+        help="write matching YAML questions to a file instead of stdout",
+    )
+    grep_parser.add_argument(
+        "--no-provenance",
+        action="store_true",
+        help="omit provenance comments (# file: <Q#>) from YAML output",
+    )
+    grep_parser.add_argument(
+        "-r",
+        "--recursive",
+        action="store_true",
+        default=True,
+        help="recursively search subdirectories (default: True)",
+    )
+    grep_parser.add_argument(
+        "--no-recursive",
+        action="store_false",
+        dest="recursive",
+        help="do not search subdirectories",
+    )
+    grep_parser.add_argument(
+        "--wrap",
+        type=int,
+        metavar="WIDTH",
+        help="wrap Markdown fields at WIDTH characters in YAML output",
+    )
 
     fmt_parser = subparsers.add_parser(
         "fmt", help="format YAML", formatter_class=formatter
@@ -351,6 +455,11 @@ def _dispatch(args, parser):
 
         args.yaml_filename, *args.otherfiles = args.files
         return quizml.cli.diff.diff(args)
+
+    if args.command in ("grep", "search"):
+        from quizml.cli.grep import run_grep
+
+        return run_grep(args)
 
     if args.command == "fmt":
         import quizml.cli.format
