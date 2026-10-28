@@ -8,13 +8,15 @@ from time import sleep
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
+from quizml.build.cleanup import get_cleanup_candidates
 from quizml.build.compiler import (
     compile_cmd_target,
     compile_quiz,
     compile_target,
     resolve_output_path,
 )
-from quizml.cli.errorhandler import err_console
+from quizml.build.config import load_config
+from quizml.cli.errorhandler import err_console, print_error
 from quizml.cli.livereload import LiveReloadServer
 from quizml.cli.ui import (
     add_hyperlinks,
@@ -22,7 +24,7 @@ from quizml.cli.ui import (
     print_stats_table,
     print_table_ouputs,
 )
-from quizml.exceptions import QuizMLConfigError
+from quizml.exceptions import QuizMLConfigError, QuizMLError
 
 
 def compile(args, live_reload=None):
@@ -73,20 +75,54 @@ def compile(args, live_reload=None):
     return build_result.ok
 
 
+def _collect_ignored_paths(yaml_filename, config_path=None):
+    """Collect absolute string paths of all target outputs and sidecars to ignore in watch mode."""
+    if not yaml_filename or yaml_filename == "-":
+        return set()
+    full_path = pathlib.Path(os.path.abspath(yaml_filename))
+    ignored = set()
+    try:
+        config = load_config(config_path, yaml_filename=str(full_path))
+        for p in get_cleanup_candidates(
+            str(full_path), config.get("targets", [])
+        ):
+            ignored.add(str(p))
+            ignored.add(str(p.resolve()))
+    except Exception:
+        pass
+    return ignored
+
+
 def compile_on_change(args, live_reload=None):
     """Re-compile targets if input QuizML YAML or template files change on disk."""
     waitingtxt = "\n...waiting for a file change to re-compile the document...\n "
     err_console.print(waitingtxt)
 
     full_yaml_path = os.path.abspath(args.yaml_filename)
+    full_yaml_resolved = str(pathlib.Path(full_yaml_path).resolve())
+    watch_dir = pathlib.Path(full_yaml_path).parent
     rebuild_event = threading.Event()
     watched_exts = {".yaml", ".yml", ".j2", ".cfg", ".json", ".css", ".tex"}
+    ignored_paths = _collect_ignored_paths(
+        args.yaml_filename, getattr(args, "config", None)
+    )
 
     def _should_trigger(path):
         abs_path = os.path.abspath(path)
-        if abs_path == full_yaml_path:
+        resolved_path = str(pathlib.Path(abs_path).resolve())
+        if abs_path in ignored_paths or resolved_path in ignored_paths:
+            return False
+        p = pathlib.Path(abs_path)
+        try:
+            rel_parts = p.relative_to(watch_dir).parts
+            if any(part.startswith(".") for part in rel_parts):
+                return False
+        except ValueError:
+            if p.name.startswith("."):
+                return False
+        if abs_path == full_yaml_path or resolved_path == full_yaml_resolved:
             return True
-        return pathlib.Path(abs_path).suffix.lower() in watched_exts
+        return p.suffix.lower() in watched_exts
 
     class Handler(FileSystemEventHandler):
         def on_modified(self, event):
@@ -98,9 +134,7 @@ def compile_on_change(args, live_reload=None):
                 rebuild_event.set()
 
     observer = Observer()
-    observer.schedule(
-        Handler(), str(pathlib.Path(full_yaml_path).parent), recursive=True
-    )
+    observer.schedule(Handler(), str(watch_dir), recursive=True)
     observer.start()
 
     try:
@@ -113,7 +147,15 @@ def compile_on_change(args, live_reload=None):
                 err_console.print(
                     "[bold yellow]Change detected, re-compiling...[/bold yellow]"
                 )
-                compile(args, live_reload=live_reload)
+                try:
+                    compile(args, live_reload=live_reload)
+                    ignored_paths.update(
+                        _collect_ignored_paths(
+                            args.yaml_filename, getattr(args, "config", None)
+                        )
+                    )
+                except QuizMLError as err:
+                    print_error(err)
                 err_console.print(waitingtxt)
 
     except KeyboardInterrupt:

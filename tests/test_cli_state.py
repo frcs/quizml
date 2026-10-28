@@ -102,3 +102,128 @@ def test_build_command_injects_texinputs(tmp_path):
     passed_env = run.call_args.kwargs["env"]
     assert str(template_dir.resolve()) in passed_env["TEXINPUTS"]
 
+
+def test_watch_mode_ignores_target_outputs_and_sidecars(tmp_path, monkeypatch):
+    class TrackingEvent:
+        def __init__(self):
+            self.set_called = False
+
+        def set(self):
+            self.set_called = True
+
+        def clear(self):
+            self.set_called = False
+
+        def wait(self, timeout=None):
+            raise KeyboardInterrupt
+
+    tracker = TrackingEvent()
+    monkeypatch.setattr(compile_cli.threading, "Event", lambda: tracker)
+
+    tracker_handler = None
+
+    class CaptureObserver:
+        def schedule(self, handler, path, recursive=False):
+            nonlocal tracker_handler
+            tracker_handler = handler
+
+        def start(self):
+            pass
+
+        def stop(self):
+            pass
+
+        def join(self):
+            pass
+
+    monkeypatch.setattr(compile_cli, "Observer", CaptureObserver)
+
+    yaml_path = tmp_path / "midterm.yaml"
+    yaml_path.write_text("title: Midterm\n")
+
+    compile_cli.compile_on_change(type("Args", (), {"yaml_filename": str(yaml_path)})())
+    assert tracker_handler is not None
+
+    def make_event(path):
+        return type("FileEvent", (), {"is_directory": False, "src_path": str(path), "dest_path": str(path)})()
+
+    # Ignored outputs
+    for output_name in [
+        "midterm.tex",
+        "midterm.solutions.tex",
+        "midterm.pdf",
+        "midterm.aux",
+        "midterm.log",
+        "midterm.fls",
+        "midterm.fdb_latexmk",
+        ".git/config",
+        ".#midterm.yaml",
+        ".midterm.yaml.swp",
+    ]:
+        tracker.clear()
+        tracker_handler.on_modified(make_event(tmp_path / output_name))
+        assert not tracker.set_called, f"Expected {output_name} to be ignored"
+
+    # Valid inputs that SHOULD trigger
+    for input_name in [
+        "midterm.yaml",
+        "questions.yaml",
+        "bank/q1.yml",
+        "math-preamble.tex",
+        "template.j2",
+        "quizml.cfg",
+    ]:
+        tracker.clear()
+        tracker_handler.on_modified(make_event(tmp_path / input_name))
+        assert tracker.set_called, f"Expected {input_name} to trigger rebuild"
+
+
+def test_watch_mode_handles_compile_errors_without_crashing(tmp_path, monkeypatch):
+    class FakeObserver:
+        def schedule(self, handler, path, recursive=False):
+            pass
+
+        def start(self):
+            pass
+
+        def stop(self):
+            pass
+
+        def join(self):
+            pass
+
+    iterations = 0
+
+    class LoopEvent:
+        def wait(self, timeout=None):
+            nonlocal iterations
+            iterations += 1
+            if iterations > 2:
+                raise KeyboardInterrupt
+            return True
+
+        def clear(self):
+            pass
+
+    monkeypatch.setattr(compile_cli, "Observer", FakeObserver)
+    monkeypatch.setattr(compile_cli.threading, "Event", LoopEvent)
+    monkeypatch.setattr(compile_cli, "sleep", lambda _: None)
+
+    printed_errors = []
+    from quizml.exceptions import QuizMLBuildError
+    monkeypatch.setattr(compile_cli, "print_error", lambda err: printed_errors.append(err))
+
+    def failing_compile(args, live_reload=None):
+        raise QuizMLBuildError("Simulated build error")
+
+    monkeypatch.setattr(compile_cli, "compile", failing_compile)
+
+    yaml_path = tmp_path / "quiz.yaml"
+    yaml_path.write_text("title: Broken Quiz\n")
+
+    compile_cli.compile_on_change(type("Args", (), {"yaml_filename": str(yaml_path)})())
+
+    assert len(printed_errors) == 2
+    assert "Simulated build error" in str(printed_errors[0])
+
+
