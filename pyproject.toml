@@ -76,6 +76,7 @@ line-ending = "auto"
 [dependency-groups]
 dev = [
     "pytest>=8.3.5",
+    "ruff>=0.17.3",
 ]
 
 [tool.setuptools.package-data]
