@@ -25,9 +25,7 @@ def convert_svg_to_pdf(svg_path, pdf_path, converter=None):
 
         if isinstance(converter, str):
             if "{input}" in converter or "{output}" in converter:
-                cmd = shlex.split(
-                    converter.format(input=svg_path, output=pdf_path)
-                )
+                cmd = shlex.split(converter.format(input=svg_path, output=pdf_path))
             elif converter == "rsvg-convert":
                 cmd = ["rsvg-convert", "-f", "pdf", "-o", pdf_path, svg_path]
             elif converter == "inkscape":
@@ -35,7 +33,9 @@ def convert_svg_to_pdf(svg_path, pdf_path, converter=None):
             else:
                 cmd = [*shlex.split(converter), svg_path, pdf_path]
         else:
-            cmd = [str(part).format(input=svg_path, output=pdf_path) for part in converter]
+            cmd = [
+                str(part).format(input=svg_path, output=pdf_path) for part in converter
+            ]
     elif shutil.which("rsvg-convert"):
         cmd = ["rsvg-convert", "-f", "pdf", "-o", pdf_path, svg_path]
     elif shutil.which("inkscape"):
@@ -195,9 +195,7 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
         return token.content.strip()
 
     def render_image_with_width(self, token) -> str:
-        kwargs = (
-            {"svg_converter": self.svg_converter} if self.svg_converter else {}
-        )
+        kwargs = {"svg_converter": self.svg_converter} if self.svg_converter else {}
         src = resolve_image_path(
             token.src,
             self.base_dir,
@@ -217,9 +215,7 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
     def render_image(self, token):
         original_src = token.src
         try:
-            kwargs = (
-                {"svg_converter": self.svg_converter} if self.svg_converter else {}
-            )
+            kwargs = {"svg_converter": self.svg_converter} if self.svg_converter else {}
             token.src = resolve_image_path(
                 token.src,
                 self.base_dir,

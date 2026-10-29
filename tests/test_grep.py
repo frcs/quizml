@@ -146,6 +146,7 @@ def test_cli_grep_wildcard_and_empty_pattern(sample_quiz_dir, capsys):
     # Search with explicit wildcard "*"
     args = parser.parse_args(["search", "-t", "mc", "-i", "*", str(sample_quiz_dir)])
     from quizml.cli.grep import run_grep
+
     ret = run_grep(args)
     assert ret is True
     captured = capsys.readouterr()
@@ -161,7 +162,9 @@ def test_cli_grep_wildcard_and_empty_pattern(sample_quiz_dir, capsys):
     assert "What is backpropagation?" not in captured_no_pat.out
 
     # Search with -e / --regexp option
-    args_regexp = parser.parse_args(["search", "-e", "activations-VG", str(sample_quiz_dir)])
+    args_regexp = parser.parse_args(
+        ["search", "-e", "activations-VG", str(sample_quiz_dir)]
+    )
     ret_regexp = run_grep(args_regexp)
     assert ret_regexp is True
     captured_regexp = capsys.readouterr()
@@ -173,6 +176,7 @@ def test_cli_grep_stdout(sample_quiz_dir, capsys):
     args = parser.parse_args(["grep", "activations-VG", str(sample_quiz_dir)])
 
     from quizml.cli.grep import run_grep
+
     ret = run_grep(args)
     assert ret is True
 
@@ -186,6 +190,7 @@ def test_cli_grep_files_with_matches(sample_quiz_dir, capsys):
     args = parser.parse_args(["grep", "-l", "backpropagation", str(sample_quiz_dir)])
 
     from quizml.cli.grep import run_grep
+
     ret = run_grep(args)
     assert ret is True
 
@@ -201,6 +206,7 @@ def test_cli_grep_count(sample_quiz_dir, capsys):
     args = parser.parse_args(["grep", "-c", "backpropagation", str(sample_quiz_dir)])
 
     from quizml.cli.grep import run_grep
+
     ret = run_grep(args)
     assert ret is True
 
@@ -211,9 +217,12 @@ def test_cli_grep_count(sample_quiz_dir, capsys):
 
 def test_cli_grep_table(sample_quiz_dir, capsys):
     parser = build_parser()
-    args = parser.parse_args(["grep", "--table", "vanishing gradient", str(sample_quiz_dir)])
+    args = parser.parse_args(
+        ["grep", "--table", "vanishing gradient", str(sample_quiz_dir)]
+    )
 
     from quizml.cli.grep import run_grep
+
     ret = run_grep(args)
     assert ret is True
 
@@ -224,9 +233,12 @@ def test_cli_grep_table(sample_quiz_dir, capsys):
 def test_cli_grep_output_file(sample_quiz_dir, tmp_path):
     out_file = tmp_path / "matched.yaml"
     parser = build_parser()
-    args = parser.parse_args(["grep", "activations-VG", str(sample_quiz_dir), "-o", str(out_file)])
+    args = parser.parse_args(
+        ["grep", "activations-VG", str(sample_quiz_dir), "-o", str(out_file)]
+    )
 
     from quizml.cli.grep import run_grep
+
     ret = run_grep(args)
     assert ret is True
     assert out_file.exists()
@@ -235,7 +247,9 @@ def test_cli_grep_output_file(sample_quiz_dir, tmp_path):
 
 
 def test_cli_grep_exit_code_zero_on_match(sample_quiz_dir, monkeypatch):
-    monkeypatch.setattr("sys.argv", ["quizml", "grep", "backpropagation", str(sample_quiz_dir)])
+    monkeypatch.setattr(
+        "sys.argv", ["quizml", "grep", "backpropagation", str(sample_quiz_dir)]
+    )
     # main() exits on error, or returns None / finishes on 0
     try:
         main()
@@ -244,7 +258,9 @@ def test_cli_grep_exit_code_zero_on_match(sample_quiz_dir, monkeypatch):
 
 
 def test_cli_grep_exit_code_one_on_no_match(sample_quiz_dir, monkeypatch):
-    monkeypatch.setattr("sys.argv", ["quizml", "grep", "nonexistent_xyz", str(sample_quiz_dir)])
+    monkeypatch.setattr(
+        "sys.argv", ["quizml", "grep", "nonexistent_xyz", str(sample_quiz_dir)]
+    )
     with pytest.raises(SystemExit) as exc_info:
         main()
     assert exc_info.value.code == 1
@@ -272,4 +288,3 @@ def test_cli_grep_syntax_highlighting_on_tty(sample_quiz_dir, monkeypatch):
     assert ret is True
     assert len(printed_syntax) == 1
     assert printed_syntax[0].lexer.name.lower() == "yaml"
-

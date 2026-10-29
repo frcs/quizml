@@ -18,11 +18,7 @@ class QuizDocument(dict):
 
     def __init__(self, mapping=None, *, schema=None, **kwargs):
         super().__init__(mapping or {}, **kwargs)
-        self.schema = (
-            schema
-            if schema is not None
-            else getattr(mapping, "schema", None)
-        )
+        self.schema = schema if schema is not None else getattr(mapping, "schema", None)
 
     @property
     def header(self) -> dict:

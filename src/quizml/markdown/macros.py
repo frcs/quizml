@@ -178,17 +178,31 @@ def preprocess_latex_for_mathml(latex_str: str) -> str:
         pos = text_start + len(replacement)
 
     # 2. Convert align, alignat, flalign, gather, multline, split environments to matrix
-    latex_str = re.sub(r"\\begin\{(?:alignat\*?)\}\s*\{[^}]*\}", r"\\begin{matrix}", latex_str)
-    latex_str = re.sub(r"\\begin\{(?:align\*?|flalign\*?|gather\*?|multline\*?|split\*?)\}", r"\\begin{matrix}", latex_str)
-    latex_str = re.sub(r"\\end\{(?:alignat\*?|align\*?|flalign\*?|gather\*?|multline\*?|split\*?)\}", r"\\end{matrix}", latex_str)
+    latex_str = re.sub(
+        r"\\begin\{(?:alignat\*?)\}\s*\{[^}]*\}", r"\\begin{matrix}", latex_str
+    )
+    latex_str = re.sub(
+        r"\\begin\{(?:align\*?|flalign\*?|gather\*?|multline\*?|split\*?)\}",
+        r"\\begin{matrix}",
+        latex_str,
+    )
+    latex_str = re.sub(
+        r"\\end\{(?:alignat\*?|align\*?|flalign\*?|gather\*?|multline\*?|split\*?)\}",
+        r"\\end{matrix}",
+        latex_str,
+    )
 
     # 3. If matrix environment is present, clean alignment ampersands
     if r"\begin{matrix}" in latex_str:
         # Collapse multiple & to single &
         latex_str = re.sub(r"&+", "&", latex_str)
         # Strip leading & at start of row (after \begin{matrix} or after \\)
-        latex_str = re.sub(r"(\\begin\{matrix\}\s*|\\\\\s*)&", lambda m: m.group(1), latex_str)
+        latex_str = re.sub(
+            r"(\\begin\{matrix\}\s*|\\\\\s*)&", lambda m: m.group(1), latex_str
+        )
         # Strip trailing & before \\ or \end{matrix}
-        latex_str = re.sub(r"&\s*(\\\\|\\end\{matrix\})", lambda m: m.group(1), latex_str)
+        latex_str = re.sub(
+            r"&\s*(\\\\|\\end\{matrix\})", lambda m: m.group(1), latex_str
+        )
 
     return latex_str

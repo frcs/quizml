@@ -105,10 +105,13 @@ def align_omml_matrices(omml: str, is_alignment_env: bool = False) -> str:
             has_normal_text = any("<m:nor/>" in cell for cell in cells)
 
             if c_idx == 0:
-                if is_alignment_env or (max_cols > 1 and any(
-                    re.search(r"<m:t>\s*(=|&lt;|&gt;|≤|≥|≈|≠|≡)", c)
-                    for c in (col_cells[1] if len(col_cells) > 1 else [])
-                )):
+                if is_alignment_env or (
+                    max_cols > 1
+                    and any(
+                        re.search(r"<m:t>\s*(=|&lt;|&gt;|≤|≥|≈|≠|≡)", c)
+                        for c in (col_cells[1] if len(col_cells) > 1 else [])
+                    )
+                ):
                     alignments.append("right")
                 else:
                     alignments.append("center")
@@ -124,11 +127,11 @@ def align_omml_matrices(omml: str, is_alignment_env: bool = False) -> str:
             for align in alignments
         )
         mpr = (
-            f'<m:mPr>'
+            f"<m:mPr>"
             f'<m:baseJc m:val="center"/>'
             f'<m:plcHide m:val="1"/>'
-            f'<m:mcs>{mc_elements}</m:mcs>'
-            f'</m:mPr>'
+            f"<m:mcs>{mc_elements}</m:mcs>"
+            f"</m:mPr>"
         )
 
         return f"<m:m>{mpr}{full_content}</m:m>"
@@ -185,7 +188,12 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
 
     def render_math_inline(self, token):
         clean = strip_math_delimiters(token.content)
-        is_alignment = bool(re.search(r"\\begin\{(?:align|alignat|flalign|gather|multline|split|aligned)", clean))
+        is_alignment = bool(
+            re.search(
+                r"\\begin\{(?:align|alignat|flalign|gather|multline|split|aligned)",
+                clean,
+            )
+        )
         expanded = self.macro_expander.expand(clean) if self.macro_expander else clean
         preprocessed = preprocess_latex_for_mathml(expanded)
         try:
@@ -194,13 +202,20 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
             omml = mathml2omml.convert(mml)
             return align_omml_matrices(omml, is_alignment_env=is_alignment)
         except Exception as err:
-            logging.debug(f"Failed to convert inline math to OMML: {token.content} ({err})")
+            logging.debug(
+                f"Failed to convert inline math to OMML: {token.content} ({err})"
+            )
             escaped = xml_escape(token.content)
             return f'<w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">{escaped}</w:t></w:r>'
 
     def render_math_display(self, token):
         clean = strip_math_delimiters(token.content)
-        is_alignment = bool(re.search(r"\\begin\{(?:align|alignat|flalign|gather|multline|split|aligned)", clean))
+        is_alignment = bool(
+            re.search(
+                r"\\begin\{(?:align|alignat|flalign|gather|multline|split|aligned)",
+                clean,
+            )
+        )
         expanded = self.macro_expander.expand(clean) if self.macro_expander else clean
         preprocessed = preprocess_latex_for_mathml(expanded)
         try:
@@ -210,10 +225,12 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
             aligned_omml = align_omml_matrices(omml, is_alignment_env=is_alignment)
             return (
                 '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="120" w:after="120" w:line="360" w:lineRule="auto"/></w:pPr>'
-                f'<m:oMathPara>{aligned_omml}</m:oMathPara></w:p>'
+                f"<m:oMathPara>{aligned_omml}</m:oMathPara></w:p>"
             )
         except Exception as err:
-            logging.debug(f"Failed to convert display math to OMML: {token.content} ({err})")
+            logging.debug(
+                f"Failed to convert display math to OMML: {token.content} ({err})"
+            )
             escaped = xml_escape(token.content)
             return (
                 '<w:p><w:pPr><w:jc w:val="center"/></w:pPr>'
@@ -225,10 +242,12 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
         if not inner.strip():
             return ""
         # If inner is a standalone image marker, wrap in centered paragraph
-        if inner.strip().startswith("<!--QUIZML_IMG:") and inner.strip().endswith("-->"):
+        if inner.strip().startswith("<!--QUIZML_IMG:") and inner.strip().endswith(
+            "-->"
+        ):
             return (
                 '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="120" w:after="120"/></w:pPr>'
-                f'{inner}</w:p>'
+                f"{inner}</w:p>"
             )
         # If inner already contains block elements (e.g. display math)
         if inner.strip().startswith("<w:p"):
@@ -236,7 +255,7 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
         return (
             '<w:p><w:pPr><w:spacing w:line="360" w:lineRule="auto"/>'
             '<w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="24"/></w:rPr></w:pPr>'
-            f'{inner}</w:p>'
+            f"{inner}</w:p>"
         )
 
     def render_heading(self, token):
@@ -257,7 +276,7 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
         return (
             '<w:p><w:pPr><w:pBdr><w:left w:val="single" w:sz="12" w:space="4" w:color="CCCCCC"/></w:pPr>'
             '<w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/><w:spacing w:line="240" w:lineRule="auto"/></w:pPr>'
-            f'{runs}</w:p>'
+            f"{runs}</w:p>"
         )
 
     def render_list(self, token):
@@ -268,7 +287,12 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
             item_inner = self.render(item)
             # Remove enclosing <w:p> if present to inject list styling
             if item_inner.startswith("<w:p>") or item_inner.startswith("<w:p "):
-                item_inner = re.sub(r"^<w:p[^>]*>(?:<w:pPr>.*?</w:pPr>)?", "", item_inner, flags=re.DOTALL)
+                item_inner = re.sub(
+                    r"^<w:p[^>]*>(?:<w:pPr>.*?</w:pPr>)?",
+                    "",
+                    item_inner,
+                    flags=re.DOTALL,
+                )
                 item_inner = re.sub(r"</w:p>$", "", item_inner, flags=re.DOTALL)
             items.append(
                 f'<w:p><w:pPr><w:ind w:left="720"/><w:spacing w:line="300" w:lineRule="auto"/>'
@@ -290,7 +314,11 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
     def render_table(self, token):
         align_map = {None: "left", -1: "left", 0: "center", 1: "right"}
         alignments = getattr(token.header, "row_align", []) if token.header else []
-        col_count = len(token.header.children) if token.header else (len(token.children[0].children) if token.children else 1)
+        col_count = (
+            len(token.header.children)
+            if token.header
+            else (len(token.children[0].children) if token.children else 1)
+        )
 
         grid_cols = "".join("<w:gridCol/>" for _ in range(col_count))
         rows_xml = []
@@ -298,42 +326,48 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
         if token.header:
             header_cells = []
             for j, cell in enumerate(token.header.children):
-                align = align_map.get(alignments[j] if j < len(alignments) else None, "left")
+                align = align_map.get(
+                    alignments[j] if j < len(alignments) else None, "left"
+                )
                 cell_content = self.render_inner(cell)
                 # Ensure text in header is bold
                 cell_content = _add_run_prop(cell_content, "<w:b/>")
                 header_cells.append(
                     f'<w:tc><w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="EFEFEF"/></w:tcPr>'
                     f'<w:p><w:pPr><w:jc w:val="{align}"/><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>'
-                    f'{cell_content}</w:p></w:tc>'
+                    f"{cell_content}</w:p></w:tc>"
                 )
-            rows_xml.append(f'<w:tr><w:trPr><w:tblHeader/></w:trPr>{"".join(header_cells)}</w:tr>')
+            rows_xml.append(
+                f"<w:tr><w:trPr><w:tblHeader/></w:trPr>{''.join(header_cells)}</w:tr>"
+            )
 
         for row in token.children:
             row_cells = []
             for j, cell in enumerate(row.children):
-                align = align_map.get(alignments[j] if j < len(alignments) else None, "left")
+                align = align_map.get(
+                    alignments[j] if j < len(alignments) else None, "left"
+                )
                 cell_content = self.render_inner(cell)
                 row_cells.append(
                     f'<w:tc><w:p><w:pPr><w:jc w:val="{align}"/><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>'
-                    f'{cell_content}</w:p></w:tc>'
+                    f"{cell_content}</w:p></w:tc>"
                 )
-            rows_xml.append(f'<w:tr>{"".join(row_cells)}</w:tr>')
+            rows_xml.append(f"<w:tr>{''.join(row_cells)}</w:tr>")
 
         return (
-            '<w:tbl>'
+            "<w:tbl>"
             '<w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders>'
             '<w:top w:val="single" w:sz="6" w:space="0" w:color="B0B0B0"/>'
             '<w:bottom w:val="single" w:sz="6" w:space="0" w:color="B0B0B0"/>'
             '<w:insideH w:val="single" w:sz="4" w:space="0" w:color="D0D0D0"/>'
             '<w:left w:val="none"/><w:right w:val="none"/><w:insideV w:val="none"/>'
-            '</w:tblBorders>'
+            "</w:tblBorders>"
             '<w:tblCellMar><w:top w:w="120" w:type="dxa"/><w:bottom w:w="120" w:type="dxa"/>'
             '<w:left w:w="180" w:type="dxa"/><w:right w:w="180" w:type="dxa"/></w:tblCellMar>'
-            '</w:tblPr>'
-            f'<w:tblGrid>{grid_cols}</w:tblGrid>'
-            f'{"".join(rows_xml)}'
-            '</w:tbl>'
+            "</w:tblPr>"
+            f"<w:tblGrid>{grid_cols}</w:tblGrid>"
+            f"{''.join(rows_xml)}"
+            "</w:tbl>"
         )
 
     def render_table_row(self, token):
@@ -385,7 +419,11 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
                 cells_xml = []
                 for c in cells:
                     cell_text = xml_escape(c.get_text().strip())
-                    shd = '<w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="EFEFEF"/></w:tcPr>' if is_header else ""
+                    shd = (
+                        '<w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="EFEFEF"/></w:tcPr>'
+                        if is_header
+                        else ""
+                    )
                     b_tag = "<w:b/>" if is_header else ""
                     cells_xml.append(
                         f'<w:tc>{shd}<w:p><w:pPr><w:jc w:val="left"/><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>'
@@ -393,22 +431,22 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
                         f'<w:t xml:space="preserve">{cell_text}</w:t></w:r></w:p></w:tc>'
                     )
                 tr_header = "<w:trPr><w:tblHeader/></w:trPr>" if is_header else ""
-                rows_xml.append(f'<w:tr>{tr_header}{"".join(cells_xml)}</w:tr>')
+                rows_xml.append(f"<w:tr>{tr_header}{''.join(cells_xml)}</w:tr>")
 
             tbl_elements.append(
-                '<w:tbl>'
+                "<w:tbl>"
                 '<w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders>'
                 '<w:top w:val="single" w:sz="6" w:space="0" w:color="B0B0B0"/>'
                 '<w:bottom w:val="single" w:sz="6" w:space="0" w:color="B0B0B0"/>'
                 '<w:insideH w:val="single" w:sz="4" w:space="0" w:color="D0D0D0"/>'
                 '<w:left w:val="none"/><w:right w:val="none"/><w:insideV w:val="none"/>'
-                '</w:tblBorders>'
+                "</w:tblBorders>"
                 '<w:tblCellMar><w:top w:w="120" w:type="dxa"/><w:bottom w:w="120" w:type="dxa"/>'
                 '<w:left w:w="180" w:type="dxa"/><w:right w:w="180" w:type="dxa"/></w:tblCellMar>'
-                '</w:tblPr>'
-                f'<w:tblGrid>{grid_cols}</w:tblGrid>'
-                f'{"".join(rows_xml)}'
-                '</w:tbl>'
+                "</w:tblPr>"
+                f"<w:tblGrid>{grid_cols}</w:tblGrid>"
+                f"{''.join(rows_xml)}"
+                "</w:tbl>"
             )
         return "".join(tbl_elements)
 

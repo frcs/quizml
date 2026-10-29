@@ -428,5 +428,3 @@ def test_default_config_latex_solutions_dependency_chain():
         "latex-solutions",
         "pdf-solutions",
     ]
-
-

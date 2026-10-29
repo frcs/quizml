@@ -204,9 +204,7 @@ def clean_all_q_comments(data, *, strip_blank_lines=True):
                     for c_idx in range(len(comm_list_list)):
                         if isinstance(comm_list_list[c_idx], list):
                             comm_list_list[c_idx] = [
-                                t
-                                for t in comm_list_list[c_idx]
-                                if not _drop(t)
+                                t for t in comm_list_list[c_idx] if not _drop(t)
                             ]
                         elif _drop(comm_list_list[c_idx]):
                             comm_list_list[c_idx] = None

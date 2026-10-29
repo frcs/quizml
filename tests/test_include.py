@@ -481,9 +481,7 @@ def test_include_rejects_unknown_keys(tmp_path: Path):
 
 
 def test_loads_converts_scalar_strings_to_plain_str():
-    doc = loads(
-        "title: Plain\n---\n- type: essay\n  question: Hello\n", validate=False
-    )
+    doc = loads("title: Plain\n---\n- type: essay\n  question: Hello\n", validate=False)
     assert type(doc["header"]["title"]) is str
     assert type(doc["questions"][0]["type"]) is str
 
@@ -559,16 +557,17 @@ def test_include_select_by_id_and_index(tmp_path: Path):
 
     doc = load(str(exam), validate=True)
     assert [q["id"] for q in doc["questions"]] == ["q-gamma", "q-alpha"]
-    assert count_included_questions(
-        {"_include": "bank.yaml", "select": ["q-gamma", 1]}, base_dir=tmp_path
-    ) == 2
+    assert (
+        count_included_questions(
+            {"_include": "bank.yaml", "select": ["q-gamma", 1]}, base_dir=tmp_path
+        )
+        == 2
+    )
 
     # Also verify quizml sample expands select:
     sampled = tmp_path / "sampled.yaml"
     run_sample(
-        SimpleNamespace(
-            file=str(exam), output=str(sampled), seed=None, quiet=True
-        )
+        SimpleNamespace(file=str(exam), output=str(sampled), seed=None, quiet=True)
     )
     sampled_doc = load(str(sampled), validate=True)
     assert [q["id"] for q in sampled_doc["questions"]] == ["q-gamma", "q-alpha"]
@@ -581,4 +580,3 @@ def test_include_select_by_id_and_index(tmp_path: Path):
     )
     with pytest.raises(QuizMLYamlSyntaxError, match="nonexistent-id"):
         load(str(bad_exam), validate=True)
-

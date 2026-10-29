@@ -100,9 +100,7 @@ def _copy_templates(dest_dir, files_to_copy=None, *, force=False):
             os.makedirs(os.path.dirname(dst_path), exist_ok=True)
             shutil.copy2(src_path, dst_path)
 
-        err_console.print(
-            f"Initialized {', '.join(files_to_copy)} in {dest_dir}"
-        )
+        err_console.print(f"Initialized {', '.join(files_to_copy)} in {dest_dir}")
         return True
     except OSError as e:
         raise QuizMLConfigError(f"Could not copy templates to {dest_dir}: {e}") from e

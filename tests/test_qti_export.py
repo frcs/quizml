@@ -218,9 +218,7 @@ _qti:
         encoding="utf-8",
     )
 
-    args = argparse.Namespace(
-        config=None, target=["qti"], yaml_filename=str(quiz_file)
-    )
+    args = argparse.Namespace(config=None, target=["qti"], yaml_filename=str(quiz_file))
     config = get_config(args)
     yaml_doc = load(str(quiz_file), validate=False)
 
@@ -249,9 +247,7 @@ def test_qti_export_with_image_and_backward_compatibility(tmp_path):
     quiz_path = Path(__file__).parent.parent / "examples" / "quiz1.yaml"
     yaml_doc = load(str(quiz_path), validate=True)
 
-    args = argparse.Namespace(
-        config=None, target=["qti"], yaml_filename=str(quiz_path)
-    )
+    args = argparse.Namespace(config=None, target=["qti"], yaml_filename=str(quiz_path))
     config = get_config(args)
     targets = get_target_list(args, config, yaml_doc)
     assert len(targets) == 1

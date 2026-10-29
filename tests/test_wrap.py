@@ -107,4 +107,3 @@ def test_wrap_inline_code_with_dollar_and_image_width():
     )
     wrapped_img = wrap_markdown(img_src, width=55)
     assert "![Diagram label](figures/diagram.png){width=0.5\\linewidth}" in wrapped_img
-

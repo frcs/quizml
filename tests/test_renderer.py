@@ -148,7 +148,9 @@ def test_custom_html_postprocessor(tmp_path):
         {
             "markdown": {
                 "format": "html",
-                "html_postprocess": lambda html, opts: f"<div class='q'>{html.strip()}</div>",
+                "html_postprocess": lambda html, opts: (
+                    f"<div class='q'>{html.strip()}</div>"
+                ),
             }
         }
     )
@@ -231,5 +233,3 @@ def test_docx_renderer_receives_configured_jinja_env(monkeypatch):
     assert out == b"PK-fake-docx"
     assert "math" in captured["jinja_env"].globals
     assert "shout" in captured["jinja_env"].filters
-
-

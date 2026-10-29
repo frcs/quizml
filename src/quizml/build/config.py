@@ -186,9 +186,7 @@ def load_config(config_path=None, *, yaml_filename=None, warn_fn=None):
     config["texinputs"] = resolved_texinputs
 
     if config.get("quizml_version"):
-        check_quizml_version(
-            config["quizml_version"], config_file, warn_fn=warn_fn
-        )
+        check_quizml_version(config["quizml_version"], config_file, warn_fn=warn_fn)
 
     return config
 
@@ -197,9 +195,7 @@ def resolve_targets(config, yaml_data, *, target_names=None):
     """Resolve and topologically order target templates from `config['targets']`."""
     _validate_targets_list(config)
 
-    header_data = (
-        yaml_data.get("header", {}) if isinstance(yaml_data, dict) else {}
-    )
+    header_data = yaml_data.get("header", {}) if isinstance(yaml_data, dict) else {}
     subs, inputdir, _ = build_target_substitutions(
         config.get("yaml_filename"), header_data
     )

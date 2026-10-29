@@ -23,9 +23,7 @@ def render(
 ):
     """Render a QuizML document into text or binary output using the appropriate backend."""
     header = yaml_data["header"]
-    paths = yaml_data.get("paths") or {
-        "figure_dirs": header.get("_figures_path", [])
-    }
+    paths = yaml_data.get("paths") or {"figure_dirs": header.get("_figures_path", [])}
     context = {
         "header": header,
         "questions": yaml_data["questions"],
@@ -60,9 +58,7 @@ def render(
         )
 
     kwargs = {"jinja_filters": jinja_filters} if jinja_filters else {}
-    return render_template(
-        context, str_template, template_search_dirs, **kwargs
-    )
+    return render_template(context, str_template, template_search_dirs, **kwargs)
 
 
 __all__ = [

@@ -348,6 +348,3 @@ def test_build_eq_dict_mathml_with_macros():
     q2_math = res[r"##Display##$$\norm{\bx} \le 1$$"]
     assert "<math" in q2_math
     assert 'display="block"' in q2_math or "display='block'" in q2_math
-
-
-

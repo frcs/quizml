@@ -317,4 +317,3 @@ title: "Math and Tables Quiz"
     # XML must be valid and well-formed
     root = ET.fromstring(content)
     assert root.tag == "quiz"
-

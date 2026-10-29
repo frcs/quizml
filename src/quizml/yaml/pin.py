@@ -125,6 +125,4 @@ def pin_yaml_text(
 
     buf = io.StringIO()
     yaml.dump_all(docs, buf)
-    return format_yaml_text(
-        buf.getvalue(), base_dir=base_dir, filename=source_label
-    )
+    return format_yaml_text(buf.getvalue(), base_dir=base_dir, filename=source_label)

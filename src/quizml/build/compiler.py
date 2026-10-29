@@ -59,8 +59,7 @@ def compile_cmd_target(target, cwd=None, tex_search_dirs=None):
     except subprocess.CalledProcessError as err:
         output = err.stderr or err.stdout or ""
         details = (
-            "\n".join(output.splitlines()[-40:])
-            or "No diagnostic output was produced."
+            "\n".join(output.splitlines()[-40:]) or "No diagnostic output was produced."
         )
         raise QuizMLBuildError(
             f"Build command failed ({err.returncode}):\n{details}"
@@ -134,9 +133,7 @@ def compile_quiz(
     warn_fn=None,
 ) -> BuildResult:
     """Headless compiler for a QuizML file."""
-    config = load_config(
-        config_path, yaml_filename=yaml_filename, warn_fn=warn_fn
-    )
+    config = load_config(config_path, yaml_filename=yaml_filename, warn_fn=warn_fn)
 
     if yaml_filename == "-":
         input_dir = pathlib.Path.cwd().resolve()
@@ -188,9 +185,7 @@ def compile_quiz(
         on_stats(yaml_data, config)
 
     try:
-        target_list = resolve_targets(
-            config, yaml_data, target_names=targets
-        )
+        target_list = resolve_targets(config, yaml_data, target_names=targets)
     except FileNotFoundError as err:
         raise QuizMLConfigError(str(err)) from err
 
@@ -201,9 +196,7 @@ def compile_quiz(
 
     results: list[TargetResult] = []
     success_list: dict[str, bool] = {}
-    explicit_targets = bool(
-        targets or yaml_data.get("header", {}).get("_targets")
-    )
+    explicit_targets = bool(targets or yaml_data.get("header", {}).get("_targets"))
 
     for target in target_list:
         if ("build_cmd" in target) and not explicit_targets:

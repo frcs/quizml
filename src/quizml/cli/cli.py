@@ -507,9 +507,7 @@ def _dispatch(args, parser):
         if not isinstance(targets, list):
             raise QuizMLConfigError("The config file must define a list of targets.")
 
-        extra_clean = (
-            {"recursive": True} if getattr(args, "recursive", False) else {}
-        )
+        extra_clean = {"recursive": True} if getattr(args, "recursive", False) else {}
         if path.is_dir() or (not path.exists() and not path.suffix):
             result = cleanup_yaml_files(
                 str(path),

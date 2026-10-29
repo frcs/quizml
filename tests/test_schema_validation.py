@@ -87,9 +87,7 @@ def test_default_schema_allows_feedback_field(tmp_path):
 def test_default_schema_does_not_depend_on_cwd_template_lookup(tmp_path, monkeypatch):
     template_dir = tmp_path / "quizml-templates"
     template_dir.mkdir()
-    (template_dir / "schema.json").write_text(
-        '{"type": "array"}', encoding="utf-8"
-    )
+    (template_dir / "schema.json").write_text('{"type": "array"}', encoding="utf-8")
     quiz_file = tmp_path / "invalid.yaml"
     quiz_file.write_text(
         "- type: unknown\n  question: Not a supported question\n",

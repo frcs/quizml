@@ -53,7 +53,10 @@ def test_nested_macro_expansion():
     """
     expander = LatexMacroExpander(preamble)
     # Nested expansion: \norm{\bx} should expand \norm and then expand \bx
-    assert expander.expand(r"\norm{\bx} \in \R") == r"\left\|\mathbf{x}\right\| \in \mathbb{R}"
+    assert (
+        expander.expand(r"\norm{\bx} \in \R")
+        == r"\left\|\mathbf{x}\right\| \in \mathbb{R}"
+    )
 
 
 def test_declare_math_operator():

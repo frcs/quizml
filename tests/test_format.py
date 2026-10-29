@@ -283,5 +283,3 @@ def test_init_local_excludes_python_scripts(tmp_path, monkeypatch):
     dest = tmp_path / "_quizml"
     assert dest.is_dir()
     assert not list(dest.glob("*.py"))
-
-

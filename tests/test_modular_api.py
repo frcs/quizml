@@ -114,8 +114,12 @@ def test_docx_cache_key_differentiates_macro_preamble():
     from quizml.markdown import MarkdownTranscoder
 
     transcoder = MarkdownTranscoder(doc)
-    d1 = transcoder.docx_dict({"fmt": "docx", "html_pre": r"\newcommand{\bx}{\mathbf{x}}"})
-    d2 = transcoder.docx_dict({"fmt": "docx", "html_pre": r"\newcommand{\bx}{\mathbb{R}}"})
+    d1 = transcoder.docx_dict(
+        {"fmt": "docx", "html_pre": r"\newcommand{\bx}{\mathbf{x}}"}
+    )
+    d2 = transcoder.docx_dict(
+        {"fmt": "docx", "html_pre": r"\newcommand{\bx}{\mathbb{R}}"}
+    )
     assert str(d1["Vector $\\bx$."]) != str(d2["Vector $\\bx$."])
 
 
@@ -138,7 +142,9 @@ title: Dispatch Test
 
     # 1. Jinja template
     tpl = tmp_path / "simple.j2"
-    tpl.write_text("<< header.title | trim >>: << questions | length >>", encoding="utf-8")
+    tpl.write_text(
+        "<< header.title | trim >>: << questions | length >>", encoding="utf-8"
+    )
     assert render(transcoded_html, tpl) == "<p>Dispatch Test</p>: 1"
 
     # 2. QTI 1.2 directory dispatch

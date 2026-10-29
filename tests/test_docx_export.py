@@ -330,18 +330,25 @@ def test_tcd_docx_editable_docsecurity(tcd_docx_template_path, tmp_path):
 
     # 3. Even if given a template artificially locked with DocSecurity 4, render_docx clears it to 0
     locked_template_path = tmp_path / "locked.docx"
-    with zipfile.ZipFile(str(tcd_docx_template_path), "r") as zin, zipfile.ZipFile(
-        str(locked_template_path), "w", compression=zipfile.ZIP_DEFLATED
-    ) as zout:
+    with (
+        zipfile.ZipFile(str(tcd_docx_template_path), "r") as zin,
+        zipfile.ZipFile(
+            str(locked_template_path), "w", compression=zipfile.ZIP_DEFLATED
+        ) as zout,
+    ):
         for item in zin.infolist():
             content = zin.read(item.filename)
             if item.filename == "docProps/app.xml":
-                content = content.replace(b"<DocSecurity>0</DocSecurity>", b"<DocSecurity>4</DocSecurity>")
+                content = content.replace(
+                    b"<DocSecurity>0</DocSecurity>", b"<DocSecurity>4</DocSecurity>"
+                )
             zout.writestr(item, content)
 
     # Verify our mock template actually has DocSecurity 4
     with zipfile.ZipFile(str(locked_template_path)) as z:
-        assert "<DocSecurity>4</DocSecurity>" in z.read("docProps/app.xml").decode("utf-8")
+        assert "<DocSecurity>4</DocSecurity>" in z.read("docProps/app.xml").decode(
+            "utf-8"
+        )
 
     # Render through render_docx
     unlocked_bytes = render_docx(
@@ -443,7 +450,11 @@ modulecode: 'EEU44C16'
 
     # 1. Student Mode
     std_bytes = render_docx(
-        {"header": doc_dict["header"], "questions": doc_dict["questions"], "solutions": False},
+        {
+            "header": doc_dict["header"],
+            "questions": doc_dict["questions"],
+            "solutions": False,
+        },
         tcd_docx_template_path,
     )
     doc_std = docx.Document(io.BytesIO(std_bytes))
@@ -470,7 +481,11 @@ modulecode: 'EEU44C16'
 
     # 2. Solutions Mode
     sol_bytes = render_docx(
-        {"header": doc_dict["header"], "questions": doc_dict["questions"], "solutions": True},
+        {
+            "header": doc_dict["header"],
+            "questions": doc_dict["questions"],
+            "solutions": True,
+        },
         tcd_docx_template_path,
     )
     doc_sol = docx.Document(io.BytesIO(sol_bytes))
@@ -509,7 +524,3 @@ midterm: true
     assert "Mark your student number below" in right_cell
     # 8 rows of digits
     assert right_cell.count("⓪ ① ② ③ ④ ⑤ ⑥ ⑦ ⑧ ⑨") == 8
-
-
-
-

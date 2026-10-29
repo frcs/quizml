@@ -67,13 +67,17 @@ def _xml_to_plain_text(val: str, sep: str = "\n") -> str:
             root = ET.fromstring(
                 f'<root xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">{val}</root>'
             )
-            p_list = [el for el in root.iter() if el.tag.endswith("}p") or el.tag == "p"]
+            p_list = [
+                el for el in root.iter() if el.tag.endswith("}p") or el.tag == "p"
+            ]
             if p_list:
                 p_texts = []
                 for p in p_list:
                     runs = []
                     for child in p.iter():
-                        if (child.tag.endswith("}t") or child.tag == "t") and child.text:
+                        if (
+                            child.tag.endswith("}t") or child.tag == "t"
+                        ) and child.text:
                             runs.append(child.text)
                         elif child.tag.endswith("}br") or child.tag == "br":
                             runs.append("\n")
@@ -109,7 +113,9 @@ def _format_instructions_xml(val: str, part=None) -> Markup:
             root = ET.fromstring(
                 f'<root xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">{text}</root>'
             )
-            p_list = [el for el in root.iter() if el.tag.endswith("}p") or el.tag == "p"]
+            p_list = [
+                el for el in root.iter() if el.tag.endswith("}p") or el.tag == "p"
+            ]
             for p in p_list:
                 runs = []
                 for child in p.iter():
@@ -188,9 +194,7 @@ def _build_exam_sheet_context(context: dict) -> dict:
             else "Mark your exam number below"
         ),
         "digit_rows": (
-            "\n".join([digit_line] * 8)
-            if is_midterm
-            else "\n".join([digit_line] * 5)
+            "\n".join([digit_line] * 8) if is_midterm else "\n".join([digit_line] * 5)
         ),
     }
 
@@ -236,11 +240,13 @@ def _build_exam_sheet_context(context: dict) -> dict:
         else:
             bubble_str = str(q_type or "question")
 
-        items.append({
-            "num": f"Q.{q_idx}",
-            "sep": "\t",
-            "bubbles": bubble_str,
-        })
+        items.append(
+            {
+                "num": f"Q.{q_idx}",
+                "sep": "\t",
+                "bubbles": bubble_str,
+            }
+        )
 
     num_items = len(items)
     if num_items > 0:
@@ -255,11 +261,13 @@ def _build_exam_sheet_context(context: dict) -> dict:
         empty_cell = {"num": "", "sep": "", "bubbles": ""}
         sheet_rows = []
         for r in range(num_rows):
-            sheet_rows.append({
-                "c1": col1[r] if r < len(col1) else empty_cell,
-                "c2": col2[r] if r < len(col2) else empty_cell,
-                "c3": col3[r] if r < len(col3) else empty_cell,
-            })
+            sheet_rows.append(
+                {
+                    "c1": col1[r] if r < len(col1) else empty_cell,
+                    "c2": col2[r] if r < len(col2) else empty_cell,
+                    "c3": col3[r] if r < len(col3) else empty_cell,
+                }
+            )
         answer_sheet_rows = sheet_rows
     else:
         answer_sheet_rows = []
@@ -333,9 +341,10 @@ def _ensure_editable_bytes(docx_bytes: bytes) -> bytes:
     if not zipfile.is_zipfile(in_buf):
         return docx_bytes
     out_buf = io.BytesIO()
-    with zipfile.ZipFile(in_buf, "r") as zin, zipfile.ZipFile(
-        out_buf, "w", compression=zipfile.ZIP_DEFLATED
-    ) as zout:
+    with (
+        zipfile.ZipFile(in_buf, "r") as zin,
+        zipfile.ZipFile(out_buf, "w", compression=zipfile.ZIP_DEFLATED) as zout,
+    ):
         for item in zin.infolist():
             name = item.filename
             if name.startswith("customXml/"):
@@ -413,7 +422,9 @@ def render(context, template_filename, jinja_filters=None):
         jinja_env.globals["math"] = math
         if jinja_filters:
             if not isinstance(jinja_filters, dict):
-                raise QuizMLConfigError("The 'jinja_filters' setting must be a mapping.")
+                raise QuizMLConfigError(
+                    "The 'jinja_filters' setting must be a mapping."
+                )
             for name, spec in jinja_filters.items():
                 jinja_env.filters[name] = _load_filter_callable(spec)
 

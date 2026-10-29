@@ -170,4 +170,3 @@ def test_yaml_schema_file_loading(tmp_path):
     )
     doc = load(str(quiz_yaml), schema_path=str(yaml_schema))
     assert doc["questions"][0]["answer"] is True
-

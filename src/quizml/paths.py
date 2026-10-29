@@ -20,9 +20,7 @@ def find_path(path, search_dirs):
         return (candidate, None) if candidate.exists() else None
 
     for index, directory in enumerate(search_dirs):
-        candidate = Path(
-            os.path.realpath(Path(directory).expanduser() / requested)
-        )
+        candidate = Path(os.path.realpath(Path(directory).expanduser() / requested))
         if candidate.exists():
             return candidate, index
     return None

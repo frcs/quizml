@@ -66,9 +66,7 @@ def create_tcd_docx_template(
     for p in doc.paragraphs:
         txt = p.text.strip()
         if txt == "Science, Technology, Engineering and Mathematics":
-            p.text = (
-                "{{ header.faculty or 'Faculty of Science, Technology, Engineering and Mathematics' }}"
-            )
+            p.text = "{{ header.faculty or 'Faculty of Science, Technology, Engineering and Mathematics' }}"
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             if p.runs:
                 p.runs[0].bold = True
@@ -82,7 +80,9 @@ def create_tcd_docx_template(
                 p.runs[0].font.name = "Calibri"
                 p.runs[0].font.size = Pt(12)
         elif txt == "Electronic and Electrical Engineering":
-            p.text = "{{ header.department or 'Electronic and Electrical Engineering' }}"
+            p.text = (
+                "{{ header.department or 'Electronic and Electrical Engineering' }}"
+            )
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             if p.runs:
                 p.runs[0].bold = True
@@ -138,9 +138,7 @@ def create_tcd_docx_template(
             row1 = tbl.rows[1]
             if len(row1.cells) > 0 and row1.cells[0].paragraphs:
                 p_yr = row1.cells[0].paragraphs[0]
-                p_yr.text = (
-                    "{{ header.programmeyearname or header.programmeyear or 'Junior Sophister' }}"
-                )
+                p_yr.text = "{{ header.programmeyearname or header.programmeyear or 'Junior Sophister' }}"
                 if p_yr.runs:
                     p_yr.runs[0].font.name = "Calibri"
                     p_yr.runs[0].font.size = Pt(12)
@@ -176,7 +174,9 @@ def create_tcd_docx_template(
             else:
                 for run in p_ftr.runs:
                     if "2026" in run.text:
-                        run.text = run.text.replace("2026", "{{ header.examyear or '2026' }}")
+                        run.text = run.text.replace(
+                            "2026", "{{ header.examyear or '2026' }}"
+                        )
 
     # 5. Locate the Page Break paragraph after cover page
     split_idx = None
@@ -187,7 +187,9 @@ def create_tcd_docx_template(
             break
 
     if split_idx is None:
-        raise ValueError("Could not find page break after cover page in source template.")
+        raise ValueError(
+            "Could not find page break after cover page in source template."
+        )
 
     # Remove all instructional placeholder paragraphs after the page break
     total_paragraphs = len(doc.paragraphs)
@@ -303,9 +305,9 @@ def create_tcd_docx_template(
         for i, w in enumerate(col_widths_grid):
             row.cells[i].width = w
 
-    grid_tbl.rows[0].cells[0].paragraphs[0].text = (
-        "{%tr for row in answer_sheet_rows %}"
-    )
+    grid_tbl.rows[0].cells[0].paragraphs[
+        0
+    ].text = "{%tr for row in answer_sheet_rows %}"
 
     for i, col_key in enumerate(["c1", "c2", "c3"]):
         p_col = grid_tbl.rows[1].cells[i].paragraphs[0]
@@ -348,7 +350,9 @@ def create_tcd_docx_template(
 
     # Question Title and Marks Header
     p_q_header = doc.add_paragraph()
-    p_q_header.paragraph_format.tab_stops.add_tab_stop(Inches(6.3), WD_TAB_ALIGNMENT.RIGHT)
+    p_q_header.paragraph_format.tab_stops.add_tab_stop(
+        Inches(6.3), WD_TAB_ALIGNMENT.RIGHT
+    )
     r_q = p_q_header.add_run("Question {{ loop.index }}.")
     r_q.bold = True
     r_q.font.name = "Calibri"
@@ -390,9 +394,7 @@ def create_tcd_docx_template(
     # Choice line in regular exam mode
     doc.add_paragraph("{%p else %}")
     p_std = doc.add_paragraph()
-    r_std = p_std.add_run(
-        "    ({{ 'abcdefghijklmnopqrstuvwxyz'[loop.index0] }})  "
-    )
+    r_std = p_std.add_run("    ({{ 'abcdefghijklmnopqrstuvwxyz'[loop.index0] }})  ")
     r_std.font.name = "Calibri"
     r_std.font.size = Pt(12)
     p_std.add_run("{{r c.values() | list | first }}")
@@ -518,9 +520,10 @@ def _strip_server_and_security_metadata(docx_path: Path) -> None:
 
     tmp_file = docx_path.with_suffix(".tmp.docx")
     try:
-        with zipfile.ZipFile(docx_path, "r") as zin, zipfile.ZipFile(
-            tmp_file, "w", compression=zipfile.ZIP_DEFLATED
-        ) as zout:
+        with (
+            zipfile.ZipFile(docx_path, "r") as zin,
+            zipfile.ZipFile(tmp_file, "w", compression=zipfile.ZIP_DEFLATED) as zout,
+        ):
             for item in zin.infolist():
                 name = item.filename
                 # Strip all customXml (SharePoint forms, schemas, documentManagement)
@@ -588,4 +591,3 @@ if __name__ == "__main__":
     source = repo_root / "tmp-frcs" / "exam-paper-template-reassessment.docx"
     target = src_dir / "tcd-exam.docx"
     create_tcd_docx_template(source, target)
-

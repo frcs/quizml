@@ -151,7 +151,9 @@ def _parse_markdown_documents(markdown_texts):
         return {text: mt.Document(text) for text in markdown_texts}
 
 
-def _build_target_options(target: dict[str, Any] | None = None, **kwargs) -> dict[str, Any]:
+def _build_target_options(
+    target: dict[str, Any] | None = None, **kwargs
+) -> dict[str, Any]:
     opts = dict(target or {})
     if kwargs:
         md_keys = {
@@ -163,7 +165,11 @@ def _build_target_options(target: dict[str, Any] | None = None, **kwargs) -> dic
             "svg_scale",
             "svg_converter",
         }
-        md_sub = dict(opts.get("markdown") or {}) if isinstance(opts.get("markdown"), dict) else {}
+        md_sub = (
+            dict(opts.get("markdown") or {})
+            if isinstance(opts.get("markdown"), dict)
+            else {}
+        )
         for k, v in kwargs.items():
             if k in md_keys:
                 md_sub[k] = v
@@ -177,9 +183,7 @@ def _build_target_options(target: dict[str, Any] | None = None, **kwargs) -> dic
 class MarkdownTranscoder:
     def __init__(self, yaml_data, base_dir=None, search_dirs=None):
         self.yaml_data = yaml_data
-        path_context = (
-            yaml_data.get("paths", {}) if isinstance(yaml_data, dict) else {}
-        )
+        path_context = yaml_data.get("paths", {}) if isinstance(yaml_data, dict) else {}
 
         if base_dir is None:
             input_dir = path_context.get("input_dir")

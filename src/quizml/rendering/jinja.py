@@ -72,9 +72,7 @@ def get_jinja_env(search_dirs=None, jinja_filters=None):
     return env
 
 
-def render_template(
-    context, template_filename, search_dirs=None, jinja_filters=None
-):
+def render_template(context, template_filename, search_dirs=None, jinja_filters=None):
     if not template_filename:
         msg = "Template filename is missing, can't render jinja."
         raise Jinja2SyntaxError(msg)

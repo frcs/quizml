@@ -684,5 +684,3 @@ def test_clean_recursive_and_header_variable_substitution(tmp_path):
         == 1
     )
     assert not artifact.exists()
-
-

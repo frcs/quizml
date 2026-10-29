@@ -58,11 +58,7 @@ def run_pin(args):
         )
     )
 
-    out_dir = (
-        base_dir
-        if output == "-"
-        else Path(output).expanduser().resolve().parent
-    )
+    out_dir = base_dir if output == "-" else Path(output).expanduser().resolve().parent
 
     cli_targets = getattr(args, "target", None)
     default_targets = cli_targets or config.get("default_targets")

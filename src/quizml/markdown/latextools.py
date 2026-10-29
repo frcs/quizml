@@ -67,7 +67,9 @@ def _communicate(process, tool_name):
         return process.communicate()
     except OSError as err:
         detail = err.strerror or str(err)
-        raise LatexToolError(f"Could not collect output from {tool_name}: {detail}") from err
+        raise LatexToolError(
+            f"Could not collect output from {tool_name}: {detail}"
+        ) from err
 
 
 class LatexRunner:
@@ -136,9 +138,7 @@ class LatexRunner:
         stdout, stderr = _communicate(process, exe)
 
         if process.returncode != 0:
-            raise _process_failure(
-                exe, process.returncode, stdout, stderr
-            )
+            raise _process_failure(exe, process.returncode, stdout, stderr)
 
         # Parse depth ratio from stdout
         depthratio = []
@@ -217,9 +217,7 @@ class LatexRunner:
         stdout, stderr = _communicate(process, exe)
 
         if process.returncode != 0:
-            raise _process_failure(
-                exe, process.returncode, stdout, stderr
-            )
+            raise _process_failure(exe, process.returncode, stdout, stderr)
 
         err_msg = ""
         found_latex_errors = False

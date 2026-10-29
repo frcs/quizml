@@ -246,7 +246,9 @@ def _process_questions_for_qti(
                         c_dict.get("x") or c_dict.get("o") or c_dict.get("text") or ""
                     )
                     cleaned_text, media = _process_qti_html(
-                        _clean_choice_text(raw_text), media_store, qti_version=qti_version
+                        _clean_choice_text(raw_text),
+                        media_store,
+                        qti_version=qti_version,
                     )
                     c_dict["choice_text"] = cleaned_text
                     item_media.extend(media)
@@ -331,10 +333,12 @@ def _render_qti21(
     for idx, fname in enumerate(media_store.keys(), start=1):
         ccres_id = f"ccres{idx:05d}"
         fname_to_ccres[fname] = ccres_id
-        media_resources.append({
-            "identifier": ccres_id,
-            "filename": fname,
-        })
+        media_resources.append(
+            {
+                "identifier": ccres_id,
+                "filename": fname,
+            }
+        )
 
     for q in processed_questions:
         q["media_dependencies"] = [

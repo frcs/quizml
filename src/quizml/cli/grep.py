@@ -27,7 +27,11 @@ def run_grep(args):
         if getattr(args, "paths", None):
             pos_paths.extend(args.paths)
         paths = pos_paths
-    elif (getattr(args, "type", None) or getattr(args, "field", None)) and not paths and pattern:
+    elif (
+        (getattr(args, "type", None) or getattr(args, "field", None))
+        and not paths
+        and pattern
+    ):
         p = Path(pattern)
         if p.exists():
             paths = [pattern]
@@ -53,7 +57,11 @@ def run_grep(args):
 
     if not matches:
         if not getattr(args, "quiet", False):
-            display_pattern = pattern if pattern else (f"type={args.type}" if getattr(args, "type", None) else "")
+            display_pattern = (
+                pattern
+                if pattern
+                else (f"type={args.type}" if getattr(args, "type", None) else "")
+            )
             err_console.print(f"no questions found matching '{display_pattern}'")
         return False
 

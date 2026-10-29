@@ -99,9 +99,7 @@ def compare_quiz_files(files):
                         " […]" if len(lines) > 1 else ""
                     )
 
-        qstats.append(
-            {"type": qr.get("type") or "unknown", "excerpt": long_excerpt}
-        )
+        qstats.append({"type": qr.get("type") or "unknown", "excerpt": long_excerpt})
 
         for f in other_files:
             dst_questions = filedata[f]["questions"]

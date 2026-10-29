@@ -285,7 +285,6 @@ def test_qti21_export_with_image_and_html_tables(tmp_path):
         assert "ccres00001" in manifest_xml
 
 
-
 def test_qti21_table_and_media_cleaning():
     from quizml.rendering.qti import _process_qti_html
 
@@ -313,7 +312,7 @@ def test_qti21_table_and_media_cleaning():
     assert "<td>Cell</td>" in cleaned
 
     # QTI 2.1 rewrites <img> to point to relative package root "../img_xxxx.png"
-    assert '<img' in cleaned
+    assert "<img" in cleaned
     assert 'src="../img_' in cleaned
     assert 'width="10"' in cleaned
     assert 'height="10"' in cleaned
@@ -326,6 +325,6 @@ def test_qti21_table_and_media_cleaning():
     cleaned_12, _ = _process_qti_html(
         html_with_table_and_data_uri, media_store_12, qti_version="1.2"
     )
-    assert '<img' in cleaned_12
+    assert "<img" in cleaned_12
     assert 'src="images/img_' in cleaned_12
     assert 'width="10"' in cleaned_12

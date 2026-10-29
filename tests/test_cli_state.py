@@ -145,7 +145,11 @@ def test_watch_mode_ignores_target_outputs_and_sidecars(tmp_path, monkeypatch):
     assert tracker_handler is not None
 
     def make_event(path):
-        return type("FileEvent", (), {"is_directory": False, "src_path": str(path), "dest_path": str(path)})()
+        return type(
+            "FileEvent",
+            (),
+            {"is_directory": False, "src_path": str(path), "dest_path": str(path)},
+        )()
 
     # Ignored outputs
     for output_name in [
@@ -211,7 +215,10 @@ def test_watch_mode_handles_compile_errors_without_crashing(tmp_path, monkeypatc
 
     printed_errors = []
     from quizml.exceptions import QuizMLBuildError
-    monkeypatch.setattr(compile_cli, "print_error", lambda err: printed_errors.append(err))
+
+    monkeypatch.setattr(
+        compile_cli, "print_error", lambda err: printed_errors.append(err)
+    )
 
     def failing_compile(args, live_reload=None):
         raise QuizMLBuildError("Simulated build error")
@@ -225,5 +232,3 @@ def test_watch_mode_handles_compile_errors_without_crashing(tmp_path, monkeypatc
 
     assert len(printed_errors) == 2
     assert "Simulated build error" in str(printed_errors[0])
-
-

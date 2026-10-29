@@ -63,9 +63,7 @@ def compile(args, live_reload=None):
                 "" if ok else "[FAIL]",
             ]
         )
-        targets_quiet_output.append(
-            [add_hyperlinks(out, out), "" if ok else "[FAIL]"]
-        )
+        targets_quiet_output.append([add_hyperlinks(out, out), "" if ok else "[FAIL]"])
 
     if args.quiet:
         print_quiet_ouputs(targets_quiet_output)
@@ -83,9 +81,7 @@ def _collect_ignored_paths(yaml_filename, config_path=None):
     ignored = set()
     try:
         config = load_config(config_path, yaml_filename=str(full_path))
-        for p in get_cleanup_candidates(
-            str(full_path), config.get("targets", [])
-        ):
+        for p in get_cleanup_candidates(str(full_path), config.get("targets", [])):
             ignored.add(str(p))
             ignored.add(str(p.resolve()))
     except Exception:

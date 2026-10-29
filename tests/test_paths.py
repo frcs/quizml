@@ -66,4 +66,3 @@ def test_file_locator_includes_explicit_config_dir(tmp_path):
     assert locator.path("dept.tex.j2") == str(
         (custom_cfg_dir / "dept.tex.j2").resolve()
     )
-

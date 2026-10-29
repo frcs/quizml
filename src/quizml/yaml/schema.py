@@ -159,9 +159,9 @@ def _applicable_schemas(data, schema, root_schema, ref_stack=()):
         matching = [
             sub_schema
             for sub_schema in schema[keyword]
-            if ScalarValidator(
-                _resolve_schema_refs(sub_schema, root_schema)
-            ).is_valid(data)
+            if ScalarValidator(_resolve_schema_refs(sub_schema, root_schema)).is_valid(
+                data
+            )
         ]
         if keyword == "oneOf" and len(matching) != 1:
             continue

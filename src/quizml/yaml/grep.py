@@ -294,9 +294,7 @@ def format_matching_questions(
             id_info = f" (id: {match.question_id})" if match.question_id else ""
             prov_lines = [f"# {match.file_path}: <Q{match.question_index}>{id_info}\n"]
             if match.also_in:
-                other_refs = ", ".join(
-                    f"{f}: <Q{idx}>" for f, idx, _ in match.also_in
-                )
+                other_refs = ", ".join(f"{f}: <Q{idx}>" for f, idx, _ in match.also_in)
                 prov_lines.append(f"# also in: {other_refs}\n")
             prefix = "\n" if i > 0 else ""
             full_comment = prefix + "".join(prov_lines)
