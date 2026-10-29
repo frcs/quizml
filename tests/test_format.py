@@ -103,6 +103,23 @@ def test_format_choices_literal_and_indent(tmp_path, monkeypatch):
     assert "  choices:\n  - o:" in new_txt
 
 
+def test_format_choices_boolean_keys(tmp_path, monkeypatch):
+    yaml_file = tmp_path / "test_bool_choices.yaml"
+    yaml_file.write_text("""
+- type: mc
+  question: Is this valid?
+  choices:
+    - true: Yes this is the correct answer.
+    - false: No this is wrong.
+""")
+    monkeypatch.setattr(sys, "argv", ["quizml", "fmt", "-i", str(yaml_file)])
+    main()
+
+    new_txt = yaml_file.read_text()
+    assert "- # <Q1>" in new_txt
+    assert "true: |" in new_txt or "true: Yes" in new_txt
+
+
 def test_format_with_horizontal_rules(tmp_path, monkeypatch):
     yaml_file = tmp_path / "test_hr.yaml"
     yaml_file.write_text("""title: Quiz

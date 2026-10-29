@@ -15,11 +15,31 @@ from quizml.yaml.grep import format_matching_questions, grep_questions
 def run_grep(args):
     """Execute question search across files or standard input."""
     base_dir = Path.cwd().resolve()
-    paths = getattr(args, "paths", None) or ["."]
+    pattern = getattr(args, "pattern", "") or ""
+    paths = getattr(args, "paths", None) or []
+
+    regexp_arg = getattr(args, "regexp_pattern", None)
+    if regexp_arg is not None:
+        pattern = regexp_arg
+        pos_paths = []
+        if getattr(args, "pattern", ""):
+            pos_paths.append(args.pattern)
+        if getattr(args, "paths", None):
+            pos_paths.extend(args.paths)
+        paths = pos_paths
+    elif (getattr(args, "type", None) or getattr(args, "field", None)) and not paths and pattern:
+        p = Path(pattern)
+        if p.exists():
+            paths = [pattern]
+            pattern = ""
+
+    if not paths:
+        paths = ["."]
+
     output_path = getattr(args, "output", None)
 
     matches = grep_questions(
-        args.pattern,
+        pattern,
         paths=paths,
         ignore_case=getattr(args, "ignore_case", False),
         fixed_strings=getattr(args, "fixed_strings", False),
@@ -33,7 +53,8 @@ def run_grep(args):
 
     if not matches:
         if not getattr(args, "quiet", False):
-            err_console.print(f"no questions found matching '{args.pattern}'")
+            display_pattern = pattern if pattern else (f"type={args.type}" if getattr(args, "type", None) else "")
+            err_console.print(f"no questions found matching '{display_pattern}'")
         return False
 
     # Mode 1: --files-with-matches (-l)

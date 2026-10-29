@@ -59,7 +59,7 @@ def extract_strings(data: Any) -> list[str]:
 
 def is_question_match(
     question: dict[str, Any],
-    pattern: str,
+    pattern: str = "",
     *,
     regex: re.Pattern | None = None,
     fixed_strings: bool = False,
@@ -114,13 +114,16 @@ def _match_text(
     ignore_case: bool = False,
 ) -> bool:
     if fixed_strings:
+        if pattern == "":
+            return True
         if ignore_case:
             return pattern.lower() in text.lower()
         return pattern in text
     if regex is not None:
         return bool(regex.search(text))
     flags = re.IGNORECASE if ignore_case else 0
-    return bool(re.search(pattern, text, flags))
+    effective_pattern = ".*" if pattern in ("", "*") else pattern
+    return bool(re.search(effective_pattern, text, flags))
 
 
 def find_quiz_files_for_grep(
@@ -171,7 +174,7 @@ def find_quiz_files_for_grep(
 
 
 def grep_questions(
-    pattern: str,
+    pattern: str = "",
     paths: list[str | Path] | None = None,
     *,
     ignore_case: bool = False,
@@ -184,11 +187,14 @@ def grep_questions(
     base_dir: Path | None = None,
 ) -> list[GrepMatch]:
     """Search questions across files matching the pattern."""
+    pattern_str = pattern if pattern is not None else ""
+    effective_pattern = ".*" if pattern_str in ("", "*") else pattern_str
+
     compiled_regex: re.Pattern | None = None
     if not fixed_strings:
         flags = re.IGNORECASE if ignore_case else 0
         try:
-            compiled_regex = re.compile(pattern, flags)
+            compiled_regex = re.compile(effective_pattern, flags)
         except re.error as err:
             raise QuizMLError(f"Invalid regular expression '{pattern}': {err}") from err
 

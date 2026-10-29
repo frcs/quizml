@@ -88,6 +88,13 @@ def test_is_question_match():
     assert is_question_match(q, "sigmoid", qtype="mc")
     assert not is_question_match(q, "sigmoid", qtype="tf")
 
+    # Empty pattern or wildcard matches anything
+    assert is_question_match(q, "*")
+    assert is_question_match(q, "")
+    assert is_question_match(q)
+    assert is_question_match(q, "*", qtype="mc")
+    assert not is_question_match(q, "*", qtype="tf")
+
 
 def test_find_quiz_files_for_grep(sample_quiz_dir):
     files = find_quiz_files_for_grep([sample_quiz_dir], recursive=True)
@@ -131,6 +138,34 @@ def test_format_matching_questions(sample_quiz_dir):
     assert "activations-VG.png" in yaml_text
     assert "type: ma" in yaml_text
     assert "choices:" in yaml_text
+
+
+def test_cli_grep_wildcard_and_empty_pattern(sample_quiz_dir, capsys):
+    parser = build_parser()
+
+    # Search with explicit wildcard "*"
+    args = parser.parse_args(["search", "-t", "mc", "-i", "*", str(sample_quiz_dir)])
+    from quizml.cli.grep import run_grep
+    ret = run_grep(args)
+    assert ret is True
+    captured = capsys.readouterr()
+    assert "What is backpropagation?" in captured.out
+    assert "activations-VG" not in captured.out
+
+    # Search omitting pattern entirely when filtering by type
+    args_no_pat = parser.parse_args(["search", "-t", "ma", str(sample_quiz_dir)])
+    ret_no_pat = run_grep(args_no_pat)
+    assert ret_no_pat is True
+    captured_no_pat = capsys.readouterr()
+    assert "activations-VG.png" in captured_no_pat.out
+    assert "What is backpropagation?" not in captured_no_pat.out
+
+    # Search with -e / --regexp option
+    args_regexp = parser.parse_args(["search", "-e", "activations-VG", str(sample_quiz_dir)])
+    ret_regexp = run_grep(args_regexp)
+    assert ret_regexp is True
+    captured_regexp = capsys.readouterr()
+    assert "activations-VG.png" in captured_regexp.out
 
 
 def test_cli_grep_stdout(sample_quiz_dir, capsys):

@@ -225,9 +225,13 @@ def wrap_text_fields(data, wrap_width=None):
             if k == "_include":
                 continue
             if isinstance(v, str):
-                is_choice = k in ("x", "o", "A", "B") and len(v.strip()) > 0
+                is_choice = (
+                    isinstance(k, str)
+                    and k in ("x", "o", "A", "B")
+                    and len(v.strip()) > 0
+                )
                 if "\n" in v or len(v) > 60 or is_choice:
-                    if k.startswith("_"):
+                    if isinstance(k, str) and k.startswith("_"):
                         data[k] = LiteralScalarString(v.strip() + "\n")
                         continue
                     if wrap_width is not None:

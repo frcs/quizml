@@ -112,7 +112,11 @@ def build_parser():
     )
     _add_common_options(grep_parser, include_config=False)
     grep_parser.add_argument(
-        "pattern", metavar="PATTERN", help="search string or regular expression"
+        "pattern",
+        nargs="?",
+        default="",
+        metavar="PATTERN",
+        help="search string or regular expression (optional if filtering by -t/--type or --field)",
     )
     grep_parser.add_argument(
         "paths",
@@ -120,6 +124,13 @@ def build_parser():
         default=None,
         metavar="PATH",
         help="files or directories to search (default: current directory)",
+    )
+    grep_parser.add_argument(
+        "-e",
+        "--regexp",
+        dest="regexp_pattern",
+        metavar="PATTERN",
+        help="specify a pattern to match",
     )
     grep_parser.add_argument(
         "-i",
