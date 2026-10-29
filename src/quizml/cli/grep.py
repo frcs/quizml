@@ -5,6 +5,7 @@ from collections import Counter
 from pathlib import Path
 
 from rich.console import Console
+from rich.syntax import Syntax
 from rich.table import Table, box
 
 from quizml.cli.errorhandler import err_console
@@ -78,8 +79,19 @@ def run_grep(args):
                 f"Wrote {len(matches)} matching question(s) to {output_path}"
             )
     else:
-        sys.stdout.write(yaml_text)
-        sys.stdout.flush()
+        if sys.stdout.isatty():
+            console = Console()
+            console.print(
+                Syntax(
+                    yaml_text.rstrip(),
+                    "yaml",
+                    theme="monokai",
+                    background_color="default",
+                )
+            )
+        else:
+            sys.stdout.write(yaml_text)
+            sys.stdout.flush()
 
     if not getattr(args, "quiet", False) and not output_path and sys.stderr.isatty():
         n_files = len({str(m.file_path) for m in matches})

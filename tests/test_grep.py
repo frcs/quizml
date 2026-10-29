@@ -213,3 +213,28 @@ def test_cli_grep_exit_code_one_on_no_match(sample_quiz_dir, monkeypatch):
     with pytest.raises(SystemExit) as exc_info:
         main()
     assert exc_info.value.code == 1
+
+
+def test_cli_grep_syntax_highlighting_on_tty(sample_quiz_dir, monkeypatch):
+    from rich.syntax import Syntax
+
+    from quizml.cli.grep import run_grep
+
+    parser = build_parser()
+    args = parser.parse_args(["grep", "activations-VG", str(sample_quiz_dir)])
+
+    printed_syntax = []
+
+    class MockConsole:
+        def print(self, renderable, *args, **kwargs):
+            if isinstance(renderable, Syntax):
+                printed_syntax.append(renderable)
+
+    monkeypatch.setattr("quizml.cli.grep.Console", lambda: MockConsole())
+    monkeypatch.setattr("sys.stdout.isatty", lambda: True)
+
+    ret = run_grep(args)
+    assert ret is True
+    assert len(printed_syntax) == 1
+    assert printed_syntax[0].lexer.name.lower() == "yaml"
+
