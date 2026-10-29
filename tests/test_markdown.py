@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import pytest
 from mistletoe import block_token, span_token
@@ -20,9 +21,9 @@ def test_markdown_transcoding_html():
     yamldoc = load(yaml_file, validate=True)
     transcoder = MarkdownTranscoder(yamldoc)
 
-    # Test HTML conversion
+    # Test HTML conversion with passthrough math (portable, no external latex requirement)
     html_md_dict = transcoder.get_dict(
-        opts={"markdown": {"format": "html", "math": "png"}}
+        opts={"markdown": {"format": "html", "math": "passthrough"}}
     )
 
     # Check if we have expected keys (the original markdown strings)
@@ -38,17 +39,28 @@ def test_markdown_transcoding_html():
     # Check for HTML tags
     assert "<em>question</em>" in html_output  # *question* -> <em>question</em>
 
-    # Check for equation placeholders (converts to images or specific spans)
-    # The exact format depends on the implementation, but we expect *something* different than raw latex
-    # Based on existing code, it likely produces <img> tags for equations in HTML mode if configured,
-    # or keeps them as MathJax/Katex if not.
-    # Looking at the code, it uses mistletoe.
-
-    # Let's check choices
+    # Check choices
     choice_0_md = yamldoc["questions"][0]["choices"][0]["x"]
     key_c0 = choice_0_md
     assert key_c0 in html_md_dict
     assert "<img" in html_md_dict[key_c0]  # Should convert ![pic] to <img ...>
+
+
+@pytest.mark.skipif(not shutil.which("pdflatex"), reason="pdflatex not found in PATH")
+def test_markdown_transcoding_html_math_png():
+    """Verify HTML equation transcoding via pdflatex when external tools are available."""
+    pkg_dirname = os.path.dirname(__file__)
+    yaml_file = os.path.join(pkg_dirname, "fixtures", "test-markdown.yaml")
+
+    yamldoc = load(yaml_file, validate=True)
+    transcoder = MarkdownTranscoder(yamldoc)
+
+    html_md_dict = transcoder.get_dict(
+        opts={"markdown": {"format": "html", "math": "png"}}
+    )
+    question_md = yamldoc["questions"][0]["question"]
+    assert question_md in html_md_dict
+    assert "<em>question</em>" in html_md_dict[question_md]
 
 
 def test_markdown_transcoding_latex():
@@ -157,7 +169,7 @@ def test_markdown_transcoding_with_headings():
 
     # Test HTML: ensure headings and text after headings are fully preserved
     html_dict = transcoder.get_dict(
-        opts={"markdown": {"format": "html", "math": "png"}}
+        opts={"markdown": {"format": "html", "math": "passthrough"}}
     )
     assert q1_text in html_dict
     assert q2_text in html_dict
