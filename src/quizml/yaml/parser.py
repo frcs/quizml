@@ -132,9 +132,11 @@ def parse_roundtrip_yaml_text(text: str, label="<string>"):
     try:
         docs = [doc for doc in yaml.load_all(text) if doc is not None]
     except YAMLError as err:
-        raise QuizMLError(f"YAML parsing error in {label}: {err}") from err
+        raise QuizMLYamlSyntaxError(f"YAML parsing error in {label}: {err}") from err
     if len(docs) > 2:
-        raise QuizMLError(f"YAML file {label} cannot have more than 2 documents")
+        raise QuizMLYamlSyntaxError(
+            f"YAML file {label} cannot have more than 2 documents"
+        )
     if not docs:
         return yaml, [], None
     if len(docs) == 1:
@@ -142,7 +144,7 @@ def parse_roundtrip_yaml_text(text: str, label="<string>"):
             return yaml, docs, 0
         return yaml, [docs[0], []], 1
     if not isinstance(docs[1], list):
-        raise QuizMLError(f"Questions in {label} must be a YAML list")
+        raise QuizMLYamlSyntaxError(f"Questions in {label} must be a YAML list")
     return yaml, docs, 1
 
 

@@ -1,6 +1,7 @@
 """Question search and grep functionality across QuizML YAML files."""
 
 import io
+import logging
 import re
 import sys
 from dataclasses import dataclass, field
@@ -199,6 +200,13 @@ def grep_questions(
             raise QuizMLError(f"Invalid regular expression '{pattern}': {err}") from err
 
     file_paths = find_quiz_files_for_grep(paths, recursive=recursive)
+    explicit_files: set[Path] = set()
+    if paths:
+        for p in paths:
+            if str(p) != "-":
+                resolved_p = Path(p).expanduser().resolve()
+                if resolved_p.is_file():
+                    explicit_files.add(resolved_p)
     matches: list[GrepMatch] = []
 
     for file_path in file_paths:
@@ -209,8 +217,10 @@ def grep_questions(
         else:
             try:
                 yaml_obj, docs, q_index = read_roundtrip_yaml(file_path)
-            except Exception:
-                # Skip unparseable files with warning or error depending on mode
+            except QuizMLError as err:
+                if file_path in explicit_files:
+                    raise
+                logging.debug(f"Skipping unparseable YAML file {file_path}: {err}")
                 continue
             display_path = (
                 file_path.relative_to(base_dir)

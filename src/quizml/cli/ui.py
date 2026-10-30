@@ -100,7 +100,7 @@ def print_stats_table(quiz, config):
     err_console.print(text_to_print)
 
 
-def print_table_ouputs(targets_output):
+def print_table_outputs(targets_output):
     # print to terminal a table of all targets outputs.
     table = Table(
         box=box.SIMPLE, collapse_padding=True, show_footer=False, show_header=False
@@ -116,10 +116,10 @@ def print_table_ouputs(targets_output):
         elif row[2] == "":
             table.add_row(*row)
 
-    err_console.print(Panel(table, title="Target Ouputs", border_style="magenta"))
+    err_console.print(Panel(table, title="Target Outputs", border_style="magenta"))
 
 
-def print_quiet_ouputs(targets_quiet_output):
+def print_quiet_outputs(targets_quiet_output):
     for row in targets_quiet_output:
         if row[1] == "[FAIL]":
             err_console.print("[bold red]x " + row[0] + "[/bold red]")

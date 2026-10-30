@@ -10,6 +10,7 @@ from markupsafe import Markup
 from mistletoe.base_renderer import BaseRenderer
 from mistletoe.block_token import HTMLBlock
 
+from quizml.exceptions import MarkdownAttributeError
 from quizml.markdown.extensions import ImageWithWidth, MathDisplay, MathInline
 from quizml.markdown.html_renderer import strip_math_delimiters
 from quizml.markdown.image_embedding import convert_css_values_to_pixels
@@ -394,8 +395,10 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
             try:
                 px = convert_css_values_to_pixels(token.width.strip())
                 width_in = round(px / 96.0, 2)
-            except Exception:
-                pass
+            except ValueError as err:
+                raise MarkdownAttributeError(
+                    f"Unsupported image width attribute: {token.width}"
+                ) from err
         return f"<!--QUIZML_IMG:{resolved}:{width_in}-->"
 
     def render_html_block(self, token):

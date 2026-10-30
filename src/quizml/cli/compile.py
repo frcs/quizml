@@ -20,9 +20,9 @@ from quizml.cli.errorhandler import err_console, print_error
 from quizml.cli.livereload import LiveReloadServer
 from quizml.cli.ui import (
     add_hyperlinks,
-    print_quiet_ouputs,
+    print_quiet_outputs,
     print_stats_table,
-    print_table_ouputs,
+    print_table_outputs,
 )
 from quizml.exceptions import QuizMLConfigError, QuizMLError
 
@@ -46,6 +46,7 @@ def compile(args, live_reload=None):
         targets=getattr(args, "target", None),
         extra_context=extra_context,
         on_stats=None if args.quiet else print_stats_table,
+        warn_fn=err_console.print,
     )
 
     if live_reload is not None:
@@ -66,9 +67,9 @@ def compile(args, live_reload=None):
         targets_quiet_output.append([add_hyperlinks(out, out), "" if ok else "[FAIL]"])
 
     if args.quiet:
-        print_quiet_ouputs(targets_quiet_output)
+        print_quiet_outputs(targets_quiet_output)
     else:
-        print_table_ouputs(targets_output)
+        print_table_outputs(targets_output)
 
     return build_result.ok
 
@@ -84,7 +85,7 @@ def _collect_ignored_paths(yaml_filename, config_path=None):
         for p in get_cleanup_candidates(str(full_path), config.get("targets", [])):
             ignored.add(str(p))
             ignored.add(str(p.resolve()))
-    except Exception:
+    except (QuizMLError, OSError):
         pass
     return ignored
 

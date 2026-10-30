@@ -11,7 +11,12 @@ from jsonschema.exceptions import best_match
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
 
-from quizml.exceptions import QuizMLYamlSyntaxError, msg_context, text_wrap
+from quizml.exceptions import (
+    QuizMLConfigError,
+    QuizMLYamlSyntaxError,
+    msg_context,
+    text_wrap,
+)
 
 
 class MarkdownString(str):
@@ -272,13 +277,13 @@ def apply_schema_extensions(schema, extensions):
     if not schema or not extensions:
         return schema
     if not isinstance(extensions, dict):
-        raise QuizMLYamlSyntaxError("'schema_extensions' must be a mapping.")
+        raise QuizMLConfigError("'schema_extensions' must be a mapping.")
 
     schema = copy.deepcopy(schema)
     header_props = extensions.get("header_properties")
     if header_props is not None:
         if not isinstance(header_props, dict):
-            raise QuizMLYamlSyntaxError(
+            raise QuizMLConfigError(
                 "'schema_extensions.header_properties' must be a mapping."
             )
         defs = schema.setdefault("definitions", {})
@@ -290,7 +295,7 @@ def apply_schema_extensions(schema, extensions):
     question_props = extensions.get("question_properties")
     if question_props is not None:
         if not isinstance(question_props, dict):
-            raise QuizMLYamlSyntaxError(
+            raise QuizMLConfigError(
                 "'schema_extensions.question_properties' must be a mapping."
             )
         items = schema.setdefault("items", {"type": "object"})
@@ -305,7 +310,7 @@ def apply_schema_extensions(schema, extensions):
     question_types = extensions.get("question_types")
     if question_types is not None:
         if not isinstance(question_types, dict):
-            raise QuizMLYamlSyntaxError(
+            raise QuizMLConfigError(
                 "'schema_extensions.question_types' must be a mapping."
             )
         items = schema.setdefault("items", {"type": "object"})
@@ -330,7 +335,7 @@ def apply_schema_extensions(schema, extensions):
 
         for q_type, spec in question_types.items():
             if not isinstance(spec, dict):
-                raise QuizMLYamlSyntaxError(
+                raise QuizMLConfigError(
                     f"Schema extension for question type '{q_type}' must be a mapping."
                 )
             if q_type not in enum_list:

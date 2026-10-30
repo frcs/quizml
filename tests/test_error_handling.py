@@ -160,3 +160,38 @@ def test_pdflatex_invalid_depth_output_is_reported(monkeypatch):
     with LatexRunner() as runner:
         with pytest.raises(LatexCompilationError, match="invalid equation depth data"):
             runner.run_pdflatex("content")
+
+
+def test_qti_missing_template_raises_template_render_error(tmp_path):
+    from quizml.rendering.qti import render_qti
+
+    with pytest.raises(TemplateRenderError, match="No recognizable QTI template"):
+        render_qti({"header": {}, "questions": []}, tmp_path)
+
+
+def test_apply_schema_extensions_raises_config_error():
+    from quizml.exceptions import QuizMLConfigError
+    from quizml.yaml.schema import apply_schema_extensions
+
+    with pytest.raises(QuizMLConfigError, match="must be a mapping"):
+        apply_schema_extensions({"type": "array"}, ["not-a-dict"])
+
+
+def test_grep_explicit_broken_file_raises_syntax_error(tmp_path):
+    from quizml.exceptions import QuizMLYamlSyntaxError
+    from quizml.yaml.grep import grep_questions
+
+    broken = tmp_path / "broken.yaml"
+    broken.write_text("- type: [unclosed\n", encoding="utf-8")
+
+    with pytest.raises(QuizMLYamlSyntaxError):
+        grep_questions("foo", paths=[broken])
+
+
+def test_docx_invalid_image_width_raises_markdown_attribute_error():
+    from quizml.exceptions import MarkdownAttributeError
+    from quizml.markdown import transcode
+
+    with pytest.raises(MarkdownAttributeError, match="Unsupported image width"):
+        transcode("![alt](fig.png){width=invalid}", format="docx")
+

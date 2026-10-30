@@ -5,6 +5,7 @@ import logging
 import os
 import pathlib
 import re
+import warnings
 from string import Template
 
 from ruamel.yaml import YAML
@@ -70,16 +71,18 @@ def check_quizml_version(specifier, source_label="config", *, warn_fn=None):
             break
 
     if not satisfied:
-        msg = (
-            f"[yellow]Warning:[/yellow] {source_label} expects quizml "
-            f"'{specifier}', but running quizml {current_str}."
-        )
         if warn_fn is not None:
-            warn_fn(msg)
+            warn_fn(
+                f"[yellow]Warning:[/yellow] {source_label} expects quizml "
+                f"'{specifier}', but running quizml {current_str}."
+            )
         else:
-            from quizml.cli.errorhandler import err_console
-
-            err_console.print(msg)
+            warnings.warn(
+                f"{source_label} expects quizml '{specifier}', "
+                f"but running quizml {current_str}.",
+                UserWarning,
+                stacklevel=2,
+            )
     return satisfied
 
 
@@ -106,7 +109,7 @@ def build_target_substitutions(yaml_filename=None, header_data=None):
     if isinstance(header_data, dict):
         for k, v in header_data.items():
             if isinstance(v, (str, int, float, bool)):
-                subs[str(k)] = str(v)
+                subs[str(k)] = re.sub(r"[/\\]+", "_", str(v)).strip()
     subs.update(
         {
             "inputbasename": inputstem,
@@ -322,7 +325,12 @@ def resolve_targets(config, yaml_data, *, target_names=None):
         for key in files_to_read_now:
             if key in target:
                 file_path = target[key]
-                contents = pathlib.Path(file_path).read_text(encoding="utf-8")
+                try:
+                    contents = pathlib.Path(file_path).read_text(encoding="utf-8")
+                except (OSError, UnicodeDecodeError) as err:
+                    raise QuizMLConfigError(
+                        f"Could not read '{key}' file '{file_path}' for target '{target['name']}': {err}"
+                    ) from err
                 target[key] = contents
 
         target_list.append(target)

@@ -337,9 +337,14 @@ def test_get_target_list_expands_header_variables_and_vars_alias(mock_dependenci
             },
         ],
     }
-    yaml_data = {"header": {"modulecode": "4C16", "examyear": 2026}}
+    yaml_data = {
+        "header": {
+            "modulecode": "4C16/5C16",
+            "examyear": "2025\\2026",
+        }
+    }
     targets = get_target_list(args, config, yaml_data)
-    assert targets[0]["out"] == "4C16-2026-quiz.tex"
+    assert targets[0]["out"] == "4C16_5C16-2025_2026-quiz.tex"
     assert targets[0]["context"] == {"watermark": "DRAFT", "solutions": True}
     assert targets[1]["fmt"] == "markdown"
 
@@ -383,7 +388,8 @@ def test_get_config_respects_header_config_and_version_check(tmp_path):
     with patch("importlib.metadata.version", return_value="0.12.2"):
         assert check_quizml_version(">=0.12,<0.13", "exam.yaml") is True
         assert check_quizml_version("~=0.12", "exam.yaml") is True
-        assert check_quizml_version(">=99.0", "exam.yaml") is False
+        with pytest.warns(UserWarning, match="expects quizml '>=99.0'"):
+            assert check_quizml_version(">=99.0", "exam.yaml") is False
 
 
 def test_get_config_resolves_texinputs_relative_to_config_dir(tmp_path):

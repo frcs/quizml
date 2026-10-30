@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from quizml.exceptions import QuizMLYamlSyntaxError
+from quizml.exceptions import QuizMLError, QuizMLYamlSyntaxError
 from quizml.yaml import load
 
 
@@ -34,8 +34,9 @@ def test_incorrect_02():
 
 
 def test_missing_file():
-    with pytest.raises(QuizMLYamlSyntaxError) as excinfo:
+    with pytest.raises(QuizMLError) as excinfo:
         load("non_existent_file.yaml")
+    assert not isinstance(excinfo.value, QuizMLYamlSyntaxError)
     assert "Yaml file not found" in str(excinfo.value)
 
 

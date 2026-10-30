@@ -11,7 +11,7 @@ from pathlib import Path
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
 
-from quizml.exceptions import QuizMLYamlSyntaxError
+from quizml.exceptions import QuizMLError, QuizMLYamlSyntaxError
 from quizml.yaml.diff import (
     compare_quiz_files,
     get_choices_content,
@@ -201,8 +201,10 @@ def load(
         try:
             quizmlyaml_txt = Path(quizmlyaml_path).read_text(encoding="utf-8")
         except FileNotFoundError as err:
-            raise QuizMLYamlSyntaxError(
-                f"Yaml file not found: {quizmlyaml_path}"
+            raise QuizMLError(f"Yaml file not found: {quizmlyaml_path}") from err
+        except OSError as err:
+            raise QuizMLError(
+                f"Could not read YAML file {quizmlyaml_path}: {err}"
             ) from err
         base_dir = Path(quizmlyaml_path).parent.resolve()
         filename = str(quizmlyaml_path)

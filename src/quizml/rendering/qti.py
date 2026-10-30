@@ -10,6 +10,7 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
 
+from quizml.exceptions import TemplateRenderError
 from quizml.rendering.jinja import render_template
 
 
@@ -401,6 +402,6 @@ def render_qti(
             qti_ctx, tdir, search_dirs=search_dirs, jinja_filters=jinja_filters
         )
     else:
-        raise FileNotFoundError(
+        raise TemplateRenderError(
             f"No recognizable QTI template found in {tdir} (expected quiz.xml.j2 or item.xml.j2)"
         )

@@ -13,6 +13,7 @@ from quizml.build.dag import (
     get_required_target_names_set,
     sort_targets_topologically,
 )
+from quizml.cli.errorhandler import err_console
 from quizml.yaml.parser import peek_yaml_header
 
 
@@ -21,6 +22,7 @@ def get_config(args):
     return load_config(
         getattr(args, "config", None),
         yaml_filename=getattr(args, "yaml_filename", None),
+        warn_fn=err_console.print,
     )
 
 
