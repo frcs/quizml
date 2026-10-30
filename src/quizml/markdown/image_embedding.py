@@ -1,8 +1,11 @@
+"""Base64 image embedding, PDF-to-PNG rasterization, and CSS/SVG dimension helpers."""
+
 import base64
 import os
 import re
 import subprocess
 import tempfile
+from collections.abc import Sequence
 from io import BytesIO
 from pathlib import Path
 
@@ -12,21 +15,35 @@ from ..exceptions import MarkdownImageError
 from ..paths import find_path
 
 
-def embed_pdf(pdf_filename, base_dir=None, search_dirs=None):
-    """returns a base64 string of a PDF file. The PDF is first converted to
-    a PNG file using ghostscript (gs).
-    """
-    if not os.path.isabs(pdf_filename):
-        dirs = []
+def _resolve_asset_path(
+    pathname: str | Path,
+    base_dir: str | Path | None = None,
+    search_dirs: Sequence[str | Path] | None = None,
+) -> Path:
+    """Resolve ``pathname`` against ``search_dirs`` and ``base_dir`` when relative."""
+    path = Path(pathname)
+    if not path.is_absolute():
+        dirs: list[str | Path] = []
         if search_dirs:
             dirs.extend(search_dirs)
         if base_dir:
             dirs.append(base_dir)
-        found = find_path(pdf_filename, dirs)
+        found = find_path(str(pathname), dirs)
         if found:
-            pdf_filename = str(found[0])
+            path = found[0]
+    return path
 
-    pdf_abspath = os.path.abspath(pdf_filename)
+
+def embed_pdf(
+    pdf_filename: str | Path,
+    base_dir: str | Path | None = None,
+    search_dirs: Sequence[str | Path] | None = None,
+) -> tuple[int, int, str]:
+    """Rasterize a PDF image into a PNG via Ghostscript and return its base64 tuple."""
+    resolved = _resolve_asset_path(
+        pdf_filename, base_dir=base_dir, search_dirs=search_dirs
+    )
+    pdf_abspath = os.path.abspath(str(resolved))
     if not os.path.exists(pdf_abspath):
         raise MarkdownImageError(f"cannot read image {pdf_filename}")
 
@@ -55,39 +72,34 @@ def embed_pdf(pdf_filename, base_dir=None, search_dirs=None):
             else:
                 detail = err.strerror or str(err)
             raise MarkdownImageError(
-                f"failed to convert PDF {pdf_filename} to PNG using ghostscript: {detail}"
+                f"failed to convert PDF {pdf_filename} to PNG "
+                f"using ghostscript: {detail}"
             ) from err
 
         return embed_base64(png_path)
 
 
-def embed_base64(pathname, base_dir=None, search_dirs=None):
-    """returns a base64 string of an image file."""
-
-    path = Path(pathname)
-    if not path.is_absolute():
-        dirs = []
-        if search_dirs:
-            dirs.extend(search_dirs)
-        if base_dir:
-            dirs.append(base_dir)
-        found = find_path(pathname, dirs)
-        if found:
-            path = found[0]
-
+def embed_base64(
+    pathname: str | Path,
+    base_dir: str | Path | None = None,
+    search_dirs: Sequence[str | Path] | None = None,
+) -> tuple[int, int, str]:
+    """Read an image file and return ``(width_px, height_px, data_uri)``."""
+    path = _resolve_asset_path(pathname, base_dir=base_dir, search_dirs=search_dirs)
     suffix = path.suffix.lower()
 
     if suffix == ".svg":
         ext = "svg+xml"
     elif suffix == ".png":
         ext = "png"
-    elif suffix == ".jpeg" or suffix == ".jpg":
+    elif suffix in (".jpeg", ".jpg"):
         ext = "jpeg"
     elif suffix == ".pdf":
         return embed_pdf(str(path), base_dir=base_dir, search_dirs=search_dirs)
     else:
         raise MarkdownImageError(
-            f"unsupported image format '{suffix}'. Supported formats: .png, .svg, .jpg, .jpeg, .pdf"
+            f"unsupported image format '{suffix}'. "
+            "Supported formats: .png, .svg, .jpg, .jpeg, .pdf"
         )
 
     try:
@@ -96,29 +108,20 @@ def embed_base64(pathname, base_dir=None, search_dirs=None):
         raise MarkdownImageError(f"cannot read image {pathname}") from err
 
     if ext == "svg+xml":
-        [w, h] = get_SVG_info(data.decode("utf-8", errors="replace"))
+        w, h = get_SVG_info(data.decode("utf-8", errors="replace"))
     else:
         im = Image.open(BytesIO(data))
         w, h = im.size
 
     data64 = f"data:image/{ext};base64,{base64.b64encode(data).decode('ascii')}"
-
     return (w, h, data64)
 
 
-def convert_css_values_to_pixels(value):
-    """converts CSS lengths such as 12in into pixels
-        https://www.w3.org/TR/css3-values/#cm
+def convert_css_values_to_pixels(value: str) -> float:
+    """Convert a CSS length string (e.g. ``12in``, ``5cm``, ``72pt``) into pixels.
 
-    cm	centimeters	1cm = 96px/2.54
-    mm	millimeters	1mm = 1/10th of 1cm
-    Q	quarter-millimeters	1Q = 1/40th of 1cm
-    in	inches	1in = 2.54cm = 96px
-    pc	picas	1pc = 1/6th of 1in
-    pt	points	1pt = 1/72nd of 1in
-    px	pixels	1px = 1/96th of 1in
+    Follows W3C CSS Values and Units (96px = 1in = 2.54cm = 72pt = 6pc).
     """
-
     regex = r"(\d*\.?\d*)\s*([a-zA-Z]*)"
     m = re.search(regex, value, re.MULTILINE)
     if m:
@@ -145,15 +148,8 @@ def convert_css_values_to_pixels(value):
     return val
 
 
-def get_SVG_info(data):
-    """
-    get width and height from an SVG
-
-    Parameters
-    ----------
-    data : str
-        SVG XML content
-    """
+def get_SVG_info(data: str) -> tuple[int, int]:
+    """Extract ``(width_px, height_px)`` from an SVG XML string."""
     svg_match = re.search(r"<svg\b([^>]*)>", data, re.IGNORECASE | re.DOTALL)
     if not svg_match:
         raise MarkdownImageError("can't read SVG dimensions: no <svg> tag found")
@@ -163,7 +159,8 @@ def get_SVG_info(data):
     h_match = re.search(r'\bheight\s*=\s*["\']([^"\']+)["\']', attrs, re.IGNORECASE)
     vb_match = re.search(r'\bviewBox\s*=\s*["\']([^"\']+)["\']', attrs, re.IGNORECASE)
 
-    vb_w, vb_h = None, None
+    vb_w: float | None = None
+    vb_h: float | None = None
     if vb_match:
         parts = vb_match.group(1).replace(",", " ").split()
         if len(parts) == 4:

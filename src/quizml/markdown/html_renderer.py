@@ -1,6 +1,12 @@
+"""Mistletoe HTML renderer and batch equation compilation (PNG, SVG, MathML)."""
+
 import html
+import importlib
 import logging
 import re
+from collections.abc import Sequence
+from pathlib import Path
+from typing import Any
 
 import css_inline
 import latex2mathml.converter
@@ -14,27 +20,48 @@ from ..cache import (
     renderer_tool_versions,
     save_to_cache,
 )
-from ..exceptions import LatexCompilationError, MarkdownAttributeError
+from ..exceptions import (
+    LatexCompilationError,
+    MarkdownAttributeError,
+    QuizMLConfigError,
+)
 from .extensions import ImageWithWidth, MathDisplay, MathInline
 from .image_embedding import embed_base64
 from .latextools import LatexRunner
 from .macros import LatexMacroExpander, preprocess_latex_for_mathml
 
+_DEFAULT_HTML_PREAMBLE = (
+    "\\usepackage{amsmath}\n\\usepackage{notomath}\n\\usepackage[OT1]{fontenc}\n"
+)
 
-def _append_unique(lst1, lst2):
+_DEFAULT_INLINE_CSS = """
+.math.inline {vertical-align:middle}
+pre {
+      background:#eee;
+      padding: 0.5em;
+      max-width: 80em;
+      line-height:1em;
+}
+code {
+      font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono',
+                   Menlo, Monaco, Consolas, monospace;
+      font-size: 80%;
+      line-height: 1.5em;
+}
+"""
+
+
+def _append_unique(lst1: list[Any], lst2: list[Any]) -> list[Any]:
+    """Append items from ``lst2`` into ``lst1`` if not already present."""
     for a in lst2:
         if a not in lst1:
             lst1.append(a)
     return lst1
 
 
-def get_eq_list_from_doc(doc):
-    """returns a list of all the LaTeX equations (as mistletoe
-    objects) in a mardown document (mistletoe object).
-
-    """
-
-    eq_list = []
+def get_eq_list_from_doc(doc: Any) -> list[MathInline | MathDisplay]:
+    """Return a deduplicated list of ``MathInline``/``MathDisplay`` nodes in ``doc``."""
+    eq_list: list[MathInline | MathDisplay] = []
     if hasattr(doc, "children") and doc.children is not None:
         for a in doc.children:
             eq_list = _append_unique(eq_list, get_eq_list_from_doc(a))
@@ -43,46 +70,30 @@ def get_eq_list_from_doc(doc):
     return eq_list
 
 
-def strip_newlines_and_tabs(html_content):
-    """removes all newline and tab characters from an HTML string.
+def strip_newlines_and_tabs(html_content: str) -> str:
+    """Remove raw newlines and tabs from ``html_content`` for tab-delimited exports.
 
-    Problem: we need to remove any tab or any newline
-    from the string as it must be passed as a CSV entry
-    for blackboard exams.
-
-    Solution: we remove these characters everywhere. We need, however,
-    to take care of <code> </code> blocks. There we need to replace
-    '\n' with <br> so as preserve formatting inside these verbatim
-    blocks.
-
+    Inside ``<code>...</code>`` elements, newlines are converted into ``<br>``
+    tags so multi-line code blocks preserve line breaks inside Blackboard TSV rows.
     """
-
     htmlsrc = BeautifulSoup(html_content, "html.parser")
     for code in htmlsrc.find_all(name="code"):
         s = BeautifulSoup(str(code).replace("\n", "<br>"), "html.parser")
         code.replace_with(s)
 
     html_content = str(htmlsrc)
-
-    # now we can delete any spurious '\n' or '\t'
-
-    html_content = html_content.replace("\n", " ").replace("\t", "  ")
-
-    return html_content
+    return html_content.replace("\n", " ").replace("\t", "  ")
 
 
-def escape_LaTeX(str_eq):
-    r"""HTML escape the LaTeX string defining an equation. This is to
-    be used in the `alt` tag of the corresponding rendered image
+def escape_LaTeX(str_eq: str) -> str:
+    r"""HTML-escape a LaTeX equation string for use inside an ``alt`` attribute.
 
-    It applies the following transformations:
-    * convert main `$` and `$$` sign to `\(` and `\[`
-    * convert other `$` into `&dollar;`
-    * escape HTML
-    * remove '\n' and '\t'
-
+    Transforms:
+    - Outer ``$...$`` and ``$$...$$`` delimiters into ``\(...\)`` and ``\[...\]``.
+    - Inner ``$`` characters into ``&dollar;``.
+    - HTML special characters (``<``, ``>``, ``&``, ``"``, ``'``) into entities.
+    - Newlines and tabs into spaces.
     """
-
     re_single_dollar = r"^\s*\$([^\$]*)\$\s*$"
     re_double_dollar = r"^\s*\$\$([^\$]*)\$\$\s*$"
 
@@ -107,16 +118,17 @@ def escape_LaTeX(str_eq):
     str_eq = re.sub(quote_pattern, lambda x: replace_with[x.group(0)], str_eq)
     str_eq = re.sub("\n", " ", str_eq)
     str_eq = re.sub("\t", " ", str_eq)
-
     return str_eq
 
 
-def _equation_key(eq):
+def _equation_key(eq: MathInline | MathDisplay) -> str:
+    """Return the internal lookup key (``##Inline##...`` or ``##Display##...``)."""
     kind = "Inline" if isinstance(eq, MathInline) else "Display"
     return f"##{kind}##{eq.content}"
 
 
-def _cache_hash(content, settings_str):
+def _cache_hash(content: str, settings_str: str) -> str:
+    """Compute a cache key from equation content, settings, and tool versions."""
     backend = next(
         (name for name in ("PNG", "SVG", "MathML") if settings_str.endswith(name)),
         "",
@@ -124,11 +136,14 @@ def _cache_hash(content, settings_str):
     return compute_hash(content, settings_str, renderer_tool_versions(backend))
 
 
-def _cached_equations(eq_list, settings_str):
+def _cached_equations(
+    eq_list: Sequence[MathInline | MathDisplay], settings_str: str
+) -> tuple[dict[str, str], list[MathInline | MathDisplay]]:
+    """Split ``eq_list`` into ``(cached_dict, uncached_equations_to_compile)``."""
     if not eq_list:
         return {}, []
-    cached = {}
-    to_compile = []
+    cached: dict[str, str] = {}
+    to_compile: list[MathInline | MathDisplay] = []
     for eq in eq_list:
         key = _equation_key(eq)
         rendered = get_from_cache(_cache_hash(key, settings_str))
@@ -139,7 +154,13 @@ def _cached_equations(eq_list, settings_str):
     return cached, to_compile
 
 
-def _store_equation(eq, settings_str, rendered, eq_dict):
+def _store_equation(
+    eq: MathInline | MathDisplay,
+    settings_str: str,
+    rendered: str,
+    eq_dict: dict[str, str],
+) -> None:
+    """Store a rendered equation in ``eq_dict`` and persist it in the disk cache."""
     kind = "inline" if isinstance(eq, MathInline) else "display"
     logging.debug(f"[eq-{kind}] '{rendered}'")
     key = _equation_key(eq)
@@ -147,30 +168,11 @@ def _store_equation(eq, settings_str, rendered, eq_dict):
     save_to_cache(_cache_hash(key, settings_str), rendered)
 
 
-def build_eq_dict_PNG(eq_list, opts):
-    """returns a dictionary of images from a list of LaTeX equations.
-
-    LaTeX equations are compiled into a PDF document using pdflatex,
-    with one equation per page.
-
-    The PDF is then converted into PNG images using ghostscript (gs).
-
-    """
-    if not eq_list:
-        return {}
-
-    if "html_pre" in opts:
-        template_latex_preamble = opts["html_pre"]
-    else:
-        template_latex_preamble = (
-            "\\usepackage{amsmath}\n"
-            "\\usepackage{notomath}\n"
-            "\\usepackage[OT1]{fontenc}\n"
-        )
-
+def _build_standalone_tex_preamble(opts: dict[str, Any]) -> str:
+    """Build the ``standalone``/``preview`` LaTeX header for equation compilation."""
+    template_latex_preamble = opts.get("html_pre", _DEFAULT_HTML_PREAMBLE)
     user_latex_preamble = opts.get("user_pre", "")
-
-    latex_preamble = (
+    return (
         "\\documentclass{article}\n"
         + template_latex_preamble
         + user_latex_preamble
@@ -180,19 +182,36 @@ def build_eq_dict_PNG(eq_list, opts):
         + "\\begin{document}\n"
     )
 
+
+def _runner_kwargs(opts: dict[str, Any]) -> dict[str, Any]:
+    """Extract ``LatexRunner`` keyword arguments from ``opts``."""
+    kwargs: dict[str, Any] = {"tools": opts.get("tools")}
+    if opts.get("tex_search_dirs"):
+        kwargs["tex_search_dirs"] = opts["tex_search_dirs"]
+    return kwargs
+
+
+def build_eq_dict_PNG(
+    eq_list: Sequence[MathInline | MathDisplay], opts: dict[str, Any]
+) -> dict[str, str]:
+    """Compile ``eq_list`` to base64 PNG ``<img>`` tags via ``pdflatex`` and ``gs``."""
+    if not eq_list:
+        return {}
+
+    latex_preamble = _build_standalone_tex_preamble(opts)
     dpi = opts.get("png_dpi", 250)
     scale = float(opts.get("png_scale", 0.5))
     tools = opts.get("tools") or {}
 
-    # Check cache first
     settings_str = (
         f"{latex_preamble}|dpi={dpi}|scale={scale}|tools={sorted(tools.items())}|PNG"
     )
     eq_dict, to_compile = _cached_equations(eq_list, settings_str)
-
     if not to_compile:
         return eq_dict
 
+    # Emit one standalone page per equation, logging the baseline depth ratio
+    # (dp0 / wd0) via \typeout{::: ...} so inline images align with surrounding text.
     latex_body = ""
     for eq in to_compile:
         if isinstance(eq, MathInline):
@@ -208,17 +227,14 @@ def build_eq_dict_PNG(eq_list, opts):
 
     latex_content = latex_preamble + latex_body + "\\end{document}\n"
 
-    runner_kwargs = {"tools": opts.get("tools")}
-    if opts.get("tex_search_dirs"):
-        runner_kwargs["tex_search_dirs"] = opts["tex_search_dirs"]
-
     try:
-        with LatexRunner(**runner_kwargs) as latex_runner:
+        with LatexRunner(**_runner_kwargs(opts)) as latex_runner:
             pdf_filename, depthratio = latex_runner.run_pdflatex(latex_content)
-            if dpi == 250:
-                png_files = latex_runner.run_gs_png(pdf_filename)
-            else:
-                png_files = latex_runner.run_gs_png(pdf_filename, dpi=dpi)
+            png_files = (
+                latex_runner.run_gs_png(pdf_filename)
+                if dpi == 250
+                else latex_runner.run_gs_png(pdf_filename, dpi=dpi)
+            )
 
             if len(png_files) != len(to_compile):
                 raise LatexCompilationError(
@@ -233,12 +249,10 @@ def build_eq_dict_PNG(eq_list, opts):
 
             for i, (eq, png_file) in enumerate(zip(to_compile, png_files, strict=True)):
                 w, h, data64 = embed_base64(png_file)
-                d = depthratio[i]
-                d_ = round(d * w * scale, 2)
+                d_ = round(depthratio[i] * w * scale, 2)
                 w_ = round(w * scale)
                 h_ = round(h * scale)
 
-                html_img = ""
                 if isinstance(eq, MathInline):
                     html_img = (
                         f"<img src='{data64}'"
@@ -260,40 +274,20 @@ def build_eq_dict_PNG(eq_list, opts):
     return eq_dict
 
 
-def build_eq_dict_SVG(eq_list, opts):
-    """returns a dictionary of images from a list of LaTeX equations.
-
-    LaTeX equations are compiled into a DVI document using latex,
-    with one equation per page.
-
-    The DVI is then converted into SVG images using dvisvgm.
-    """
+def build_eq_dict_SVG(
+    eq_list: Sequence[MathInline | MathDisplay], opts: dict[str, Any]
+) -> dict[str, str]:
+    """Compile ``eq_list`` to base64 SVG ``<img>`` tags via ``latex`` + ``dvisvgm``."""
     if not eq_list:
         return {}
 
-    template_latex_preamble = opts.get(
-        "html_pre",
-        "\\usepackage{amsmath}\n\\usepackage{notomath}\n\\usepackage[OT1]{fontenc}\n",
-    )
-    user_latex_preamble = opts.get("user_pre", "")
-
-    latex_preamble = (
-        "\\documentclass{article}\n"
-        + template_latex_preamble
-        + user_latex_preamble
-        + "\\newenvironment{standalone}{\\begin{preview}}{\\end{preview}}\n"
-        + "\\PassOptionsToPackage{active,tightpage}{preview}\n"
-        + "\\usepackage{preview}\n"
-        + "\\begin{document}\n"
-    )
-
+    latex_preamble = _build_standalone_tex_preamble(opts)
     svg_scale = opts.get("svg_scale", 1.2)
     tools = opts.get("tools") or {}
     settings_str = (
         f"{latex_preamble}|scale={svg_scale}|tools={sorted(tools.items())}|SVG"
     )
     eq_dict, to_compile = _cached_equations(eq_list, settings_str)
-
     if not to_compile:
         return eq_dict
 
@@ -312,17 +306,14 @@ def build_eq_dict_SVG(eq_list, opts):
 
     latex_content = latex_preamble + latex_body + "\\end{document}\n"
 
-    runner_kwargs = {"tools": opts.get("tools")}
-    if opts.get("tex_search_dirs"):
-        runner_kwargs["tex_search_dirs"] = opts["tex_search_dirs"]
-
     try:
-        with LatexRunner(**runner_kwargs) as latex_runner:
+        with LatexRunner(**_runner_kwargs(opts)) as latex_runner:
             dvi_path = latex_runner.run_latex_dvi(latex_content)
-            if svg_scale == 1.2:
-                svg_files = latex_runner.run_dvisvgm_svg(dvi_path)
-            else:
-                svg_files = latex_runner.run_dvisvgm_svg(dvi_path, scale=svg_scale)
+            svg_files = (
+                latex_runner.run_dvisvgm_svg(dvi_path)
+                if svg_scale == 1.2
+                else latex_runner.run_dvisvgm_svg(dvi_path, scale=svg_scale)
+            )
 
             if len(svg_files) != len(to_compile):
                 raise LatexCompilationError(
@@ -345,7 +336,7 @@ def build_eq_dict_SVG(eq_list, opts):
 
 
 def strip_math_delimiters(content: str) -> str:
-    r"""Strips outer math delimiters ($...$, $$...$$, \(...\), \[...\])."""
+    r"""Strip outer math delimiters ($...$, $$...$$, \(...\), \[...\])."""
     s = content.strip()
     if s.startswith("$$") and s.endswith("$$") and len(s) >= 4:
         return s[2:-2].strip()
@@ -358,11 +349,10 @@ def strip_math_delimiters(content: str) -> str:
     return s
 
 
-def build_eq_dict_MathML(eq_list, opts):
-    """returns a dictionary of MATHML eqs from a list of LaTeX equations.
-
-    LaTeX equations are converted to MathML using latex2mathml with in-memory macro expansion.
-    """
+def build_eq_dict_MathML(
+    eq_list: Sequence[MathInline | MathDisplay], opts: dict[str, Any]
+) -> dict[str, str]:
+    """Convert ``eq_list`` to MathML strings using ``latex2mathml`` and macros."""
     if not eq_list:
         return {}
 
@@ -372,7 +362,6 @@ def build_eq_dict_MathML(eq_list, opts):
 
     settings_str = f"{full_preamble}|MathML"
     eq_dict, to_compile = _cached_equations(eq_list, settings_str)
-
     if not to_compile:
         return eq_dict
 
@@ -399,9 +388,11 @@ def build_eq_dict_MathML(eq_list, opts):
     return eq_dict
 
 
-def build_eq_dict_passthrough(eq_list):
-    """Returns a dictionary of pass-through LaTeX equations wrapped in HTML spans/divs."""
-    eq_dict = {}
+def build_eq_dict_passthrough(
+    eq_list: Sequence[MathInline | MathDisplay],
+) -> dict[str, str]:
+    """Return pass-through LaTeX equations wrapped in HTML ``<span>``/``<div>`` tags."""
+    eq_dict: dict[str, str] = {}
     for eq in eq_list:
         key = _equation_key(eq)
         escaped = escape_LaTeX(eq.content)
@@ -412,40 +403,52 @@ def build_eq_dict_passthrough(eq_list):
     return eq_dict
 
 
+def _build_equations_for_format(
+    eq_list: Sequence[MathInline | MathDisplay], opts: dict[str, Any]
+) -> dict[str, str]:
+    """Dispatch equation compilation based on ``opts['fmt']``."""
+    fmt = opts.get("fmt", "")
+    if fmt == "html-svg":
+        return build_eq_dict_SVG(eq_list, opts)
+    if fmt == "html-mathml":
+        return build_eq_dict_MathML(eq_list, opts)
+    if fmt == "html-passthrough":
+        return build_eq_dict_passthrough(eq_list)
+    return build_eq_dict_PNG(eq_list, opts)
+
+
 class QuizMLYamlHTMLRenderer(HTMLRenderer):
-    """customised mistletoe renderer for HTML
+    """Customized Mistletoe renderer for HTML with base64 images and math lookup."""
 
-    implements render for custom spans MathInline, MathDisplay,
-    ImageWithWidth also reimplements Image to embbed the image as
-    base64
-
-    """
-
-    def __init__(self, eq_dict, base_dir=None, search_dirs=None):
+    def __init__(
+        self,
+        eq_dict: dict[str, str],
+        base_dir: str | Path | None = None,
+        search_dirs: Sequence[str | Path] | None = None,
+    ) -> None:
         super().__init__(MathInline, MathDisplay, ImageWithWidth)
         self.eq_dict = eq_dict
         self.base_dir = base_dir
-        self.search_dirs = search_dirs or []
+        self.search_dirs: list[str | Path] = list(search_dirs or [])
 
-    def render_math_inline(self, token):
+    def render_math_inline(self, token: MathInline) -> str:
         return self.eq_dict["##Inline##" + token.content]
 
-    def render_math_display(self, token):
+    def render_math_display(self, token: MathDisplay) -> str:
         return self.eq_dict["##Display##" + token.content]
 
     def render_image(self, token: span_token.Image) -> str:
         template = '<img src="{}" alt="{}"{} >'
         title = f' title="{html.escape(token.title)}"' if token.title else ""
-        [_w, _h, data64] = embed_base64(
+        _w, _h, data64 = embed_base64(
             token.src, base_dir=self.base_dir, search_dirs=self.search_dirs
         )
         return template.format(data64, self.render_to_plain(token), title)
 
-    def render_image_with_width(self, token) -> str:
-        [_w, _h, data64_img] = embed_base64(
+    def render_image_with_width(self, token: ImageWithWidth) -> str:
+        _w, _h, data64_img = embed_base64(
             token.src, base_dir=self.base_dir, search_dirs=self.search_dirs
         )
-
         width_attr_str = token.width.strip()
 
         linewidth_match = re.match(r"^(\d*\.?\d*)\s*\\linewidth$", width_attr_str)
@@ -467,66 +470,34 @@ class QuizMLYamlHTMLRenderer(HTMLRenderer):
         return f'<img src="{data64_img}" alt="{alt_text}" style="width:{css_width};" >'
 
 
-def get_html(doc, opts):
-    """
-    returns the rendered HTML source for mistletoe object
-    """
-
+def get_html(doc: Any, opts: dict[str, Any]) -> str:
+    """Render HTML for a single Mistletoe AST ``doc``."""
     eq_list = get_eq_list_from_doc(doc)
-
-    fmt = opts.get("fmt", "")
-    if fmt == "html-svg":
-        eq_dict = build_eq_dict_SVG(eq_list, opts)
-    elif fmt == "html-mathml":
-        eq_dict = build_eq_dict_MathML(eq_list, opts)
-    elif fmt == "html-passthrough":
-        eq_dict = build_eq_dict_passthrough(eq_list)
-    else:
-        eq_dict = build_eq_dict_PNG(eq_list, opts)
-
+    eq_dict = _build_equations_for_format(eq_list, opts)
     with QuizMLYamlHTMLRenderer(eq_dict) as renderer:
-        html_result = renderer.render(doc)
-
-    return html_result
+        return renderer.render(doc)
 
 
-def inline_css(html_content, opts):
+def inline_css(html_content: str, opts: dict[str, Any]) -> str:
+    """Inline CSS styles into ``html_content`` elements using ``css_inline``."""
     if "html_css" in opts:
-        css = opts["html_css"]
-        # remove all comments (/*COMMENT */) from string
-        css = re.sub(re.compile(r"/\*.*?\*/", re.DOTALL), "", css)
+        css = re.sub(re.compile(r"/\*.*?\*/", re.DOTALL), "", opts["html_css"])
     else:
-        css = """
-        .math.inline {vertical-align:middle}
-        pre {
-              background:#eee;
-              padding: 0.5em;
-              max-width: 80em;
-              line-height:1em;
-        }
-        code { 
-              font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono',
-                           Menlo, Monaco, Consolas, monospace;
-              font-size: 80%;
-              line-height: 1.5em;
-        }
-        """
+        css = _DEFAULT_INLINE_CSS
 
     css = css.replace("\n", " ").replace("\t", "  ")
-
     html_payload = (
-        "<html><head><style>"
-        + css
-        + "</style></head><body>"
-        + html_content
-        + "</body></html>"
+        f"<html><head><style>{css}</style></head><body>{html_content}</body></html>"
     )
     out = css_inline.inline(html_payload)
     soup = BeautifulSoup(out, "html.parser")
     return soup.body.decode_contents() if soup.body else out
 
 
-def _apply_html_postprocess(html_raw, postprocess, opts):
+def _apply_html_postprocess(
+    html_raw: str, postprocess: Any, opts: dict[str, Any]
+) -> str:
+    """Apply optional HTML post-processing (``blackboard_html`` or custom callable)."""
     if postprocess is None:
         return html_raw
     if postprocess == "blackboard_html":
@@ -538,10 +509,6 @@ def _apply_html_postprocess(html_raw, postprocess, opts):
         except TypeError:
             return postprocess(html_raw)
     if isinstance(postprocess, str) and ":" in postprocess:
-        import importlib
-
-        from ..exceptions import QuizMLConfigError
-
         mod_name, attr_name = postprocess.split(":", 1)
         try:
             module = importlib.import_module(mod_name)
@@ -561,13 +528,16 @@ def _apply_html_postprocess(html_raw, postprocess, opts):
     raise ValueError(f"Unknown HTML postprocessor: {postprocess}")
 
 
-def get_html_dict(ast_dict, opts=None, base_dir=None, search_dirs=None):
-    """
-    Renders HTML for markdown entries from discrete AST documents.
-    """
+def get_html_dict(
+    ast_dict: dict[str, Any],
+    opts: dict[str, Any] | None = None,
+    base_dir: str | Path | None = None,
+    search_dirs: Sequence[str | Path] | None = None,
+) -> dict[str, str]:
+    """Batch-compile equations and render HTML for all AST documents in ``ast_dict``."""
     opts = dict(opts) if opts else {}
     if "tex_search_dirs" not in opts:
-        tex_dirs = []
+        tex_dirs: list[str | Path] = []
         if base_dir:
             tex_dirs.append(base_dir)
         if search_dirs:
@@ -575,24 +545,16 @@ def get_html_dict(ast_dict, opts=None, base_dir=None, search_dirs=None):
         if tex_dirs:
             opts["tex_search_dirs"] = tex_dirs
 
-    # 1. Collect all equations across all AST documents in batch
-    eq_list = []
+    # 1. Collect all unique equations across all AST documents in batch.
+    eq_list: list[MathInline | MathDisplay] = []
     for doc in ast_dict.values():
         eq_list = _append_unique(eq_list, get_eq_list_from_doc(doc))
 
-    # 2. Batch compile equations
-    fmt = opts.get("fmt", "")
-    if fmt == "html-svg":
-        eq_dict = build_eq_dict_SVG(eq_list, opts)
-    elif fmt == "html-mathml":
-        eq_dict = build_eq_dict_MathML(eq_list, opts)
-    elif fmt == "html-passthrough":
-        eq_dict = build_eq_dict_passthrough(eq_list)
-    else:
-        eq_dict = build_eq_dict_PNG(eq_list, opts)
+    # 2. Batch-compile equations for the active math backend.
+    eq_dict = _build_equations_for_format(eq_list, opts)
 
-    # 3. Render each document and apply optional postprocessor
-    md_dict = {}
+    # 3. Render each document and apply optional postprocessor.
+    md_dict: dict[str, str] = {}
     postprocess = opts.get("html_postprocess")
     with QuizMLYamlHTMLRenderer(
         eq_dict, base_dir=base_dir, search_dirs=search_dirs

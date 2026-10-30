@@ -1,8 +1,12 @@
+"""Subprocess runners for LaTeX, Ghostscript, and dvisvgm equation compilation."""
+
 import os
 import shutil
 import subprocess
 import tempfile
+from collections.abc import Iterable, Mapping
 from pathlib import Path
+from typing import Any
 
 from ..exceptions import (
     DvisvgmNotFoundError,
@@ -13,12 +17,15 @@ from ..exceptions import (
 )
 
 
-def build_tex_env(search_dirs=None, base_env=None):
-    """Build an environment dict with search_dirs prepended to TEXINPUTS."""
+def build_tex_env(
+    search_dirs: Iterable[str | Path] | None = None,
+    base_env: Mapping[str, str] | None = None,
+) -> dict[str, str]:
+    """Build an environment dict with ``search_dirs`` prepended to ``TEXINPUTS``."""
     env = dict(base_env if base_env is not None else os.environ)
     if not search_dirs:
         return env
-    clean_dirs = []
+    clean_dirs: list[str] = []
     for d in search_dirs:
         if d:
             abs_d = os.path.abspath(str(d))
@@ -33,12 +40,13 @@ def build_tex_env(search_dirs=None, base_env=None):
             existing = f"{existing}{os.pathsep}"
         env["TEXINPUTS"] = f"{prefix}{os.pathsep}{existing}"
     else:
-        # Trailing os.pathsep ensures kpathsea still searches standard TEXMF trees
+        # Trailing os.pathsep ensures kpathsea still searches standard TEXMF trees.
         env["TEXINPUTS"] = f"{prefix}{os.pathsep}"
     return env
 
 
-def _trim_tool_log(*outputs):
+def _trim_tool_log(*outputs: str | None) -> str:
+    """Extract the most relevant error tail (up to 40 lines) from TeX tool output."""
     lines = [line for output in outputs if output for line in output.splitlines()]
     error_index = next(
         (i for i, line in enumerate(lines) if line.startswith("!")), None
@@ -48,21 +56,30 @@ def _trim_tool_log(*outputs):
     return "\n".join(lines[-40:])
 
 
-def _process_failure(tool_name, returncode, stdout, stderr):
+def _process_failure(
+    tool_name: str, returncode: int, stdout: str | None, stderr: str | None
+) -> LatexCompilationError:
+    """Build a ``LatexCompilationError`` with trimmed diagnostic output."""
     details = _trim_tool_log(stdout, stderr) or "No diagnostic output was produced."
     return LatexCompilationError(
         f"{tool_name} failed with return code {returncode}\n{details}"
     )
 
 
-def _launch_failure(tool_name, err, missing_error_cls=LatexNotFoundError):
+def _launch_failure(
+    tool_name: str,
+    err: OSError,
+    missing_error_cls: type[LatexToolError] = LatexNotFoundError,
+) -> LatexToolError:
+    """Translate an ``OSError`` from launching a tool into a ``LatexToolError``."""
     if isinstance(err, FileNotFoundError):
         return missing_error_cls(f"{tool_name} was not found while starting it.")
     detail = err.strerror or str(err)
     return LatexToolError(f"Could not start {tool_name}: {detail}")
 
 
-def _communicate(process, tool_name):
+def _communicate(process: subprocess.Popen[str], tool_name: str) -> tuple[str, str]:
+    """Collect ``(stdout, stderr)`` from ``process``, wrapping OS errors."""
     try:
         return process.communicate()
     except OSError as err:
@@ -73,30 +90,46 @@ def _communicate(process, tool_name):
 
 
 class LatexRunner:
-    def __init__(
-        self, working_dir_prefix="quizml_latex_", tools=None, tex_search_dirs=None
-    ):
-        self.temp_dir = Path(tempfile.mkdtemp(prefix=working_dir_prefix))
-        self.tools = dict(tools or {})
-        self.tex_search_dirs = list(tex_search_dirs or [])
+    """Context manager running ``pdflatex``, ``latex``, ``gs``, and ``dvisvgm``."""
 
-    def _tex_env(self):
+    def __init__(
+        self,
+        working_dir_prefix: str = "quizml_latex_",
+        tools: Mapping[str, str] | None = None,
+        tex_search_dirs: Iterable[str | Path] | None = None,
+    ) -> None:
+        self.temp_dir = Path(tempfile.mkdtemp(prefix=working_dir_prefix))
+        self.tools: dict[str, str] = dict(tools or {})
+        self.tex_search_dirs: list[str | Path] = list(tex_search_dirs or [])
+
+    def _tex_env(self) -> dict[str, str] | None:
         return build_tex_env(self.tex_search_dirs) if self.tex_search_dirs else None
 
-    def _tool_cmd(self, key, default):
+    def _tool_cmd(self, key: str, default: str) -> str:
         return self.tools.get(key, default)
 
     @staticmethod
-    def _require_executable(name, error_cls, desc=None):
+    def _require_executable(
+        name: str, error_cls: type[LatexToolError], desc: str | None = None
+    ) -> None:
         if not shutil.which(name):
             desc = desc or name
             raise error_cls(f"{desc} not found in PATH.")
 
     @staticmethod
     def _run_checked(
-        command, tool_name, cwd, missing_error_cls=LatexNotFoundError, env=None
-    ):
-        run_kwargs = {"capture_output": True, "text": True, "cwd": cwd, "check": False}
+        command: list[str],
+        tool_name: str,
+        cwd: Path,
+        missing_error_cls: type[LatexToolError] = LatexNotFoundError,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        run_kwargs: dict[str, Any] = {
+            "capture_output": True,
+            "text": True,
+            "cwd": cwd,
+            "check": False,
+        }
         if env is not None:
             run_kwargs["env"] = env
         try:
@@ -109,15 +142,10 @@ class LatexRunner:
             )
         return process
 
-    def run_pdflatex(self, latex_content: str):
-        exe = self._tool_cmd("pdflatex", "pdflatex")
+    def _run_tex_engine(self, exe: str, latex_filename: Path) -> str:
+        """Execute a TeX engine (``pdflatex`` or ``latex``) and return ``stdout``."""
         self._require_executable(exe, LatexNotFoundError)
-        latex_filename = self.temp_dir / "eq_list.tex"
-        pdf_filename = self.temp_dir / "eq_list.pdf"
-
-        latex_filename.write_text(latex_content, encoding="utf-8")
-
-        popen_kwargs = {
+        popen_kwargs: dict[str, Any] = {
             "stdout": subprocess.PIPE,
             "stderr": subprocess.PIPE,
             "universal_newlines": True,
@@ -136,12 +164,22 @@ class LatexRunner:
             raise _launch_failure(exe, err) from err
 
         stdout, stderr = _communicate(process, exe)
-
         if process.returncode != 0:
             raise _process_failure(exe, process.returncode, stdout, stderr)
+        return stdout
 
-        # Parse depth ratio from stdout
-        depthratio = []
+    def run_pdflatex(self, latex_content: str) -> tuple[Path, list[float]]:
+        """Compile ``latex_content`` with ``pdflatex`` and parse depth ratios."""
+        exe = self._tool_cmd("pdflatex", "pdflatex")
+        latex_filename = self.temp_dir / "eq_list.tex"
+        pdf_filename = self.temp_dir / "eq_list.pdf"
+        latex_filename.write_text(latex_content, encoding="utf-8")
+
+        stdout = self._run_tex_engine(exe, latex_filename)
+
+        # Parse inline equation depth ratios (emitted via \typeout{::: ...}) and
+        # check for any '!' TeX error lines in stdout.
+        depthratio: list[float] = []
         err_msg = ""
         found_pdflatex_errors = False
         for line in stdout.splitlines():
@@ -162,7 +200,10 @@ class LatexRunner:
 
         return pdf_filename, depthratio
 
-    def run_gs_png(self, pdf_path: Path, output_prefix="eq_img_", dpi=250):
+    def run_gs_png(
+        self, pdf_path: Path, output_prefix: str = "eq_img_", dpi: int | float = 250
+    ) -> list[Path]:
+        """Rasterize each page of ``pdf_path`` into a PNG via Ghostscript."""
         exe = self._tool_cmd("gs", "gs")
         self._require_executable(exe, GhostscriptNotFoundError, f"{exe} (Ghostscript)")
         output_template = self.temp_dir / f"{output_prefix}%05d.png"
@@ -185,39 +226,16 @@ class LatexRunner:
             missing_error_cls=GhostscriptNotFoundError,
         )
 
-        # Return a list of generated PNG files
         return sorted(self.temp_dir.glob(f"{output_prefix}*.png"))
 
-    def run_latex_dvi(self, latex_content: str):
+    def run_latex_dvi(self, latex_content: str) -> Path:
+        """Compile ``latex_content`` into a DVI file using ``latex``."""
         exe = self._tool_cmd("latex", "latex")
-        self._require_executable(exe, LatexNotFoundError)
         latex_filename = self.temp_dir / "eq_list.tex"
         dvi_filename = self.temp_dir / "eq_list.dvi"
-
         latex_filename.write_text(latex_content, encoding="utf-8")
 
-        popen_kwargs = {
-            "stdout": subprocess.PIPE,
-            "stderr": subprocess.PIPE,
-            "universal_newlines": True,
-            "cwd": self.temp_dir,
-        }
-        tex_env = self._tex_env()
-        if tex_env is not None:
-            popen_kwargs["env"] = tex_env
-
-        try:
-            process = subprocess.Popen(
-                [exe, "-interaction=nonstopmode", str(latex_filename)],
-                **popen_kwargs,
-            )
-        except OSError as err:
-            raise _launch_failure(exe, err) from err
-
-        stdout, stderr = _communicate(process, exe)
-
-        if process.returncode != 0:
-            raise _process_failure(exe, process.returncode, stdout, stderr)
+        stdout = self._run_tex_engine(exe, latex_filename)
 
         err_msg = ""
         found_latex_errors = False
@@ -232,7 +250,10 @@ class LatexRunner:
 
         return dvi_filename
 
-    def run_dvisvgm_svg(self, dvi_path: Path, output_prefix="eq_list", scale=1.2):
+    def run_dvisvgm_svg(
+        self, dvi_path: Path, output_prefix: str = "eq_list", scale: int | float = 1.2
+    ) -> list[Path]:
+        """Convert each page of ``dvi_path`` into an SVG file using ``dvisvgm``."""
         exe = self._tool_cmd("dvisvgm", "dvisvgm")
         self._require_executable(exe, DvisvgmNotFoundError)
         output_template = self.temp_dir / f"{output_prefix}-%p.svg"
@@ -257,12 +278,13 @@ class LatexRunner:
 
         return sorted(self.temp_dir.glob(f"{output_prefix}-*.svg"))
 
-    def cleanup(self):
+    def cleanup(self) -> None:
+        """Remove the temporary working directory."""
         if self.temp_dir.exists():
             shutil.rmtree(self.temp_dir)
 
-    def __enter__(self):
+    def __enter__(self) -> "LatexRunner":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.cleanup()
