@@ -9,7 +9,6 @@ import docxtpl
 import pytest
 
 from quizml.rendering import render_docx
-from quizml.templates.create_tcd_docx_template import create_tcd_docx_template
 from quizml.yaml import loads
 
 
@@ -23,30 +22,28 @@ def tcd_docx_template_path():
 
 def test_tcd_docx_template_variables(tcd_docx_template_path):
     """Verifies that tcd-exam.docx has the expected Jinja2 variables."""
+    import jinja2
+
+    from quizml.rendering.docx import (
+        _docx_bold_xml,
+        _ensure_block_xml,
+        _ensure_run_xml,
+        _xml_to_plain_text,
+    )
+
     assert tcd_docx_template_path.exists()
     tpl = docxtpl.DocxTemplate(str(tcd_docx_template_path))
-    vars = tpl.get_undeclared_template_variables()
+    jinja_env = jinja2.Environment(extensions=["jinja2.ext.do"])
+    jinja_env.filters["docx_block"] = _ensure_block_xml
+    jinja_env.filters["docx_run"] = _ensure_run_xml
+    jinja_env.filters["docx_bold"] = _docx_bold_xml
+    jinja_env.filters["docx_plain"] = _xml_to_plain_text
+    vars = tpl.get_undeclared_template_variables(jinja_env=jinja_env)
     assert "header" in vars
     assert "questions" in vars
     assert "solutions" in vars
-
-
-def test_tcd_docx_generator_script(tmp_path):
-    """Verifies that create_tcd_docx_template can build a valid docx template."""
-    repo_root = pathlib.Path(__file__).parent.parent
-    source = repo_root / "tmp-frcs" / "exam-paper-template-reassessment.docx"
-    if not source.exists():
-        pytest.skip("Base reassessment template not found in workspace")
-
-    target = tmp_path / "generated-tcd-exam.docx"
-    create_tcd_docx_template(source, target)
-    assert target.exists()
-    assert target.stat().st_size > 50000
-
-    tpl = docxtpl.DocxTemplate(str(target))
-    vars = tpl.get_undeclared_template_variables()
-    assert "header" in vars
-    assert "questions" in vars
+    assert "candidate_info" not in vars
+    assert "answer_sheet_rows" not in vars
 
 
 def test_tcd_docx_cover_page_rendering(tcd_docx_template_path):
@@ -159,6 +156,18 @@ modulecode: 'TEST101'
   - A: 'Cat'
     B: 'Feline'
 
+- type: ordering
+  marks: 3.0
+  question: 'Order from smallest to largest:'
+  choices:
+  - 'Mercury'
+  - 'Mars'
+  - 'Earth'
+
+- type: part
+  title: 'Section B: Extended Response'
+  question: 'Answer the following question in detail.'
+
 - type: essay
   marks: 5.0
   question: 'Explain Fourier Transform.'
@@ -183,6 +192,12 @@ modulecode: 'TEST101'
     assert "(a)  3" in std_text
     assert "(b)  4" in std_text
     assert "(c)  5" in std_text
+    assert "(a)  Mercury" in std_text
+    assert "(b)  Mars" in std_text
+    assert "(c)  Earth" in std_text
+    assert "Section B: Extended Response" in std_text
+    assert "Answer the following question in detail." in std_text
+    assert "Question 9.\t[5.0 marks]" in std_text
     assert "[X]" not in std_text
     assert "Model Answer" not in std_text
     assert "Acceptable answers" not in std_text
@@ -221,6 +236,11 @@ modulecode: 'TEST101'
     # Matching pairs
     assert "(a)  Dog\t(1)  Canine" in sol_text
     assert "(b)  Cat\t(2)  Feline" in sol_text
+
+    # Ordering solutions
+    assert "1.  Mercury" in sol_text
+    assert "2.  Mars" in sol_text
+    assert "3.  Earth" in sol_text
 
     # Essay model answer
     assert "Model Answer:" in sol_text

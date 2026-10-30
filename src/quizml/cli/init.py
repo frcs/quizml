@@ -15,7 +15,7 @@ BUNDLE_GROUPS = {
     ],
     "html": ["preview.html.j2", "markdown-html.css", "math-preamble.tex"],
     "bb": ["blackboard.txt.j2", "markdown-html.css", "math-preamble.tex"],
-    "docx": ["prototype.docx", "tcd-exam.docx"],
+    "docx": ["tcd-exam.docx"],
     "qti": ["qti12", "qti21"],
     "moodle": ["moodle.xml.j2"],
     "schema": ["schema.json"],

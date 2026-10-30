@@ -41,25 +41,45 @@ def _ensure_run_xml(val, part=None) -> Markup:
     return Markup(s)
 
 
+class _DocxHeaderStr(str):
+    """Plain-text header string for inline tags that retains OpenXML for block filters."""
+
+    xml: str
+
+    def __new__(cls, plain: str, xml: str = ""):
+        obj = super().__new__(cls, plain)
+        obj.xml = xml or plain
+        return obj
+
+
 def _ensure_block_xml(val, part=None) -> Markup:
     """Ensures value is wrapped in OpenXML block tags (<w:p> or <w:tbl>)."""
-    if val is None:
+    if val is None or isinstance(val, jinja2.Undefined):
         return Markup("")
-    s = _clean_docx_str(str(val), part=part)
+    raw = val.xml if isinstance(val, _DocxHeaderStr) else str(val)
+    s = _clean_docx_str(str(raw), part=part)
+    if not s.strip():
+        return Markup("")
     if not (s.startswith(("<w:p", "<w:tbl"))):
-        escaped = _xml_escape(s)
-        s = (
-            '<w:p><w:pPr><w:spacing w:line="360" w:lineRule="auto"/>'
-            '<w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="24"/></w:rPr></w:pPr>'
-            f'<w:r><w:t xml:space="preserve">{escaped}</w:t></w:r></w:p>'
-        )
+        paras = [p.strip() for p in s.split("\n\n") if p.strip()] or [s.strip()]
+        p_xmls = []
+        for b in paras:
+            escaped = _xml_escape(b)
+            p_xmls.append(
+                '<w:p><w:pPr><w:spacing w:line="360" w:lineRule="auto"/>'
+                '<w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="24"/></w:rPr></w:pPr>'
+                f'<w:r><w:t xml:space="preserve">{escaped}</w:t></w:r></w:p>'
+            )
+        s = "".join(p_xmls)
     return Markup(s)
 
 
 def _xml_to_plain_text(val: str, sep: str = "\n") -> str:
     """Strips all OpenXML tags and returns plain text, preserving line breaks."""
+    if val is None or isinstance(val, jinja2.Undefined):
+        return ""
     if not isinstance(val, str):
-        return str(val) if val is not None else ""
+        return str(val)
     if "<w:p" in val or "<w:t" in val:
         import xml.etree.ElementTree as ET
 
@@ -99,11 +119,14 @@ def _xml_to_plain_text(val: str, sep: str = "\n") -> str:
     return clean.strip()
 
 
-def _format_instructions_xml(val: str, part=None) -> Markup:
-    """Formats instructions into one or more bold Calibri 12pt <w:p> paragraphs."""
-    text = val if isinstance(val, str) else ""
+def _docx_bold_xml(val, part=None) -> Markup:
+    """Formats text or OpenXML paragraphs into bold Calibri 12pt <w:p> paragraphs."""
+    if val is None or isinstance(val, jinja2.Undefined):
+        return Markup("")
+    raw = val.xml if isinstance(val, _DocxHeaderStr) else str(val)
+    text = str(raw) if raw is not None else ""
     if not text.strip():
-        text = "Please answer all questions."
+        return Markup("")
 
     paras = []
     if "<w:p" in text:
@@ -132,9 +155,6 @@ def _format_instructions_xml(val: str, part=None) -> Markup:
         clean = re.sub(r"</w:p>", "\n\n", text)
         clean = re.sub(r"<[^>]+>", "", clean)
         paras = [p.strip() for p in clean.split("\n\n") if p.strip()]
-
-    if not paras:
-        paras = ["Please answer all questions."]
 
     p_xmls = []
     for b in paras:
@@ -171,130 +191,18 @@ def _clean_docx_str(s: str, part=None) -> str:
     return s
 
 
-def _build_exam_sheet_context(context: dict) -> dict:
-    """Computes candidate_info and answer_sheet_rows for exam templates."""
-    hdr = context.get("header", {})
-    questions = context.get("questions", [])
-    raw_midterm = hdr.get("midterm") or hdr.get("infomidterm")
-    is_midterm = bool(
-        raw_midterm
-        and (
-            raw_midterm is True
-            or str(raw_midterm).strip().lower() in ("true", "1", "yes")
-        )
-    )
-    digit_line = "⓪ ① ② ③ ④ ⑤ ⑥ ⑦ ⑧ ⑨"
-    candidate_info = {
-        "is_midterm": is_midterm,
-        "line1_label": "Student Name" if is_midterm else "Exam Number",
-        "line2_label": "Student Number" if is_midterm else "Seat Number ",
-        "mark_instruction": (
-            "Mark your student number below"
-            if is_midterm
-            else "Mark your exam number below"
-        ),
-        "digit_rows": (
-            "\n".join([digit_line] * 8) if is_midterm else "\n".join([digit_line] * 5)
-        ),
-    }
-
-    is_sol = bool(context.get("solutions"))
-    open_letters = [chr(0x24B6 + i) for i in range(26)]
-    filled_letters = [chr(0x1F150 + i) for i in range(26)]
-
-    items = []
-    for q_idx, q in enumerate(questions, start=1):
-        q_type = q.get("type")
-        if q_type in ("mc", "ma"):
-            choices = q.get("choices", [])
-            bubbles = []
-            for c_idx, c in enumerate(choices):
-                open_char = (
-                    open_letters[c_idx]
-                    if c_idx < len(open_letters)
-                    else f"({chr(ord('A') + c_idx)})"
-                )
-                filled_char = (
-                    filled_letters[c_idx]
-                    if c_idx < len(filled_letters)
-                    else f"[{chr(ord('A') + c_idx)}]"
-                )
-                if is_sol:
-                    is_correct = isinstance(c, dict) and "x" in c
-                    bubbles.append(filled_char if is_correct else open_char)
-                else:
-                    bubbles.append(open_char)
-            bubble_str = " ".join(bubbles)
-        elif q_type == "tf":
-            ans = str(q.get("answer", "")).strip().lower()
-            bubble_str = ("🅣 Ⓕ" if ans == "true" else "Ⓣ 🅕") if is_sol else "Ⓣ Ⓕ"
-        elif q_type == "essay":
-            bubble_str = "essay question"
-        elif q_type in ("fill", "mfill"):
-            bubble_str = "fill-in"
-        elif q_type == "num":
-            bubble_str = "numeric"
-        else:
-            bubble_str = str(q_type or "question")
-
-        items.append(
-            {
-                "num": f"Q.{q_idx}",
-                "sep": "\t",
-                "bubbles": bubble_str,
-            }
-        )
-
-    num_items = len(items)
-    if num_items > 0:
-        col1_len = (num_items + 2) // 3
-        col2_len = (num_items + 1) // 3
-        num_rows = col1_len
-
-        col1 = items[0:col1_len]
-        col2 = items[col1_len : col1_len + col2_len]
-        col3 = items[col1_len + col2_len : num_items]
-
-        empty_cell = {"num": "", "sep": "", "bubbles": ""}
-        sheet_rows = []
-        for r in range(num_rows):
-            sheet_rows.append(
-                {
-                    "c1": col1[r] if r < len(col1) else empty_cell,
-                    "c2": col2[r] if r < len(col2) else empty_cell,
-                    "c3": col3[r] if r < len(col3) else empty_cell,
-                }
-            )
-        answer_sheet_rows = sheet_rows
-    else:
-        answer_sheet_rows = []
-
-    return {
-        "candidate_info": candidate_info,
-        "answer_sheet_rows": answer_sheet_rows,
-    }
-
-
 def _prepare_context_for_docx(context: dict, part=None) -> dict:
     """Prepares template context, ensuring questions and choices have valid OpenXML structures."""
     new_ctx = dict(context)
 
     if "header" in new_ctx and isinstance(new_ctx["header"], dict):
-        new_header = dict(new_ctx["header"])
-        for k, v in new_header.items():
-            if k == "instructions":
-                new_header[k] = _format_instructions_xml(v, part=part)
-            elif k == "additionalinformation":
-                new_header[k] = _ensure_block_xml(v, part=part) if v else Markup("")
-            elif isinstance(v, str):
-                new_header[k] = _xml_to_plain_text(v)
-        if "instructions" not in new_header or not new_header["instructions"]:
-            new_header["instructions"] = _format_instructions_xml("", part=part)
-        if (
-            "additionalinformation" not in new_header
-            or not new_header["additionalinformation"]
-        ):
-            new_header["additionalinformation"] = Markup("")
+        new_header = {}
+        for k, v in new_ctx["header"].items():
+            if isinstance(v, str):
+                plain = _xml_to_plain_text(v, sep="\n\n")
+                new_header[k] = _DocxHeaderStr(plain, xml=str(v))
+            else:
+                new_header[k] = v
         new_ctx["header"] = new_header
 
     questions = new_ctx.get("questions", [])
@@ -304,6 +212,8 @@ def _prepare_context_for_docx(context: dict, part=None) -> dict:
         q_copy = dict(q)
         if "question" in q_copy:
             q_copy["question"] = _ensure_block_xml(q_copy["question"], part=part)
+        if q_copy.get("figure"):
+            q_copy["figure"] = _ensure_block_xml(q_copy["figure"], part=part)
         if (
             q_copy.get("type") == "essay"
             and "answer" in q_copy
@@ -326,7 +236,6 @@ def _prepare_context_for_docx(context: dict, part=None) -> dict:
         prepared_questions.append(q_copy)
 
     new_ctx["questions"] = prepared_questions
-    new_ctx.update(_build_exam_sheet_context(new_ctx))
     return new_ctx
 
 
@@ -417,6 +326,11 @@ def render(context, template_filename, jinja_filters=None):
             autoescape=True,
         )
         jinja_env.globals["math"] = math
+        part = doc.docx.part if hasattr(doc, "docx") and doc.docx else None
+        jinja_env.filters["docx_block"] = lambda val: _ensure_block_xml(val, part=part)
+        jinja_env.filters["docx_run"] = lambda val: _ensure_run_xml(val, part=part)
+        jinja_env.filters["docx_bold"] = lambda val: _docx_bold_xml(val, part=part)
+        jinja_env.filters["docx_plain"] = _xml_to_plain_text
         if jinja_filters:
             if not isinstance(jinja_filters, dict):
                 raise QuizMLConfigError(
@@ -425,7 +339,6 @@ def render(context, template_filename, jinja_filters=None):
             for name, spec in jinja_filters.items():
                 jinja_env.filters[name] = _load_filter_callable(spec)
 
-        part = doc.docx.part if hasattr(doc, "docx") and doc.docx else None
         prepared_context = _prepare_context_for_docx(context, part=part)
 
         try:
