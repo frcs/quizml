@@ -1,22 +1,24 @@
 """Question similarity and cross-file comparison logic for QuizML YAML files."""
 
 import difflib
-import os
+from collections.abc import Sequence
+from pathlib import Path
+from typing import Any
 
 from quizml.exceptions import QuizMLConfigError
 
 
-def normalize_text(text):
-    """Normalize whitespace and case."""
+def normalize_text(text: Any) -> str:
+    """Normalize whitespace and case for fuzzy text comparison."""
     if not isinstance(text, str):
         return str(text)
     return " ".join(text.strip().lower().split())
 
 
-def get_choices_content(q):
-    """Extracts choices content as a sorted list of strings."""
+def get_choices_content(q: dict[str, Any]) -> list[str]:
+    """Extract normalized choice strings from a question mapping as a sorted list."""
     choices = q.get("choices", [])
-    content = []
+    content: list[str] = []
     if isinstance(choices, list):
         for c in choices:
             if isinstance(c, dict):
@@ -27,7 +29,17 @@ def get_choices_content(q):
     return sorted(content)
 
 
-def questions_are_similar(q1, q2):
+def questions_are_similar(q1: dict[str, Any], q2: dict[str, Any]) -> bool:
+    """Determine whether two question mappings represent the same question.
+
+    Similarity heuristics:
+    1. If both questions define non-empty ``id`` fields and they match, return True.
+    2. Question ``type`` must match.
+    3. Normalized question stems must have a ``SequenceMatcher`` ratio >= 0.90.
+    4. If choices exist, at least half of the choices must overlap or have a
+       combined ``SequenceMatcher`` ratio >= 0.65.
+    5. Normalized ``figure`` fields must match.
+    """
     id1 = str(q1.get("id") or "").strip()
     id2 = str(q2.get("id") or "").strip()
     if id1 and id2 and id1 == id2:
@@ -63,14 +75,37 @@ def questions_are_similar(q1, q2):
     return f1 == f2
 
 
-def compare_quiz_files(files):
-    """Compare questions in the first file against subsequent files and return question stats."""
+def _format_question_excerpt(qr: dict[str, Any]) -> str:
+    """Format a compact multi-line excerpt of a question stem and its choices."""
+    lines = str(qr.get("question", "")).splitlines()
+    excerpt = (lines[0] if lines else "") + (" […]" if len(lines) > 1 else "")
+
+    choices = qr.get("choices")
+    if isinstance(choices, list):
+        for ans in choices:
+            if isinstance(ans, dict):
+                val_str = " ".join(str(v) for v in ans.values())
+            else:
+                val_str = str(ans)
+
+            choice_lines = val_str.splitlines()
+            if choice_lines:
+                suffix = " […]" if len(choice_lines) > 1 else ""
+                excerpt += f"\n  * {choice_lines[0]}{suffix}"
+
+    return excerpt
+
+
+def compare_quiz_files(
+    files: Sequence[str | Path],
+) -> list[dict[str, Any]]:
+    """Compare questions in the first file against subsequent files."""
     from quizml.yaml import load
 
     unique_files = list(dict.fromkeys(files))
-    filedata = {}
+    filedata: dict[str | Path, Any] = {}
     for f in unique_files:
-        if not os.path.exists(f):
+        if not Path(f).exists():
             raise QuizMLConfigError(f"File {f} not found")
         filedata[f] = load(f, validate=False)
 
@@ -78,25 +113,14 @@ def compare_quiz_files(files):
     ref_questions = ref_yaml["questions"]
     other_files = unique_files[1:]
 
-    qstats = []
+    qstats: list[dict[str, Any]] = []
     for i, qr in enumerate(ref_questions):
-        lines = str(qr.get("question", "")).splitlines()
-        long_excerpt = (lines[0] if lines else "") + (" […]" if len(lines) > 1 else "")
-
-        if "choices" in qr and isinstance(qr["choices"], list):
-            for ans in qr["choices"]:
-                if isinstance(ans, dict):
-                    val_str = " ".join(str(v) for v in ans.values())
-                else:
-                    val_str = str(ans)
-
-                lines = val_str.splitlines()
-                if lines:
-                    long_excerpt += f"\n  * {lines[0]}" + (
-                        " […]" if len(lines) > 1 else ""
-                    )
-
-        qstats.append({"type": qr.get("type") or "unknown", "excerpt": long_excerpt})
+        qstats.append(
+            {
+                "type": qr.get("type") or "unknown",
+                "excerpt": _format_question_excerpt(qr),
+            }
+        )
 
         for f in other_files:
             dst_questions = filedata[f]["questions"]

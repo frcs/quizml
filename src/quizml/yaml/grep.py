@@ -30,21 +30,24 @@ class GrepMatch:
 
     @property
     def question_type(self) -> str:
+        """Return the question type string (or ``'unknown'``)."""
         return str(self.question_data.get("type", "unknown"))
 
     @property
     def marks(self) -> Any:
+        """Return the question marks value if present."""
         return self.question_data.get("marks", "")
 
     @property
     def statement_excerpt(self) -> str:
+        """Return a single-line excerpt (up to 80 chars) of the question stem."""
         q_text = str(self.question_data.get("question", "")).strip()
         first_line = q_text.splitlines()[0] if q_text else ""
         return first_line[:80] + ("..." if len(first_line) > 80 else "")
 
 
 def extract_strings(data: Any) -> list[str]:
-    """Recursively extract string values from question dictionary or choices."""
+    """Recursively extract all string keys and values from a question structure."""
     results: list[str] = []
     if isinstance(data, str):
         results.append(data)
@@ -62,47 +65,34 @@ def is_question_match(
     question: dict[str, Any],
     pattern: str = "",
     *,
-    regex: re.Pattern | None = None,
+    regex: re.Pattern[str] | None = None,
     fixed_strings: bool = False,
     ignore_case: bool = False,
     invert_match: bool = False,
     field: str | None = None,
     qtype: str | None = None,
 ) -> bool:
-    """Check if a question mapping matches search criteria."""
+    """Check if a question mapping matches the given search criteria."""
     if qtype:
         actual_type = str(question.get("type", "")).strip().lower()
         if actual_type != qtype.strip().lower():
             return False
 
     if field:
-        if field not in question:
-            matched = False
-        else:
-            values = extract_strings(question[field])
-            matched = any(
-                _match_text(
-                    v,
-                    pattern,
-                    regex=regex,
-                    fixed_strings=fixed_strings,
-                    ignore_case=ignore_case,
-                )
-                for v in values
-            )
+        values = extract_strings(question[field]) if field in question else []
     else:
         values = extract_strings(question)
-        matched = any(
-            _match_text(
-                v,
-                pattern,
-                regex=regex,
-                fixed_strings=fixed_strings,
-                ignore_case=ignore_case,
-            )
-            for v in values
-        )
 
+    matched = any(
+        _match_text(
+            v,
+            pattern,
+            regex=regex,
+            fixed_strings=fixed_strings,
+            ignore_case=ignore_case,
+        )
+        for v in values
+    )
     return not matched if invert_match else matched
 
 
@@ -110,10 +100,11 @@ def _match_text(
     text: str,
     pattern: str,
     *,
-    regex: re.Pattern | None = None,
+    regex: re.Pattern[str] | None = None,
     fixed_strings: bool = False,
     ignore_case: bool = False,
 ) -> bool:
+    """Return True if ``text`` matches ``pattern`` under the active match flags."""
     if fixed_strings:
         if pattern == "":
             return True
@@ -159,7 +150,7 @@ def find_quiz_files_for_grep(
             pattern = "**/*" if recursive else "*"
             for ext in (".yaml", ".yml"):
                 for file_candidate in resolved.glob(f"{pattern}{ext}"):
-                    # Skip hidden directories (like .git, .devlog) and hidden files
+                    # Skip hidden directories (like .git, .devlog) and hidden files.
                     try:
                         rel = file_candidate.relative_to(resolved)
                         if any(part.startswith(".") for part in rel.parts):
@@ -187,11 +178,11 @@ def grep_questions(
     recursive: bool = True,
     base_dir: Path | None = None,
 ) -> list[GrepMatch]:
-    """Search questions across files matching the pattern."""
+    """Search questions across files matching ``pattern``."""
     pattern_str = pattern if pattern is not None else ""
     effective_pattern = ".*" if pattern_str in ("", "*") else pattern_str
 
-    compiled_regex: re.Pattern | None = None
+    compiled_regex: re.Pattern[str] | None = None
     if not fixed_strings:
         flags = re.IGNORECASE if ignore_case else 0
         try:
@@ -251,7 +242,7 @@ def grep_questions(
                 q_id = str(q.get("id")).strip() if q.get("id") else None
 
                 if unique:
-                    # Check if similar to an existing match
+                    # Collapse similar questions into the first match's also_in list.
                     collapsed = False
                     for existing in matches:
                         if questions_are_similar(existing.question_data, q):
@@ -279,7 +270,7 @@ def format_matching_questions(
     wrap_width: int | None = None,
     show_provenance: bool = True,
 ) -> str:
-    """Format matching questions into standard QuizML YAML with provenance comments."""
+    """Format matching questions into QuizML YAML with optional provenance comments."""
     if not matches:
         return ""
 
@@ -300,6 +291,7 @@ def format_matching_questions(
 
         seq.append(q_copy)
 
+        # Attach provenance comments to slot 1 (pre-item comment) of seq.ca.items[i].
         if show_provenance:
             id_info = f" (id: {match.question_id})" if match.question_id else ""
             prov_lines = [f"# {match.file_path}: <Q{match.question_index}>{id_info}\n"]

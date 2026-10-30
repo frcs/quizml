@@ -1,11 +1,13 @@
-"""Pure quiz metadata pinning, deterministic question ID generation, and include freezing."""
+"""Quiz metadata pinning, deterministic question ID generation, and include freezing."""
 
 import hashlib
 import importlib.metadata
 import io
 import os
 import re
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 from ruamel.yaml.comments import CommentedMap
 
@@ -14,15 +16,18 @@ from quizml.yaml.includes import expand_roundtrip_includes
 from quizml.yaml.parser import extract_figure_paths, parse_roundtrip_yaml_text
 
 
-def parse_version_tuple(version_str):
+def parse_version_tuple(version_str: str) -> tuple[tuple[int, int, int], int]:
+    """Parse a PEP 440 version into ``((major, minor, patch), num_components)``."""
     base = re.split(r"(?:\.dev|\+|a|b|rc|-)", str(version_str).strip(), maxsplit=1)[0]
     parts = [int(p) for p in re.findall(r"\d+", base)]
+    num_components = len(parts)
     while len(parts) < 3:
         parts.append(0)
-    return tuple(parts[:3]), len(re.findall(r"\d+", base))
+    return (parts[0], parts[1], parts[2]), num_components
 
 
-def default_version_constraint():
+def default_version_constraint() -> str:
+    """Return a SemVer version constraint for the installed QuizML version."""
     try:
         ver_str = importlib.metadata.version("quizml")
     except importlib.metadata.PackageNotFoundError:
@@ -33,7 +38,14 @@ def default_version_constraint():
     return f">={major}.{minor},<{major + 1}.0"
 
 
-def generate_question_id(question_map, index, used_ids):
+def generate_question_id(
+    question_map: dict[str, Any], index: int, used_ids: set[str]
+) -> str:
+    """Generate a deterministic, collision-free question ID (``<slug>-<sha1[:4]>``).
+
+    Extracts up to 3 alphanumeric words from the question title or stem (stripping
+    LaTeX commands first) and appends a 4-character SHA-1 digest of ``type:question``.
+    """
     source_text = str(
         question_map.get("title") or question_map.get("question") or ""
     ).strip()
@@ -60,14 +72,14 @@ def pin_yaml_text(
     source_label: str = "<stdin>",
     out_dir: Path | None = None,
     force: bool = False,
-    default_targets=None,
+    default_targets: str | Sequence[str] | None = None,
     schema_path: str | None = None,
     freeze_includes: bool = False,
-    seed=None,
+    seed: Any = None,
     add_ids: bool = False,
     initial_stack: tuple[Path, ...] = (),
 ) -> str:
-    """Stamp header metadata (_quizml, _targets, _schema), optionally freeze includes and generate question IDs."""
+    """Stamp header metadata (``_quizml``, ``_targets``, ``_schema``) and IDs."""
     yaml, docs, q_index = parse_roundtrip_yaml_text(raw_text, source_label)
     if len(docs) == 1:
         header = CommentedMap()
@@ -92,7 +104,7 @@ def pin_yaml_text(
     ):
         header["_schema"] = str(schema_path)
 
-    if freeze_includes:
+    if freeze_includes and q_index is not None:
         figure_dirs = list(extract_figure_paths(header, base_dir))
         docs[q_index] = expand_roundtrip_includes(
             docs[q_index],
@@ -107,7 +119,7 @@ def pin_yaml_text(
                 dict.fromkeys(os.path.relpath(p, target_out_dir) for p in figure_dirs)
             )
 
-    if add_ids:
+    if add_ids and q_index is not None:
         used_ids = {
             str(q["id"]).strip()
             for q in docs[q_index]

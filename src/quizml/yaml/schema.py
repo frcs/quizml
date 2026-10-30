@@ -1,4 +1,17 @@
-"""JSON Schema loading, extension merging, validation, and type coercion for QuizML."""
+"""JSON Schema loading, extension merging, validation, and type coercion for QuizML.
+
+QuizML uses a two-stage validation and type-coercion pipeline:
+1. ``StringConstructor`` (in ``parser.py``) loads all non-null YAML scalars as
+   ``PlainScalarString`` so ``ruamel.yaml`` retains ``.lc`` line/column numbers
+   on every scalar node.
+2. ``DefaultFillingValidator`` (built on ``ScalarValidator``) validates the
+   loaded nodes against the JSON Schema while accepting string-encoded numbers
+   (``"2.5"``) and booleans (``"true"``) and populating schema ``"default"`` values.
+3. ``coerce_data`` then traverses the validated tree and converts string scalars
+   into native Python ``int``, ``float``, ``bool``, and ``MarkdownString`` objects
+   according to the active JSON Schema branch (``if``/``then``/``else``,
+   ``allOf``, ``anyOf``, ``oneOf``).
+"""
 
 import contextlib
 import copy
@@ -6,6 +19,7 @@ import json
 import re
 from importlib.resources import files
 from pathlib import Path
+from typing import Any
 
 from jsonschema import Draft7Validator, validators
 from jsonschema.exceptions import best_match
@@ -24,11 +38,11 @@ class MarkdownString(str):
     """A string subclass tagging values that should be transcoded as Markdown."""
 
 
-
 # --- Custom jsonschema Type Checker & Validator ---
 
 
-def is_number(checker, instance):
+def is_number(checker: Any, instance: Any) -> bool:
+    """Return True if ``instance`` is a numeric value or numeric string."""
     if isinstance(instance, bool):
         return False
     if isinstance(instance, (int, float)):
@@ -42,7 +56,8 @@ def is_number(checker, instance):
     return False
 
 
-def is_integer(checker, instance):
+def is_integer(checker: Any, instance: Any) -> bool:
+    """Return True if ``instance`` is an integer or canonical integer string."""
     if isinstance(instance, bool):
         return False
     if isinstance(instance, int):
@@ -55,7 +70,8 @@ def is_integer(checker, instance):
     return False
 
 
-def is_boolean(checker, instance):
+def is_boolean(checker: Any, instance: Any) -> bool:
+    """Return True if ``instance`` is a boolean or recognized boolean string."""
     if isinstance(instance, bool):
         return True
     if isinstance(instance, str):
@@ -70,10 +86,16 @@ CustomTypeChecker = Draft7Validator.TYPE_CHECKER.redefine_many(
 ScalarValidator = validators.extend(Draft7Validator, type_checker=CustomTypeChecker)
 
 
-def extend_with_default(validator_class):
+def extend_with_default(validator_class: Any) -> Any:
+    """Extend a ``jsonschema`` validator class so ``default`` values are populated."""
     validate_properties = validator_class.VALIDATORS["properties"]
 
-    def set_defaults(validator, properties, instance, schema):
+    def set_defaults(
+        validator: Any,
+        properties: dict[str, Any],
+        instance: Any,
+        schema: dict[str, Any],
+    ) -> Any:
         if isinstance(instance, dict):
             for prop, subschema in properties.items():
                 if "default" in subschema:
@@ -89,15 +111,16 @@ DefaultFillingValidator = extend_with_default(ScalarValidator)
 # --- Schema Reference Resolution & Type Coercion ---
 
 
-def _resolve_local_ref(ref, root_schema):
-    """Resolve a JSON Pointer reference into the root schema."""
+def _resolve_local_ref(ref: str, root_schema: dict[str, Any]) -> Any:
+    """Resolve a local JSON Pointer (``#/definitions/...``) in ``root_schema``."""
     if ref == "#":
         return root_schema
     if not ref.startswith("#/"):
         raise ValueError(f"Only local JSON Schema references are supported: {ref}")
 
-    target = root_schema
+    target: Any = root_schema
     for part in ref[2:].split("/"):
+        # Unescape JSON Pointer tokens per RFC 6901 (~1 -> /, ~0 -> ~).
         part = part.replace("~1", "/").replace("~0", "~")
         try:
             target = target[part] if isinstance(target, dict) else target[int(part)]
@@ -106,8 +129,12 @@ def _resolve_local_ref(ref, root_schema):
     return target
 
 
-def _resolve_schema_refs(schema, root_schema, ref_stack=()):
-    """Expand local references for schema validation (for example, anyOf)."""
+def _resolve_schema_refs(
+    schema: Any,
+    root_schema: dict[str, Any],
+    ref_stack: tuple[str, ...] = (),
+) -> Any:
+    """Recursively expand local ``$ref`` pointers for sub-schema validation."""
     if isinstance(schema, list):
         return [_resolve_schema_refs(item, root_schema, ref_stack) for item in schema]
     if not isinstance(schema, dict):
@@ -125,8 +152,13 @@ def _resolve_schema_refs(schema, root_schema, ref_stack=()):
     }
 
 
-def _applicable_schemas(data, schema, root_schema, ref_stack=()):
-    """Return schema fragments that apply to this value for coercion."""
+def _applicable_schemas(
+    data: Any,
+    schema: Any,
+    root_schema: dict[str, Any],
+    ref_stack: tuple[str, ...] = (),
+) -> list[dict[str, Any]]:
+    """Return all schema fragments that apply to ``data`` for type coercion."""
     if isinstance(schema, list):
         return [
             active
@@ -146,7 +178,7 @@ def _applicable_schemas(data, schema, root_schema, ref_stack=()):
             (*ref_stack, ref),
         )
 
-    applicable = [schema]
+    applicable: list[dict[str, Any]] = [schema]
     if "if" in schema:
         condition = _resolve_schema_refs(schema["if"], root_schema)
         branch = "then" if ScalarValidator(condition).is_valid(data) else "else"
@@ -177,14 +209,15 @@ def _applicable_schemas(data, schema, root_schema, ref_stack=()):
     return applicable
 
 
-def is_format_markdown(schema_node):
+def is_format_markdown(schema_node: Any) -> bool:
+    """Return True if ``schema_node`` declares ``{"format": "markdown"}``."""
     if not schema_node or not isinstance(schema_node, dict):
         return False
     return schema_node.get("format") == "markdown"
 
 
-def coerce_value(value, schemas):
-    """Coerce a single value based on the applicable schema types."""
+def coerce_value(value: Any, schemas: list[dict[str, Any]]) -> Any:
+    """Coerce a scalar value according to ``schemas``."""
     for schema in schemas:
         if is_format_markdown(schema) and isinstance(value, str):
             return MarkdownString(value)
@@ -205,62 +238,75 @@ def coerce_value(value, schemas):
     return value
 
 
-def coerce_data(yaml_data, schema):
-    """Traverse yaml_data (questions and header) and coerce types according to schema."""
+def _child_schemas_for_key(
+    key: str, active_schemas: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Collect sub-schemas applicable to mapping property ``key``."""
+    child_schemas: list[dict[str, Any]] = []
+    for active in active_schemas:
+        properties = active.get("properties", {})
+        if key in properties:
+            child_schemas.append(properties[key])
+        matching_patterns = [
+            subschema
+            for pattern, subschema in active.get("patternProperties", {}).items()
+            if re.search(pattern, key)
+        ]
+        child_schemas.extend(matching_patterns)
+        if (
+            key not in properties
+            and not matching_patterns
+            and "additionalProperties" in active
+            and isinstance(active["additionalProperties"], dict)
+        ):
+            child_schemas.append(active["additionalProperties"])
+    return child_schemas
 
-    def coerce_recursive(data, current_schema):
+
+def _child_schemas_for_index(
+    index: int, active_schemas: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Collect sub-schemas applicable to sequence element ``index``."""
+    child_schemas: list[dict[str, Any]] = []
+    for active in active_schemas:
+        items = active.get("items", {})
+        if isinstance(items, list):
+            if index < len(items):
+                child_schemas.append(items[index])
+        elif items:
+            child_schemas.append(items)
+    return child_schemas
+
+
+def coerce_data(yaml_data: Any, schema: dict[str, Any] | None) -> Any:
+    """Traverse ``yaml_data`` (questions and header) and coerce types per ``schema``."""
+    if not isinstance(yaml_data, dict) or not schema:
+        return yaml_data
+
+    def coerce_recursive(data: Any, current_schema: Any) -> Any:
         if not current_schema:
             return data
 
         active_schemas = _applicable_schemas(data, current_schema, schema)
         if isinstance(data, dict):
-            new_dict = {}
-            for key, value in data.items():
-                child_schemas = []
-                for active in active_schemas:
-                    properties = active.get("properties", {})
-                    if key in properties:
-                        child_schemas.append(properties[key])
-                    matching_patterns = [
-                        subschema
-                        for pattern, subschema in active.get(
-                            "patternProperties", {}
-                        ).items()
-                        if re.search(pattern, key)
-                    ]
-                    child_schemas.extend(matching_patterns)
-                    if (
-                        key not in properties
-                        and not matching_patterns
-                        and "additionalProperties" in active
-                        and isinstance(active["additionalProperties"], dict)
-                    ):
-                        child_schemas.append(active["additionalProperties"])
-                new_dict[key] = coerce_recursive(value, child_schemas)
-            return new_dict
-
+            return {
+                key: coerce_recursive(
+                    value, _child_schemas_for_key(key, active_schemas)
+                )
+                for key, value in data.items()
+            }
         if isinstance(data, list):
-            new_list = []
-            for index, item in enumerate(data):
-                child_schemas = []
-                for active in active_schemas:
-                    items = active.get("items", {})
-                    if isinstance(items, list):
-                        if index < len(items):
-                            child_schemas.append(items[index])
-                    elif items:
-                        child_schemas.append(items)
-                new_list.append(coerce_recursive(item, child_schemas))
-            return new_list
-
+            return [
+                coerce_recursive(item, _child_schemas_for_index(index, active_schemas))
+                for index, item in enumerate(data)
+            ]
         return coerce_value(data, active_schemas)
 
-    if isinstance(yaml_data, dict) and schema:
-        if "questions" in yaml_data:
-            yaml_data["questions"] = coerce_recursive(yaml_data["questions"], schema)
-        header_schema = schema.get("definitions", {}).get("header")
-        if "header" in yaml_data and header_schema:
-            yaml_data["header"] = coerce_recursive(yaml_data["header"], header_schema)
+    if "questions" in yaml_data:
+        yaml_data["questions"] = coerce_recursive(yaml_data["questions"], schema)
+    header_schema = schema.get("definitions", {}).get("header")
+    if "header" in yaml_data and header_schema:
+        yaml_data["header"] = coerce_recursive(yaml_data["header"], header_schema)
 
     return yaml_data
 
@@ -268,8 +314,88 @@ def coerce_data(yaml_data, schema):
 # --- Schema Loading, Extensions & Validation Diagnostics ---
 
 
-def apply_schema_extensions(schema, extensions):
-    """Return a deep copy of schema extended with header_properties, question_properties, and question_types."""
+def _extend_header_properties(schema: dict[str, Any], header_props: Any) -> None:
+    """Merge custom ``header_properties`` into ``schema['definitions']['header']``."""
+    if not isinstance(header_props, dict):
+        raise QuizMLConfigError(
+            "'schema_extensions.header_properties' must be a mapping."
+        )
+    defs = schema.setdefault("definitions", {})
+    hdr = defs.setdefault("header", {"type": "object", "additionalProperties": True})
+    hdr.setdefault("properties", {}).update(header_props)
+
+
+def _extend_question_properties(schema: dict[str, Any], question_props: Any) -> None:
+    """Merge custom ``question_properties`` into items and ``then`` branches."""
+    if not isinstance(question_props, dict):
+        raise QuizMLConfigError(
+            "'schema_extensions.question_properties' must be a mapping."
+        )
+    items = schema.setdefault("items", {"type": "object"})
+    items.setdefault("properties", {}).update(question_props)
+    for branch in items.get("allOf", []):
+        then_block = branch.get("then")
+        if isinstance(then_block, dict) and isinstance(
+            then_block.get("properties"), dict
+        ):
+            then_block["properties"].update(question_props)
+
+
+def _extend_question_types(
+    schema: dict[str, Any],
+    question_types: Any,
+    question_props: dict[str, Any] | None,
+) -> None:
+    """Register custom ``question_types`` in ``type.enum`` and ``items.allOf``."""
+    if not isinstance(question_types, dict):
+        raise QuizMLConfigError("'schema_extensions.question_types' must be a mapping.")
+    items = schema.setdefault("items", {"type": "object"})
+    type_prop = items.setdefault("properties", {}).setdefault(
+        "type", {"type": "string", "enum": []}
+    )
+    enum_list = type_prop.setdefault("enum", [])
+    all_of = items.setdefault("allOf", [])
+    base_q_props: dict[str, Any] = {
+        "type": {"type": "string"},
+        "id": {"type": "string"},
+        "title": {"type": "string"},
+        "marks": {"type": "number", "default": "2.5"},
+        "comments": {"$ref": "#/definitions/markdown"},
+        "feedback": {"$ref": "#/definitions/markdown"},
+        "question": {"$ref": "#/definitions/markdown"},
+        "figure": {"$ref": "#/definitions/markdown"},
+        "figure-split": {"type": "number"},
+    }
+    if isinstance(question_props, dict):
+        base_q_props.update(question_props)
+
+    for q_type, spec in question_types.items():
+        if not isinstance(spec, dict):
+            raise QuizMLConfigError(
+                f"Schema extension for question type '{q_type}' must be a mapping."
+            )
+        if q_type not in enum_list:
+            enum_list.append(q_type)
+        merged_props = copy.deepcopy(base_q_props)
+        if isinstance(spec.get("properties"), dict):
+            merged_props.update(spec["properties"])
+        then_schema = {
+            "properties": merged_props,
+            "required": spec.get("required", ["question"]),
+            "additionalProperties": spec.get("additionalProperties", False),
+        }
+        all_of.append(
+            {
+                "if": {"properties": {"type": {"const": q_type}}},
+                "then": then_schema,
+            }
+        )
+
+
+def apply_schema_extensions(
+    schema: dict[str, Any] | None, extensions: dict[str, Any] | None
+) -> dict[str, Any] | None:
+    """Return a deep copy of ``schema`` extended with custom definitions."""
     if not schema or not extensions:
         return schema
     if not isinstance(extensions, dict):
@@ -278,82 +404,26 @@ def apply_schema_extensions(schema, extensions):
     schema = copy.deepcopy(schema)
     header_props = extensions.get("header_properties")
     if header_props is not None:
-        if not isinstance(header_props, dict):
-            raise QuizMLConfigError(
-                "'schema_extensions.header_properties' must be a mapping."
-            )
-        defs = schema.setdefault("definitions", {})
-        hdr = defs.setdefault(
-            "header", {"type": "object", "additionalProperties": True}
-        )
-        hdr.setdefault("properties", {}).update(header_props)
+        _extend_header_properties(schema, header_props)
 
     question_props = extensions.get("question_properties")
     if question_props is not None:
-        if not isinstance(question_props, dict):
-            raise QuizMLConfigError(
-                "'schema_extensions.question_properties' must be a mapping."
-            )
-        items = schema.setdefault("items", {"type": "object"})
-        items.setdefault("properties", {}).update(question_props)
-        for branch in items.get("allOf", []):
-            then_block = branch.get("then")
-            if isinstance(then_block, dict) and isinstance(
-                then_block.get("properties"), dict
-            ):
-                then_block["properties"].update(question_props)
+        _extend_question_properties(schema, question_props)
 
     question_types = extensions.get("question_types")
     if question_types is not None:
-        if not isinstance(question_types, dict):
-            raise QuizMLConfigError(
-                "'schema_extensions.question_types' must be a mapping."
-            )
-        items = schema.setdefault("items", {"type": "object"})
-        type_prop = items.setdefault("properties", {}).setdefault(
-            "type", {"type": "string", "enum": []}
+        _extend_question_types(
+            schema,
+            question_types,
+            question_props if isinstance(question_props, dict) else None,
         )
-        enum_list = type_prop.setdefault("enum", [])
-        all_of = items.setdefault("allOf", [])
-        base_q_props = {
-            "type": {"type": "string"},
-            "id": {"type": "string"},
-            "title": {"type": "string"},
-            "marks": {"type": "number", "default": "2.5"},
-            "comments": {"$ref": "#/definitions/markdown"},
-            "feedback": {"$ref": "#/definitions/markdown"},
-            "question": {"$ref": "#/definitions/markdown"},
-            "figure": {"$ref": "#/definitions/markdown"},
-            "figure-split": {"type": "number"},
-        }
-        if isinstance(question_props, dict):
-            base_q_props.update(question_props)
-
-        for q_type, spec in question_types.items():
-            if not isinstance(spec, dict):
-                raise QuizMLConfigError(
-                    f"Schema extension for question type '{q_type}' must be a mapping."
-                )
-            if q_type not in enum_list:
-                enum_list.append(q_type)
-            merged_props = copy.deepcopy(base_q_props)
-            if isinstance(spec.get("properties"), dict):
-                merged_props.update(spec["properties"])
-            then_schema = {
-                "properties": merged_props,
-                "required": spec.get("required", ["question"]),
-                "additionalProperties": spec.get("additionalProperties", False),
-            }
-            all_of.append(
-                {
-                    "if": {"properties": {"type": {"const": q_type}}},
-                    "then": then_schema,
-                }
-            )
     return schema
 
 
-def load_schema(schema_path=None, schema_extensions=None):
+def load_schema(
+    schema_path: str | Path | None = None,
+    schema_extensions: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Load the bundled or custom JSON/YAML schema and apply optional extensions."""
     try:
         if schema_path is None:
@@ -382,8 +452,13 @@ def load_schema(schema_path=None, schema_extensions=None):
         ) from err
 
 
-def validate_header(header, schema, source_text="", source_path="<string>"):
-    """Validate the optional header definition when a schema provides one."""
+def validate_header(
+    header: Any,
+    schema: dict[str, Any] | None,
+    source_text: str = "",
+    source_path: str = "<string>",
+) -> None:
+    """Validate the optional header definition when ``schema`` provides one."""
     if not schema:
         return
     header_schema = schema.get("definitions", {}).get("header")
@@ -393,21 +468,26 @@ def validate_header(header, schema, source_text="", source_path="<string>"):
     err = best_match(DefaultFillingValidator(header_schema).iter_errors(header))
     if err:
         path = " -> ".join(map(str, err.path))
-        line_num = "unknown"
+        line_num: int | str = "unknown"
         if err.path:
             key = next(iter(err.path))
             with contextlib.suppress(AttributeError, KeyError, TypeError, IndexError):
                 line_num = header.lc.data[key][0] + 1
         lines = source_text.splitlines()
-        msg = f"Header schema validation error in {source_path} at '{path}' (line ~{line_num})\n"
-        if line_num != "unknown":
+        msg = (
+            f"Header schema validation error in {source_path} "
+            f"at '{path}' (line ~{line_num})\n"
+        )
+        if isinstance(line_num, int):
             msg += msg_context(lines, line_num) + "\n"
         msg += text_wrap(err.message)
         raise QuizMLYamlSyntaxError(msg)
 
 
-def _line_for_node_path(root, path, initial_line=None):
-    """Return the YAML source line for a node path when ruamel has one."""
+def _line_for_node_path(
+    root: Any, path: Any, initial_line: int | None = None
+) -> int | None:
+    """Return the 1-based YAML source line for ``path`` in ``root`` if known."""
     line = initial_line
     node = root
     for key in path:
@@ -426,8 +506,14 @@ def _line_for_node_path(root, path, initial_line=None):
     return line
 
 
-def validate_source_questions(questions, schema, *, source_text, source_path):
-    """Validate each source file's actual questions before include flattening."""
+def validate_source_questions(
+    questions: Any,
+    schema: dict[str, Any] | None,
+    *,
+    source_text: str,
+    source_path: str,
+) -> None:
+    """Validate each source file's questions before ``_include`` flattening."""
     if not schema or not isinstance(questions, list) or "items" not in schema:
         return
 
@@ -463,7 +549,13 @@ def validate_source_questions(questions, schema, *, source_text, source_path):
         raise QuizMLYamlSyntaxError(message)
 
 
-def validate_questions_list(questions_data, schema, *, source_text, filename):
+def validate_questions_list(
+    questions_data: list[Any],
+    schema: dict[str, Any] | None,
+    *,
+    source_text: str,
+    filename: str,
+) -> None:
     """Validate the flattened question list against the full root schema."""
     if not schema or not questions_data:
         return
@@ -471,8 +563,9 @@ def validate_questions_list(questions_data, schema, *, source_text, filename):
     err = best_match(validator.iter_errors(questions_data))
     if err:
         path = " -> ".join(map(str, err.path))
+        line_num: int | str
         try:
-            item = questions_data
+            item: Any = questions_data
             for key in err.path:
                 item = item[key]
             line_num = item.lc.line + 1
@@ -480,7 +573,7 @@ def validate_questions_list(questions_data, schema, *, source_text, filename):
             line_num = "unknown"
         lines = source_text.splitlines()
         msg = f"Schema validation error in {filename} at '{path}' (line ~{line_num})\n"
-        if line_num != "unknown":
+        if isinstance(line_num, int):
             msg += msg_context(lines, line_num) + "\n"
         msg += text_wrap(err.message)
         raise QuizMLYamlSyntaxError(msg)

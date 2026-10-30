@@ -7,9 +7,7 @@ and type coercion, formatting, pinning, and diffing.
 
 import sys
 from pathlib import Path
-
-from ruamel.yaml import YAML
-from ruamel.yaml.error import YAMLError
+from typing import Any
 
 from quizml.exceptions import QuizMLError, QuizMLYamlSyntaxError
 from quizml.yaml.diff import (
@@ -46,6 +44,7 @@ from quizml.yaml.includes import (
 from quizml.yaml.parser import (
     StringConstructor,
     extract_figure_paths,
+    parse_quiz_yaml_text,
     parse_roundtrip_yaml_text,
     peek_yaml_header,
     read_question_file,
@@ -77,137 +76,138 @@ from quizml.yaml.schema import (
 )
 
 
+def _resolve_base_dir(base_dir: str | Path | None, filename: str | Path) -> Path:
+    """Resolve the anchor directory used for relative ``_include`` and figure paths."""
+    if base_dir is not None:
+        return Path(base_dir).resolve()
+    if filename and str(filename) not in ("<string>", "<stdin>"):
+        return Path(filename).parent.resolve()
+    return Path.cwd().resolve()
+
+
+def _extract_root_figure_dirs(header_data: Any) -> list[str]:
+    """Pop and normalize ``_figures_path`` from the root header mapping."""
+    if not isinstance(header_data, dict):
+        return []
+    raw_dirs = header_data.pop("_figures_path", [])
+    if isinstance(raw_dirs, str):
+        return [raw_dirs]
+    if isinstance(raw_dirs, list):
+        return [str(d) for d in raw_dirs]
+    return []
+
+
+def _validate_unique_question_ids(
+    questions_data: list[Any], filename: str | Path
+) -> None:
+    """Ensure no two questions in the resolved question list share the same ``id``."""
+    seen_ids: set[str] = set()
+    for q in questions_data:
+        if isinstance(q, dict) and q.get("id"):
+            qid = str(q["id"]).strip()
+            if qid in seen_ids:
+                raise QuizMLYamlSyntaxError(
+                    f"Duplicate question id '{qid}' in {filename}"
+                )
+            seen_ids.add(qid)
+
+
 def loads(
-    quizmlyaml_txt,
-    validate=True,
-    schema=None,
-    filename="<string>",
-    base_dir=None,
+    quizmlyaml_txt: str,
+    validate: bool = True,
+    schema: dict[str, Any] | None = None,
+    filename: str | Path = "<string>",
+    base_dir: str | Path | None = None,
 ) -> QuizDocument:
-    """Parse a QuizML YAML string into a validated, coerced ``QuizDocument``."""
-    yaml = YAML()
-    yaml.Constructor = StringConstructor
-    try:
-        raw_docs = list(yaml.load_all(quizmlyaml_txt))
-    except YAMLError as err:
-        line = -1
-        if hasattr(err, "problem_mark"):
-            line = err.problem_mark.line
-        raise QuizMLYamlSyntaxError(
-            f"YAML parsing error in {filename} near line {line}:\n{err}"
-        ) from err
+    """Parse a QuizML YAML string into a validated, coerced ``QuizDocument``.
 
-    yamldocs = [
-        d
-        for d in raw_docs
-        if d is not None and not (isinstance(d, str) and not doc_strip(d))
-    ]
+    Pipeline stages:
+    1. Parse multi-document YAML text into ``(header_data, questions_data)``
+       using ``StringConstructor`` (preserving line/column metadata).
+    2. Validate the header against ``schema['definitions']['header']``.
+    3. Recursively expand ``_include`` directives and check for duplicate ``id``s.
+    4. Validate the flattened question list against the root JSON Schema
+       (which also populates default values such as ``marks``).
+    5. Convert ``ruamel.yaml`` nodes to plain Python types and coerce scalar
+       strings into ``int``, ``float``, ``bool``, and ``MarkdownString``.
+    """
+    resolved_base_dir = _resolve_base_dir(base_dir, filename)
+    header_data, questions_data = parse_quiz_yaml_text(
+        quizmlyaml_txt, source_label=filename
+    )
 
-    if base_dir is None:
-        if filename and filename != "<string>":
-            base_dir = Path(filename).parent.resolve()
-        else:
-            base_dir = Path.cwd()
-    else:
-        base_dir = Path(base_dir).resolve()
-
-    if len(yamldocs) > 2:
-        raise QuizMLYamlSyntaxError(
-            "YAML file cannot have more than 2 documents: "
-            "one for the header and one for the questions."
-        )
-
-    if not yamldocs:
+    if not header_data and not questions_data:
         return QuizDocument(
             {
                 "header": {},
                 "questions": [],
-                "paths": {"input_dir": str(base_dir), "figure_dirs": []},
+                "paths": {"input_dir": str(resolved_base_dir), "figure_dirs": []},
             },
             schema=schema,
         )
 
-    if len(yamldocs) == 1:
-        if isinstance(yamldocs[0], list):
-            header_data, questions_data = {}, yamldocs[0]
-        else:
-            header_data, questions_data = yamldocs[0], []
-    else:
-        header_data, questions_data = yamldocs[0], yamldocs[1]
-
     if validate:
-        validate_header(header_data, schema, quizmlyaml_txt, filename)
+        validate_header(header_data, schema, quizmlyaml_txt, str(filename))
 
-    root_figure_dirs = []
-    if isinstance(header_data, dict):
-        root_figure_dirs = header_data.pop("_figures_path", [])
-    if isinstance(root_figure_dirs, str):
-        root_figure_dirs = [root_figure_dirs]
-    elif not isinstance(root_figure_dirs, list):
-        root_figure_dirs = []
-
-    accumulated_figure_dirs = []
+    root_figure_dirs = _extract_root_figure_dirs(header_data)
+    accumulated_figure_dirs: list[str] = []
 
     if questions_data and isinstance(questions_data, list):
         questions_data = resolve_includes(
             questions_data,
-            base_dir=base_dir,
-            root_dir=base_dir,
+            base_dir=resolved_base_dir,
+            root_dir=resolved_base_dir,
             accumulated_figure_dirs=accumulated_figure_dirs,
             schema=schema if validate else None,
             source_text=quizmlyaml_txt,
-            source_path=filename,
+            source_path=str(filename),
         )
-        seen_ids = set()
-        for q in questions_data:
-            if isinstance(q, dict) and q.get("id"):
-                qid = str(q["id"]).strip()
-                if qid in seen_ids:
-                    raise QuizMLYamlSyntaxError(
-                        f"Duplicate question id '{qid}' in {filename}"
-                    )
-                seen_ids.add(qid)
+        _validate_unique_question_ids(questions_data, filename)
+
     figure_dirs = list(dict.fromkeys(root_figure_dirs + accumulated_figure_dirs))
 
     if validate and schema and questions_data:
         validate_questions_list(
-            questions_data, schema, source_text=quizmlyaml_txt, filename=filename
+            questions_data,
+            schema,
+            source_text=quizmlyaml_txt,
+            filename=str(filename),
         )
 
-    doc = {
+    doc: dict[str, Any] = {
         "header": to_plain_python(header_data) if header_data else {},
         "questions": to_plain_python(questions_data) if questions_data else [],
-        "paths": {"input_dir": str(base_dir), "figure_dirs": figure_dirs},
+        "paths": {"input_dir": str(resolved_base_dir), "figure_dirs": figure_dirs},
     }
     doc = coerce_data(doc, schema)
     return QuizDocument(doc, schema=schema)
 
 
-def doc_strip(val: str) -> str:
-    return val.strip()
-
-
 def load(
-    quizmlyaml_path, validate=True, schema_path=None, schema_extensions=None
+    quizmlyaml_path: str | Path,
+    validate: bool = True,
+    schema_path: str | Path | None = None,
+    schema_extensions: dict[str, Any] | None = None,
 ) -> QuizDocument:
     """Load a QuizML YAML file (or ``-`` for stdin) into a ``QuizDocument``."""
-    if quizmlyaml_path == "-":
+    if str(quizmlyaml_path) == "-":
         quizmlyaml_txt = sys.stdin.read()
         base_dir = Path.cwd().resolve()
         filename = "<stdin>"
         stem = "stdin"
     else:
+        path_obj = Path(quizmlyaml_path)
         try:
-            quizmlyaml_txt = Path(quizmlyaml_path).read_text(encoding="utf-8")
+            quizmlyaml_txt = path_obj.read_text(encoding="utf-8")
         except FileNotFoundError as err:
             raise QuizMLError(f"Yaml file not found: {quizmlyaml_path}") from err
         except OSError as err:
             raise QuizMLError(
                 f"Could not read YAML file {quizmlyaml_path}: {err}"
             ) from err
-        base_dir = Path(quizmlyaml_path).parent.resolve()
+        base_dir = path_obj.parent.resolve()
         filename = str(quizmlyaml_path)
-        stem = Path(quizmlyaml_path).stem
+        stem = path_obj.stem
 
     schema = (
         load_schema(schema_path=schema_path, schema_extensions=schema_extensions)
@@ -261,6 +261,7 @@ __all__ = [
     "loads",
     "normalize_select_list",
     "normalize_text",
+    "parse_quiz_yaml_text",
     "parse_roundtrip_yaml_text",
     "parse_version_tuple",
     "peek_yaml_header",
