@@ -60,10 +60,7 @@ def questions_are_similar(q1, q2):
     f1 = normalize_text(q1.get("figure", ""))
     f2 = normalize_text(q2.get("figure", ""))
 
-    if f1 != f2:
-        return False
-
-    return True
+    return f1 == f2
 
 
 def compare_quiz_files(files):

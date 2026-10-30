@@ -1,3 +1,4 @@
+import contextlib
 import functools
 import hashlib
 import json
@@ -29,10 +30,8 @@ def get_cache_size():
 def clear_cache():
     """Remove the shared cache directory and return its previous size."""
     size = get_cache_size()
-    try:
+    with contextlib.suppress(FileNotFoundError):
         shutil.rmtree(CACHE_DIR)
-    except FileNotFoundError:
-        pass
     return size
 
 

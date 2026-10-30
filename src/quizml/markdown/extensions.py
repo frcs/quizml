@@ -1,4 +1,5 @@
 import re
+from typing import ClassVar
 
 from mistletoe.block_token import BlockToken
 from mistletoe.span_token import SpanToken
@@ -10,7 +11,7 @@ class MathDisplay(BlockToken):
     )
 
     latex = ""
-    repr_attributes = ["latex"]
+    repr_attributes: ClassVar[list[str]] = ["latex"]
 
     def __init__(self, lines):
         self.latex = "".join([line.lstrip() for line in lines]).strip()

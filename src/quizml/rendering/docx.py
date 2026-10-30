@@ -35,7 +35,7 @@ def _ensure_run_xml(val, part=None) -> Markup:
             s,
             flags=re.DOTALL,
         )
-    elif not (s.startswith("<w:r") or s.startswith("<m:oMath")):
+    elif not (s.startswith(("<w:r", "<m:oMath"))):
         escaped = _xml_escape(s)
         s = f'<w:r><w:t xml:space="preserve">{escaped}</w:t></w:r>'
     return Markup(s)
@@ -46,7 +46,7 @@ def _ensure_block_xml(val, part=None) -> Markup:
     if val is None:
         return Markup("")
     s = _clean_docx_str(str(val), part=part)
-    if not (s.startswith("<w:p") or s.startswith("<w:tbl")):
+    if not (s.startswith(("<w:p", "<w:tbl"))):
         escaped = _xml_escape(s)
         s = (
             '<w:p><w:pPr><w:spacing w:line="360" w:lineRule="auto"/>'
@@ -227,10 +227,7 @@ def _build_exam_sheet_context(context: dict) -> dict:
             bubble_str = " ".join(bubbles)
         elif q_type == "tf":
             ans = str(q.get("answer", "")).strip().lower()
-            if is_sol:
-                bubble_str = "🅣 Ⓕ" if ans == "true" else "Ⓣ 🅕"
-            else:
-                bubble_str = "Ⓣ Ⓕ"
+            bubble_str = ("🅣 Ⓕ" if ans == "true" else "Ⓣ 🅕") if is_sol else "Ⓣ Ⓕ"
         elif q_type == "essay":
             bubble_str = "essay question"
         elif q_type in ("fill", "mfill"):

@@ -174,10 +174,6 @@ def is_blank_comment(token):
     return token.value.strip() == ""
 
 
-def should_remove_comment(token):
-    return is_q_comment(token) or is_blank_comment(token)
-
-
 def clean_all_q_comments(data, *, strip_blank_lines=True):
     """Recursively removes all <Q#> comments and (optionally) pure empty lines from a ruamel.yaml data structure."""
 

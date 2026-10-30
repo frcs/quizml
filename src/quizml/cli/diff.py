@@ -21,9 +21,7 @@ def diff(args):
 
     qstats = compare_quiz_files(files)
     has_dups = print_dups_table(qstats, quiet=getattr(args, "quiet", False))
-    if getattr(args, "check", False) and has_dups:
-        return False
-    return True
+    return not (getattr(args, "check", False) and has_dups)
 
 
 def print_dups_table(qstats, quiet=False):

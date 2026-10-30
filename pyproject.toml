@@ -19,6 +19,8 @@ dependencies = [
   "css_inline",
   "platformdirs",
   "docxtpl",
+  "python-docx>=1.1.0",
+  "markupsafe>=2.1.0",
   "latex2mathml>=3.81.1",
   "mathml2omml>=0.0.2",
 ]
@@ -57,10 +59,10 @@ target-version = "py310"
 [tool.ruff.lint]
 # Enable specific rule sets
 # E/F are default (Pycodestyle/Pyflakes), I is isort (import sorting)
-select = ["E", "F", "I", "B", "UP"]
+select = ["E", "F", "I", "B", "UP", "SIM", "PIE", "C4", "RUF"]
 
 # Rules to ignore (e.g., E501 is line-too-long)
-ignore = ["E501", "B905"]
+ignore = ["E501", "B905", "SIM117"]
 
 # Allow fixable violations to be automatically fixed
 fixable = ["ALL"]
@@ -80,7 +82,7 @@ dev = [
 ]
 
 [tool.setuptools.package-data]
-quizml = ["templates/*"]
+quizml = ["py.typed", "templates/*", "templates/**/*"]
 
 [tool.setuptools_scm]
 

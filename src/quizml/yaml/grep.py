@@ -212,11 +212,11 @@ def grep_questions(
     for file_path in file_paths:
         if str(file_path) == "-":
             raw_text = sys.stdin.read()
-            yaml_obj, docs, q_index = parse_roundtrip_yaml_text(raw_text, "<stdin>")
+            _yaml_obj, docs, q_index = parse_roundtrip_yaml_text(raw_text, "<stdin>")
             display_path = Path("<stdin>")
         else:
             try:
-                yaml_obj, docs, q_index = read_roundtrip_yaml(file_path)
+                _yaml_obj, docs, q_index = read_roundtrip_yaml(file_path)
             except QuizMLError as err:
                 if file_path in explicit_files:
                     raise

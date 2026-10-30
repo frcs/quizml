@@ -515,74 +515,9 @@ def create_tcd_docx_template(
 
 def _strip_server_and_security_metadata(docx_path: Path) -> None:
     """Removes SharePoint/server document metadata and ensures DocSecurity is 0 (editable)."""
-    import re
-    import zipfile
+    from quizml.rendering.docx import _ensure_editable_bytes
 
-    tmp_file = docx_path.with_suffix(".tmp.docx")
-    try:
-        with (
-            zipfile.ZipFile(docx_path, "r") as zin,
-            zipfile.ZipFile(tmp_file, "w", compression=zipfile.ZIP_DEFLATED) as zout,
-        ):
-            for item in zin.infolist():
-                name = item.filename
-                # Strip all customXml (SharePoint forms, schemas, documentManagement)
-                if name.startswith("customXml/"):
-                    continue
-
-                # Strip docProps/custom.xml (ContentTypeId linking to SharePoint document library)
-                if name == "docProps/custom.xml":
-                    continue
-
-                content = zin.read(name)
-
-                if name == "_rels/.rels":
-                    text = content.decode("utf-8")
-                    text = re.sub(
-                        r"<Relationship[^>]*Target=[\"\x27]docProps/custom\.xml[\"\x27][^>]*/>",
-                        "",
-                        text,
-                    )
-                    content = text.encode("utf-8")
-
-                elif name == "word/_rels/document.xml.rels":
-                    text = content.decode("utf-8")
-                    text = re.sub(
-                        r"<Relationship[^>]*Target=[\"\x27]\.\./customXml/[^\"\x27]+[\"\x27][^>]*/>",
-                        "",
-                        text,
-                    )
-                    content = text.encode("utf-8")
-
-                elif name == "[Content_Types].xml":
-                    text = content.decode("utf-8")
-                    text = re.sub(
-                        r"<Override[^>]*PartName=[\"\x27]/docProps/custom\.xml[\"\x27][^>]*/>",
-                        "",
-                        text,
-                    )
-                    text = re.sub(
-                        r"<Override[^>]*PartName=[\"\x27]/customXml/[^\"\x27]+[\"\x27][^>]*/>",
-                        "",
-                        text,
-                    )
-                    content = text.encode("utf-8")
-
-                elif name == "docProps/app.xml":
-                    text = content.decode("utf-8")
-                    text = re.sub(
-                        r"<DocSecurity>\d+</DocSecurity>",
-                        "<DocSecurity>0</DocSecurity>",
-                        text,
-                    )
-                    content = text.encode("utf-8")
-
-                zout.writestr(item, content)
-
-        tmp_file.replace(docx_path)
-    finally:
-        if tmp_file.exists():
-            tmp_file.unlink()
+    docx_path.write_bytes(_ensure_editable_bytes(docx_path.read_bytes()))
 
 
 if __name__ == "__main__":

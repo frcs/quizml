@@ -195,10 +195,7 @@ def page_content(renderable, console: Console | None = None) -> None:
 
     if not pager_cmd:
         less_path = shutil.which("less")
-        if less_path:
-            pager_cmd = f"{less_path} -R"
-        else:
-            pager_cmd = shutil.which("more")
+        pager_cmd = f"{less_path} -R" if less_path else shutil.which("more")
 
     if not pager_cmd or pager_cmd == "cat":
         console.print(renderable)

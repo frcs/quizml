@@ -19,7 +19,13 @@ from .extensions import ImageWithWidth, MathDisplay, MathInline
 from .image_embedding import embed_base64
 from .latextools import LatexRunner
 from .macros import LatexMacroExpander, preprocess_latex_for_mathml
-from .utils import append_unique
+
+
+def _append_unique(lst1, lst2):
+    for a in lst2:
+        if a not in lst1:
+            lst1.append(a)
+    return lst1
 
 
 def get_eq_list_from_doc(doc):
@@ -31,8 +37,8 @@ def get_eq_list_from_doc(doc):
     eq_list = []
     if hasattr(doc, "children") and doc.children is not None:
         for a in doc.children:
-            eq_list = append_unique(eq_list, get_eq_list_from_doc(a))
-    elif isinstance(doc, MathInline) or isinstance(doc, MathDisplay):
+            eq_list = _append_unique(eq_list, get_eq_list_from_doc(a))
+    elif isinstance(doc, (MathInline, MathDisplay)):
         eq_list.append(doc)
     return eq_list
 
@@ -429,17 +435,14 @@ class QuizMLYamlHTMLRenderer(HTMLRenderer):
 
     def render_image(self, token: span_token.Image) -> str:
         template = '<img src="{}" alt="{}"{} >'
-        if token.title:
-            title = f' title="{html.escape(token.title)}"'
-        else:
-            title = ""
-        [w, h, data64] = embed_base64(
+        title = f' title="{html.escape(token.title)}"' if token.title else ""
+        [_w, _h, data64] = embed_base64(
             token.src, base_dir=self.base_dir, search_dirs=self.search_dirs
         )
         return template.format(data64, self.render_to_plain(token), title)
 
     def render_image_with_width(self, token) -> str:
-        [w, h, data64_img] = embed_base64(
+        [_w, _h, data64_img] = embed_base64(
             token.src, base_dir=self.base_dir, search_dirs=self.search_dirs
         )
 
@@ -575,7 +578,7 @@ def get_html_dict(ast_dict, opts=None, base_dir=None, search_dirs=None):
     # 1. Collect all equations across all AST documents in batch
     eq_list = []
     for doc in ast_dict.values():
-        eq_list = append_unique(eq_list, get_eq_list_from_doc(doc))
+        eq_list = _append_unique(eq_list, get_eq_list_from_doc(doc))
 
     # 2. Batch compile equations
     fmt = opts.get("fmt", "")

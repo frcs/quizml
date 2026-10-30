@@ -1,7 +1,6 @@
 import base64
 import os
 import re
-import struct
 import subprocess
 import tempfile
 from io import BytesIO
@@ -105,22 +104,6 @@ def embed_base64(pathname, base_dir=None, search_dirs=None):
     data64 = f"data:image/{ext};base64,{base64.b64encode(data).decode('ascii')}"
 
     return (w, h, data64)
-
-
-def get_PNG_info(data):
-    """
-    get width and height from an image
-
-    Parameters
-    ----------
-    data : image
-        input image
-    """
-
-    w, h = struct.unpack(">LL", data[16:24])
-    width = int(w)
-    height = int(h)
-    return width, height
 
 
 def convert_css_values_to_pixels(value):

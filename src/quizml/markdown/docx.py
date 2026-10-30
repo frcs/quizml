@@ -287,7 +287,7 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
             prefix = f"{i + 1}.  " if is_ordered else "•  "
             item_inner = self.render(item)
             # Remove enclosing <w:p> if present to inject list styling
-            if item_inner.startswith("<w:p>") or item_inner.startswith("<w:p "):
+            if item_inner.startswith(("<w:p>", "<w:p ")):
                 item_inner = re.sub(
                     r"^<w:p[^>]*>(?:<w:pPr>.*?</w:pPr>)?",
                     "",

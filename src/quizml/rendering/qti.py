@@ -1,6 +1,7 @@
 """IMS QTI 1.2 and 2.1 package renderer and ZIP packager."""
 
 import base64
+import contextlib
 import hashlib
 import io
 import re
@@ -202,15 +203,11 @@ def _process_qti_html(
             referenced_media.append(fname)
 
             if img.has_attr("width"):
-                try:
+                with contextlib.suppress(ValueError, TypeError):
                     img["width"] = str(round(float(img["width"])))
-                except (ValueError, TypeError):
-                    pass
             if img.has_attr("height"):
-                try:
+                with contextlib.suppress(ValueError, TypeError):
                     img["height"] = str(round(float(img["height"])))
-                except (ValueError, TypeError):
-                    pass
 
     cleaned_str = str(soup)
     cleaned_str = _ensure_xhtml(cleaned_str)
@@ -231,7 +228,7 @@ def _process_questions_for_qti(
         item_q.setdefault("feedback_incorrect", None)
         item_media = []
         for field in ["question", "feedback", "feedback_correct", "feedback_incorrect"]:
-            if field in item_q and item_q[field]:
+            if item_q.get(field):
                 cleaned, media = _process_qti_html(
                     item_q[field], media_store, qti_version=qti_version
                 )

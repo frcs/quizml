@@ -1,5 +1,6 @@
 """JSON Schema loading, extension merging, validation, and type coercion for QuizML."""
 
+import contextlib
 import copy
 import json
 import re
@@ -22,7 +23,6 @@ from quizml.exceptions import (
 class MarkdownString(str):
     """A string subclass tagging values that should be transcoded as Markdown."""
 
-    pass
 
 
 # --- Custom jsonschema Type Checker & Validator ---
@@ -117,7 +117,7 @@ def _resolve_schema_refs(schema, root_schema, ref_stack=()):
         if ref in ref_stack:
             raise ValueError(f"Recursive JSON Schema reference is unsupported: {ref}")
         return _resolve_schema_refs(
-            _resolve_local_ref(ref, root_schema), root_schema, ref_stack + (ref,)
+            _resolve_local_ref(ref, root_schema), root_schema, (*ref_stack, ref)
         )
     return {
         key: _resolve_schema_refs(value, root_schema, ref_stack)
@@ -143,7 +143,7 @@ def _applicable_schemas(data, schema, root_schema, ref_stack=()):
             data,
             _resolve_local_ref(ref, root_schema),
             root_schema,
-            ref_stack + (ref,),
+            (*ref_stack, ref),
         )
 
     applicable = [schema]
@@ -197,15 +197,11 @@ def coerce_value(value, schemas):
             if value.lower() in ["false", "no", "off"]:
                 return False
         if "integer" in types and isinstance(value, str):
-            try:
+            with contextlib.suppress(ValueError):
                 value = int(value)
-            except ValueError:
-                pass
         if "number" in types and isinstance(value, str):
-            try:
+            with contextlib.suppress(ValueError):
                 value = float(value)
-            except ValueError:
-                pass
     return value
 
 
@@ -400,10 +396,8 @@ def validate_header(header, schema, source_text="", source_path="<string>"):
         line_num = "unknown"
         if err.path:
             key = next(iter(err.path))
-            try:
+            with contextlib.suppress(AttributeError, KeyError, TypeError, IndexError):
                 line_num = header.lc.data[key][0] + 1
-            except (AttributeError, KeyError, TypeError, IndexError):
-                pass
         lines = source_text.splitlines()
         msg = f"Header schema validation error in {source_path} at '{path}' (line ~{line_num})\n"
         if line_num != "unknown":

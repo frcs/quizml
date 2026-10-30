@@ -21,15 +21,14 @@ from quizml.rendering import docx as docx_renderer
 
 
 def test_latex_launch_permission_error_is_typed():
-    with LatexRunner() as runner:
-        with (
-            patch(
-                "quizml.markdown.latextools.subprocess.run",
-                side_effect=PermissionError("permission denied"),
-            ),
-            pytest.raises(LatexToolError, match="Could not start fake-tool"),
-        ):
-            runner._run_checked(["fake-tool"], "fake-tool", runner.temp_dir)
+    with (
+        LatexRunner() as runner, patch(
+            "quizml.markdown.latextools.subprocess.run",
+            side_effect=PermissionError("permission denied"),
+        ),
+        pytest.raises(LatexToolError, match="Could not start fake-tool"),
+    ):
+        runner._run_checked(["fake-tool"], "fake-tool", runner.temp_dir)
 
 
 def test_latex_communication_error_is_typed():
@@ -82,7 +81,7 @@ def test_docx_template_errors_use_template_error_type(monkeypatch):
         type("DocxTplModule", (), {"DocxTemplate": BrokenDocxTemplate}),
     )
 
-    with pytest.raises(TemplateRenderError, match="DOCX template.*template failed"):
+    with pytest.raises(TemplateRenderError, match=r"DOCX template.*template failed"):
         docx_renderer.render({}, "template.docx")
 
 
@@ -105,9 +104,8 @@ def test_missing_latex_tools_raise_tool_specific_errors(
 ):
     monkeypatch.setattr("quizml.markdown.latextools.shutil.which", lambda _: None)
 
-    with LatexRunner() as runner:
-        with pytest.raises(expected_error):
-            getattr(runner, method)(*args)
+    with LatexRunner() as runner, pytest.raises(expected_error):
+        getattr(runner, method)(*args)
 
 
 @pytest.mark.parametrize(

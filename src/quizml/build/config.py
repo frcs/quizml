@@ -152,7 +152,7 @@ def load_config(config_path=None, *, yaml_filename=None, warn_fn=None):
             yaml = YAML(typ="safe")
             config = yaml.load(f)
     except YAMLError as err:
-        s = f"Something went wrong while parsing the config file at:\n {config_file}\n\n {str(err)}"
+        s = f"Something went wrong while parsing the config file at:\n {config_file}\n\n {err!s}"
         raise QuizMLConfigError(s) from err
     except OSError as err:
         raise QuizMLConfigError(

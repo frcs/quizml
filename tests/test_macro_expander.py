@@ -9,12 +9,12 @@ def test_extract_braced():
 
     # Escaped braces
     text2 = r"  {abc \{def\} ghi} rest"
-    val2, pos2 = extract_braced(text2, 0)
+    val2, _pos2 = extract_braced(text2, 0)
     assert val2 == r"abc \{def\} ghi"
 
     # Unclosed brace
     text3 = "{unclosed"
-    val3, pos3 = extract_braced(text3, 0)
+    val3, _pos3 = extract_braced(text3, 0)
     assert val3 is None
 
 

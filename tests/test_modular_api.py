@@ -206,3 +206,18 @@ def test_load_config_and_resolve_targets_headless(tmp_path):
     targets = resolve_targets(cfg, doc, target_names=["html-preview"])
     assert len(targets) == 1
     assert targets[0]["name"] == "html-preview"
+
+
+def test_top_level_exception_exports_and_markdown_options():
+    import quizml
+    from quizml.markdown import MarkdownOptions, normalize_markdown_options
+
+    assert issubclass(quizml.QuizMLYamlSyntaxError, quizml.QuizMLError)
+    assert issubclass(quizml.QuizMLConfigError, quizml.QuizMLError)
+    assert issubclass(quizml.QuizMLBuildError, quizml.QuizMLError)
+    assert issubclass(quizml.TemplateRenderError, quizml.QuizMLError)
+
+    opts = MarkdownOptions(fmt="latex")
+    normalized = normalize_markdown_options(opts)
+    assert normalized["fmt"] == "latex"
+

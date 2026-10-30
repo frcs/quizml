@@ -1,3 +1,4 @@
+import contextlib
 import sys
 from unittest.mock import patch
 
@@ -281,10 +282,8 @@ def test_info_command(capsys):
     import json
 
     with patch.object(sys, "argv", ["quizml", "info"]):
-        try:
+        with contextlib.suppress(SystemExit):
             main()
-        except SystemExit:
-            pass
 
     captured = capsys.readouterr()
     output = captured.out
@@ -366,12 +365,10 @@ def test_diff_missing_file_exit_code():
 def test_target_list_config_failure_exit_code_and_stderr(capsys):
     from quizml.exceptions import QuizMLConfigError
 
-    with patch.object(sys, "argv", ["quizml", "targets"]):
-        with patch(
-            "quizml.cli.ui.get_config", side_effect=QuizMLConfigError("bad config")
-        ):
-            with pytest.raises(SystemExit) as exc_info:
-                main()
+    with patch.object(sys, "argv", ["quizml", "targets"]), patch(
+        "quizml.cli.ui.get_config", side_effect=QuizMLConfigError("bad config")
+    ), pytest.raises(SystemExit) as exc_info:
+        main()
 
     assert exc_info.value.code == 1
     captured = capsys.readouterr()
@@ -385,10 +382,9 @@ def test_init_copy_failure_exit_code_and_stderr(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     with patch.object(
         init_module.shutil, "copy2", side_effect=OSError("permission denied")
-    ):
-        with patch.object(sys, "argv", ["quizml", "init", "local"]):
-            with pytest.raises(SystemExit) as exc_info:
-                main()
+    ), patch.object(sys, "argv", ["quizml", "init", "local"]):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
 
     assert exc_info.value.code == 1
     captured = capsys.readouterr()

@@ -9,7 +9,6 @@ from quizml.yaml.format import (
     format_yaml_text,
     is_blank_comment,
     is_q_comment,
-    should_remove_comment,
     wrap_markdown,
     wrap_text_fields,
 )
@@ -72,7 +71,6 @@ __all__ = [
     "is_blank_comment",
     "is_q_comment",
     "run_format",
-    "should_remove_comment",
     "wrap_markdown",
     "wrap_text_fields",
 ]

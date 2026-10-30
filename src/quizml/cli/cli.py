@@ -1,4 +1,5 @@
 import argparse
+import contextlib
 import logging
 import sys
 from importlib.metadata import version
@@ -675,10 +676,8 @@ def main(argv=None):
         print_error(err)
         sys.exit(1)
     except BrokenPipeError:
-        try:
+        with contextlib.suppress(OSError):
             sys.stdout.close()
-        except OSError:
-            pass
         sys.exit(0)
     except KeyboardInterrupt:
         err_console.print("[bold red]Interrupted[/bold red]")

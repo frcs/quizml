@@ -24,7 +24,6 @@ from quizml.yaml.format import (
     format_yaml_text,
     is_blank_comment,
     is_q_comment,
-    should_remove_comment,
     wrap_markdown,
     wrap_text_fields,
 )
@@ -230,6 +229,7 @@ def load(
 __all__ = [
     "CustomTypeChecker",
     "DefaultFillingValidator",
+    "GrepMatch",
     "MarkdownString",
     "QuizDocument",
     "ScalarValidator",
@@ -248,7 +248,6 @@ __all__ = [
     "format_yaml_text",
     "generate_question_id",
     "get_choices_content",
-    "GrepMatch",
     "grep_questions",
     "is_blank_comment",
     "is_boolean",
@@ -273,7 +272,6 @@ __all__ = [
     "resolve_includes",
     "resolve_select_indices",
     "select_questions",
-    "should_remove_comment",
     "to_plain_python",
     "validate_header",
     "validate_questions_list",

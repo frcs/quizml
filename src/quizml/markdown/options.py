@@ -1,7 +1,7 @@
 """Markdown option normalization and validation for QuizML."""
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any
 
 from quizml.exceptions import QuizMLConfigError
@@ -48,7 +48,7 @@ def _raise_error(msg: str, config_error: bool):
 
 
 def normalize_markdown_options(
-    options: dict[str, Any] | None = None,
+    options: dict[str, Any] | MarkdownOptions | None = None,
     *,
     target_name: str | None = None,
     config_error: bool = False,
@@ -56,12 +56,15 @@ def normalize_markdown_options(
     """Translate public `markdown` (or legacy `fmt`) settings into internal renderer options.
 
     Args:
-        options: A dictionary containing `markdown` mapping or legacy `fmt` key.
+        options: A dictionary (or `MarkdownOptions` instance) containing `markdown` mapping or legacy `fmt` key.
         target_name: Optional target name used in `QuizMLConfigError` messages.
         config_error: If True, raise `QuizMLConfigError` with config-specific wording;
                       otherwise raise `ValueError`.
     """
-    options = dict(options or {})
+    if isinstance(options, MarkdownOptions):
+        options = {k: v for k, v in asdict(options).items() if v is not None}
+    else:
+        options = dict(options or {})
     t_name = target_name or options.get("name", "<unnamed>")
     markdown = options.get("markdown")
 

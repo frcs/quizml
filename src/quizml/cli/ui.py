@@ -1,4 +1,5 @@
 import os
+from typing import ClassVar
 
 from rich import print
 from rich.markdown import Markdown, TableElement
@@ -35,7 +36,7 @@ class CustomTableElement(TableElement):
 
 
 class QuizMLMarkdown(Markdown):
-    elements = {**Markdown.elements, "table_open": CustomTableElement}
+    elements: ClassVar[dict] = {**Markdown.elements, "table_open": CustomTableElement}
 
 
 def add_hyperlinks(descr_str, filename):

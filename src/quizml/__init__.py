@@ -1,6 +1,15 @@
 """QuizML: modular toolkit for YAML/Markdown quizzes, transcoding, rendering, and builds."""
 
 from quizml.build import BuildResult, TargetResult, compile_quiz
+from quizml.exceptions import (
+    LatexToolError,
+    MarkdownError,
+    QuizMLBuildError,
+    QuizMLConfigError,
+    QuizMLError,
+    QuizMLYamlSyntaxError,
+    TemplateRenderError,
+)
 from quizml.markdown import (
     MarkdownOptions,
     MarkdownTranscoder,
@@ -24,11 +33,18 @@ from quizml.yaml import (
 __all__ = [
     "BuildResult",
     "FileLocator",
+    "LatexToolError",
+    "MarkdownError",
     "MarkdownOptions",
     "MarkdownString",
     "MarkdownTranscoder",
     "QuizDocument",
+    "QuizMLBuildError",
+    "QuizMLConfigError",
+    "QuizMLError",
+    "QuizMLYamlSyntaxError",
     "TargetResult",
+    "TemplateRenderError",
     "compare_quiz_files",
     "compile_quiz",
     "find_path",
