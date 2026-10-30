@@ -513,15 +513,21 @@ def test_init_tiered_default_and_selective_flags(tmp_path, monkeypatch):
             main()
         assert exc_info.value.code == 1
 
-    # Selective --latex --schema with --force succeeds
+    # Selective --latex --schema --qti --moodle with --force succeeds
     with patch.object(
-        sys, "argv", ["quizml", "init", "--latex", "--schema", "--force"]
+        sys,
+        "argv",
+        ["quizml", "init", "--latex", "--schema", "--qti", "--moodle", "--force"],
     ):
         main()
 
     assert (dest_dir / "schema.json").exists()
     assert (dest_dir / "tcd-exam.tex.j2").exists()
     assert (dest_dir / "math-preamble.tex").exists()
+    assert (dest_dir / "omrglyphs.sty").exists()
+    assert (dest_dir / "qti12" / "quiz.xml.j2").exists()
+    assert (dest_dir / "qti21" / "item.xml.j2").exists()
+    assert (dest_dir / "moodle.xml.j2").exists()
     assert not (dest_dir / "preview.html.j2").exists()
 
 
@@ -684,3 +690,30 @@ def test_clean_recursive_and_header_variable_substitution(tmp_path):
         == 1
     )
     assert not artifact.exists()
+
+
+def test_mistyped_subcommand_exits_with_argparse_error():
+    with patch.object(sys, "argv", ["quizml", "unknown_subcommand_xyz"]):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 2
+
+
+def test_build_alias_and_compile_output_override(tmp_path, monkeypatch, capsys):
+    import io
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        sys,
+        "stdin",
+        io.StringIO("- type: tf\n  question: Output override?\n  answer: true\n"),
+    )
+
+    with patch.object(
+        sys, "argv", ["quizml", "build", "-", "-t", "bb", "-o", "-", "--quiet"]
+    ):
+        main()
+
+    captured = capsys.readouterr()
+    assert "TF\t<p>Output override?</p>\tTrue" in captured.out
+

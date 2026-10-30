@@ -128,6 +128,7 @@ def compile_quiz(
     *,
     config_path=None,
     targets=None,
+    output=None,
     extra_context=None,
     on_stats=None,
     warn_fn=None,
@@ -189,6 +190,29 @@ def compile_quiz(
     except FileNotFoundError as err:
         raise QuizMLConfigError(str(err)) from err
 
+    explicit_targets = bool(targets or yaml_data.get("header", {}).get("_targets"))
+    active_targets = [
+        t for t in target_list if not (("build_cmd" in t) and not explicit_targets)
+    ]
+    if output is not None:
+        requested_count = len(targets) if targets else len(active_targets)
+        if requested_count != 1 or not active_targets:
+            raise QuizMLConfigError(
+                "Cannot use -o/--output when compiling multiple targets; "
+                "select a single target with -t/--target."
+            )
+        final_target = active_targets[-1]
+        if output == "-" and "build_cmd" in final_target:
+            raise QuizMLConfigError(
+                f"Target '{final_target.get('name')}' uses build_cmd and cannot write to stdout (-)."
+            )
+        final_target["out"] = (
+            "-"
+            if output == "-"
+            else str(pathlib.Path(output).expanduser().resolve())
+        )
+        final_target["descr_cmd"] = output
+
     for target in target_list:
         target.setdefault("tex_search_dirs", tex_search_dirs)
         if target.get("out") and target["out"] != "-":
@@ -196,7 +220,6 @@ def compile_quiz(
 
     results: list[TargetResult] = []
     success_list: dict[str, bool] = {}
-    explicit_targets = bool(targets or yaml_data.get("header", {}).get("_targets"))
 
     for target in target_list:
         if ("build_cmd" in target) and not explicit_targets:

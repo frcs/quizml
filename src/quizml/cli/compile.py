@@ -44,6 +44,7 @@ def compile(args, live_reload=None):
         args.yaml_filename,
         config_path=getattr(args, "config", None),
         targets=getattr(args, "target", None),
+        output=getattr(args, "output", None),
         extra_context=extra_context,
         on_stats=None if args.quiet else print_stats_table,
         warn_fn=err_console.print,

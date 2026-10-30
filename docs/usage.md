@@ -6,19 +6,22 @@ in your installed version.
 
 ## Compile
 
-Compile configured targets (or read from stdin with `-`):
+Compile configured targets (or read from stdin with `-`). `quizml build` is an
+alias for `quizml compile`, and the shorthand `quizml quiz.yaml` is also
+supported:
 
 ```bash
 quizml compile quiz.yaml
-quizml sample bank.yaml | quizml compile - --target bb --quiet
+quizml sample bank.yaml | quizml compile - --target bb -o - --quiet
 ```
 
-The shorthand `quizml quiz.yaml` is also supported. Select targets or configured
-target aliases with repeated `-t`/`--target` options, or watch for file changes
-with `-w`/`--watch`:
+Select targets or configured target aliases with repeated `-t`/`--target`
+options, override a single target's output path with `-o`/`--output`, or watch
+for file changes with `-w`/`--watch`:
 
 ```bash
 quizml compile quiz.yaml --target build
+quizml compile quiz.yaml --target bb -o custom.txt
 quizml compile -w quiz.yaml
 ```
 
@@ -26,6 +29,8 @@ Compile options:
 
 - `-t`, `--target TARGET`: compile a named target or configured alias; may be
   repeated.
+- `-o`, `--output FILE`: override the output path for a single target (use `-`
+  for `stdout`).
 - `-w`, `--watch`: compile again when the input or included files change.
 - `--config CONFIGFILE`: use a specific QuizML config file.
 - `--debug`, `--verbose`, `--quiet`: adjust diagnostic output.
@@ -33,14 +38,14 @@ Compile options:
 ## Other commands
 
 ```text
-quizml grep PATTERN [PATH ...] [-i] [-F] [-v] [--field FIELD] [-t TYPE] [-u] [-l] [-c] [--table] [-o FILE]
+quizml grep PATTERN [PATH ...] [-i] [-F] [-v] [--field FIELD] [-t TYPE] [-u] [-l] [-c] [--table] [-o FILE|-]
 quizml diff [--check] FILE FILE [FILE ...]
 quizml fmt [FILE|-] [-i | --check | --diff] [--wrap WIDTH]
-quizml sample [FILE|-] [-o FILE|-] [--seed SEED] [--force]
+quizml sample [FILE|-] [-o FILE|-] [--seed SEED] [-f | --force]
 quizml pin [FILE|-] [-o FILE] [-t TARGET] [--add-ids] [--freeze-includes] [--seed SEED] [-f]
 quizml clean [PATH] [-r] [--dry-run] [--quiet] [--config CONFIGFILE]
 quizml cache clear
-quizml init [{local,user}] [--all] [--latex] [--html] [--bb] [--docx] [--schema] [-t FILE] [-f]
+quizml init [{local,user}] [--all] [--latex] [--html] [--bb] [--docx] [--qti] [--moodle] [--schema] [-t FILE] [-f]
 quizml docs [TOPIC] [--no-pager]
 quizml info
 quizml targets [--config CONFIGFILE]

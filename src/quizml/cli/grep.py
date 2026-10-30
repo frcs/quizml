@@ -99,7 +99,7 @@ def run_grep(args):
         show_provenance=not getattr(args, "no_provenance", False),
     )
 
-    if output_path:
+    if output_path and output_path != "-":
         out_p = Path(output_path).expanduser().resolve()
         out_p.parent.mkdir(parents=True, exist_ok=True)
         out_p.write_text(yaml_text, encoding="utf-8")
@@ -108,7 +108,7 @@ def run_grep(args):
                 f"Wrote {len(matches)} matching question(s) to {output_path}"
             )
     else:
-        if sys.stdout.isatty():
+        if output_path != "-" and sys.stdout.isatty():
             console = Console()
             console.print(
                 Syntax(
@@ -122,7 +122,11 @@ def run_grep(args):
             sys.stdout.write(yaml_text)
             sys.stdout.flush()
 
-    if not getattr(args, "quiet", False) and not output_path and sys.stderr.isatty():
+    if (
+        not getattr(args, "quiet", False)
+        and (not output_path or output_path == "-")
+        and sys.stderr.isatty()
+    ):
         n_files = len({str(m.file_path) for m in matches})
         file_word = "file" if n_files == 1 else "files"
         q_word = "question" if len(matches) == 1 else "questions"

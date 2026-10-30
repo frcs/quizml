@@ -17,18 +17,20 @@ COMMANDS = (
     "pin",
     "grep",
     "search",
+    "build",
 )
 OPTIONS = {
-    "compile": "-h --help --config --debug --verbose --quiet -t --target -w --watch",
+    "compile": "-h --help --config --debug --verbose --quiet -t --target -o --output -w --watch",
+    "build": "-h --help --config --debug --verbose --quiet -t --target -o --output -w --watch",
     "diff": "-h --help --debug --verbose --quiet --check",
     "fmt": "-h --help -i --in-place --check --diff --wrap",
-    "grep": "-h --help --debug --verbose --quiet -i --ignore-case -F --fixed-strings -v --invert-match --field -t --type -u --unique -l --files-with-matches -c --count --table --summary -o --output --no-provenance -r --recursive --no-recursive --wrap",
-    "search": "-h --help --debug --verbose --quiet -i --ignore-case -F --fixed-strings -v --invert-match --field -t --type -u --unique -l --files-with-matches -c --count --table --summary -o --output --no-provenance -r --recursive --no-recursive --wrap",
-    "sample": "-h --help -o --output --seed --force",
+    "grep": "-h --help --debug --verbose --quiet -e --regexp -i --ignore-case -F --fixed-strings -v --invert-match --field -t --type -u --unique -l --files-with-matches -c --count --table --summary -o --output --no-provenance -r --recursive --no-recursive --wrap",
+    "search": "-h --help --debug --verbose --quiet -e --regexp -i --ignore-case -F --fixed-strings -v --invert-match --field -t --type -u --unique -l --files-with-matches -c --count --table --summary -o --output --no-provenance -r --recursive --no-recursive --wrap",
+    "sample": "-h --help -o --output --seed -f --force",
     "pin": "-h --help --config --debug --verbose --quiet -o --output -t --target --add-ids --freeze-includes --seed -f --force",
     "clean": "-h --help -r --recursive --dry-run --config --quiet",
-    "cache": "-h --help",
-    "init": "-h --help -a --all --latex --html --bb --docx --schema -t --template -f --force",
+    "cache": "-h --help clear",
+    "init": "-h --help -a --all --latex --html --bb --docx --qti --moodle --schema -t --template -f --force",
     "docs": "-h --help --no-pager",
     "info": "-h --help",
     "targets": "-h --help --config --debug --verbose --quiet",
@@ -87,7 +89,7 @@ def zsh():
         specs = " ".join(f"'{opt}[{opt}]'" for opt in opts.split())
         if command == "docs":
             positional = "'*:topic:->topic'"
-        elif command in {"compile", "diff", "fmt", "sample", "pin"}:
+        elif command in {"compile", "build", "diff", "fmt", "sample", "pin", "grep", "search"}:
             positional = "'*:yaml file:_files -g \"*.(yaml|yml)\"'"
         elif command == "clean":
             positional = "'*:path:_files -g \"*.(yaml|yml)\" -/'"
@@ -119,8 +121,9 @@ def fish():
     ]
     lines.extend(
         [
-            "complete -c quizml -n '__fish_seen_subcommand_from compile diff fmt sample pin' -F",
+            "complete -c quizml -n '__fish_seen_subcommand_from compile build diff fmt sample pin grep search' -F",
             "complete -c quizml -n '__fish_seen_subcommand_from init' -a 'local user'",
+            "complete -c quizml -n '__fish_seen_subcommand_from cache' -a 'clear'",
             "complete -c quizml -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'",
         ]
     )

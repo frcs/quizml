@@ -18,6 +18,8 @@ quizml init --latex
 quizml init --html
 quizml init --bb
 quizml init --docx
+quizml init --qti
+quizml init --moodle
 quizml init --schema
 
 # Copy an individual template file or all bundled assets

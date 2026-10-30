@@ -12,6 +12,7 @@ from .errorhandler import err_console
 
 COMMANDS = {
     "compile",
+    "build",
     "diff",
     "fmt",
     "grep",
@@ -76,7 +77,10 @@ def build_parser():
     subparsers = parser.add_subparsers(dest="command", required=True, metavar="COMMAND")
 
     compile_parser = subparsers.add_parser(
-        "compile", help="compile a quiz", formatter_class=formatter
+        "compile",
+        aliases=["build"],
+        help="compile a quiz",
+        formatter_class=formatter,
     )
     _add_common_options(compile_parser)
     compile_parser.add_argument(
@@ -88,6 +92,13 @@ def build_parser():
         action="append",
         metavar="TARGET",
         help="target to compile; repeatable",
+    )
+    compile_parser.add_argument(
+        "-o",
+        "--output",
+        default=None,
+        metavar="FILE",
+        help="override output path for a single target (use - for stdout)",
     )
     compile_parser.add_argument(
         "-w", "--watch", action="store_true", help="watch for changes"
@@ -252,7 +263,10 @@ def build_parser():
         help="seed for sampled includes without their own seed",
     )
     sample_parser.add_argument(
-        "--force", action="store_true", help="replace an existing output file"
+        "-f",
+        "--force",
+        action="store_true",
+        help="replace an existing output file",
     )
 
     pin_parser = subparsers.add_parser(
@@ -393,6 +407,16 @@ def build_parser():
         help="copy Word (docxtpl) reference template",
     )
     init_parser.add_argument(
+        "--qti",
+        action="store_true",
+        help="copy IMS QTI 1.2 and 2.1 package templates",
+    )
+    init_parser.add_argument(
+        "--moodle",
+        action="store_true",
+        help="copy Moodle XML template",
+    )
+    init_parser.add_argument(
         "--schema",
         action="store_true",
         help="copy schema.json for custom validation rules",
@@ -436,16 +460,28 @@ def build_parser():
 
 def _normalize_argv(argv):
     """Treat a leading file or compile option as the historical compile shorthand."""
+    from pathlib import Path
+
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv:
         return argv
-    if argv[0] not in COMMANDS and argv[0] not in ("-h", "--help", "-v", "--version"):
+    first = argv[0]
+    if first in COMMANDS or first in ("-h", "--help", "-v", "--version"):
+        return argv
+    if (
+        first == "-"
+        or first.startswith("-")
+        or first.lower().endswith((".yaml", ".yml"))
+        or "/" in first
+        or "\\" in first
+        or Path(first).expanduser().exists()
+    ):
         argv.insert(0, "compile")
     return argv
 
 
 def _dispatch(args, parser):
-    if args.command == "compile":
+    if args.command in ("compile", "build"):
         import quizml.cli.compile
 
         if args.watch:
@@ -549,6 +585,8 @@ def _dispatch(args, parser):
                 "html": getattr(args, "html", False),
                 "bb": getattr(args, "bb", False),
                 "docx": getattr(args, "docx", False),
+                "qti": getattr(args, "qti", False),
+                "moodle": getattr(args, "moodle", False),
                 "schema": getattr(args, "schema", False),
                 "templates": getattr(args, "templates", None),
                 "force": getattr(args, "force", False),

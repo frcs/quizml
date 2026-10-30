@@ -173,8 +173,8 @@ target template:
 | `ma` | [Multiple Answers](#multiple-answers) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `matching` | [Matching](#matching) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `ordering` | [Ordering](#ordering) | ✅ (1) | ✅ | ✅ | ✅ | ✅ | ❌ |
-| `fill` | [Fill in the Blank](#fill-in-the-blank-fill) | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| `mfill` | [Fill in Multiple Blanks](#fill-in-multiple-blanks-mfill) | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| `num` | [Calculated Numeric](#calculated-numeric-num) | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| `fill` | [Fill in the Blank](#fill-in-the-blank-fill) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `mfill` | [Fill in Multiple Blanks](#fill-in-multiple-blanks-mfill) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `num` | [Calculated Numeric](#calculated-numeric-num) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 *(1) Blackboard Ultra does not support Ordering questions in tab-delimited text imports.*

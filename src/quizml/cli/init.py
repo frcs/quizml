@@ -7,10 +7,17 @@ from ..exceptions import QuizMLConfigError
 from .errorhandler import err_console
 
 BUNDLE_GROUPS = {
-    "latex": ["tcd-exam.tex.j2", "tcd-exam-solutions.tex.j2", "math-preamble.tex"],
+    "latex": [
+        "tcd-exam.tex.j2",
+        "tcd-exam-solutions.tex.j2",
+        "math-preamble.tex",
+        "omrglyphs.sty",
+    ],
     "html": ["preview.html.j2", "markdown-html.css", "math-preamble.tex"],
     "bb": ["blackboard.txt.j2", "markdown-html.css", "math-preamble.tex"],
     "docx": ["prototype.docx", "tcd-exam.docx"],
+    "qti": ["qti12", "qti21"],
+    "moodle": ["moodle.xml.j2"],
     "schema": ["schema.json"],
 }
 
@@ -22,6 +29,8 @@ def _select_files(
     html=False,
     bb=False,
     docx=False,
+    qti=False,
+    moodle=False,
     schema=False,
     templates=None,
 ):
@@ -36,6 +45,10 @@ def _select_files(
         selected.extend(BUNDLE_GROUPS["bb"])
     if docx:
         selected.extend(BUNDLE_GROUPS["docx"])
+    if qti:
+        selected.extend(BUNDLE_GROUPS["qti"])
+    if moodle:
+        selected.extend(BUNDLE_GROUPS["moodle"])
     if schema:
         selected.extend(BUNDLE_GROUPS["schema"])
     if templates:
@@ -80,7 +93,7 @@ def _copy_templates(dest_dir, files_to_copy=None, *, force=False):
         conflicts = []
         for filename in files_to_copy:
             src_path = os.path.join(pkg_template_dir, filename)
-            if not os.path.isfile(src_path):
+            if not (os.path.isfile(src_path) or os.path.isdir(src_path)):
                 raise QuizMLConfigError(
                     f"Bundled template '{filename}' not found in {pkg_template_dir}"
                 )
@@ -97,8 +110,16 @@ def _copy_templates(dest_dir, files_to_copy=None, *, force=False):
         for filename in files_to_copy:
             src_path = os.path.join(pkg_template_dir, filename)
             dst_path = os.path.join(dest_dir, filename)
-            os.makedirs(os.path.dirname(dst_path), exist_ok=True)
-            shutil.copy2(src_path, dst_path)
+            if os.path.isdir(src_path):
+                shutil.copytree(
+                    src_path,
+                    dst_path,
+                    dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns("*.py", "__pycache__", "*.pyc"),
+                )
+            else:
+                os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+                shutil.copy2(src_path, dst_path)
 
         err_console.print(f"Initialized {', '.join(files_to_copy)} in {dest_dir}")
         return True
@@ -113,6 +134,8 @@ def init_local(
     html=False,
     bb=False,
     docx=False,
+    qti=False,
+    moodle=False,
     schema=False,
     templates=None,
     force=False,
@@ -124,6 +147,8 @@ def init_local(
         html=html,
         bb=bb,
         docx=docx,
+        qti=qti,
+        moodle=moodle,
         schema=schema,
         templates=templates,
     )
@@ -137,6 +162,8 @@ def init_user(
     html=False,
     bb=False,
     docx=False,
+    qti=False,
+    moodle=False,
     schema=False,
     templates=None,
     force=False,
@@ -149,6 +176,8 @@ def init_user(
         html=html,
         bb=bb,
         docx=docx,
+        qti=qti,
+        moodle=moodle,
         schema=schema,
         templates=templates,
     )
