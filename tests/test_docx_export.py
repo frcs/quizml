@@ -544,3 +544,63 @@ midterm: true
     assert "Mark your student number below" in right_cell
     # 8 rows of digits
     assert right_cell.count("⓪ ① ② ③ ④ ⑤ ⑥ ⑦ ⑧ ⑨") == 8
+
+
+def test_tcd_docx_omr_svg_vector_bubbles_embedded(tcd_docx_template_path):
+    """Verifies that OMR bubbles in student and solutions docx files embed self-contained SVG vector drawings."""
+    yaml_text = """
+title: 'OMR Vector Test'
+modulecode: 'EEU44C16'
+---
+- type: mc
+  marks: 2.0
+  question: 'Question 1'
+  choices:
+  - o: 'Option A'
+  - x: 'Option B'
+  - o: 'Option C'
+
+- type: tf
+  marks: 1.0
+  question: 'Question 2'
+  answer: false
+"""
+    doc_dict = loads(yaml_text)
+
+    # 1. Student mode embeds open_0..open_9, open_A..open_C, open_T, open_F (plus banner checked examples)
+    std_bytes = render_docx(
+        {
+            "header": doc_dict["header"],
+            "questions": doc_dict["questions"],
+            "solutions": False,
+        },
+        tcd_docx_template_path,
+    )
+    with zipfile.ZipFile(io.BytesIO(std_bytes)) as z_std:
+        names_std = set(z_std.namelist())
+        for d in range(10):
+            assert f"word/media/omr_open_{d}.svg" in names_std
+        for ch in ("A", "B", "C", "T", "F"):
+            assert f"word/media/omr_open_{ch}.svg" in names_std
+        # Verify SVG content has clean circle + path
+        svg_a = z_std.read("word/media/omr_open_A.svg").decode("utf-8")
+        assert '<circle cx="50" cy="50" r="45.57" fill="none"' in svg_a
+        doc_xml_std = z_std.read("word/document.xml").decode("utf-8")
+        assert "asvg:svgBlip" in doc_xml_std
+
+    # 2. Solutions mode also embeds checked_B and checked_F with 57% gray shading (#6e6e6e)
+    sol_bytes = render_docx(
+        {
+            "header": doc_dict["header"],
+            "questions": doc_dict["questions"],
+            "solutions": True,
+        },
+        tcd_docx_template_path,
+    )
+    with zipfile.ZipFile(io.BytesIO(sol_bytes)) as z_sol:
+        names_sol = set(z_sol.namelist())
+        assert "word/media/omr_checked_B.svg" in names_sol
+        assert "word/media/omr_checked_F.svg" in names_sol
+        svg_chk_b = z_sol.read("word/media/omr_checked_B.svg").decode("utf-8")
+        assert 'fill="#6e6e6e"' in svg_chk_b
+

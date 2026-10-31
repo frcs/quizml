@@ -13,6 +13,189 @@ from markupsafe import Markup
 from quizml.exceptions import QuizMLConfigError, TemplateRenderError
 from quizml.rendering.jinja import _load_filter_callable
 
+_OMR_ASSETS_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "../templates/omr_assets")
+)
+
+# Map Unicode OMR bubble characters used in tcd-exam.docx to bundled SVG asset names:
+#   ⓪ (U+24EA) -> open_0.svg
+#   ①..⑨ (U+2460..U+2468) -> open_1.svg .. open_9.svg
+#   Ⓐ..Ⓩ (U+24B6..U+24CF) -> open_A.svg .. open_Z.svg
+#   🅐..🅩 (U+1F150..U+1F169) -> checked_A.svg .. checked_Z.svg
+_OMR_CHAR_TO_ASSET: dict[str, str] = {"\u24ea": "open_0"}
+for _i in range(1, 10):
+    _OMR_CHAR_TO_ASSET[chr(0x2460 + _i - 1)] = f"open_{_i}"
+for _i in range(26):
+    _ch = chr(ord("A") + _i)
+    _OMR_CHAR_TO_ASSET[chr(0x24B6 + _i)] = f"open_{_ch}"
+    _OMR_CHAR_TO_ASSET[chr(0x1F150 + _i)] = f"checked_{_ch}"
+
+_OMR_CHAR_PATTERN = re.compile(
+    "[" + "".join(re.escape(c) for c in _OMR_CHAR_TO_ASSET) + "]"
+)
+
+
+def _embed_omr_bubbles_in_docx(doc_obj) -> None:
+    """Replaces Unicode OMR bubble characters in a rendered docx.Document with inline SVG drawings,
+    while preserving a zero-size hidden <w:t> containing the Unicode character so paragraph/cell
+    .text inspection and accessibility remain intact.
+    """
+    if doc_obj is None:
+        return
+
+    from docx.opc.constants import RELATIONSHIP_TYPE as RT
+    from docx.opc.packuri import PackURI
+    from docx.opc.part import Part
+    from docx.oxml import parse_xml
+    from docx.oxml.ns import nsdecls, qn
+
+    main_part = doc_obj.part
+    package = main_part.package
+    rel_cache: dict[tuple[int, str], str] = {}
+    part_cache: dict[str, Part] = {}
+    drawing_id_counter = 10000
+
+    def _get_svg_rel_id(target_part, asset_name: str) -> str | None:
+        key = (id(target_part), asset_name)
+        if key in rel_cache:
+            return rel_cache[key]
+        svg_path = os.path.join(_OMR_ASSETS_DIR, f"{asset_name}.svg")
+        if not os.path.isfile(svg_path):
+            return None
+        if asset_name not in part_cache:
+            with open(svg_path, "rb") as f:
+                svg_bytes = f.read()
+            pack_uri = PackURI(f"/word/media/omr_{asset_name}.svg")
+            part_cache[asset_name] = Part(
+                pack_uri, "image/svg+xml", svg_bytes, package
+            )
+        r_id = target_part.relate_to(part_cache[asset_name], RT.IMAGE)
+        rel_cache[key] = r_id
+        return r_id
+
+    # 11pt x 11pt in EMUs (1 pt = 12700 EMU -> 11pt = 139700 EMU)
+    extent_emu = 139700
+
+    def _make_omr_drawing_element(r_id: str, ch: str, asset_name: str):
+        nonlocal drawing_id_counter
+        drawing_id_counter += 1
+        doc_pr_id = drawing_id_counter
+        drawing_xml = (
+            f"<w:drawing {nsdecls('w', 'wp', 'a', 'pic', 'r')}>"
+            f'<wp:inline distT="0" distB="0" distL="0" distR="0">'
+            f'<wp:extent cx="{extent_emu}" cy="{extent_emu}"/>'
+            f'<wp:effectExtent l="0" t="0" r="0" b="0"/>'
+            f'<wp:docPr id="{doc_pr_id}" name="OMR_{asset_name}_{doc_pr_id}" descr="{ch}"/>'
+            f"<wp:cNvGraphicFramePr>"
+            f'<a:graphicFrameLocks noChangeAspect="1"/>'
+            f"</wp:cNvGraphicFramePr>"
+            f"<a:graphic>"
+            f'<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+            f"<pic:pic>"
+            f"<pic:nvPicPr>"
+            f'<pic:cNvPr id="{doc_pr_id}" name="omr_{asset_name}.svg" descr="{ch}"/>'
+            f"<pic:cNvPicPr/>"
+            f"</pic:nvPicPr>"
+            f"<pic:blipFill>"
+            f'<a:blip r:embed="{r_id}">'
+            f"<a:extLst>"
+            f'<a:ext uri="{{96DAC541-7B7A-43D3-8B79-37D633B846F1}}">'
+            f'<asvg:svgBlip xmlns:asvg="http://schemas.microsoft.com/office/drawing/2016/SVG/main" r:embed="{r_id}"/>'
+            f"</a:ext>"
+            f"</a:extLst>"
+            f"</a:blip>"
+            f"<a:stretch><a:fillRect/></a:stretch>"
+            f"</pic:blipFill>"
+            f"<pic:spPr>"
+            f"<a:xfrm>"
+            f'<a:off x="0" y="0"/>'
+            f'<a:ext cx="{extent_emu}" cy="{extent_emu}"/>'
+            f"</a:xfrm>"
+            f'<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>'
+            f"</pic:spPr>"
+            f"</pic:pic>"
+            f"</a:graphicData>"
+            f"</a:graphic>"
+            f"</wp:inline>"
+            f"</w:drawing>"
+        )
+        return parse_xml(drawing_xml)
+
+    w_t_tag = qn("w:t")
+    w_r_tag = qn("w:r")
+    w_rpr_tag = qn("w:rPr")
+    w_br_tag = qn("w:br")
+    xml_space_attr = "{http://www.w3.org/XML/1998/namespace}space"
+
+    def _process_element_tree(root_el, target_part):
+        t_elements = [
+            el
+            for el in root_el.iter(w_t_tag)
+            if el.text and _OMR_CHAR_PATTERN.search(el.text)
+        ]
+        for t_el in t_elements:
+            parent_r = t_el.getparent()
+            if parent_r is None or parent_r.tag != w_r_tag:
+                continue
+            parent_p = parent_r.getparent()
+            if parent_p is None:
+                continue
+
+            r_idx = parent_p.index(parent_r)
+            rpr_el = parent_r.find(w_rpr_tag)
+
+            new_runs = []
+            for child in list(parent_r):
+                if child.tag == w_rpr_tag:
+                    continue
+                if child.tag == w_t_tag and child.text and _OMR_CHAR_PATTERN.search(child.text):
+                    text = child.text
+                    parts = _OMR_CHAR_PATTERN.split(text)
+                    matches = _OMR_CHAR_PATTERN.findall(text)
+                    for idx, segment in enumerate(parts):
+                        if segment:
+                            seg_r = parse_xml(f"<w:r {nsdecls('w')}/>")
+                            if rpr_el is not None:
+                                import copy
+
+                                seg_r.append(copy.deepcopy(rpr_el))
+                            seg_t = parse_xml(f"<w:t {nsdecls('w')}/>")
+                            seg_t.set(xml_space_attr, "preserve")
+                            seg_t.text = segment
+                            seg_r.append(seg_t)
+                            new_runs.append(seg_r)
+
+                        if idx < len(matches):
+                            ch = matches[idx]
+                            asset_name = _OMR_CHAR_TO_ASSET[ch]
+                            r_id = _get_svg_rel_id(target_part, asset_name)
+                            if r_id is not None:
+                                draw_r = parse_xml(f"<w:r {nsdecls('w')}/>")
+                                draw_r.append(
+                                    _make_omr_drawing_element(r_id, ch, asset_name)
+                                )
+                                new_runs.append(draw_r)
+                                hid_r = parse_xml(
+                                    f"<w:r {nsdecls('w')}><w:rPr><w:vanish/><w:sz w:val=\"2\"/></w:rPr>"
+                                    f"<w:t>{ch}</w:t></w:r>"
+                                )
+                                new_runs.append(hid_r)
+                else:
+                    import copy
+
+                    other_r = parse_xml(f"<w:r {nsdecls('w')}/>")
+                    if rpr_el is not None and child.tag != w_br_tag:
+                        other_r.append(copy.deepcopy(rpr_el))
+                    other_r.append(copy.deepcopy(child))
+                    new_runs.append(other_r)
+
+            for offset, nr in enumerate(new_runs):
+                parent_p.insert(r_idx + offset, nr)
+            parent_p.remove(parent_r)
+
+    _process_element_tree(doc_obj.element.body, main_part)
+
+
 
 def _xml_escape(text: str) -> str:
     """Escapes XML special characters: &, <, >."""
@@ -290,6 +473,11 @@ def _ensure_editable_bytes(docx_bytes: bytes) -> bytes:
                     "",
                     text,
                 )
+                if 'Extension="svg"' not in text:
+                    text = text.replace(
+                        "</Types>",
+                        '<Default Extension="svg" ContentType="image/svg+xml"/></Types>',
+                    )
                 content = text.encode("utf-8")
 
             elif name == "docProps/app.xml":
@@ -349,8 +537,14 @@ def render(context, template_filename, jinja_filters=None):
             except TypeError:
                 doc.render(prepared_context)
 
+        if hasattr(doc, "docx") and doc.docx is not None:
+            _embed_omr_bubbles_in_docx(doc.docx)
+
         file_stream = io.BytesIO()
-        doc.save(file_stream)
+        if hasattr(doc, "docx") and doc.docx is not None:
+            doc.docx.save(file_stream)
+        else:
+            doc.save(file_stream)
         file_stream.seek(0)
         return _ensure_editable_bytes(file_stream.read())
     except TemplateError as err:
