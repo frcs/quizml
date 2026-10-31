@@ -24,20 +24,23 @@
   }%
 \fi
 
-%% Internal parametric OMR bubble macro optimized to match omrglyphs v1.0:
-%%   Outer diameter D_out = 10bp (scaled to 1em via \resizebox{!}{1em})
+%% Internal parametric OMR bubble macro:
+%%   Outer diameter D_out = 10bp (scaled to total height 1em via \resizebox*{!}{1em})
 %%   Circle midline radius R_mid = 4.747bp (0.4747 * D_out)
 %%   Circle stroke width w = 0.506bp (0.0506 * D_out)
 %%   Character cap height H_cap = 3.916bp (0.3916 * D_out -> fontsize 5.37bp in TeX Gyre Heros)
+%%   Baseline alignment: the inner character baseline is anchored at TikZ (0, 0)
+%%   with [baseline=0pt], placing the glyph baseline precisely on the line baseline.
+%%   The circle center is at y = 1.958bp (half cap height) so the inner glyph is centered.
 \newcommand{\omr@bubble}[2]{%
-  {\raisebox{-0.2em}{\resizebox{!}{1em}{%
+  {\resizebox*{!}{1em}{%
     \begin{tikzpicture}[baseline=0pt]
-      \filldraw[fill=#1, draw=black, line width=0.506bp] (0,0) circle[radius=4.747bp];
-      \node[inner sep=0pt, outer sep=0pt, anchor=center, text=black] at (0,-0.05bp) {%
+      \filldraw[fill=#1, draw=black, line width=0.506bp] (0, 1.958bp) circle[radius=4.747bp];
+      \node[inner sep=0pt, outer sep=0pt, anchor=base, text=black] at (0, 0) {%
         \omr@font\fontsize{5.37bp}{5.37bp}\selectfont\strut #2%
       };
     \end{tikzpicture}%
-  }}}\xspace%
+  }}\xspace%
 }
 
 %% Open (unchecked) and checked (57% gray pencil shading) bubble macros
