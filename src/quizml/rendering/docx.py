@@ -186,7 +186,13 @@ def _embed_omr_bubbles_in_docx(doc_obj) -> None:
                             r_id = _get_svg_rel_id(target_part, asset_name)
                             if r_id is not None:
                                 extent_emu = _get_extent_for_run(rpr_el)
-                                draw_r = parse_xml(f"<w:r {nsdecls('w')}/>")
+                                # Lower the baseline by ~28-30% of the bubble extent so the
+                                # character inside the bubble aligns with the text baseline.
+                                # w:position is specified in half-points (1 pt = 12700 EMU -> half-pt = 6350 EMU).
+                                pos_val = -round((extent_emu * 0.28) / 6350)
+                                draw_r = parse_xml(
+                                    f"<w:r {nsdecls('w')}><w:rPr><w:position w:val=\"{pos_val}\"/></w:rPr></w:r>"
+                                )
                                 draw_r.append(
                                     _make_omr_drawing_element(r_id, ch, asset_name, extent_emu)
                                 )
