@@ -73,10 +73,31 @@ def _embed_omr_bubbles_in_docx(doc_obj) -> None:
         rel_cache[key] = r_id
         return r_id
 
-    # 11pt x 11pt in EMUs (1 pt = 12700 EMU -> 11pt = 139700 EMU)
-    extent_emu = 139700
+    w_t_tag = qn("w:t")
+    w_r_tag = qn("w:r")
+    w_rpr_tag = qn("w:rPr")
+    w_sz_tag = qn("w:sz")
+    w_br_tag = qn("w:br")
+    xml_space_attr = "{http://www.w3.org/XML/1998/namespace}space"
 
-    def _make_omr_drawing_element(r_id: str, ch: str, asset_name: str):
+    # Default extent: 13.5pt in EMUs (1 pt = 12700 EMU -> 13.5pt = 171450 EMU)
+    # This provides a 1em visual cap height consistent with body text
+    default_extent_emu = 171450
+
+    def _get_extent_for_run(rpr_el) -> int:
+        if rpr_el is not None:
+            sz_el = rpr_el.find(w_sz_tag)
+            if sz_el is not None and sz_el.attrib.get(qn("w:val")):
+                try:
+                    val = float(sz_el.attrib[qn("w:val")])
+                    # half-points to pt: val / 2. Scale by 1.25 for comfortable bubble size
+                    pt = (val / 2.0) * 1.25
+                    return round(pt * 12700)
+                except ValueError:
+                    pass
+        return default_extent_emu
+
+    def _make_omr_drawing_element(r_id: str, ch: str, asset_name: str, extent_emu: int):
         nonlocal drawing_id_counter
         drawing_id_counter += 1
         doc_pr_id = drawing_id_counter
@@ -121,12 +142,6 @@ def _embed_omr_bubbles_in_docx(doc_obj) -> None:
         )
         return parse_xml(drawing_xml)
 
-    w_t_tag = qn("w:t")
-    w_r_tag = qn("w:r")
-    w_rpr_tag = qn("w:rPr")
-    w_br_tag = qn("w:br")
-    xml_space_attr = "{http://www.w3.org/XML/1998/namespace}space"
-
     def _process_element_tree(root_el, target_part):
         t_elements = [
             el
@@ -170,9 +185,10 @@ def _embed_omr_bubbles_in_docx(doc_obj) -> None:
                             asset_name = _OMR_CHAR_TO_ASSET[ch]
                             r_id = _get_svg_rel_id(target_part, asset_name)
                             if r_id is not None:
+                                extent_emu = _get_extent_for_run(rpr_el)
                                 draw_r = parse_xml(f"<w:r {nsdecls('w')}/>")
                                 draw_r.append(
-                                    _make_omr_drawing_element(r_id, ch, asset_name)
+                                    _make_omr_drawing_element(r_id, ch, asset_name, extent_emu)
                                 )
                                 new_runs.append(draw_r)
                                 hid_r = parse_xml(

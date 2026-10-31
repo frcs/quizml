@@ -585,6 +585,7 @@ modulecode: 'EEU44C16'
         # Verify SVG content has clean circle + path
         svg_a = z_std.read("word/media/omr_open_A.svg").decode("utf-8")
         assert '<circle cx="50" cy="50" r="45.57" fill="none"' in svg_a
+        assert 'stroke-width="6.8"' in svg_a
         doc_xml_std = z_std.read("word/document.xml").decode("utf-8")
         assert "asvg:svgBlip" in doc_xml_std
 
