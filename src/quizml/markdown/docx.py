@@ -207,6 +207,8 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
         )
 
     def render_line_break(self, token: Any) -> str:
+        if getattr(token, "soft", False):
+            return '<w:r><w:t xml:space="preserve"> </w:t></w:r>'
         return "<w:r><w:br/></w:r>"
 
     def render_link(self, token: Any) -> str:

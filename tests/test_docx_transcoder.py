@@ -29,6 +29,30 @@ def test_docx_inline_formatting():
     assert "italic" in xml
 
 
+def test_docx_line_break_handling():
+    """Verifies that soft line breaks within paragraphs become spaces (like LaTeX),
+    while hard line breaks (2 spaces or backslash) become <w:br/>."""
+    soft_md = "First line\nsecond line\nthird line."
+    doc = mt.Document(soft_md)
+    renderer = QuizMLYamlDocxRenderer()
+    with renderer:
+        xml = renderer.render(doc)
+
+    assert "<w:br/>" not in xml
+    assert 'xml:space="preserve"> </w:t>' in xml
+    assert "First line" in xml
+    assert "second line" in xml
+    assert "third line." in xml
+
+    hard_md = "First line  \nsecond line\\\nthird line."
+    doc_hard = mt.Document(hard_md)
+    with renderer:
+        xml_hard = renderer.render(doc_hard)
+
+    assert "<w:br/>" in xml_hard
+
+
+
 def test_docx_table_rendering():
     """Verifies markdown table conversion into Word OpenXML <w:tbl>."""
     md = """
