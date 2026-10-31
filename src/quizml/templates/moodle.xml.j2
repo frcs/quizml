@@ -8,7 +8,7 @@
   <|- endif -|>
 <|- endmacro -|>
 
-<| if header.title |>
+<| if header is defined and header and header.title is defined and header.title |>
   <!-- Category -->
   <question type="category">
     <category>

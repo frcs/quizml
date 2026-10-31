@@ -317,3 +317,45 @@ title: "Math and Tables Quiz"
     # XML must be valid and well-formed
     root = ET.fromstring(content)
     assert root.tag == "quiz"
+
+
+def test_moodle_export_without_title_in_header(tmp_path):
+    import argparse
+
+    quiz_file = tmp_path / "no_title_quiz.yaml"
+    quiz_file.write_text(
+        r"""
+_figures_path: ../figures-quiz
+---
+- type: mc
+  question: "What is 1 + 1?"
+  choices:
+  - x: "2"
+  - o: "3"
+""",
+        encoding="utf-8",
+    )
+
+    args = argparse.Namespace(
+        config=None, target=["moodle"], yaml_filename=str(quiz_file)
+    )
+    config = get_config(args)
+    yaml_doc = load(str(quiz_file), validate=True)
+
+    targets = get_target_list(args, config, yaml_doc)
+    out_file = tmp_path / "no_title_output.xml"
+    targets[0]["out"] = str(out_file)
+
+    transcoder = MarkdownTranscoder(yaml_doc, base_dir=str(tmp_path))
+    compile_target(targets[0], transcoder)
+    assert out_file.exists()
+
+    content = out_file.read_text(encoding="utf-8")
+    root = ET.fromstring(content)
+    assert root.tag == "quiz"
+
+    question_nodes = root.findall("question")
+    # Should only contain the MC question, no category question
+    assert len(question_nodes) == 1
+    assert question_nodes[0].attrib.get("type") == "multichoice"
+
