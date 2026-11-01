@@ -52,9 +52,6 @@ def _add_common_options(parser, *, include_config=True):
     parser.add_argument(
         "--quiet", action="store_true", help="suppress informational output"
     )
-    parser.add_argument(
-        "--json", action="store_true", help="emit output as machine-readable JSON"
-    )
 
 
 def build_parser():
@@ -661,8 +658,6 @@ def main(argv=None):
         args.loglevel = logging.WARNING
     if not hasattr(args, "quiet"):
         args.quiet = False
-    if not hasattr(args, "json"):
-        args.json = False
 
     logging.basicConfig(
         force=True,

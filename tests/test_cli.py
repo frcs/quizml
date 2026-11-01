@@ -818,24 +818,3 @@ def test_print_error_tty_and_non_tty(monkeypatch, capsys):
     assert captured.err == "error: Failed to load file\n"
 
 
-def test_compile_json_flag(tmp_path, monkeypatch, capsys):
-    import json
-
-    monkeypatch.chdir(tmp_path)
-    quiz_file = tmp_path / "quiz.yaml"
-    quiz_file.write_text(
-        "title: Test Quiz\n---\n- type: tf\n  question: True or false?\n  answer: true\n"
-    )
-
-    with patch.object(sys, "argv", ["quizml", "compile", "--json", str(quiz_file)]):
-        main()
-
-    captured = capsys.readouterr()
-    data = json.loads(captured.out)
-    assert data["ok"] is True
-    assert data["quiz"]["title"] == "Test Quiz"
-    assert data["quiz"]["questions_count"] == 1
-    assert isinstance(data["targets"], list)
-    assert len(data["targets"]) > 0
-
-

@@ -1,9 +1,7 @@
 """CLI adapter for quiz compilation and watch mode."""
 
-import json
 import os
 import pathlib
-import sys
 import threading
 from time import sleep
 
@@ -41,46 +39,18 @@ def compile(args, live_reload=None):
         if port:
             extra_context["livereload_port"] = port
 
-    is_json = getattr(args, "json", False)
-
     build_result = compile_quiz(
         args.yaml_filename,
         config_path=getattr(args, "config", None),
         targets=getattr(args, "target", None),
         output=getattr(args, "output", None),
         extra_context=extra_context,
-        on_stats=None if (args.quiet or is_json) else print_stats_table,
+        on_stats=None if args.quiet else print_stats_table,
         warn_fn=err_console.print,
     )
 
     if live_reload is not None:
         live_reload.update_timestamp()
-
-    if is_json:
-        doc = build_result.document or {}
-        header = doc.get("header") or {}
-        questions = doc.get("questions") or []
-        payload = {
-            "ok": build_result.ok,
-            "quiz": {
-                "title": header.get("title") or "",
-                "questions_count": len(questions),
-            },
-            "targets": [
-                {
-                    "name": t.name,
-                    "description": t.description,
-                    "status": t.status,
-                    "output": t.output_path,
-                    "command": t.descr_cmd,
-                    "error": t.error,
-                }
-                for t in build_result.targets
-            ],
-        }
-        sys.stdout.write(json.dumps(payload, indent=2) + "\n")
-        sys.stdout.flush()
-        return build_result.ok
 
     if args.quiet:
         print_quiet_outputs(build_result.targets)
