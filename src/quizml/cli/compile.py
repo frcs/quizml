@@ -1,7 +1,9 @@
 """CLI adapter for quiz compilation and watch mode."""
 
+import json
 import os
 import pathlib
+import sys
 import threading
 from time import sleep
 
@@ -19,7 +21,6 @@ from quizml.build.config import load_config
 from quizml.cli.errorhandler import err_console, print_error
 from quizml.cli.livereload import LiveReloadServer
 from quizml.cli.ui import (
-    add_hyperlinks,
     print_quiet_outputs,
     print_stats_table,
     print_table_outputs,
@@ -40,37 +41,51 @@ def compile(args, live_reload=None):
         if port:
             extra_context["livereload_port"] = port
 
+    is_json = getattr(args, "json", False)
+
     build_result = compile_quiz(
         args.yaml_filename,
         config_path=getattr(args, "config", None),
         targets=getattr(args, "target", None),
         output=getattr(args, "output", None),
         extra_context=extra_context,
-        on_stats=None if args.quiet else print_stats_table,
+        on_stats=None if (args.quiet or is_json) else print_stats_table,
         warn_fn=err_console.print,
     )
 
     if live_reload is not None:
         live_reload.update_timestamp()
 
-    targets_output = []
-    targets_quiet_output = []
-    for res in build_result.targets:
-        ok = res.status == "succeeded"
-        out = res.output_path or ""
-        targets_output.append(
-            [
-                res.description,
-                add_hyperlinks(res.descr_cmd, out),
-                "" if ok else "[FAIL]",
-            ]
-        )
-        targets_quiet_output.append([add_hyperlinks(out, out), "" if ok else "[FAIL]"])
+    if is_json:
+        doc = build_result.document or {}
+        header = doc.get("header") or {}
+        questions = doc.get("questions") or []
+        payload = {
+            "ok": build_result.ok,
+            "quiz": {
+                "title": header.get("title") or "",
+                "questions_count": len(questions),
+            },
+            "targets": [
+                {
+                    "name": t.name,
+                    "description": t.description,
+                    "status": t.status,
+                    "output": t.output_path,
+                    "command": t.descr_cmd,
+                    "error": t.error,
+                }
+                for t in build_result.targets
+            ],
+        }
+        sys.stdout.write(json.dumps(payload, indent=2) + "\n")
+        sys.stdout.flush()
+        return build_result.ok
 
     if args.quiet:
-        print_quiet_outputs(targets_quiet_output)
+        print_quiet_outputs(build_result.targets)
     else:
-        print_table_outputs(targets_output)
+        print_table_outputs(build_result.targets)
 
     return build_result.ok
 
@@ -93,7 +108,7 @@ def _collect_ignored_paths(yaml_filename, config_path=None):
 
 def compile_on_change(args, live_reload=None):
     """Re-compile targets if input QuizML YAML or template files change on disk."""
-    waitingtxt = "\n...waiting for a file change to re-compile the document...\n "
+    waitingtxt = "\n[dim]Watching for changes... (press Ctrl+C to stop)[/dim]\n"
     err_console.print(waitingtxt)
 
     full_yaml_path = os.path.abspath(args.yaml_filename)

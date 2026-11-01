@@ -713,3 +713,129 @@ def test_build_alias_and_compile_output_override(tmp_path, monkeypatch, capsys):
     captured = capsys.readouterr()
     assert "TF\t<p>Output override?</p>\tTrue" in captured.out
 
+
+def test_print_table_outputs_tty(monkeypatch, capsys):
+    from quizml.build.compiler import TargetResult
+    from quizml.cli import ui
+
+    monkeypatch.setattr(ui.err_console, "_force_terminal", True)
+    targets = [
+        TargetResult(
+            name="latex",
+            status="succeeded",
+            output_path="quiz.tex",
+            description="LaTeX",
+            descr_cmd="latexmk quiz.tex",
+        ),
+        TargetResult(
+            name="pdf",
+            status="failed",
+            output_path="quiz.pdf",
+            description="PDF",
+            descr_cmd="pdflatex quiz.tex",
+        ),
+    ]
+    ui.print_table_outputs(targets)
+    captured = capsys.readouterr()
+    assert "Targets:" in captured.err
+    assert "LaTeX" in captured.err
+    assert "✔" in captured.err
+    assert "✖" in captured.err
+    assert "(failed)" in captured.err
+    assert "╭" not in captured.err
+
+
+def test_print_table_outputs_non_tty(monkeypatch, capsys):
+    from quizml.build.compiler import TargetResult
+    from quizml.cli import ui
+
+    monkeypatch.setattr(ui.err_console, "_force_terminal", False)
+    targets = [
+        TargetResult(
+            name="latex",
+            status="succeeded",
+            output_path="quiz.tex",
+            description="LaTeX",
+            descr_cmd="latexmk quiz.tex",
+        ),
+        TargetResult(
+            name="pdf",
+            status="failed",
+            output_path="quiz.pdf",
+            description="PDF",
+            descr_cmd="pdflatex quiz.tex",
+        ),
+    ]
+    ui.print_table_outputs(targets)
+    captured = capsys.readouterr()
+    assert "OK\tLaTeX\tlatexmk quiz.tex\n" in captured.err
+    assert "FAIL\tPDF\tpdflatex quiz.tex\n" in captured.err
+    assert "╭" not in captured.err
+
+
+def test_print_quiet_outputs_tty_and_non_tty(monkeypatch, capsys):
+    from quizml.build.compiler import TargetResult
+    from quizml.cli import ui
+
+    # TTY
+    monkeypatch.setattr(ui.err_console, "_force_terminal", True)
+    targets = [
+        TargetResult(name="latex", status="succeeded", output_path="quiz.tex"),
+        TargetResult(name="pdf", status="failed", output_path="quiz.pdf"),
+    ]
+    ui.print_quiet_outputs(targets)
+    captured = capsys.readouterr()
+    assert "✔" in captured.err
+    assert "✖" in captured.err
+
+    # Non-TTY
+    monkeypatch.setattr(ui.err_console, "_force_terminal", False)
+    ui.print_quiet_outputs(targets)
+    captured = capsys.readouterr()
+    assert "OK\tquiz.tex\n" in captured.err
+    assert "FAIL\tquiz.pdf\n" in captured.err
+
+
+def test_print_error_tty_and_non_tty(monkeypatch, capsys):
+    from quizml.cli import errorhandler
+
+    # TTY
+    monkeypatch.setattr(errorhandler.err_console, "_force_terminal", True)
+    errorhandler.print_error("Failed to load file", title="Error")
+    captured = capsys.readouterr()
+    assert "error: Failed to load file" in captured.err
+    assert "╭" not in captured.err
+
+    # Warning
+    errorhandler.print_error("Deprecated option", title="Warning")
+    captured = capsys.readouterr()
+    assert "warning: Deprecated option" in captured.err
+
+    # Non-TTY
+    monkeypatch.setattr(errorhandler.err_console, "_force_terminal", False)
+    errorhandler.print_error("Failed to load file", title="Error")
+    captured = capsys.readouterr()
+    assert captured.err == "error: Failed to load file\n"
+
+
+def test_compile_json_flag(tmp_path, monkeypatch, capsys):
+    import json
+
+    monkeypatch.chdir(tmp_path)
+    quiz_file = tmp_path / "quiz.yaml"
+    quiz_file.write_text(
+        "title: Test Quiz\n---\n- type: tf\n  question: True or false?\n  answer: true\n"
+    )
+
+    with patch.object(sys, "argv", ["quizml", "compile", "--json", str(quiz_file)]):
+        main()
+
+    captured = capsys.readouterr()
+    data = json.loads(captured.out)
+    assert data["ok"] is True
+    assert data["quiz"]["title"] == "Test Quiz"
+    assert data["quiz"]["questions_count"] == 1
+    assert isinstance(data["targets"], list)
+    assert len(data["targets"]) > 0
+
+

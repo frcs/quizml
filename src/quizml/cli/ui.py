@@ -1,10 +1,9 @@
 import os
+import sys
 from typing import ClassVar
 
 from rich import print
 from rich.markdown import Markdown, TableElement
-from rich.padding import Padding
-from rich.panel import Panel
 from rich.table import Table, box
 
 from quizml import rendering
@@ -23,9 +22,11 @@ class CustomTableElement(TableElement):
             if has_headers:
                 # Main Question Table
                 table.show_header = True
-                table.box = box.SIMPLE_HEAVY  # Adds the rule and header structure
-                table.padding = (0, 0, 0, 1)  # User preferred padding
-                table.show_edge = False  # Hide bottom line
+                table.box = box.SIMPLE  # Clean thin rule under header
+                table.padding = (0, 0, 0, 1)  # Space between columns
+                table.show_edge = False  # Hide outer border
+                for col in table.columns:
+                    col.header_style = "dim"
             else:
                 # Summary Table (frameless alignment)
                 table.show_header = False
@@ -95,34 +96,69 @@ def print_stats_table(quiz, config):
         raise QuizMLConfigError(f"Stats template '{template_name}' not found") from err
 
     rendered = rendering.render_template(quiz, template_path, locator.dirlist)
-
-    # Padding arguments: (top, right, bottom, left)
-    text_to_print = Padding(QuizMLMarkdown(rendered), (0, 0, 1, 4))
-    err_console.print(text_to_print)
+    err_console.print(QuizMLMarkdown(rendered))
+    err_console.print()
 
 
 def print_table_outputs(targets_output):
-    # print to terminal a table of all targets outputs.
-    table = Table(
-        box=box.SIMPLE, collapse_padding=True, show_footer=False, show_header=False
-    )
+    """Print a clean status list of all target outputs to stderr."""
+    if not targets_output:
+        return
 
-    table.add_column("Descr", no_wrap=True, justify="left")
-    table.add_column("Cmd", no_wrap=True, justify="left")
-    table.add_column("Status", no_wrap=True, justify="left")
+    rows = []
+    for item in targets_output:
+        if hasattr(item, "description") and hasattr(item, "status"):
+            descr = item.description or item.name
+            out = item.output_path or ""
+            cmd = item.descr_cmd or out
+            is_ok = item.status == "succeeded"
+        else:
+            descr = item[0] if len(item) > 0 else ""
+            cmd = item[1] if len(item) > 1 else ""
+            is_ok = (item[2] != "[FAIL]") if len(item) > 2 else True
+            out = ""
+        rows.append((descr, cmd, out, is_ok))
 
-    for row in targets_output:
-        if row[2] == "[FAIL]":
-            table.add_row(*row, style="red")
-        elif row[2] == "":
-            table.add_row(*row)
+    if not err_console.is_terminal:
+        for descr, cmd, _, is_ok in rows:
+            status = "OK" if is_ok else "FAIL"
+            sys.stderr.write(f"{status}\t{descr}\t{cmd}\n")
+        sys.stderr.flush()
+        return
 
-    err_console.print(Panel(table, title="Target Outputs", border_style="magenta"))
+    err_console.print("[bold]Targets:[/bold]")
+    max_descr_len = max((len(descr) for descr, _, _, _ in rows), default=0)
+
+    for descr, cmd, out, is_ok in rows:
+        icon = "[bold green]✔[/bold green]" if is_ok else "[bold red]✖[/bold red]"
+        cmd_display = add_hyperlinks(cmd, out) if out else cmd
+        err_suffix = "" if is_ok else " [bold red](failed)[/bold red]"
+        err_console.print(
+            f"  {icon} [bold]{descr:<{max_descr_len}}[/bold]  {cmd_display}{err_suffix}"
+        )
 
 
 def print_quiet_outputs(targets_quiet_output):
-    for row in targets_quiet_output:
-        if row[1] == "[FAIL]":
-            err_console.print("[bold red]x " + row[0] + "[/bold red]")
-        elif row[1] == "":
-            err_console.print("[bold green]o[/bold green] " + row[0])
+    """Print quiet one-line statuses of target outputs to stderr."""
+    rows = []
+    for item in targets_quiet_output:
+        if hasattr(item, "output_path") and hasattr(item, "status"):
+            out = item.output_path or ""
+            is_ok = item.status == "succeeded"
+        else:
+            out = item[0] if len(item) > 0 else ""
+            is_ok = (item[1] != "[FAIL]") if len(item) > 1 else True
+        rows.append((out, is_ok))
+
+    if not err_console.is_terminal:
+        for out, is_ok in rows:
+            status = "OK" if is_ok else "FAIL"
+            sys.stderr.write(f"{status}\t{out}\n")
+        sys.stderr.flush()
+        return
+
+    for out, is_ok in rows:
+        icon = "[bold green]✔[/bold green]" if is_ok else "[bold red]✖[/bold red]"
+        out_display = add_hyperlinks(out, out)
+        err_suffix = "" if is_ok else " [bold red](failed)[/bold red]"
+        err_console.print(f"{icon} {out_display}{err_suffix}")
