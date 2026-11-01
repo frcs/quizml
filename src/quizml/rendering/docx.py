@@ -373,6 +373,118 @@ def _docx_bold_xml(val, part=None) -> Markup:
     return Markup("".join(p_xmls))
 
 
+_SVG_DRAWING_COUNTER = 20000
+
+
+def _parse_svg_aspect_ratio(svg_bytes: bytes) -> float:
+    """Extract intrinsic aspect ratio (height / width) from SVG viewBox or width/height attributes."""
+    import xml.etree.ElementTree as ET
+
+    try:
+        root = ET.fromstring(svg_bytes)
+        vb = root.attrib.get("viewBox")
+        if vb:
+            parts = [float(p) for p in re.split(r"[\s,]+", vb.strip()) if p]
+            if len(parts) >= 4 and parts[2] > 0 and parts[3] > 0:
+                return parts[3] / parts[2]
+
+        w_str = root.attrib.get("width", "")
+        h_str = root.attrib.get("height", "")
+
+        def parse_len(s: str) -> float | None:
+            m = re.match(r"^([0-9.]+)", s.strip())
+            return float(m.group(1)) if m else None
+
+        w = parse_len(w_str)
+        h = parse_len(h_str)
+        if w and h and w > 0 and h > 0:
+            return h / w
+    except Exception:
+        pass
+    return 0.75
+
+
+def _is_svg_file(img_path: str) -> bool:
+    try:
+        with open(img_path, "rb") as f:
+            header = f.read(512)
+        return b"<svg" in header.lower()
+    except Exception:
+        return False
+
+
+def _make_svg_drawing(img_path: str, width_in: float, part) -> str:
+    global _SVG_DRAWING_COUNTER
+    from docx.opc.constants import RELATIONSHIP_TYPE as RT
+    from docx.opc.packuri import PackURI
+    from docx.opc.part import Part
+    from docx.oxml.ns import nsdecls
+
+    with open(img_path, "rb") as f:
+        svg_bytes = f.read()
+
+    package = part.package
+    aspect = _parse_svg_aspect_ratio(svg_bytes)
+    cx = round(width_in * 914400)
+    cy = round(cx * aspect)
+
+    base_name = os.path.basename(img_path)
+    clean_stem = re.sub(r"[^a-zA-Z0-9_-]", "_", os.path.splitext(base_name)[0])
+
+    pack_uri = PackURI(f"/word/media/{clean_stem}.svg")
+    idx = 1
+    while pack_uri in package.parts and package.parts[pack_uri].blob != svg_bytes:
+        idx += 1
+        pack_uri = PackURI(f"/word/media/{clean_stem}_{idx}.svg")
+
+    if pack_uri in package.parts:
+        svg_part = package.parts[pack_uri]
+    else:
+        svg_part = Part(pack_uri, "image/svg+xml", svg_bytes, package)
+
+    r_id = part.relate_to(svg_part, RT.IMAGE)
+
+    _SVG_DRAWING_COUNTER += 1
+    doc_pr_id = _SVG_DRAWING_COUNTER
+    ns = nsdecls("w", "wp", "a", "pic", "r")
+    escaped_base = _xml_escape(base_name)
+
+    return (
+        f"<w:r><w:drawing {ns}>"
+        f'<wp:inline distT="0" distB="0" distL="0" distR="0">'
+        f'<wp:extent cx="{cx}" cy="{cy}"/>'
+        f'<wp:effectExtent l="0" t="0" r="0" b="0"/>'
+        f'<wp:docPr id="{doc_pr_id}" name="{clean_stem}"/>'
+        f'<wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>'
+        f"<a:graphic>"
+        f'<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+        f"<pic:pic>"
+        f"<pic:nvPicPr>"
+        f'<pic:cNvPr id="{doc_pr_id}" name="{escaped_base}"/>'
+        f"<pic:cNvPicPr/>"
+        f"</pic:nvPicPr>"
+        f"<pic:blipFill>"
+        f'<a:blip r:embed="{r_id}">'
+        f"<a:extLst>"
+        f'<a:ext uri="{{96DAC541-7B7A-43D3-8B79-37D633B846F1}}">'
+        f'<asvg:svgBlip xmlns:asvg="http://schemas.microsoft.com/office/drawing/2016/SVG/main" r:embed="{r_id}"/>'
+        f"</a:ext>"
+        f"</a:extLst>"
+        f"</a:blip>"
+        f"<a:stretch><a:fillRect/></a:stretch>"
+        f"</pic:blipFill>"
+        f"<pic:spPr>"
+        f'<a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>'
+        f'<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>'
+        f"</pic:spPr>"
+        f"</pic:pic>"
+        f"</a:graphicData>"
+        f"</a:graphic>"
+        f"</wp:inline>"
+        f"</w:drawing></w:r>"
+    )
+
+
 def _clean_docx_str(s: str, part=None) -> str:
     if not isinstance(s, str) or not s:
         return s
@@ -381,13 +493,29 @@ def _clean_docx_str(s: str, part=None) -> str:
         img_path = m.group(1)
         width_val = float(m.group(2))
         if part and os.path.exists(img_path):
+            if img_path.lower().endswith(".svg"):
+                try:
+                    return _make_svg_drawing(img_path, width_val, part)
+                except Exception as err:
+                    logging.warning(
+                        f"Failed to embed image {img_path} in docx: {err or type(err).__name__}"
+                    )
+                    return ""
+
             from docx.shared import Inches
 
             try:
                 pic = part.new_pic_inline(img_path, width=Inches(width_val))
                 return f"<w:r><w:drawing>{pic.xml}</w:drawing></w:r>"
             except Exception as err:
-                logging.warning(f"Failed to embed image {img_path} in docx: {err}")
+                if _is_svg_file(img_path):
+                    try:
+                        return _make_svg_drawing(img_path, width_val, part)
+                    except Exception:
+                        pass
+                logging.warning(
+                    f"Failed to embed image {img_path} in docx: {err or type(err).__name__}"
+                )
         return ""
 
     s = re.sub(r"<!--QUIZML_IMG:([^:]+):([^>]+)-->", _replace_img, s)

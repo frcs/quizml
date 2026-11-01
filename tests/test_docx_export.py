@@ -605,3 +605,56 @@ modulecode: 'EEU44C16'
         svg_chk_b = z_sol.read("word/media/omr_checked_B.svg").decode("utf-8")
         assert 'fill="#6e6e6e"' in svg_chk_b
 
+
+def test_docx_embeds_svg_images(tmp_path, tcd_docx_template_path):
+    """Verifies that SVG images referenced in Markdown are embedded into the docx package."""
+    svg_file = tmp_path / "diagram.svg"
+    svg_file.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="150" viewBox="0 0 300 150">'
+        '<rect width="300" height="150" fill="green"/>'
+        "</svg>",
+        encoding="utf-8",
+    )
+
+    yaml_text = f"""
+title: 'SVG Image Exam'
+modulecode: 'TEST102'
+---
+- type: mc
+  marks: 5.0
+  question: |
+    Examine the figure below:
+
+    ![]({svg_file}){{width=3.5in}}
+  choices:
+  - x: 'Option A'
+  - o: 'Option B'
+"""
+    quiz_file = tmp_path / "quiz.yaml"
+    quiz_file.write_text(yaml_text, encoding="utf-8")
+    from quizml.markdown.markdown import MarkdownTranscoder
+    from quizml.yaml import load
+
+    doc_dict = load(str(quiz_file))
+    transcoder = MarkdownTranscoder(doc_dict)
+    transcoded = transcoder.transcode_target({"fmt": "docx"})
+
+    out_bytes = render_docx(
+        {
+            "header": transcoded["header"],
+            "questions": transcoded["questions"],
+            "solutions": False,
+        },
+        tcd_docx_template_path,
+    )
+
+    with zipfile.ZipFile(io.BytesIO(out_bytes)) as z:
+        names = set(z.namelist())
+        assert "word/media/diagram.svg" in names
+        doc_xml = z.read("word/document.xml").decode("utf-8")
+        assert "asvg:svgBlip" in doc_xml
+        assert "diagram.svg" in doc_xml
+        ct = z.read("[Content_Types].xml").decode("utf-8")
+        assert 'Extension="svg"' in ct
+
+
