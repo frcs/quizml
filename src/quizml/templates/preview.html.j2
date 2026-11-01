@@ -62,33 +62,80 @@
 	 ol.question-list {
 		 list-style: none;
 		 /* counter-reset: item; */
+		 margin: 0em 0em 0em -2em;
+		 max-width: none;
 	 }
 	 ol.answers {
 		 list-style: lower-latin;
 		 /* counter-reset: item; */
 	 }
-	 li.question li:first-child {
+	 .question li:first-child {
 		 margin-top: 1.5em;
      }
-	 ol.question-list {
-		 margin: 0em 0em 0em -2em;
+	 ol.question-list li.question-row {
+		 display: flex;
+		 flex-direction: row;
+		 align-items: flex-start;
+		 margin: 1.25em 0em 5px 0em;
+		 max-width: none;
 	 }
-	 ol.question-list li.question {
-		 margin: 1.25em 0em;
-		 /* counter-increment: item; */
-		 margin-bottom: 5px;
+	 .question {
+	     box-sizing: border-box;
+	     width: 43em;
+	     max-width: 43em;
+	     flex-shrink: 0;
+	     border: 1px solid lightgray;
+		 border-radius: 4px;
+		 padding: 1.5em;
+		 vertical-align: top;
 	 }
-	 ol.question-list li.question:before {
+	 .question:before {
 	     margin-right: 10px;
 	     margin-bottom: 1em;
 		 content: "QUESTION " attr(data-questionid);
 		 font-size: 100%;
 		 font-weight: 600;
-	     display: inline-block;}
-	 .question {
-	     border: 1px solid lightgray;
+	     display: inline-block;
+	 }
+	 .question-comments {
+		 display: none;
+		 box-sizing: border-box;
+		 width: 22em;
+		 max-width: 26em;
+		 margin-left: 1.5em;
+		 padding: 1.25em;
+		 border: 1px solid #d0d7de;
 		 border-radius: 4px;
-		 padding: 1.5em;
+		 background-color: #fafbfc;
+		 flex-shrink: 0;
+	 }
+	 .question-comments.showanswers {
+		 display: block;
+	 }
+	 .comments-header {
+		 font-weight: 600;
+		 font-size: 0.85em;
+		 text-transform: uppercase;
+		 letter-spacing: 0.05em;
+		 color: #57606a;
+		 margin-bottom: 0.5em;
+		 border-bottom: 1px solid #eaecef;
+		 padding-bottom: 0.25em;
+	 }
+	 @media (max-width: 1000px) {
+		 ol.question-list li.question-row {
+			 flex-direction: column;
+		 }
+		 .question {
+			 width: 100%;
+			 max-width: 43em;
+		 }
+		 .question-comments {
+			 width: 100%;
+			 max-width: 43em;
+			 margin-left: 0;
+			 margin-top: 1em;
+		 }
 	 }
 	 .question-type{
 		 float: right;
@@ -161,7 +208,8 @@
 </li>
 <| else |>
 <| set ns.q_idx = ns.q_idx + 1 -|>
-<li class='question' id='Q<< ns.q_idx >>' data-questionid='<< ns.q_idx >>' style='vertical-align: top;'>
+<li class='question-row' data-questionid='<< ns.q_idx >>'>
+<div class='question' id='Q<< ns.q_idx >>' data-questionid='<< ns.q_idx >>'>
 <| if q.title is defined and q.title |><span class='question-title' style='font-weight: 600; margin-right: 0.5em;'>— << q.title >></span><| endif |><| if q.id is defined and q.id |><code class='question-id' style='font-size: 85%; color: #666; margin-right: 0.5em;'>[<< q.id >>]</code><| endif |>
 <| if q.type == 'essay' |>
 <div class='question-type'>Essay</div><div class='marks'><< q.marks >></div>
@@ -358,6 +406,21 @@
 </div>
 <| endif |>
 <|- endif          |>
+</div>
+<| if (q.comments is defined and q.comments) or (q.feedback is defined and q.feedback) |>
+<div class='question-comments'>
+  <div class='comments-header'>Comments</div>
+  <| if q.comments is defined and q.comments |>
+  <div class='comments-body'><< q.comments >></div>
+  <| endif |>
+  <| if q.feedback is defined and q.feedback |>
+  <div class='feedback-body'<| if q.comments is defined and q.comments |> style='margin-top: 0.75em;'<| endif |>>
+    <div style='font-size: 85%; font-weight: 600; color: #57606a; text-transform: uppercase; margin-bottom: 0.25em;'>Feedback</div>
+    << q.feedback >>
+  </div>
+  <| endif |>
+</div>
+<| endif |>
   </li>
 <| endif |>
 <| endfor |>
@@ -402,10 +465,10 @@
 		
 	function refresh() {
 		if (slideShow){
-			var elements = document.getElementsByClassName("question");
+			var elements = document.getElementsByClassName("question-row");
 			for (let i=0; i<elements.length; i++){
 				if (elements[i].getAttribute('data-questionid') === currentQuestion.toString()) {
-					elements[i].style.display = 'block';
+					elements[i].style.display = 'flex';
 				}
 				else {
 					elements[i].style.display = 'none';
@@ -413,9 +476,9 @@
 			}
 		}
 		else {
-			var elements = document.getElementsByClassName("question");
+			var elements = document.getElementsByClassName("question-row");
 			for (let i=0; i<elements.length; i++){		  
-				elements[i].style.display = 'block';
+				elements[i].style.display = 'flex';
 			}
 		}
 
@@ -431,7 +494,7 @@
 			toggleSlideShowBtn.textContent = "Slide Show";
 		}
 		
-		for (const className of ["correct", "incorrect", "essay-answer"]) { 
+		for (const className of ["correct", "incorrect", "essay-answer", "question-comments"]) { 
 			const elements = document.getElementsByClassName(className);
 
 			for (let i = 0; i < elements.length; i++) {

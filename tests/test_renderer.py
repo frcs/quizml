@@ -204,6 +204,41 @@ def test_preview_template_supports_custom_types_part_dividers_and_no_static_poll
     assert "setInterval(checkServerUpdate, 100);" in html_watch
 
 
+def test_preview_template_renders_comments_and_feedback():
+    import pathlib
+
+    preview_path = (
+        pathlib.Path(__file__).parent.parent
+        / "src"
+        / "quizml"
+        / "templates"
+        / "preview.html.j2"
+    )
+    yaml_data = {
+        "header": {"title": "Comments Quiz"},
+        "questions": [
+            {
+                "type": "essay",
+                "marks": 5,
+                "question": "Discuss gradient descent.",
+                "comments": "Grading note: look for step size discussion.",
+                "feedback": "Review chapter 4 if struggling.",
+            },
+            {
+                "type": "mc",
+                "marks": 2.5,
+                "question": "Is 2 prime?",
+                "choices": [{"x": "Yes"}, {"o": "No"}],
+            },
+        ],
+    }
+    html = render(yaml_data, str(preview_path))
+    assert "Grading note: look for step size discussion." in html
+    assert "Review chapter 4 if struggling." in html
+    assert "class='question-comments'" in html
+    assert "class='question-row'" in html
+
+
 def test_docx_renderer_receives_configured_jinja_env(monkeypatch):
     from unittest.mock import MagicMock
 
