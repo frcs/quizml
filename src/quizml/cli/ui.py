@@ -41,11 +41,36 @@ class QuizMLMarkdown(Markdown):
 
 
 def add_hyperlinks(descr_str, filename):
-    if not filename:
+    """Wrap file references in terminal hyperlink tags pointing to file:// URLs."""
+    if not filename or filename == "-":
         return descr_str or ""
-    path = os.path.abspath(f"./{filename}")
-    uri = f"[link=file://{path}]{filename}[/link]"
-    return (descr_str or filename).replace(filename, uri)
+    if descr_str and "[link=" in descr_str:
+        return descr_str
+
+    abs_path = os.path.abspath(filename)
+    uri = f"file://{abs_path}"
+    basename = os.path.basename(abs_path)
+    text = descr_str if (descr_str is not None and descr_str != "") else basename
+
+    # When text is the raw full path (e.g. print_quiet_outputs)
+    if text in (abs_path, filename):
+        try:
+            rel = os.path.relpath(abs_path)
+            display = rel if not rel.startswith("..") else basename
+        except ValueError:
+            display = basename
+        return f"[link={uri}]{display}[/link]"
+
+    # If the output basename appears in descr_str (e.g. "latexmk ... quiz1.tex" or "quiz1.html")
+    if basename and basename in text:
+        return text.replace(basename, f"[link={uri}]{basename}[/link]")
+
+    # If the filename as provided appears in text
+    if filename in text:
+        return text.replace(filename, f"[link={uri}]{basename}[/link]")
+
+    # Fallback: append clickable link
+    return f"{text} [link={uri}]{basename}[/link]"
 
 
 def print_target_list(args):

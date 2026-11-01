@@ -818,3 +818,25 @@ def test_print_error_tty_and_non_tty(monkeypatch, capsys):
     assert captured.err == "error: Failed to load file\n"
 
 
+def test_add_hyperlinks():
+    from quizml.cli.ui import add_hyperlinks
+
+    # Relative descr_cmd with absolute output_path
+    res = add_hyperlinks("quiz1.txt", "/abs/path/quiz1.txt")
+    assert res == "[link=file:///abs/path/quiz1.txt]quiz1.txt[/link]"
+
+    # Command containing basename
+    res = add_hyperlinks("latexmk -xelatex quiz1.tex", "/abs/path/quiz1.tex")
+    assert res == "latexmk -xelatex [link=file:///abs/path/quiz1.tex]quiz1.tex[/link]"
+
+    # Raw full path (quiet output mode)
+    res = add_hyperlinks("/abs/path/quiz1.html", "/abs/path/quiz1.html")
+    assert res.startswith("[link=file:///abs/path/quiz1.html]")
+    assert res.endswith("[/link]")
+
+    # Stdout should not be linked
+    assert add_hyperlinks("-", "-") == "-"
+    assert add_hyperlinks("", "") == ""
+
+
+
