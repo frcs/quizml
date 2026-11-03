@@ -120,6 +120,66 @@ def build_target_substitutions(yaml_filename=None, header_data=None):
     return subs, inputdir, inputstem
 
 
+def _load_bundled_default_config():
+    """Load the package's bundled `templates/quizml.cfg` as a baseline dictionary."""
+    pkg_cfg = (
+        pathlib.Path(__file__).resolve().parent.parent / "templates" / "quizml.cfg"
+    )
+    if not pkg_cfg.is_file():
+        return {}
+    with pkg_cfg.open(encoding="utf-8") as f:
+        data = YAML(typ="safe").load(f)
+    return data if isinstance(data, dict) else {}
+
+
+def _merge_with_bundled_defaults(config, config_file):
+    """Inherit bundled targets, aliases, and defaults when omitted in a project config."""
+    pkg_cfg = (
+        pathlib.Path(__file__).resolve().parent.parent / "templates" / "quizml.cfg"
+    )
+    try:
+        if os.path.realpath(config_file) == os.path.realpath(pkg_cfg):
+            return config
+    except OSError:
+        pass
+
+    defaults = _load_bundled_default_config()
+    if not defaults:
+        return config
+
+    for key in ("schema_path", "stats_template"):
+        if key not in config and key in defaults:
+            config[key] = defaults[key]
+
+    default_aliases = defaults.get("aliases")
+    if isinstance(default_aliases, dict):
+        user_aliases = config.get("aliases")
+        if user_aliases is None:
+            config["aliases"] = dict(default_aliases)
+        elif isinstance(user_aliases, dict):
+            config["aliases"] = {**default_aliases, **user_aliases}
+
+    default_targets = defaults.get("targets")
+    if isinstance(default_targets, list):
+        if "targets" not in config:
+            config["targets"] = [dict(t) for t in default_targets if isinstance(t, dict)]
+        elif isinstance(config.get("targets"), list):
+            by_name = {
+                t["name"]: t
+                for t in default_targets
+                if isinstance(t, dict) and "name" in t
+            }
+            merged_targets = []
+            for t in config["targets"]:
+                if isinstance(t, dict) and t.get("name") in by_name:
+                    merged_targets.append({**by_name[t["name"]], **t})
+                else:
+                    merged_targets.append(t)
+            config["targets"] = merged_targets
+
+    return config
+
+
 def load_config(config_path=None, *, yaml_filename=None, warn_fn=None):
     """Load and validate a `quizml.cfg` configuration file."""
     base_dir = (
@@ -164,6 +224,7 @@ def load_config(config_path=None, *, yaml_filename=None, warn_fn=None):
             f"Config file {config_file} must contain a YAML mapping at its root."
         )
 
+    config = _merge_with_bundled_defaults(config, config_file)
     _validate_targets_list(config)
     config["yaml_filename"] = yaml_filename
     config_dir = os.path.dirname(os.path.abspath(config_file))

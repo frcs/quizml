@@ -25,11 +25,20 @@ quizml init --schema
 # Copy an individual template file or all bundled assets
 quizml init -t tcd-exam.tex.j2
 quizml init --all
+
+# Refresh bundled templates that already exist in _quizml/ after upgrading QuizML
+quizml init --update
 ```
 
 To initialize a per-user configuration shared across projects, run
 `quizml init user`. Existing files are never overwritten unless you pass
-`--force` (`-f`).
+`--force` (`-f`) or `--update` (`-u`).
+
+> **Tip:** You only need to place files in `_quizml/` that you actually want to
+> add or customize (such as a university `.cls` file, logo PDF, or minimal
+> `quizml.cfg`). Any bundled template not present in `_quizml/` is loaded
+> directly from the installed QuizML package and stays up to date automatically
+> when you upgrade QuizML.
 
 ## How QuizML finds configuration and assets
 
@@ -51,10 +60,12 @@ paths resolved for a build.
 
 ## Default targets and aliases
 
-In `quizml.cfg`, `default_targets` controls which targets are built when
-`quizml compile` is run without `--target`. If `default_targets` is omitted,
-QuizML compiles all render targets and skips targets with a `build_cmd` (such
-as `pdf`) unless they are requested explicitly.
+A project `quizml.cfg` automatically inherits the bundled `targets` and
+`aliases` if `targets` is omitted, or merges any target entry matching a bundled
+target's `name`. In `quizml.cfg`, `default_targets` controls which targets are
+built when `quizml compile` is run without `--target`. If `default_targets` is
+omitted, QuizML compiles all render targets and skips targets with a `build_cmd`
+(such as `pdf`) unless they are requested explicitly.
 
 Use `aliases` to group targets into named workflows selectable with `--target`:
 
@@ -111,6 +122,11 @@ custom `.cls`, `.sty`, and image files in:
 3. Directories listed under `texinputs` in `quizml.cfg` (resolved relative to
    the directory containing `quizml.cfg`).
 4. Your system's standard `TEXMF` trees.
+
+Generated `.tex` files also embed these resolved directories in LaTeX's
+`\input@path`, so running `latexmk -xelatex -pvc quiz.tex` directly from your
+terminal or editor finds classes and assets in `_quizml/` and the QuizML package
+without manually setting `TEXINPUTS`.
 
 See [Targets](targets.md), [Templates](writing_templates.md), and
 [Schema validation](schema_validation.md) for details on customizing individual

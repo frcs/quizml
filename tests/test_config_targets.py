@@ -434,3 +434,34 @@ def test_default_config_latex_solutions_dependency_chain():
         "latex-solutions",
         "pdf-solutions",
     ]
+
+
+def test_load_config_inherits_bundled_targets_and_merges_by_name(tmp_path):
+    """A minimal quizml.cfg without 'targets' inherits bundled targets and aliases."""
+    from quizml.build.config import load_config
+
+    minimal_cfg = tmp_path / "quizml.cfg"
+    minimal_cfg.write_text(
+        "default_targets:\n  - bb\n  - html-preview\n",
+        encoding="utf-8",
+    )
+    cfg = load_config(str(minimal_cfg), yaml_filename="exam.yaml")
+    target_names = [t["name"] for t in cfg["targets"]]
+    assert "bb" in target_names
+    assert "latex" in target_names
+    assert "moodle" in target_names
+    assert "build" in cfg["aliases"]
+
+    # Partial target override merges with bundled target definition by name
+    override_cfg = tmp_path / "override.cfg"
+    override_cfg.write_text(
+        "targets:\n  - name: latex\n    template: custom-exam.tex.j2\n",
+        encoding="utf-8",
+    )
+    cfg2 = load_config(str(override_cfg), yaml_filename="exam.yaml")
+    assert len(cfg2["targets"]) == 1
+    assert cfg2["targets"][0]["name"] == "latex"
+    assert cfg2["targets"][0]["template"] == "custom-exam.tex.j2"
+    assert cfg2["targets"][0]["out"] == "${inputbasename}.tex"
+    assert cfg2["targets"][0]["markdown"] == {"format": "latex"}
+

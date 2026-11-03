@@ -2,6 +2,11 @@
 %% see www.github.com/frcs/quizml
 %%
 <| block preamble |>
+<| if paths.get('tex_search_dirs') -|>
+\makeatletter
+\def\input@path{<| for p in paths['tex_search_dirs'] |>{<< p if p.endswith('/') else p ~ '/' >>}<| endfor |>}
+\makeatother
+<|- endif |>
 \documentclass{tcdexams}
 
 <# passing the header variables to template  #>
@@ -41,7 +46,7 @@
 \additionalinformation{\infoadditionalinformation}
 
 \usepackage{graphicx}
-<| if paths.get('figure_dirs') -|>
+<| if not paths.get('tex_search_dirs') and paths.get('figure_dirs') -|>
 \graphicspath{
 <|- set fig_paths = [paths['figure_dirs']] if paths['figure_dirs'] is string else paths['figure_dirs'] -|>
 <|- for p in fig_paths -|>

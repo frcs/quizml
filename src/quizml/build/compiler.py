@@ -181,6 +181,13 @@ def compile_quiz(
         *transcoder.search_dirs,
         *locator.dirlist,
     ]
+    existing_tex_dirs = []
+    for d in tex_search_dirs:
+        if d:
+            abs_d = str(pathlib.Path(d).resolve())
+            if pathlib.Path(abs_d).is_dir() and abs_d not in existing_tex_dirs:
+                existing_tex_dirs.append(abs_d)
+    yaml_data.setdefault("paths", {})["tex_search_dirs"] = existing_tex_dirs
 
     if on_stats is not None:
         on_stats(yaml_data, config)

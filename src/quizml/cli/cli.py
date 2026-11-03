@@ -436,6 +436,12 @@ def build_parser():
         action="store_true",
         help="overwrite existing files in the destination directory",
     )
+    init_parser.add_argument(
+        "-u",
+        "--update",
+        action="store_true",
+        help="refresh bundled template files that already exist in the destination directory",
+    )
 
     docs_parser = subparsers.add_parser(
         "docs", help="display documentation", formatter_class=formatter
@@ -591,6 +597,7 @@ def _dispatch(args, parser):
                 "schema": getattr(args, "schema", False),
                 "templates": getattr(args, "templates", None),
                 "force": getattr(args, "force", False),
+                "update": getattr(args, "update", False),
             }.items()
             if v
         }

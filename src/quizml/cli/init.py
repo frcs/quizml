@@ -127,6 +127,54 @@ def _copy_templates(dest_dir, files_to_copy=None, *, force=False):
         raise QuizMLConfigError(f"Could not copy templates to {dest_dir}: {e}") from e
 
 
+def _update_existing_templates(dest_dir, extra_templates=None):
+    pkg_template_dir = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "../templates")
+    )
+    if not os.path.isdir(pkg_template_dir):
+        raise QuizMLConfigError(f"Template directory not found at {pkg_template_dir}")
+
+    if not os.path.isdir(dest_dir):
+        err_console.print(f"No existing template directory at {dest_dir}")
+        return True
+
+    bundled_entries = [
+        f
+        for f in sorted(os.listdir(pkg_template_dir))
+        if not f.endswith((".py", ".pyc")) and f != "__pycache__"
+    ]
+    explicit = set(extra_templates or [])
+    to_update = [
+        f
+        for f in bundled_entries
+        if (f != "quizml.cfg" or f in explicit)
+        and os.path.exists(os.path.join(dest_dir, f))
+    ]
+
+    if not to_update:
+        err_console.print(f"No bundled templates found in {dest_dir} to update.")
+        return True
+
+    try:
+        for filename in to_update:
+            src_path = os.path.join(pkg_template_dir, filename)
+            dst_path = os.path.join(dest_dir, filename)
+            if os.path.isdir(src_path):
+                shutil.copytree(
+                    src_path,
+                    dst_path,
+                    dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns("*.py", "__pycache__", "*.pyc"),
+                )
+            else:
+                os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+                shutil.copy2(src_path, dst_path)
+        err_console.print(f"Updated {', '.join(to_update)} in {dest_dir}")
+        return True
+    except OSError as e:
+        raise QuizMLConfigError(f"Could not update templates in {dest_dir}: {e}") from e
+
+
 def init_local(
     *,
     all_files=False,
@@ -139,8 +187,11 @@ def init_local(
     schema=False,
     templates=None,
     force=False,
+    update=False,
 ):
     local_template_dir = os.path.join(os.getcwd(), "_quizml")
+    if update:
+        return _update_existing_templates(local_template_dir, extra_templates=templates)
     files_to_copy = _select_files(
         all_files=all_files,
         latex=latex,
@@ -167,9 +218,12 @@ def init_user(
     schema=False,
     templates=None,
     force=False,
+    update=False,
 ):
     app_dir = platformdirs.user_config_dir(appname="quizml", appauthor="frcs")
     user_template_dir = os.path.join(app_dir, "templates")
+    if update:
+        return _update_existing_templates(user_template_dir, extra_templates=templates)
     files_to_copy = _select_files(
         all_files=all_files,
         latex=latex,

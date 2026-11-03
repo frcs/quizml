@@ -526,6 +526,19 @@ def test_init_tiered_default_and_selective_flags(tmp_path, monkeypatch):
     assert (dest_dir / "moodle.xml.j2").exists()
     assert not (dest_dir / "preview.html.j2").exists()
 
+    # Modify an existing bundled template, add a custom file, and run --update
+    (dest_dir / "tcd-exam.tex.j2").write_text("stale template", encoding="utf-8")
+    (dest_dir / "quizml.cfg").write_text("default_targets: [bb]\n", encoding="utf-8")
+    (dest_dir / "tcdexams.cls").write_text("custom class", encoding="utf-8")
+
+    with patch.object(sys, "argv", ["quizml", "init", "--update"]):
+        main()
+
+    assert (dest_dir / "tcd-exam.tex.j2").read_text(encoding="utf-8") != "stale template"
+    assert (dest_dir / "quizml.cfg").read_text(encoding="utf-8") == "default_targets: [bb]\n"
+    assert (dest_dir / "tcdexams.cls").read_text(encoding="utf-8") == "custom class"
+    assert not (dest_dir / "preview.html.j2").exists()
+
 
 def test_targets_non_tty_tab_separated(capsys):
     with patch.object(sys, "argv", ["quizml", "targets"]):

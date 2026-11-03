@@ -45,7 +45,7 @@ quizml sample [FILE|-] [-o FILE|-] [--seed SEED] [-f | --force]
 quizml pin [FILE|-] [-o FILE] [-t TARGET] [--add-ids] [--freeze-includes] [--seed SEED] [-f]
 quizml clean [PATH] [-r] [--dry-run] [--quiet] [--config CONFIGFILE]
 quizml cache clear
-quizml init [{local,user}] [--all] [--latex] [--html] [--bb] [--docx] [--qti] [--moodle] [--schema] [-t FILE] [-f]
+quizml init [{local,user}] [--all] [--latex] [--html] [--bb] [--docx] [--qti] [--moodle] [--schema] [-t FILE] [-f] [-u]
 quizml docs [TOPIC] [--no-pager]
 quizml info
 quizml targets [--config CONFIGFILE]
@@ -86,7 +86,8 @@ quizml completion {bash,zsh,fish}
   `info` reports the cache location and its current size.
 - `init`: initializes a project configuration in `_quizml/quizml.cfg` (or the
   user config directory when `user` is given) and optionally copies bundled
-  templates. See [Project setup](configuration.md) for details.
+  templates, or refreshes existing copied templates with `-u`/`--update`. See
+  [Project setup](configuration.md) for details.
 - `docs`: displays a documentation topic or the full guide (`quizml docs list`
   lists topics). When piped to another command or file (e.g.
   `quizml docs syntax_questions | pbcopy`), it outputs clean Markdown—useful

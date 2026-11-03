@@ -76,9 +76,11 @@ flowchart LR
   templates and schemas from the package.
 - Both `LatexRunner` and `compile_cmd_target` prepend the quiz directory,
   configured `texinputs`, included figure directories, and `FileLocator` search
-  directories to `TEXINPUTS` so custom `.cls`/`.sty` files, logos, and
-  `\input{...}` assets inside `_quizml/` are found automatically by LaTeX
-  compilers.
+  directories to `TEXINPUTS`, and `compile_quiz` passes existing search
+  directories via `paths['tex_search_dirs']` into `\def\input@path{...}` in the
+  bundled LaTeX templates so custom `.cls`/`.sty` files, logos, and
+  `\input{...}` assets inside `_quizml/` are found automatically both by QuizML
+  and when running `latexmk` directly.
 - Relative output paths, template lookups, and build commands are anchored to
   the input quiz's directory (or current working directory when reading from
   `stdin`). Target `out`, `build_cmd`, and `descr_cmd` strings support

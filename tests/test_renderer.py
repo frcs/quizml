@@ -268,3 +268,32 @@ def test_docx_renderer_receives_configured_jinja_env(monkeypatch):
     assert out == b"PK-fake-docx"
     assert "math" in captured["jinja_env"].globals
     assert "shout" in captured["jinja_env"].filters
+
+
+def test_compile_quiz_embeds_input_path_in_latex_templates(tmp_path):
+    from quizml.build.compiler import compile_quiz
+
+    quiz_dir = tmp_path / "2026"
+    quiz_dir.mkdir()
+    local_quizml = tmp_path / "_quizml"
+    local_quizml.mkdir()
+    (local_quizml / "tcdexams.cls").write_text("% custom class\n", encoding="utf-8")
+
+    quiz_file = quiz_dir / "midterm.yaml"
+    quiz_file.write_text(
+        "title: Midterm\n---\n- type: tf\n  question: Is 1+1=2?\n  answer: true\n",
+        encoding="utf-8",
+    )
+
+    res = compile_quiz(str(quiz_file), targets=["latex", "latex-solutions"])
+    assert res.ok
+
+    tex_content = (quiz_dir / "midterm.tex").read_text(encoding="utf-8")
+    sol_content = (quiz_dir / "midterm.solutions.tex").read_text(encoding="utf-8")
+
+    assert r"\def\input@path{" in tex_content
+    assert f"{{{local_quizml.resolve()}/}}" in tex_content
+    assert r"\graphicspath{" not in tex_content
+    assert r"\def\input@path{" in sol_content
+    assert f"{{{quiz_dir.resolve()}/}}" in sol_content
+

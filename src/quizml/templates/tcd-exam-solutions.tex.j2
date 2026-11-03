@@ -1,1 +1,4 @@
+<| if paths.get('tex_search_dirs') -|>
+\makeatletter\def\input@path{<| for p in paths['tex_search_dirs'] |>{<< p if p.endswith('/') else p ~ '/' >>}<| endfor |>}\makeatother
+<| endif -|>
 \let\ifsolutions\iftrue\input{<<header['inputbasename']>>.tex}
