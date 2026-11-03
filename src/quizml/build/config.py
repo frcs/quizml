@@ -163,18 +163,39 @@ def _merge_with_bundled_defaults(config, config_file):
     if isinstance(default_targets, list):
         if "targets" not in config:
             config["targets"] = [dict(t) for t in default_targets if isinstance(t, dict)]
-        elif isinstance(config.get("targets"), list):
+        elif (
+            isinstance(config.get("targets"), list)
+            and config["targets"]
+            and all(isinstance(t, dict) for t in config["targets"])
+        ):
             by_name = {
                 t["name"]: t
                 for t in default_targets
                 if isinstance(t, dict) and "name" in t
             }
+            user_targets = config["targets"]
+            if "default_targets" not in config:
+                user_render_names = [
+                    t["name"]
+                    for t in user_targets
+                    if t.get("name") and "build_cmd" not in t
+                ]
+                if user_render_names:
+                    config["default_targets"] = user_render_names
+
             merged_targets = []
-            for t in config["targets"]:
-                if isinstance(t, dict) and t.get("name") in by_name:
-                    merged_targets.append({**by_name[t["name"]], **t})
+            seen_names = set()
+            for t in user_targets:
+                t_name = t.get("name")
+                if t_name:
+                    seen_names.add(t_name)
+                if t_name in by_name:
+                    merged_targets.append({**by_name[t_name], **t})
                 else:
                     merged_targets.append(t)
+            for dt in default_targets:
+                if isinstance(dt, dict) and dt.get("name") not in seen_names:
+                    merged_targets.append(dict(dt))
             config["targets"] = merged_targets
 
     return config

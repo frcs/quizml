@@ -453,15 +453,17 @@ def test_load_config_inherits_bundled_targets_and_merges_by_name(tmp_path):
     assert "build" in cfg["aliases"]
 
     # Partial target override merges with bundled target definition by name
+    # and keeps other bundled targets (like 'pdf') selectable via --target
     override_cfg = tmp_path / "override.cfg"
     override_cfg.write_text(
         "targets:\n  - name: latex\n    template: custom-exam.tex.j2\n",
         encoding="utf-8",
     )
     cfg2 = load_config(str(override_cfg), yaml_filename="exam.yaml")
-    assert len(cfg2["targets"]) == 1
-    assert cfg2["targets"][0]["name"] == "latex"
-    assert cfg2["targets"][0]["template"] == "custom-exam.tex.j2"
-    assert cfg2["targets"][0]["out"] == "${inputbasename}.tex"
-    assert cfg2["targets"][0]["markdown"] == {"format": "latex"}
+    assert cfg2["default_targets"] == ["latex"]
+    latex_target = next(t for t in cfg2["targets"] if t["name"] == "latex")
+    assert latex_target["template"] == "custom-exam.tex.j2"
+    assert latex_target["out"] == "${inputbasename}.tex"
+    assert latex_target["markdown"] == {"format": "latex"}
+    assert any(t["name"] == "pdf" for t in cfg2["targets"])
 
