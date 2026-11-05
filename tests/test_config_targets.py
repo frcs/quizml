@@ -466,3 +466,57 @@ def test_load_config_inherits_bundled_targets_and_merges_by_name(tmp_path):
     assert latex_target["out"] == "${inputbasename}.tex"
     assert latex_target["markdown"] == {"format": "latex"}
     assert any(t["name"] == "pdf" for t in cfg2["targets"])
+
+
+def test_inherited_default_aliases_do_not_collide_with_user_defined_targets(tmp_path):
+    """When a project defines a target whose name matches a bundled alias (e.g. 'qti12'),
+
+    the bundled alias must not be inherited, avoiding alias/target name collisions.
+    """
+    from quizml.build.config import load_config
+
+    cfg_file = tmp_path / "quizml.cfg"
+    cfg_file.write_text(
+        "targets:\n"
+        "  - name: bb\n"
+        "    template: blackboard.txt.j2\n"
+        "  - name: qti12\n"
+        "    template: qti12\n",
+        encoding="utf-8",
+    )
+    cfg = load_config(str(cfg_file), yaml_filename="quiz.yaml")
+    assert any(t["name"] == "qti12" for t in cfg["targets"])
+    assert "qti12" not in cfg.get("aliases", {})
+
+    args = MagicMock()
+    args.target = ["bb"]
+    args.yaml_filename = "quiz.yaml"
+    targets = get_target_list(args, cfg, {"header": {}})
+    assert [t["name"] for t in targets] == ["bb"]
+
+
+def test_user_defined_aliases_prevent_bundled_target_collision(tmp_path):
+    """When a user defines an alias matching a bundled target name,
+
+    the bundled target must not be appended so it does not collide with the alias.
+    """
+    from quizml.build.config import load_config
+
+    cfg_file = tmp_path / "quizml.cfg"
+    cfg_file.write_text(
+        "aliases:\n"
+        "  pdf: [latex]\n"
+        "targets:\n"
+        "  - name: latex\n"
+        "    template: tcd-exam.tex.j2\n",
+        encoding="utf-8",
+    )
+    cfg = load_config(str(cfg_file), yaml_filename="quiz.yaml")
+    assert "pdf" in cfg["aliases"]
+    assert not any(t["name"] == "pdf" for t in cfg["targets"])
+
+    args = MagicMock()
+    args.target = ["pdf"]
+    args.yaml_filename = "quiz.yaml"
+    targets = get_target_list(args, cfg, {"header": {}})
+    assert [t["name"] for t in targets] == ["latex"]

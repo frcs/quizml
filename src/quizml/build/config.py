@@ -151,13 +151,10 @@ def _merge_with_bundled_defaults(config, config_file):
         if key not in config and key in defaults:
             config[key] = defaults[key]
 
-    default_aliases = defaults.get("aliases")
-    if isinstance(default_aliases, dict):
-        user_aliases = config.get("aliases")
-        if user_aliases is None:
-            config["aliases"] = dict(default_aliases)
-        elif isinstance(user_aliases, dict):
-            config["aliases"] = {**default_aliases, **user_aliases}
+    user_aliases = config.get("aliases")
+    user_alias_names = (
+        set(user_aliases.keys()) if isinstance(user_aliases, dict) else set()
+    )
 
     default_targets = defaults.get("targets")
     if isinstance(default_targets, list):
@@ -196,9 +193,31 @@ def _merge_with_bundled_defaults(config, config_file):
                 else:
                     merged_targets.append(t)
             for dt in default_targets:
-                if isinstance(dt, dict) and dt.get("name") not in seen_names:
+                if (
+                    isinstance(dt, dict)
+                    and dt.get("name") not in seen_names
+                    and dt.get("name") not in user_alias_names
+                ):
                     merged_targets.append(dict(dt))
             config["targets"] = merged_targets
+
+    target_names = {
+        t["name"]
+        for t in config.get("targets", [])
+        if isinstance(t, dict) and t.get("name")
+    }
+
+    default_aliases = defaults.get("aliases")
+    if isinstance(default_aliases, dict):
+        inherited_aliases = {
+            k: v
+            for k, v in default_aliases.items()
+            if k in user_alias_names or k not in target_names
+        }
+        if user_aliases is None:
+            config["aliases"] = inherited_aliases
+        elif isinstance(user_aliases, dict):
+            config["aliases"] = {**inherited_aliases, **user_aliases}
 
     return config
 
