@@ -466,4 +466,3 @@ def test_load_config_inherits_bundled_targets_and_merges_by_name(tmp_path):
     assert latex_target["out"] == "${inputbasename}.tex"
     assert latex_target["markdown"] == {"format": "latex"}
     assert any(t["name"] == "pdf" for t in cfg2["targets"])
-

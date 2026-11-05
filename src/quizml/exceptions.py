@@ -8,70 +8,56 @@ class QuizMLError(Exception):
     """Base class for all quizml exceptions."""
 
 
-
 class QuizMLYamlSyntaxError(QuizMLError):
     """Raised for syntax errors in quizmlyaml files."""
-
 
 
 class QuizMLConfigError(QuizMLError):
     """Raised for configuration errors."""
 
 
-
 class QuizMLBuildError(QuizMLError):
     """Raised when a configured output build command fails."""
-
 
 
 class MarkdownError(QuizMLError):
     """Raised for errors during Markdown processing."""
 
 
-
 class LatexToolError(QuizMLError):
     """Base class for errors related to external LaTeX tools."""
-
 
 
 class LatexNotFoundError(LatexToolError):
     """Raised when the latex or pdflatex executable is not found."""
 
 
-
 class GhostscriptNotFoundError(LatexToolError):
     """Raised when the gs (Ghostscript) executable is not found."""
-
 
 
 class DvisvgmNotFoundError(LatexToolError):
     """Raised when the dvisvgm executable is not found."""
 
 
-
 class LatexCompilationError(LatexToolError):
     """Raised when the LaTeX compilation fails."""
-
 
 
 class MarkdownAttributeError(MarkdownError):
     """Raised for errors related to Markdown attributes."""
 
 
-
 class MarkdownImageError(MarkdownError):
     """Raised for errors related to image processing."""
-
 
 
 class TemplateRenderError(QuizMLError):
     """Raised when a document template cannot be rendered."""
 
 
-
 class Jinja2SyntaxError(TemplateRenderError):
     """Raised for errors during Jinja2 template rendering."""
-
 
 
 def text_wrap(msg):

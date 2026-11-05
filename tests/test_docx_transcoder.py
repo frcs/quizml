@@ -52,7 +52,6 @@ def test_docx_line_break_handling():
     assert "<w:br/>" in xml_hard
 
 
-
 def test_docx_table_rendering():
     """Verifies markdown table conversion into Word OpenXML <w:tbl>."""
     md = """

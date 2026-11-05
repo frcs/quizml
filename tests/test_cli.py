@@ -365,9 +365,11 @@ def test_diff_missing_file_exit_code():
 def test_target_list_config_failure_exit_code_and_stderr(capsys):
     from quizml.exceptions import QuizMLConfigError
 
-    with patch.object(sys, "argv", ["quizml", "targets"]), patch(
-        "quizml.cli.ui.get_config", side_effect=QuizMLConfigError("bad config")
-    ), pytest.raises(SystemExit) as exc_info:
+    with (
+        patch.object(sys, "argv", ["quizml", "targets"]),
+        patch("quizml.cli.ui.get_config", side_effect=QuizMLConfigError("bad config")),
+        pytest.raises(SystemExit) as exc_info,
+    ):
         main()
 
     assert exc_info.value.code == 1
@@ -380,9 +382,12 @@ def test_init_copy_failure_exit_code_and_stderr(tmp_path, monkeypatch, capsys):
     import quizml.cli.init as init_module
 
     monkeypatch.chdir(tmp_path)
-    with patch.object(
-        init_module.shutil, "copy2", side_effect=OSError("permission denied")
-    ), patch.object(sys, "argv", ["quizml", "init", "local"]):
+    with (
+        patch.object(
+            init_module.shutil, "copy2", side_effect=OSError("permission denied")
+        ),
+        patch.object(sys, "argv", ["quizml", "init", "local"]),
+    ):
         with pytest.raises(SystemExit) as exc_info:
             main()
 
@@ -534,8 +539,12 @@ def test_init_tiered_default_and_selective_flags(tmp_path, monkeypatch):
     with patch.object(sys, "argv", ["quizml", "init", "--update"]):
         main()
 
-    assert (dest_dir / "tcd-exam.tex.j2").read_text(encoding="utf-8") != "stale template"
-    assert (dest_dir / "quizml.cfg").read_text(encoding="utf-8") == "default_targets: [bb]\n"
+    assert (dest_dir / "tcd-exam.tex.j2").read_text(
+        encoding="utf-8"
+    ) != "stale template"
+    assert (dest_dir / "quizml.cfg").read_text(
+        encoding="utf-8"
+    ) == "default_targets: [bb]\n"
     assert (dest_dir / "tcdexams.cls").read_text(encoding="utf-8") == "custom class"
     assert not (dest_dir / "preview.html.j2").exists()
 
@@ -850,6 +859,3 @@ def test_add_hyperlinks():
     # Stdout should not be linked
     assert add_hyperlinks("-", "-") == "-"
     assert add_hyperlinks("", "") == ""
-
-
-

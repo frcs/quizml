@@ -162,7 +162,9 @@ def _merge_with_bundled_defaults(config, config_file):
     default_targets = defaults.get("targets")
     if isinstance(default_targets, list):
         if "targets" not in config:
-            config["targets"] = [dict(t) for t in default_targets if isinstance(t, dict)]
+            config["targets"] = [
+                dict(t) for t in default_targets if isinstance(t, dict)
+            ]
         elif (
             isinstance(config.get("targets"), list)
             and config["targets"]

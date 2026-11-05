@@ -214,9 +214,7 @@ def compile_quiz(
                 f"Target '{final_target.get('name')}' uses build_cmd and cannot write to stdout (-)."
             )
         final_target["out"] = (
-            "-"
-            if output == "-"
-            else str(pathlib.Path(output).expanduser().resolve())
+            "-" if output == "-" else str(pathlib.Path(output).expanduser().resolve())
         )
         final_target["descr_cmd"] = output
 

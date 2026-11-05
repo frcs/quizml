@@ -220,4 +220,3 @@ def test_top_level_exception_exports_and_markdown_options():
     opts = MarkdownOptions(fmt="latex")
     normalized = normalize_markdown_options(opts)
     assert normalized["fmt"] == "latex"
-

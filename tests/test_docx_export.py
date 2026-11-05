@@ -656,5 +656,3 @@ modulecode: 'TEST102'
         assert "diagram.svg" in doc_xml
         ct = z.read("[Content_Types].xml").decode("utf-8")
         assert 'Extension="svg"' in ct
-
-

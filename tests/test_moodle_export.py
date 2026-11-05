@@ -358,4 +358,3 @@ _figures_path: ../figures-quiz
     # Should only contain the MC question, no category question
     assert len(question_nodes) == 1
     assert question_nodes[0].attrib.get("type") == "multichoice"
-

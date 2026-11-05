@@ -66,9 +66,7 @@ def _embed_omr_bubbles_in_docx(doc_obj) -> None:
             with open(svg_path, "rb") as f:
                 svg_bytes = f.read()
             pack_uri = PackURI(f"/word/media/omr_{asset_name}.svg")
-            part_cache[asset_name] = Part(
-                pack_uri, "image/svg+xml", svg_bytes, package
-            )
+            part_cache[asset_name] = Part(pack_uri, "image/svg+xml", svg_bytes, package)
         r_id = target_part.relate_to(part_cache[asset_name], RT.IMAGE)
         rel_cache[key] = r_id
         return r_id
@@ -163,7 +161,11 @@ def _embed_omr_bubbles_in_docx(doc_obj) -> None:
             for child in list(parent_r):
                 if child.tag == w_rpr_tag:
                     continue
-                if child.tag == w_t_tag and child.text and _OMR_CHAR_PATTERN.search(child.text):
+                if (
+                    child.tag == w_t_tag
+                    and child.text
+                    and _OMR_CHAR_PATTERN.search(child.text)
+                ):
                     text = child.text
                     parts = _OMR_CHAR_PATTERN.split(text)
                     matches = _OMR_CHAR_PATTERN.findall(text)
@@ -191,14 +193,16 @@ def _embed_omr_bubbles_in_docx(doc_obj) -> None:
                                 # w:position is specified in half-points (1 pt = 12700 EMU -> half-pt = 6350 EMU).
                                 pos_val = -round((extent_emu * 0.28) / 6350)
                                 draw_r = parse_xml(
-                                    f"<w:r {nsdecls('w')}><w:rPr><w:position w:val=\"{pos_val}\"/></w:rPr></w:r>"
+                                    f'<w:r {nsdecls("w")}><w:rPr><w:position w:val="{pos_val}"/></w:rPr></w:r>'
                                 )
                                 draw_r.append(
-                                    _make_omr_drawing_element(r_id, ch, asset_name, extent_emu)
+                                    _make_omr_drawing_element(
+                                        r_id, ch, asset_name, extent_emu
+                                    )
                                 )
                                 new_runs.append(draw_r)
                                 hid_r = parse_xml(
-                                    f"<w:r {nsdecls('w')}><w:rPr><w:vanish/><w:sz w:val=\"2\"/></w:rPr>"
+                                    f'<w:r {nsdecls("w")}><w:rPr><w:vanish/><w:sz w:val="2"/></w:rPr>'
                                     f"<w:t>{ch}</w:t></w:r>"
                                 )
                                 new_runs.append(hid_r)
@@ -216,7 +220,6 @@ def _embed_omr_bubbles_in_docx(doc_obj) -> None:
             parent_p.remove(parent_r)
 
     _process_element_tree(doc_obj.element.body, main_part)
-
 
 
 def _xml_escape(text: str) -> str:

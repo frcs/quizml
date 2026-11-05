@@ -296,4 +296,3 @@ def test_compile_quiz_embeds_input_path_in_latex_templates(tmp_path):
     assert r"\graphicspath{" not in tex_content
     assert r"\def\input@path{" in sol_content
     assert f"{{{quiz_dir.resolve()}/}}" in sol_content
-

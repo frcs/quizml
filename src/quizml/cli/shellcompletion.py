@@ -89,7 +89,16 @@ def zsh():
         specs = " ".join(f"'{opt}[{opt}]'" for opt in opts.split())
         if command == "docs":
             positional = "'*:topic:->topic'"
-        elif command in {"compile", "build", "diff", "fmt", "sample", "pin", "grep", "search"}:
+        elif command in {
+            "compile",
+            "build",
+            "diff",
+            "fmt",
+            "sample",
+            "pin",
+            "grep",
+            "search",
+        }:
             positional = "'*:yaml file:_files -g \"*.(yaml|yml)\"'"
         elif command == "clean":
             positional = "'*:path:_files -g \"*.(yaml|yml)\" -/'"
