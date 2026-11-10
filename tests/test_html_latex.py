@@ -348,3 +348,40 @@ def test_build_eq_dict_mathml_with_macros():
     q2_math = res[r"##Display##$$\norm{\bx} \le 1$$"]
     assert "<math" in q2_math
     assert 'display="block"' in q2_math or "display='block'" in q2_math
+
+
+def test_display_math_wrapped_in_paragraph_for_blackboard(tmp_path):
+    from quizml.markdown.markdown import MarkdownTranscoder
+    from quizml.yaml import MarkdownString
+
+    yamldoc = {
+        "header": {},
+        "questions": [
+            {
+                "type": "essay",
+                "question": MarkdownString("Before\n\n$$E = mc^2$$\n\nAfter"),
+            }
+        ],
+    }
+
+    with patch(
+        "quizml.markdown.html_renderer.build_eq_dict_PNG",
+        return_value={
+            "##Display##$$E = mc^2$$": '<img src="data:image/png;base64,abc" alt="E = mc^2">'
+        },
+    ):
+        transcoder = MarkdownTranscoder(yamldoc, base_dir=str(tmp_path))
+        bb_doc = transcoder.transcode_target(
+            {
+                "markdown": {
+                    "format": "html",
+                    "math": "png",
+                    "html_postprocess": "blackboard_html",
+                }
+            }
+        )
+        rendered_q = bb_doc["questions"][0]["question"].strip()
+        assert "<p><img" in rendered_q
+        assert "></p>" in rendered_q or "/></p>" in rendered_q
+        assert rendered_q.startswith("<p>Before</p> <p><img")
+        assert rendered_q.endswith("<p>After</p>")
