@@ -27,6 +27,9 @@ Useful references:
   only when a missing decision blocks meaningful progress.
 - Follow the active task's instructions about tests and other checks. Report
   exactly what you ran.
+- Always run linting and formatting checks (`uv run ruff check .` and
+  `uv run ruff format --check src tests`) before proposing or making commits.
+  Format code with `uv run ruff format src tests` if needed.
 - Do not commit or push unless the user asks, and always present changes and
   the proposed commit message for approval first.
 - Keep Git commits atomic and focused on a single logical concern.
@@ -49,6 +52,7 @@ environment and dependencies:
 uv run quizml quiz.yaml
 uv run pytest
 uv run ruff check .
+uv run ruff format --check src tests
 uv add <package>
 uv remove <package>
 ```

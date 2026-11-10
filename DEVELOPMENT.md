@@ -11,6 +11,7 @@ Use `uv` to run the application and manage dependencies:
 uv run quizml quiz.yaml
 uv run pytest
 uv run ruff check .
+uv run ruff format --check src tests
 ```
 
 When changing behavior, update the relevant documentation. Add tests when the
