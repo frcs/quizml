@@ -11,7 +11,7 @@ from typing import Any
 import css_inline
 import latex2mathml.converter
 from bs4 import BeautifulSoup
-from mistletoe import span_token
+from mistletoe import block_token, span_token
 from mistletoe.html_renderer import HTMLRenderer
 
 from ..cache import (
@@ -27,6 +27,7 @@ from ..exceptions import (
 )
 from .extensions import ImageWithWidth, MathDisplay, MathInline
 from .image_embedding import embed_base64
+from .latex_renderer import QuizMLYamlLaTeXRenderer
 from .latextools import LatexRunner
 from .macros import LatexMacroExpander, preprocess_latex_for_mathml
 
@@ -68,6 +69,38 @@ def get_eq_list_from_doc(doc: Any) -> list[MathInline | MathDisplay]:
     elif isinstance(doc, (MathInline, MathDisplay)):
         eq_list.append(doc)
     return eq_list
+
+
+def _table_to_latex(
+    table_token: block_token.Table,
+    base_dir: str | Path | None = None,
+    search_dirs: Sequence[str | Path] | None = None,
+) -> str:
+    """Render a Mistletoe ``Table`` token into a LaTeX ``tabular`` block."""
+    from mistletoe.latex_renderer import LaTeXRenderer
+
+    with QuizMLYamlLaTeXRenderer(
+        base_dir=base_dir, search_dirs=search_dirs
+    ) as renderer:
+        return LaTeXRenderer.render_table(renderer, table_token).strip()
+
+
+def _get_table_math_tokens_from_doc(
+    doc: Any,
+    base_dir: str | Path | None = None,
+    search_dirs: Sequence[str | Path] | None = None,
+) -> list[MathDisplay]:
+    """Return ``MathDisplay`` tokens representing LaTeX ``tabular`` tables in ``doc``."""
+    table_tokens: list[MathDisplay] = []
+    if isinstance(doc, block_token.Table):
+        table_tokens.append(MathDisplay([_table_to_latex(doc, base_dir, search_dirs)]))
+    elif hasattr(doc, "children") and doc.children is not None:
+        for child in doc.children:
+            table_tokens = _append_unique(
+                table_tokens,
+                _get_table_math_tokens_from_doc(child, base_dir, search_dirs),
+            )
+    return table_tokens
 
 
 def strip_newlines_and_tabs(html_content: str) -> str:
@@ -417,6 +450,13 @@ def _build_equations_for_format(
     return build_eq_dict_PNG(eq_list, opts)
 
 
+def _render_tables_as_images(opts: dict[str, Any]) -> bool:
+    """Return True if HTML tables should be compiled into embedded SVG/PNG images."""
+    return opts.get("html_postprocess") == "blackboard_html" and opts.get(
+        "fmt", "html"
+    ) in ("html", "html-svg")
+
+
 class QuizMLYamlHTMLRenderer(HTMLRenderer):
     """Customized Mistletoe renderer for HTML with base64 images and math lookup."""
 
@@ -425,11 +465,13 @@ class QuizMLYamlHTMLRenderer(HTMLRenderer):
         eq_dict: dict[str, str],
         base_dir: str | Path | None = None,
         search_dirs: Sequence[str | Path] | None = None,
+        table_as_image: bool = False,
     ) -> None:
         super().__init__(MathInline, MathDisplay, ImageWithWidth)
         self.eq_dict = eq_dict
         self.base_dir = base_dir
         self.search_dirs: list[str | Path] = list(search_dirs or [])
+        self.table_as_image = table_as_image
 
     def render_math_inline(self, token: MathInline) -> str:
         return self.eq_dict["##Inline##" + token.content]
@@ -439,6 +481,16 @@ class QuizMLYamlHTMLRenderer(HTMLRenderer):
         if rendered.startswith("<div"):
             return rendered
         return f"<p>{rendered}</p>"
+
+    def render_table(self, token: block_token.Table) -> str:
+        if self.table_as_image:
+            latex_table = _table_to_latex(
+                token, base_dir=self.base_dir, search_dirs=self.search_dirs
+            )
+            key = f"##Display##{latex_table}"
+            if key in self.eq_dict:
+                return f"<p>{self.eq_dict[key]}</p>"
+        return super().render_table(token)
 
     def render_image(self, token: span_token.Image) -> str:
         template = '<img src="{}" alt="{}"{} >'
@@ -475,9 +527,12 @@ class QuizMLYamlHTMLRenderer(HTMLRenderer):
 
 def get_html(doc: Any, opts: dict[str, Any]) -> str:
     """Render HTML for a single Mistletoe AST ``doc``."""
+    table_as_image = _render_tables_as_images(opts)
     eq_list = get_eq_list_from_doc(doc)
+    if table_as_image:
+        eq_list = _append_unique(eq_list, _get_table_math_tokens_from_doc(doc))
     eq_dict = _build_equations_for_format(eq_list, opts)
-    with QuizMLYamlHTMLRenderer(eq_dict) as renderer:
+    with QuizMLYamlHTMLRenderer(eq_dict, table_as_image=table_as_image) as renderer:
         return renderer.render(doc)
 
 
@@ -549,9 +604,17 @@ def get_html_dict(
             opts["tex_search_dirs"] = tex_dirs
 
     # 1. Collect all unique equations across all AST documents in batch.
+    table_as_image = _render_tables_as_images(opts)
     eq_list: list[MathInline | MathDisplay] = []
     for doc in ast_dict.values():
         eq_list = _append_unique(eq_list, get_eq_list_from_doc(doc))
+        if table_as_image:
+            eq_list = _append_unique(
+                eq_list,
+                _get_table_math_tokens_from_doc(
+                    doc, base_dir=base_dir, search_dirs=search_dirs
+                ),
+            )
 
     # 2. Batch-compile equations for the active math backend.
     eq_dict = _build_equations_for_format(eq_list, opts)
@@ -560,7 +623,10 @@ def get_html_dict(
     md_dict: dict[str, str] = {}
     postprocess = opts.get("html_postprocess")
     with QuizMLYamlHTMLRenderer(
-        eq_dict, base_dir=base_dir, search_dirs=search_dirs
+        eq_dict,
+        base_dir=base_dir,
+        search_dirs=search_dirs,
+        table_as_image=table_as_image,
     ) as renderer:
         for txt, doc in ast_dict.items():
             html_raw = renderer.render(doc)

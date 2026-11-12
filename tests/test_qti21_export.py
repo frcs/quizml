@@ -163,8 +163,8 @@ _qti:
         )
         assert ma_interaction is not None
         assert (
-            ma_interaction.attrib.get("maxChoices") == "0"
-        )  # Unlimited choices for MA
+            ma_interaction.attrib.get("maxChoices") == "4"
+        )  # Explicit number of choices for MA (Blackboard Ultra compatibility)
         correct_vals = [
             v.text
             for v in q2_root.findall(

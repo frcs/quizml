@@ -83,7 +83,7 @@
 
   <itemBody>
 <| if q.type in ['mc', 'tf', 'ma'] |>
-    <choiceInteraction responseIdentifier="RESPONSE" shuffle="<< (q.shuffle | default(false) | lower) if q.shuffle is defined else ('false' if q.type == 'tf' else (qti.shuffle_answers | lower)) >>" maxChoices="<< 0 if q.type == 'ma' else 1 >>">
+    <choiceInteraction responseIdentifier="RESPONSE" shuffle="<< (q.shuffle | default(false) | lower) if q.shuffle is defined else ('false' if q.type == 'tf' else (qti.shuffle_answers | lower)) >>" maxChoices="<< (q.choices | length) if q.type == 'ma' else 1 >>">
       <prompt><< q.question >></prompt>
 <| if q.type == 'tf' |>
       <simpleChoice identifier="true"><p>True</p></simpleChoice>

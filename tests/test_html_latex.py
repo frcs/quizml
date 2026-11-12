@@ -385,3 +385,68 @@ def test_display_math_wrapped_in_paragraph_for_blackboard(tmp_path):
         assert "></p>" in rendered_q or "/></p>" in rendered_q
         assert rendered_q.startswith("<p>Before</p> <p><img")
         assert rendered_q.endswith("<p>After</p>")
+
+
+def test_table_rendered_as_svg_image_for_blackboard(tmp_path):
+    from quizml.markdown.markdown import MarkdownTranscoder
+    from quizml.yaml import MarkdownString
+
+    md_table = "Before\n\n| A | B |\n|---|---|\n| $x$ | 2 |\n\nAfter"
+    yamldoc = {
+        "header": {},
+        "questions": [
+            {
+                "type": "essay",
+                "question": MarkdownString(md_table),
+            }
+        ],
+    }
+
+    expected_latex_table = (
+        "\\begin{tabular}{l l}\nA & B \\\\\n\\hline\n$x$ & 2 \\\\\n\\end{tabular}"
+    )
+
+    with patch(
+        "quizml.markdown.html_renderer.build_eq_dict_SVG",
+        return_value={
+            "##Inline##$x$": '<img src="data:image/svg+xml;base64,inline_x" alt="\\(x\\)">',
+            f"##Display##{expected_latex_table}": (
+                '<img src="data:image/svg+xml;base64,table_svg" alt="tabular">'
+            ),
+        },
+    ) as mock_svg:
+        transcoder = MarkdownTranscoder(yamldoc, base_dir=str(tmp_path))
+
+        # 1. Blackboard target renders the table as an embedded SVG image
+        bb_doc = transcoder.transcode_target(
+            {
+                "markdown": {
+                    "format": "html",
+                    "math": "svg",
+                    "html_postprocess": "blackboard_html",
+                }
+            }
+        )
+        rendered_bb = bb_doc["questions"][0]["question"].strip()
+        # Ensure the table token was passed to build_eq_dict_SVG
+        eq_list_passed = mock_svg.call_args[0][0]
+        assert any(eq.content == expected_latex_table for eq in eq_list_passed), [
+            eq.content for eq in eq_list_passed
+        ]
+        assert "<table" not in rendered_bb
+        assert 'src="data:image/svg+xml;base64,table_svg"' in rendered_bb
+        assert rendered_bb.startswith("<p>Before</p> <p><img")
+        assert rendered_bb.endswith("<p>After</p>")
+
+        # 2. Standard html-preview target still renders a standard HTML <table>
+        preview_doc = transcoder.transcode_target(
+            {
+                "markdown": {
+                    "format": "html",
+                    "math": "svg",
+                }
+            }
+        )
+        rendered_preview = preview_doc["questions"][0]["question"].strip()
+        assert "<table>" in rendered_preview
+        assert 'src="data:image/svg+xml;base64,inline_x"' in rendered_preview
