@@ -33,6 +33,7 @@
 %%   with [baseline=0pt], placing the glyph baseline precisely on the line baseline.
 %%   The circle center is at y = 1.958bp (half cap height) so the inner glyph is centered.
 \newcommand{\omr@bubble}[2]{%
+  \kern0.08em%
   {\resizebox*{!}{1em}{%
     \begin{tikzpicture}[baseline=0pt]
       \filldraw[fill=#1, draw=black, line width=0.506bp] (0, 1.958bp) circle[radius=4.747bp];
@@ -40,7 +41,9 @@
         \omr@font\fontsize{5.37bp}{5.37bp}\selectfont\strut #2%
       };
     \end{tikzpicture}%
-  }}\xspace%
+  }}%
+  \kern0.08em%
+  \xspace%
 }
 
 %% Open (unchecked) and checked (57% gray pencil shading) bubble macros
