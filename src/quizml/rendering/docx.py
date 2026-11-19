@@ -1,6 +1,8 @@
 """Word (.docx) template renderer using docxtpl."""
 
+import html
 import io
+import itertools
 import logging
 import math
 import os
@@ -229,11 +231,11 @@ def _xml_escape(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def _ensure_run_xml(val, part=None) -> Markup:
+def _ensure_run_xml(val, part=None, svg_counter=None) -> Markup:
     """Ensures value is an OpenXML <w:r> run or <m:oMath> element."""
     if val is None:
         return Markup("")
-    s = _clean_docx_str(str(val), part=part)
+    s = _clean_docx_str(str(val), part=part, svg_counter=svg_counter)
     if "<w:p" in s:
         s = re.sub(r"^<w:p[^>]*>(?:<w:pPr>.*?</w:pPr>)?", "", s, flags=re.DOTALL)
         s = re.sub(r"</w:p>$", "", s, flags=re.DOTALL)
@@ -260,12 +262,12 @@ class _DocxHeaderStr(str):
         return obj
 
 
-def _ensure_block_xml(val, part=None) -> Markup:
+def _ensure_block_xml(val, part=None, svg_counter=None) -> Markup:
     """Ensures value is wrapped in OpenXML block tags (<w:p> or <w:tbl>)."""
     if val is None or isinstance(val, jinja2.Undefined):
         return Markup("")
     raw = val.xml if isinstance(val, _DocxHeaderStr) else str(val)
-    s = _clean_docx_str(str(raw), part=part)
+    s = _clean_docx_str(str(raw), part=part, svg_counter=svg_counter)
     if not s.strip():
         return Markup("")
     if not (s.startswith(("<w:p", "<w:tbl"))):
@@ -293,7 +295,10 @@ def _xml_to_plain_text(val: str, sep: str = "\n") -> str:
 
         try:
             root = ET.fromstring(
-                f'<root xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">{val}</root>'
+                '<root xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
+                'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" '
+                'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+                f"{val}</root>"
             )
             p_list = [
                 el for el in root.iter() if el.tag.endswith("}p") or el.tag == "p"
@@ -342,7 +347,10 @@ def _docx_bold_xml(val, part=None) -> Markup:
 
         try:
             root = ET.fromstring(
-                f'<root xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">{text}</root>'
+                '<root xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
+                'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" '
+                'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+                f"{text}</root>"
             )
             p_list = [
                 el for el in root.iter() if el.tag.endswith("}p") or el.tag == "p"
@@ -374,9 +382,6 @@ def _docx_bold_xml(val, part=None) -> Markup:
             f'<w:t xml:space="preserve">{escaped}</w:t></w:r></w:p>'
         )
     return Markup("".join(p_xmls))
-
-
-_SVG_DRAWING_COUNTER = 20000
 
 
 def _parse_svg_aspect_ratio(svg_bytes: bytes) -> float:
@@ -416,8 +421,7 @@ def _is_svg_file(img_path: str) -> bool:
         return False
 
 
-def _make_svg_drawing(img_path: str, width_in: float, part) -> str:
-    global _SVG_DRAWING_COUNTER
+def _make_svg_drawing(img_path: str, width_in: float, part, svg_counter=None) -> str:
     from docx.opc.constants import RELATIONSHIP_TYPE as RT
     from docx.opc.packuri import PackURI
     from docx.opc.part import Part
@@ -447,10 +451,11 @@ def _make_svg_drawing(img_path: str, width_in: float, part) -> str:
 
     r_id = part.relate_to(svg_part, RT.IMAGE)
 
-    _SVG_DRAWING_COUNTER += 1
-    doc_pr_id = _SVG_DRAWING_COUNTER
+    if svg_counter is None:
+        svg_counter = itertools.count(20001)
+    doc_pr_id = next(svg_counter)
     ns = nsdecls("w", "wp", "a", "pic", "r")
-    escaped_base = _xml_escape(base_name)
+    escaped_base = html.escape(base_name, quote=True)
 
     return (
         f"<w:r><w:drawing {ns}>"
@@ -488,7 +493,7 @@ def _make_svg_drawing(img_path: str, width_in: float, part) -> str:
     )
 
 
-def _clean_docx_str(s: str, part=None) -> str:
+def _clean_docx_str(s: str, part=None, svg_counter=None) -> str:
     if not isinstance(s, str) or not s:
         return s
 
@@ -498,7 +503,9 @@ def _clean_docx_str(s: str, part=None) -> str:
         if part and os.path.exists(img_path):
             if img_path.lower().endswith(".svg"):
                 try:
-                    return _make_svg_drawing(img_path, width_val, part)
+                    return _make_svg_drawing(
+                        img_path, width_val, part, svg_counter=svg_counter
+                    )
                 except Exception as err:
                     logging.warning(
                         f"Failed to embed image {img_path} in docx: {err or type(err).__name__}"
@@ -513,7 +520,9 @@ def _clean_docx_str(s: str, part=None) -> str:
             except Exception as err:
                 if _is_svg_file(img_path):
                     try:
-                        return _make_svg_drawing(img_path, width_val, part)
+                        return _make_svg_drawing(
+                            img_path, width_val, part, svg_counter=svg_counter
+                        )
                     except Exception:
                         pass
                 logging.warning(
@@ -521,13 +530,13 @@ def _clean_docx_str(s: str, part=None) -> str:
                 )
         return ""
 
-    s = re.sub(r"<!--QUIZML_IMG:([^:]+):([^>]+)-->", _replace_img, s)
+    s = re.sub(r"<!--QUIZML_IMG:(.+?):([0-9.]+)-->", _replace_img, s)
     s = re.sub(r"<style[^>]*>.*?</style>", "", s, flags=re.DOTALL)
     s = re.sub(r"</?(?:div|span)[^>]*>", "", s)
     return s
 
 
-def _prepare_context_for_docx(context: dict, part=None) -> dict:
+def _prepare_context_for_docx(context: dict, part=None, svg_counter=None) -> dict:
     """Prepares template context, ensuring questions and choices have valid OpenXML structures."""
     new_ctx = dict(context)
 
@@ -547,15 +556,21 @@ def _prepare_context_for_docx(context: dict, part=None) -> dict:
     for q in questions:
         q_copy = dict(q)
         if "question" in q_copy:
-            q_copy["question"] = _ensure_block_xml(q_copy["question"], part=part)
+            q_copy["question"] = _ensure_block_xml(
+                q_copy["question"], part=part, svg_counter=svg_counter
+            )
         if q_copy.get("figure"):
-            q_copy["figure"] = _ensure_block_xml(q_copy["figure"], part=part)
+            q_copy["figure"] = _ensure_block_xml(
+                q_copy["figure"], part=part, svg_counter=svg_counter
+            )
         if (
             q_copy.get("type") == "essay"
             and "answer" in q_copy
             and isinstance(q_copy["answer"], (str, Markup))
         ):
-            q_copy["answer"] = _ensure_block_xml(q_copy["answer"], part=part)
+            q_copy["answer"] = _ensure_block_xml(
+                q_copy["answer"], part=part, svg_counter=svg_counter
+            )
 
         if "choices" in q_copy and isinstance(q_copy["choices"], list):
             prepared_choices = []
@@ -563,10 +578,14 @@ def _prepare_context_for_docx(context: dict, part=None) -> dict:
                 if isinstance(c, dict):
                     c_copy = {}
                     for k, v in c.items():
-                        c_copy[k] = _ensure_run_xml(v, part=part)
+                        c_copy[k] = _ensure_run_xml(
+                            v, part=part, svg_counter=svg_counter
+                        )
                     prepared_choices.append(c_copy)
                 else:
-                    prepared_choices.append(_ensure_run_xml(c, part=part))
+                    prepared_choices.append(
+                        _ensure_run_xml(c, part=part, svg_counter=svg_counter)
+                    )
             q_copy["choices"] = prepared_choices
 
         prepared_questions.append(q_copy)
@@ -668,8 +687,13 @@ def render(context, template_filename, jinja_filters=None):
         )
         jinja_env.globals["math"] = math
         part = doc.docx.part if hasattr(doc, "docx") and doc.docx else None
-        jinja_env.filters["docx_block"] = lambda val: _ensure_block_xml(val, part=part)
-        jinja_env.filters["docx_run"] = lambda val: _ensure_run_xml(val, part=part)
+        svg_counter = itertools.count(20001)
+        jinja_env.filters["docx_block"] = lambda val: _ensure_block_xml(
+            val, part=part, svg_counter=svg_counter
+        )
+        jinja_env.filters["docx_run"] = lambda val: _ensure_run_xml(
+            val, part=part, svg_counter=svg_counter
+        )
         jinja_env.filters["docx_bold"] = lambda val: _docx_bold_xml(val, part=part)
         jinja_env.filters["docx_plain"] = _xml_to_plain_text
         if jinja_filters:
@@ -680,7 +704,9 @@ def render(context, template_filename, jinja_filters=None):
             for name, spec in jinja_filters.items():
                 jinja_env.filters[name] = _load_filter_callable(spec)
 
-        prepared_context = _prepare_context_for_docx(context, part=part)
+        prepared_context = _prepare_context_for_docx(
+            context, part=part, svg_counter=svg_counter
+        )
 
         try:
             doc.render(prepared_context, jinja_env=jinja_env, autoescape=True)

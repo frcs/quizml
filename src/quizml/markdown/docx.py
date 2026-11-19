@@ -13,7 +13,7 @@ from markupsafe import Markup
 from mistletoe.base_renderer import BaseRenderer
 from mistletoe.block_token import HTMLBlock
 
-from quizml.exceptions import MarkdownAttributeError
+from quizml.exceptions import MarkdownAttributeError, MarkdownImageError
 from quizml.markdown.extensions import ImageWithWidth, MathDisplay, MathInline
 from quizml.markdown.html_renderer import strip_math_delimiters
 from quizml.markdown.image_embedding import convert_css_values_to_pixels
@@ -302,7 +302,7 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
         )
         return (
             '<w:p><w:pPr><w:pBdr><w:left w:val="single" w:sz="12" '
-            'w:space="4" w:color="CCCCCC"/></w:pPr>'
+            'w:space="4" w:color="CCCCCC"/></w:pBdr>'
             '<w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/>'
             '<w:spacing w:line="240" w:lineRule="auto"/></w:pPr>'
             f"{runs}</w:p>"
@@ -418,13 +418,22 @@ class QuizMLYamlDocxRenderer(BaseRenderer):
         resolved = self._resolve_image_path(token.src)
         width_in = 4.0
         if getattr(token, "width", None):
-            try:
-                px = convert_css_values_to_pixels(token.width.strip())
-                width_in = round(px / 96.0, 2)
-            except ValueError as err:
-                raise MarkdownAttributeError(
-                    f"Unsupported image width attribute: {token.width}"
-                ) from err
+            width_str = token.width.strip()
+            lw_match = re.match(r"^(\d+(?:\.\d+)?|\.\d+)?\s*\\linewidth$", width_str)
+            pct_match = re.match(r"^(\d+(?:\.\d+)?|\.\d+)\s*%$", width_str)
+            if lw_match:
+                factor = float(lw_match.group(1)) if lw_match.group(1) else 1.0
+                width_in = round(6.5 * factor, 2)
+            elif pct_match:
+                width_in = round(6.5 * (float(pct_match.group(1)) / 100.0), 2)
+            else:
+                try:
+                    px = convert_css_values_to_pixels(width_str)
+                    width_in = round(px / 96.0, 2)
+                except (ValueError, MarkdownImageError) as err:
+                    raise MarkdownAttributeError(
+                        f"Unsupported image width attribute: {token.width}"
+                    ) from err
         return f"<!--QUIZML_IMG:{resolved}:{width_in}-->"
 
     def render_html_block(self, token: Any) -> str:

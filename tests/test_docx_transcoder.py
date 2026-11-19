@@ -4,13 +4,14 @@ import mistletoe as mt
 import pytest
 
 from quizml.markdown.docx import QuizMLYamlDocxRenderer
-from quizml.markdown.markdown import MarkdownTranscoder, _setup_mistletoe_tokens
+from quizml.markdown.markdown import MarkdownTranscoder, _quizml_token_scope
 from quizml.yaml import load
 
 
 @pytest.fixture(autouse=True)
 def setup_tokens():
-    _setup_mistletoe_tokens()
+    with _quizml_token_scope():
+        yield
 
 
 def test_docx_inline_formatting():
@@ -170,3 +171,87 @@ def test_docx_alignat_and_multiline_math():
     assert "~~~~" not in xml  # Spurious tildes replaced with spaces
     assert r"\begin{" not in xml  # No raw LaTeX fallback
     assert r"\mathbf{" not in xml
+
+
+def test_docx_block_code_is_valid_xml():
+    """Verifies fenced code blocks emit well-formed OpenXML."""
+    import xml.etree.ElementTree as ET
+
+    doc = mt.Document("```python\nx = 1\ny = 2\n```")
+    with QuizMLYamlDocxRenderer() as renderer:
+        xml = renderer.render(doc)
+
+    wrapped = (
+        '<root xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        f"{xml}</root>"
+    )
+    root = ET.fromstring(wrapped)
+    assert (
+        root.find(
+            ".//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}pBdr"
+        )
+        is not None
+    )
+
+
+def test_docx_image_width_linewidth_percent_and_invalid(tmp_path):
+    """Verifies \\linewidth and % widths scale against 6.5in and invalid widths error."""
+    from quizml.exceptions import MarkdownAttributeError
+
+    img_file = tmp_path / "fig.png"
+    img_file.write_bytes(b"dummy")
+
+    with QuizMLYamlDocxRenderer(base_dir=str(tmp_path)) as renderer:
+        xml_lw = renderer.render(mt.Document("![alt](fig.png){width=0.5\\linewidth}"))
+        xml_pct = renderer.render(mt.Document("![alt](fig.png){width=50%}"))
+
+    assert ":3.25-->" in xml_lw
+    assert ":3.25-->" in xml_pct
+
+    with pytest.raises(MarkdownAttributeError):
+        with QuizMLYamlDocxRenderer(base_dir=str(tmp_path)) as renderer:
+            renderer.render(mt.Document("![alt](fig.png){width=auto}"))
+
+
+def test_docx_windows_image_marker_and_deterministic_svg_ids(tmp_path):
+    """Verifies Windows-style colons in image markers and deterministic SVG docPr ids."""
+    import io
+    import zipfile
+    from pathlib import Path
+
+    from quizml.rendering.docx import _clean_docx_str, render_docx
+    from quizml.yaml import loads
+
+    # Windows-style drive letter path must not raise ValueError
+    cleaned = _clean_docx_str(r"<!--QUIZML_IMG:C:\Users\alice\fig.png:4.0-->")
+    assert cleaned == ""
+
+    svg_file = tmp_path / "diagram.svg"
+    svg_file.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="50" viewBox="0 0 100 50">'
+        '<rect width="100" height="50" fill="blue"/></svg>',
+        encoding="utf-8",
+    )
+    doc_dict = loads(
+        f"""
+title: 'Deterministic SVG'
+---
+- type: mc
+  marks: 2.0
+  question: |
+    ![]({svg_file}){{width=3in}}
+  choices:
+  - x: 'A'
+  - o: 'B'
+""",
+        validate=False,
+    )
+    transcoded = MarkdownTranscoder(doc_dict).transcode_target({"fmt": "docx"})
+    tpl_path = (
+        Path(__file__).parent.parent / "src" / "quizml" / "templates" / "tcd-exam.docx"
+    )
+    ctx = {"header": transcoded["header"], "questions": transcoded["questions"]}
+    b1 = render_docx(ctx, tpl_path)
+    b2 = render_docx(ctx, tpl_path)
+    with zipfile.ZipFile(io.BytesIO(b1)) as z1, zipfile.ZipFile(io.BytesIO(b2)) as z2:
+        assert z1.read("word/document.xml") == z2.read("word/document.xml")
