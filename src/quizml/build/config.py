@@ -39,7 +39,7 @@ def check_quizml_version(specifier, source_label="config", *, warn_fn=None):
     satisfied = True
 
     for clause in clauses:
-        m = re.match(r"^(>=|<=|==|!=|~=| equals |>|<)?\s*(.+)$", clause)
+        m = re.match(r"^(>=|<=|==|!=|~=|>|<)?\s*(.+)$", clause)
         if not m:
             continue
         op = (m.group(1) or "==").strip()
@@ -189,7 +189,19 @@ def _merge_with_bundled_defaults(config, config_file):
                 if t_name:
                     seen_names.add(t_name)
                 if t_name in by_name:
-                    merged_targets.append({**by_name[t_name], **t})
+                    base = by_name[t_name]
+                    merged = {**base, **t}
+                    if isinstance(base.get("markdown"), dict) and isinstance(
+                        t.get("markdown"), dict
+                    ):
+                        merged["markdown"] = {**base["markdown"], **t["markdown"]}
+                    if "fmt" in t and "markdown" not in t:
+                        merged.pop("markdown", None)
+                    if "build_cmd" in t and "template" not in t:
+                        merged.pop("template", None)
+                    if "template" in t and "build_cmd" not in t:
+                        merged.pop("build_cmd", None)
+                    merged_targets.append(merged)
                 else:
                     merged_targets.append(t)
             for dt in default_targets:
@@ -439,6 +451,10 @@ def resolve_targets(config, yaml_data, *, target_names=None):
         target_list.append(target)
 
         if "fmt" in target:
-            target["user_pre"] = yaml_data["header"].get("_latexpreamble", "")
+            target["user_pre"] = (
+                header_data.get("_latexpreamble", "")
+                if isinstance(header_data, dict)
+                else ""
+            )
 
     return target_list

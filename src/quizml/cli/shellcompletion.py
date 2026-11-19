@@ -30,7 +30,7 @@ OPTIONS = {
     "pin": "-h --help --config --debug --verbose --quiet -o --output -t --target --add-ids --freeze-includes --seed -f --force",
     "clean": "-h --help -r --recursive --dry-run --config --quiet",
     "cache": "-h --help clear",
-    "init": "-h --help -a --all --latex --html --bb --docx --qti --moodle --schema -t --template -f --force",
+    "init": "-h --help -a --all --latex --html --bb --docx --qti --moodle --schema -t --template -f --force -u --update",
     "docs": "-h --help --no-pager",
     "info": "-h --help",
     "targets": "-h --help --config --debug --verbose --quiet",

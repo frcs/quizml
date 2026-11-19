@@ -859,3 +859,39 @@ def test_add_hyperlinks():
     # Stdout should not be linked
     assert add_hyperlinks("-", "-") == "-"
     assert add_hyperlinks("", "") == ""
+
+    # Spaces in path are percent-encoded
+    res_space = add_hyperlinks("my quiz.txt", "/abs/path/my quiz.txt")
+    assert "file:///abs/path/my%20quiz.txt" in res_space
+
+
+def test_print_error_escapes_rich_markup_and_clean_yml(tmp_path, monkeypatch, capsys):
+    from quizml.build.cleanup import find_quiz_files
+    from quizml.cli import errorhandler
+
+    monkeypatch.setattr(errorhandler.err_console, "_force_terminal", True)
+    errorhandler.print_error("bad [/bold] tag in input", title="Error")
+    captured = capsys.readouterr()
+    assert "bad [/bold] tag in input" in captured.err
+
+    yml_file = tmp_path / "exam.yml"
+    yml_file.write_text("---\n- type: tf\n  question: Q?\n  answer: true\n")
+    found = find_quiz_files(tmp_path, target_stems={"exam"})
+    assert found == [yml_file]
+
+
+def test_livereload_server_rejects_head_on_files():
+    import http.server
+
+    from quizml.cli.livereload import LiveReloadServer
+
+    srv = LiveReloadServer()
+    port = srv.start()
+    assert port is not None
+    try:
+        handler_cls = srv._server.RequestHandlerClass
+        assert issubclass(handler_cls, http.server.BaseHTTPRequestHandler)
+        assert not issubclass(handler_cls, http.server.SimpleHTTPRequestHandler)
+        assert not hasattr(handler_cls, "do_HEAD")
+    finally:
+        srv.stop()

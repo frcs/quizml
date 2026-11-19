@@ -30,3 +30,4 @@ def test_fish_completion():
     assert "-l no-pager" in script
     assert "quickstart" in script
     assert "bash zsh fish" in script
+    assert "-l update" in script

@@ -1,6 +1,5 @@
 import http.server
 import json
-import socketserver
 import threading
 import time
 
@@ -22,7 +21,7 @@ class LiveReloadServer:
 
         owner = self
 
-        class Handler(http.server.SimpleHTTPRequestHandler):
+        class Handler(http.server.BaseHTTPRequestHandler):
             def log_message(self, format, *args):
                 pass
 
@@ -38,8 +37,9 @@ class LiveReloadServer:
                 data = json.dumps({"timestamp": owner.timestamp})
                 self.wfile.write(data.encode())
 
-        class Server(socketserver.TCPServer):
+        class Server(http.server.ThreadingHTTPServer):
             allow_reuse_address = True
+            daemon_threads = True
 
         try:
             self._server = Server(("127.0.0.1", 0), Handler)

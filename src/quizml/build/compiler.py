@@ -13,6 +13,7 @@ from quizml.build.config import (
     load_config,
     resolve_targets,
 )
+from quizml.build.dag import expand_target_aliases
 from quizml.exceptions import QuizMLBuildError, QuizMLConfigError
 from quizml.markdown import MarkdownTranscoder
 from quizml.paths import FileLocator
@@ -50,6 +51,8 @@ def compile_cmd_target(target, cwd=None, tex_search_dirs=None):
     from quizml.markdown.latextools import build_tex_env
 
     command = shlex.split(target["build_cmd"])
+    if not command:
+        raise QuizMLBuildError("Build command is empty.")
     run_kwargs = {"check": True, "capture_output": True, "text": True, "cwd": cwd}
     if tex_search_dirs:
         run_kwargs["env"] = build_tex_env(tex_search_dirs)
@@ -197,21 +200,31 @@ def compile_quiz(
     except FileNotFoundError as err:
         raise QuizMLConfigError(str(err)) from err
 
-    explicit_targets = bool(targets or yaml_data.get("header", {}).get("_targets"))
+    explicit_targets = bool(
+        targets
+        or yaml_data.get("header", {}).get("_targets")
+        or config.get("default_targets")
+    )
     active_targets = [
         t for t in target_list if not (("build_cmd" in t) and not explicit_targets)
     ]
     if output is not None:
-        requested_count = len(targets) if targets else len(active_targets)
+        if targets:
+            expanded_requested = expand_target_aliases(
+                targets, config["targets"], config.get("aliases", {})
+            )
+            requested_count = len(expanded_requested)
+        else:
+            requested_count = len(active_targets)
         if requested_count != 1 or not active_targets:
             raise QuizMLConfigError(
                 "Cannot use -o/--output when compiling multiple targets; "
                 "select a single target with -t/--target."
             )
         final_target = active_targets[-1]
-        if output == "-" and "build_cmd" in final_target:
+        if "build_cmd" in final_target:
             raise QuizMLConfigError(
-                f"Target '{final_target.get('name')}' uses build_cmd and cannot write to stdout (-)."
+                f"Target '{final_target.get('name')}' uses build_cmd and cannot override output path with -o/--output."
             )
         final_target["out"] = (
             "-" if output == "-" else str(pathlib.Path(output).expanduser().resolve())

@@ -92,7 +92,15 @@ def _copy_templates(dest_dir, files_to_copy=None, *, force=False):
         os.makedirs(dest_dir, exist_ok=True)
         conflicts = []
         for filename in files_to_copy:
-            src_path = os.path.join(pkg_template_dir, filename)
+            if os.path.isabs(filename):
+                raise QuizMLConfigError(
+                    f"Template name '{filename}' must be a relative path."
+                )
+            src_path = os.path.abspath(os.path.join(pkg_template_dir, filename))
+            if os.path.commonpath([pkg_template_dir, src_path]) != pkg_template_dir:
+                raise QuizMLConfigError(
+                    f"Template name '{filename}' escapes bundled templates directory."
+                )
             if not (os.path.isfile(src_path) or os.path.isdir(src_path)):
                 raise QuizMLConfigError(
                     f"Bundled template '{filename}' not found in {pkg_template_dir}"

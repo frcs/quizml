@@ -520,3 +520,59 @@ def test_user_defined_aliases_prevent_bundled_target_collision(tmp_path):
     args.yaml_filename = "quiz.yaml"
     targets = get_target_list(args, cfg, {"header": {}})
     assert [t["name"] for t in targets] == ["latex"]
+
+
+def test_duplicate_target_name_and_deep_markdown_merge(tmp_path):
+    from quizml.build.config import load_config
+    from quizml.build.dag import sort_targets_topologically
+
+    with pytest.raises(QuizMLConfigError, match="Duplicate target name 'dup'"):
+        sort_targets_topologically(
+            [
+                {"name": "dup", "template": "a.j2"},
+                {"name": "dup", "template": "b.j2"},
+            ]
+        )
+
+    cfg_file = tmp_path / "quizml.cfg"
+    cfg_file.write_text(
+        "targets:\n  - name: bb\n    markdown:\n      math: png\n",
+        encoding="utf-8",
+    )
+    cfg = load_config(str(cfg_file), yaml_filename="quiz.yaml")
+    bb_target = next(t for t in cfg["targets"] if t["name"] == "bb")
+    assert bb_target["markdown"]["format"] == "html"
+    assert bb_target["markdown"]["math"] == "png"
+    assert bb_target["markdown"]["html_postprocess"] == "blackboard_html"
+
+
+def test_compile_output_rejects_alias_and_build_cmd_and_runs_default_build_cmd(
+    tmp_path,
+):
+    from quizml.build.compiler import compile_quiz
+
+    quiz = tmp_path / "q.yaml"
+    quiz.write_text(
+        "title: T\n---\n- type: tf\n  question: Q?\n  answer: true\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(QuizMLConfigError, match="multiple targets"):
+        compile_quiz(str(quiz), targets=["build"], output=str(tmp_path / "out.pdf"))
+
+    with pytest.raises(QuizMLConfigError, match="build_cmd"):
+        compile_quiz(str(quiz), targets=["pdf"], output=str(tmp_path / "out.pdf"))
+
+    out_marker = tmp_path / "built.txt"
+    cfg_file = tmp_path / "quizml.cfg"
+    cfg_file.write_text(
+        "default_targets: [cmd_target]\n"
+        "targets:\n"
+        "  - name: cmd_target\n"
+        f"    out: {out_marker}\n"
+        f"    build_cmd: python3 -c \"open('{out_marker}', 'w').write('ok')\"\n",
+        encoding="utf-8",
+    )
+    res = compile_quiz(str(quiz), config_path=str(cfg_file))
+    assert res.ok
+    assert out_marker.read_text(encoding="utf-8") == "ok"

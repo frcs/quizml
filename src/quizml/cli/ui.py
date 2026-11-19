@@ -1,5 +1,6 @@
 import os
 import sys
+from pathlib import Path
 from typing import ClassVar
 
 from rich import print
@@ -48,7 +49,7 @@ def add_hyperlinks(descr_str, filename):
         return descr_str
 
     abs_path = os.path.abspath(filename)
-    uri = f"file://{abs_path}"
+    uri = Path(abs_path).as_uri()
     basename = os.path.basename(abs_path)
     text = descr_str if (descr_str is not None and descr_str != "") else basename
 

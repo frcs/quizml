@@ -99,8 +99,11 @@ def sort_targets_topologically(targets, required_names=None):
     target_by_name = {}
     for t in targets:
         name = t.get("name")
-        if name and (required_names is None or name in required_names):
-            target_by_name[name] = t
+        if name:
+            if name in target_by_name:
+                raise QuizMLConfigError(f"Duplicate target name '{name}' in config.")
+            if required_names is None or name in required_names:
+                target_by_name[name] = t
 
     graph = {}
     for name, t in target_by_name.items():

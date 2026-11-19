@@ -60,7 +60,17 @@ def find_quiz_files(directory_path, target_stems=None, recursive=False):
     """Find YAML quiz files in a directory."""
     directory = Path(directory_path)
     if target_stems:
-        return [directory / f"{stem}.yaml" for stem in set(target_stems)]
+        resolved = []
+        for stem in sorted(set(target_stems)):
+            yml_path = directory / f"{stem}.yml"
+            yaml_path = directory / f"{stem}.yaml"
+            if yaml_path.is_file():
+                resolved.append(yaml_path)
+            elif yml_path.is_file():
+                resolved.append(yml_path)
+            else:
+                resolved.append(yaml_path)
+        return resolved
     if not recursive:
         return sorted(
             path

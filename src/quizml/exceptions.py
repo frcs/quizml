@@ -1,6 +1,6 @@
 """QuizML exceptions and diagnostic formatting helpers."""
 
-import os
+import shutil
 import textwrap
 
 
@@ -62,11 +62,8 @@ class Jinja2SyntaxError(TemplateRenderError):
 
 def text_wrap(msg):
     """Wrap diagnostic message to terminal width."""
-    try:
-        w, _ = os.get_terminal_size(0)
-    except OSError:
-        w = 80
-    return textwrap.fill(msg, w - 5)
+    w = shutil.get_terminal_size((80, 24)).columns
+    return textwrap.fill(msg, max(20, w - 5))
 
 
 def msg_context_line(lines, lineo, charno=None, highlight=False):
