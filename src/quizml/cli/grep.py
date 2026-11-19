@@ -139,7 +139,9 @@ def run_grep(args):
 
 def print_summary_table(matches, quiet=False):
     """Render a tabular overview of matching questions."""
-    if not quiet and not sys.stdout.isatty():
+    if quiet:
+        return True
+    if not sys.stdout.isatty():
         # Non-TTY piped output: emit tab-separated records
         for m in matches:
             excerpt_one_line = " ".join(m.statement_excerpt.splitlines())

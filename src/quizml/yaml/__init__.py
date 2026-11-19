@@ -132,6 +132,8 @@ def loads(
        strings into ``int``, ``float``, ``bool``, and ``MarkdownString``.
     """
     resolved_base_dir = _resolve_base_dir(base_dir, filename)
+    if validate and schema is None:
+        schema = load_schema()
     header_data, questions_data = parse_quiz_yaml_text(
         quizmlyaml_txt, source_label=filename
     )

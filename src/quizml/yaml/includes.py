@@ -187,16 +187,23 @@ def resolve_includes(
     if accumulated_figure_dirs is None:
         accumulated_figure_dirs = []
 
+    for item in questions_data:
+        if (
+            isinstance(item, dict)
+            and "include" in item
+            and "_include" not in item
+            and "type" not in item
+        ):
+            raise QuizMLYamlSyntaxError(
+                "Unknown directive 'include'. Did you mean '_include'?"
+            )
+
     validate_source_questions(
         questions_data, schema, source_text=source_text, source_path=source_path
     )
 
     resolved: list[Any] = []
     for item in questions_data:
-        if isinstance(item, dict) and "include" in item and "_include" not in item:
-            raise QuizMLYamlSyntaxError(
-                "Unknown directive 'include'. Did you mean '_include'?"
-            )
         if isinstance(item, dict) and "_include" in item:
             _reject_include_sampling(item)
             inc_file = str(item["_include"]).strip()
@@ -420,7 +427,7 @@ def expand_roundtrip_includes(
                 "Cannot combine 'select' with 'count' or 'seed' on '_include' item"
             )
 
-        include_path = (base_dir / str(question["_include"])).expanduser().resolve()
+        include_path = resolve_include_path(str(question["_include"]), base_dir)
         if include_path in stack:
             chain = " -> ".join(str(path) for path in (*stack, include_path))
             raise QuizMLError(f"Circular include detected: {chain}")

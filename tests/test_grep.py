@@ -288,3 +288,20 @@ def test_cli_grep_syntax_highlighting_on_tty(sample_quiz_dir, monkeypatch):
     assert ret is True
     assert len(printed_syntax) == 1
     assert printed_syntax[0].lexer.name.lower() == "yaml"
+
+
+def test_grep_skips_dict_keys_includes_and_quiet_table(tmp_path, capsys):
+    from quizml.cli.grep import print_summary_table
+
+    bank = tmp_path / "bank.yaml"
+    bank.write_text("- type: tf\n  question: Only stem\n  answer: true\n")
+    main_quiz = tmp_path / "quiz.yaml"
+    main_quiz.write_text("---\n- _include: bank.yaml\n")
+
+    assert grep_questions("choices", [bank]) == []
+    matches = grep_questions("stem", [tmp_path])
+    assert len(matches) == 1
+    assert matches[0].file_path == bank.resolve()
+
+    assert print_summary_table(matches, quiet=True) is True
+    assert capsys.readouterr().out == ""

@@ -81,7 +81,11 @@ def pin_yaml_text(
 ) -> str:
     """Stamp header metadata (``_quizml``, ``_targets``, ``_schema``) and IDs."""
     yaml, docs, q_index = parse_roundtrip_yaml_text(raw_text, source_label)
-    if len(docs) == 1:
+    if not docs:
+        header = CommentedMap()
+        docs = [header, []]
+        q_index = 1
+    elif len(docs) == 1:
         header = CommentedMap()
         docs = [header, docs[0]]
         q_index = 1

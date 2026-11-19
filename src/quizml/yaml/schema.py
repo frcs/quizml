@@ -16,6 +16,7 @@ QuizML uses a two-stage validation and type-coercion pipeline:
 import contextlib
 import copy
 import json
+import math
 import re
 from importlib.resources import files
 from pathlib import Path
@@ -42,15 +43,14 @@ class MarkdownString(str):
 
 
 def is_number(checker: Any, instance: Any) -> bool:
-    """Return True if ``instance`` is a numeric value or numeric string."""
+    """Return True if ``instance`` is a finite numeric value or numeric string."""
     if isinstance(instance, bool):
         return False
     if isinstance(instance, (int, float)):
-        return True
+        return math.isfinite(instance)
     if isinstance(instance, str):
         try:
-            float(instance)
-            return True
+            return math.isfinite(float(instance))
         except (ValueError, TypeError):
             return False
     return False
@@ -99,7 +99,7 @@ def extend_with_default(validator_class: Any) -> Any:
         if isinstance(instance, dict):
             for prop, subschema in properties.items():
                 if "default" in subschema:
-                    instance.setdefault(prop, subschema["default"])
+                    instance.setdefault(prop, copy.deepcopy(subschema["default"]))
         yield from validate_properties(validator, properties, instance, schema)
 
     return validators.extend(validator_class, {"properties": set_defaults})
@@ -464,6 +464,9 @@ def validate_header(
     header_schema = schema.get("definitions", {}).get("header")
     if not header_schema:
         return
+    header_schema = dict(header_schema)
+    if "definitions" in schema:
+        header_schema.setdefault("definitions", schema["definitions"])
 
     err = best_match(DefaultFillingValidator(header_schema).iter_errors(header))
     if err:
@@ -563,14 +566,8 @@ def validate_questions_list(
     err = best_match(validator.iter_errors(questions_data))
     if err:
         path = " -> ".join(map(str, err.path))
-        line_num: int | str
-        try:
-            item: Any = questions_data
-            for key in err.path:
-                item = item[key]
-            line_num = item.lc.line + 1
-        except (KeyError, IndexError, AttributeError):
-            line_num = "unknown"
+        detected_line = _line_for_node_path(questions_data, err.path)
+        line_num: int | str = detected_line if detected_line is not None else "unknown"
         lines = source_text.splitlines()
         msg = f"Schema validation error in {filename} at '{path}' (line ~{line_num})\n"
         if isinstance(line_num, int):

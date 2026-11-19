@@ -580,3 +580,14 @@ def test_include_select_by_id_and_index(tmp_path: Path):
     )
     with pytest.raises(QuizMLYamlSyntaxError, match="nonexistent-id"):
         load(str(bad_exam), validate=True)
+
+
+def test_include_typo_hint_and_pin_empty_input():
+    from quizml.yaml import loads
+    from quizml.yaml.pin import pin_yaml_text
+
+    with pytest.raises(QuizMLYamlSyntaxError, match="Did you mean '_include'"):
+        loads("- include: bank.yaml\n", validate=True)
+
+    pinned_empty = pin_yaml_text("")
+    assert "_quizml:" in pinned_empty

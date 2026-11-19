@@ -158,3 +158,27 @@ def test_default_schema_allows_custom_header_metadata(tmp_path):
     document = load(str(quiz_file))
 
     assert document["header"]["custom_metadata"] == "project-specific"
+
+
+def test_header_extension_with_markdown_ref_and_nonfinite_number_rejected():
+    from quizml.exceptions import QuizMLYamlSyntaxError
+    from quizml.yaml import loads
+    from quizml.yaml.schema import load_schema
+
+    extended = load_schema(
+        schema_extensions={
+            "header_properties": {"intro": {"$ref": "#/definitions/markdown"}}
+        }
+    )
+    doc = loads(
+        "intro: 'Hello *world*'\n---\n- type: tf\n  question: 'Ok?'\n  answer: true\n",
+        schema=extended,
+    )
+    assert doc["header"]["intro"] == "Hello *world*"
+
+    for bad_marks in ("nan", "inf", "-inf"):
+        with pytest.raises(QuizMLYamlSyntaxError):
+            loads(
+                f"- type: tf\n  marks: {bad_marks}\n  question: 'Ok?'\n  answer: true\n",
+                schema=extended,
+            )

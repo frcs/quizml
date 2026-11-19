@@ -1,5 +1,6 @@
 """Question search and grep functionality across QuizML YAML files."""
 
+import copy
 import io
 import logging
 import re
@@ -47,13 +48,12 @@ class GrepMatch:
 
 
 def extract_strings(data: Any) -> list[str]:
-    """Recursively extract all string keys and values from a question structure."""
+    """Recursively extract all string values from a question structure."""
     results: list[str] = []
     if isinstance(data, str):
         results.append(data)
     elif isinstance(data, dict):
-        for k, v in data.items():
-            results.append(str(k))
+        for v in data.values():
             results.extend(extract_strings(v))
     elif isinstance(data, (list, tuple)):
         for item in data:
@@ -227,7 +227,7 @@ def grep_questions(
             continue
 
         for idx, q in enumerate(questions, start=1):
-            if not isinstance(q, dict):
+            if not isinstance(q, dict) or "_include" in q:
                 continue
             if is_question_match(
                 q,
@@ -276,13 +276,14 @@ def format_matching_questions(
 
     yaml = YAML()
     yaml.indent(mapping=2, sequence=2, offset=0)
+    yaml.width = 4096
     yaml.preserve_quotes = True
 
     dummy = StreamMark(None, 0, 0, 0)
     seq = yaml.load("[]")
 
     for i, match in enumerate(matches):
-        q_copy = match.question_data.copy()
+        q_copy = copy.deepcopy(match.question_data)
         clean_all_q_comments(q_copy)
         if hasattr(q_copy, "ca"):
             q_copy.ca.comment = None
