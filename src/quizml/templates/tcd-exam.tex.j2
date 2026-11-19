@@ -13,7 +13,7 @@
 <# we do not include 'type' and keys starting with '_'      #>
 <| if header                                               -|>
 <|   for key, value in header.items()                      -|>
-<|     if (not key.startswith('_')) and value is not none  -|>
+<|     if (not key.startswith('_')) and key.isascii() and key.isalpha() and value is not none  -|>
 \def \info<<key>> {<<value>>}
 <|     endif                                               -|>
 <|  endfor                                                 -|>
@@ -242,8 +242,6 @@
 \def\iO{\refstepcounter{enumii}\expandafter\csname o\Alph{enumii}\endcsname}
 \def\iX{\refstepcounter{enumii}\expandafter\csname o\Alph{enumii}\endcsname}
 \fi
-
-\newcommand{\Q}[1]{{\[1em]{\bf\textit Q#1. }}}
 
 \ifsolutions
      \newenvironment{answer}[1][]
@@ -506,10 +504,11 @@ numeric
 <<q.question>>
 
 \begin{tabular}{cc}
+<|-   set letter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' -|>
 <|-   for a in q.choices |>
     \adjustbox{max width=0.45\linewidth}{\vbox{<<a.A>>}} &
 	\adjustbox{max width=0.45\linewidth}{\vbox{<<a.B>>}} \\
-	  (a) & (1) \\	  
+	  (<< letter[loop.index0] | lower >>) & (<< loop.index >>) \\
 <|-    endfor +|>
   \end{tabular}
 \end{bbquestion}

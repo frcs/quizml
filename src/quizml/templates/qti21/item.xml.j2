@@ -3,7 +3,7 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqti_v2p1 http://www.imsglobal.org/xsd/qti/qtiv2p1/imsqti_v2p1p2.xsd"
   identifier="item_<< item_index >>"
-  title="<< q.title | default("Question " ~ item_index) | e >>"
+  title="<< q.title | default("Question " ~ item_index, true) | e >>"
   adaptive="false"
   timeDependent="false">
 
@@ -44,6 +44,17 @@
 <| endfor |>
     </correctResponse>
   </responseDeclaration>
+
+<| elif q.type == 'mfill' |>
+<| for blank_key, synonyms in q.answers.items() |>
+  <responseDeclaration identifier="RESPONSE_<< loop.index >>" cardinality="single" baseType="string">
+    <correctResponse>
+<| for syn in synonyms |>
+      <value><< syn | e >></value>
+<| endfor |>
+    </correctResponse>
+  </responseDeclaration>
+<| endfor |>
 
 <| elif q.type == 'num' |>
   <responseDeclaration identifier="RESPONSE" cardinality="single" baseType="float">
@@ -108,6 +119,16 @@
       Answer: <textEntryInteraction responseIdentifier="RESPONSE" expectedLength="<< 15 if q.type == 'num' else 25 >>"/>
     </p>
 
+<| elif q.type == 'mfill' |>
+<| set ns = namespace(text=q.question) |>
+<| for blank_key in q.answers.keys() |>
+  <| set interaction = '<textEntryInteraction responseIdentifier="RESPONSE_' ~ loop.index ~ '" expectedLength="20"/>' |>
+  <| set ns.text = ns.text.replace('[' ~ blank_key ~ ']', interaction) |>
+<| endfor |>
+    <div class="qtext">
+      << ns.text >>
+    </div>
+
 <| elif q.type == 'matching' |>
     <matchInteraction responseIdentifier="RESPONSE" shuffle="<< (q.shuffle | default(true) | lower) if q.shuffle is defined else 'true' >>" maxAssociations="<< q.choices | length >>">
       <prompt><< q.question >></prompt>
@@ -133,23 +154,23 @@
 <| endif |>
   </itemBody>
 
-<| if q.type != 'essay' |>
+<| if q.type not in ['essay', 'mfill'] |>
   <responseProcessing template="http://www.imsglobal.org/question/qti_v2p1/rptemplates/match_correct"/>
 <| endif |>
 
 <| if q.feedback_correct |>
   <modalFeedback outcomeIdentifier="FEEDBACK" identifier="correct" showHide="show">
-    <p><< q.feedback_correct >></p>
+    << q.feedback_correct if q.feedback_correct.strip().startswith('<p') else '<p>' ~ q.feedback_correct ~ '</p>' >>
   </modalFeedback>
 <| endif |>
 <| if q.feedback_incorrect |>
   <modalFeedback outcomeIdentifier="FEEDBACK" identifier="incorrect" showHide="show">
-    <p><< q.feedback_incorrect >></p>
+    << q.feedback_incorrect if q.feedback_incorrect.strip().startswith('<p') else '<p>' ~ q.feedback_incorrect ~ '</p>' >>
   </modalFeedback>
 <| endif |>
 <| if q.feedback |>
   <modalFeedback outcomeIdentifier="FEEDBACK" identifier="general" showHide="show">
-    <p><< q.feedback >></p>
+    << q.feedback if q.feedback.strip().startswith('<p') else '<p>' ~ q.feedback ~ '</p>' >>
   </modalFeedback>
 <| endif |>
 </assessmentItem>

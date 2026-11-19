@@ -42,9 +42,9 @@
 
 <| if q.type == 'part' |>
     </section>
-    <section ident="section_<< item_index >>" title="<< q.title | e >>">
+    <section ident="section_<< item_index >>" title="<< (q.title or ('Section ' ~ item_index)) | e >>">
 <| if q.question is defined and q.question |>
-      <rubric><material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material></rubric>
+      <rubric><material><mattext texttype="text/html"><![CDATA[<< q.question | cdata >>]]></mattext></material></rubric>
 <| endif |>
 
 <| elif q.type == 'mc' |>
@@ -56,13 +56,13 @@
           </qtimetadata>
         </itemmetadata>
         <presentation>
-          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question | cdata >>]]></mattext></material>
           <response_lid ident="response1" rcardinality="Single">
             <render_choice<| if q.shuffle is defined and (q.shuffle == false or q.shuffle|lower == 'false') |> shuffle="No"<| elif qti.shuffle_answers |> shuffle="Yes"<| endif |>>
 <| for c in q.choices |>
 <| set c_id = item_id ~ "_choice_" ~ loop.index |>
               <response_label ident="<< c_id >>">
-                <material><mattext texttype="text/html"><![CDATA[<< c.x if c.x is defined else c.o >>]]></mattext></material>
+                <material><mattext texttype="text/html"><![CDATA[<< (c.choice_text if c.choice_text is defined else (c.x if c.x is defined else c.o)) | cdata >>]]></mattext></material>
               </response_label>
 <| endfor |>
             </render_choice>
@@ -96,13 +96,13 @@
 <| endif |>
         </resprocessing>
 <| if q.feedback |>
-        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
 <| if q.feedback_correct |>
-        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
 <| if q.feedback_incorrect |>
-        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
       </item>
 
@@ -118,13 +118,13 @@
           </qtimetadata>
         </itemmetadata>
         <presentation>
-          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question | cdata >>]]></mattext></material>
           <response_lid ident="response1" rcardinality="Multiple">
             <render_choice<| if q.shuffle is defined and (q.shuffle == false or q.shuffle|lower == 'false') |> shuffle="No"<| elif qti.shuffle_answers |> shuffle="Yes"<| endif |>>
 <| for c in q.choices |>
 <| set c_id = item_id ~ "_choice_" ~ loop.index |>
               <response_label ident="<< c_id >>">
-                <material><mattext texttype="text/html"><![CDATA[<< c.x if c.x is defined else c.o >>]]></mattext></material>
+                <material><mattext texttype="text/html"><![CDATA[<< (c.choice_text if c.choice_text is defined else (c.x if c.x is defined else c.o)) | cdata >>]]></mattext></material>
               </response_label>
 <| endfor |>
             </render_choice>
@@ -154,13 +154,13 @@
 <| endif |>
         </resprocessing>
 <| if q.feedback |>
-        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
 <| if q.feedback_correct |>
-        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
 <| if q.feedback_incorrect |>
-        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
       </item>
 
@@ -174,7 +174,7 @@
           </qtimetadata>
         </itemmetadata>
         <presentation>
-          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question | cdata >>]]></mattext></material>
           <response_lid ident="response1" rcardinality="Single">
             <render_choice shuffle="No">
               <response_label ident="<< item_id >>_true">
@@ -209,13 +209,13 @@
 <| endif |>
         </resprocessing>
 <| if q.feedback |>
-        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
 <| if q.feedback_correct |>
-        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
 <| if q.feedback_incorrect |>
-        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
       </item>
 
@@ -237,7 +237,7 @@
           </qtimetadata>
         </itemmetadata>
         <presentation>
-          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question | cdata >>]]></mattext></material>
           <response_num ident="response1" rcardinality="Single" numtype="Decimal">
             <render_fib>
               <response_label ident="answer1"/>
@@ -270,13 +270,13 @@
 <| endif |>
         </resprocessing>
 <| if q.feedback |>
-        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
 <| if q.feedback_correct |>
-        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
 <| if q.feedback_incorrect |>
-        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
       </item>
 
@@ -289,7 +289,7 @@
           </qtimetadata>
         </itemmetadata>
         <presentation>
-          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question | cdata >>]]></mattext></material>
           <response_str ident="response1" rcardinality="Single">
             <render_fib>
               <response_label ident="answer1"/>
@@ -323,13 +323,13 @@
 <| endif |>
         </resprocessing>
 <| if q.feedback |>
-        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
 <| if q.feedback_correct |>
-        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
 <| if q.feedback_incorrect |>
-        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
       </item>
 
@@ -344,7 +344,7 @@
           </qtimetadata>
         </itemmetadata>
         <presentation>
-          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question | cdata >>]]></mattext></material>
 <| for blank_key in q.answers.keys() |>
           <response_str ident="response_<< blank_key >>" rcardinality="Single">
             <render_fib prompt="<< blank_key | e >>">
@@ -373,13 +373,13 @@
 <| endif |>
         </resprocessing>
 <| if q.feedback |>
-        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
 <| if q.feedback_correct |>
-        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
 <| if q.feedback_incorrect |>
-        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
       </item>
 
@@ -392,7 +392,7 @@
           </qtimetadata>
         </itemmetadata>
         <presentation>
-          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question | cdata >>]]></mattext></material>
           <response_str ident="response1" rcardinality="Single">
             <render_fib rows="8">
               <response_label ident="answer1"/>
@@ -403,10 +403,10 @@
           <outcomes><decvar varname="SCORE" vartype="Decimal" defaultval="0" minvalue="0" maxvalue="<< marks >>"/></outcomes>
         </resprocessing>
 <| if q.answer is defined and q.answer |>
-        <itemfeedback ident="rubric"><material><mattext texttype="text/html"><![CDATA[<< q.answer >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="rubric"><material><mattext texttype="text/html"><![CDATA[<< q.answer | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
 <| if q.feedback |>
-        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
       </item>
 
@@ -421,15 +421,15 @@
           </qtimetadata>
         </itemmetadata>
         <presentation>
-          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question | cdata >>]]></mattext></material>
 <| for c in q.choices |>
 <| set match_index = loop.index |>
           <response_lid ident="response_<< match_index >>" rcardinality="Single">
-            <material><mattext texttype="text/html"><![CDATA[<< c.A >>]]></mattext></material>
+            <material><mattext texttype="text/html"><![CDATA[<< c.A | cdata >>]]></mattext></material>
             <render_choice<| if q.shuffle is defined and (q.shuffle == false or q.shuffle|lower == 'false') |> shuffle="No"<| elif qti.shuffle_answers |> shuffle="Yes"<| endif |>>
 <| for opt in q.choices |>
               <response_label ident="match_choice_<< loop.index >>">
-                <material><mattext texttype="text/html"><![CDATA[<< opt.B >>]]></mattext></material>
+                <material><mattext texttype="text/html"><![CDATA[<< opt.B | cdata >>]]></mattext></material>
               </response_label>
 <| endfor |>
             </render_choice>
@@ -455,13 +455,13 @@
 <| endif |>
         </resprocessing>
 <| if q.feedback |>
-        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
 <| if q.feedback_correct |>
-        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
 <| if q.feedback_incorrect |>
-        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
       </item>
 
@@ -476,7 +476,7 @@
           </qtimetadata>
         </itemmetadata>
         <presentation>
-          <material><mattext texttype="text/html"><![CDATA[<< q.question >>]]></mattext></material>
+          <material><mattext texttype="text/html"><![CDATA[<< q.question | cdata >>]]></mattext></material>
 <| for c in q.choices |>
 <| set order_pos = loop.index |>
           <response_lid ident="response_pos_<< order_pos >>" rcardinality="Single">
@@ -484,7 +484,7 @@
             <render_choice<| if q.shuffle is defined and (q.shuffle == false or q.shuffle|lower == 'false') |> shuffle="No"<| elif qti.shuffle_answers |> shuffle="Yes"<| endif |>>
 <| for opt in q.choices |>
               <response_label ident="item_choice_<< loop.index >>">
-                <material><mattext texttype="text/html"><![CDATA[<< opt >>]]></mattext></material>
+                <material><mattext texttype="text/html"><![CDATA[<< opt | cdata >>]]></mattext></material>
               </response_label>
 <| endfor |>
             </render_choice>
@@ -510,13 +510,13 @@
 <| endif |>
         </resprocessing>
 <| if q.feedback |>
-        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="general_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
 <| if q.feedback_correct |>
-        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="correct_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_correct | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
 <| if q.feedback_incorrect |>
-        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect >>]]></mattext></material></itemfeedback>
+        <itemfeedback ident="incorrect_fb"><material><mattext texttype="text/html"><![CDATA[<< q.feedback_incorrect | cdata >>]]></mattext></material></itemfeedback>
 <| endif |>
       </item>
 <| endif |>

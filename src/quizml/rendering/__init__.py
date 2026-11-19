@@ -40,7 +40,7 @@ def render(
     if resolved_backend is None:
         if str_template.endswith(".docx"):
             resolved_backend = "docx"
-        elif p.is_dir() or "qti" in p.name.lower():
+        elif p.is_dir():
             resolved_backend = "qti"
         else:
             resolved_backend = "jinja"

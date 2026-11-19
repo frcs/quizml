@@ -54,6 +54,7 @@ def _get_jinja_env(search_dirs):
         variable_end_string=">>",
     )
     env.globals["math"] = math
+    env.filters["cdata"] = lambda s: str(s).replace("]]>", "]]]]><![CDATA[>")
     return env
 
 
@@ -77,6 +78,7 @@ def render_template(context, template_filename, search_dirs=None, jinja_filters=
         msg = "Template filename is missing, can't render jinja."
         raise Jinja2SyntaxError(msg)
 
+    template_src = ""
     try:
         template_path = pathlib.Path(template_filename).resolve()
         template_search_dirs = [template_path.parent]
@@ -92,8 +94,16 @@ def render_template(context, template_filename, search_dirs=None, jinja_filters=
 
     except jinja2.TemplateSyntaxError as exc:
         lineno = exc.lineno
-        lines = template_src.split("\n")
-        msg = f"in {template_filename}, line {lineno}\n\n"
+        err_src = template_src
+        err_file = template_filename
+        if exc.filename:
+            try:
+                err_src = pathlib.Path(exc.filename).read_text(encoding="utf-8")
+                err_file = exc.filename
+            except OSError:
+                pass
+        lines = err_src.split("\n")
+        msg = f"in {err_file}, line {lineno}\n\n"
         msg = msg + msg_context(lines, lineno) + "\n"
         msg = msg + text_wrap(exc.message)
         raise Jinja2SyntaxError(msg) from exc

@@ -1,4 +1,4 @@
-<|- for q in questions -|>
+<|- for q in questions if q.type != 'part' -|>
 <|- if q.type == 'essay' -|>
 ESS<< "\t" >><< q.question.strip() >><< "\t" >><< q.answer.strip() if q.answer is defined and q.answer else "" >>
 <|- elif q.type == 'tf' -|>

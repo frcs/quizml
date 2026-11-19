@@ -80,6 +80,10 @@
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
             "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
+            "penalty": { "type": "number" },
+            "shuffle": { "type": "boolean" },
             "cols": { "type": "integer", "default": "1" },
             "question": { "$ref": "#/definitions/markdown" },
             "figure": { "$ref": "#/definitions/markdown" },
@@ -90,7 +94,8 @@
                 "type": "object",
                 "properties": {
                   "x": { "$ref": "#/definitions/markdown" },
-                  "o": { "$ref": "#/definitions/markdown" }
+                  "o": { "$ref": "#/definitions/markdown" },
+                  "feedback": { "$ref": "#/definitions/markdown" }
                 },
                 "additionalProperties": false
               }
@@ -110,6 +115,10 @@
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
             "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
+            "penalty": { "type": "number" },
+            "shuffle": { "type": "boolean" },
             "cols": { "type": "integer", "default": "1" },
             "question": { "$ref": "#/definitions/markdown" },
             "figure": { "$ref": "#/definitions/markdown" },
@@ -120,7 +129,8 @@
                 "type": "object",
                 "properties": {
                   "x": { "$ref": "#/definitions/markdown" },
-                  "o": { "$ref": "#/definitions/markdown" }
+                  "o": { "$ref": "#/definitions/markdown" },
+                  "feedback": { "$ref": "#/definitions/markdown" }
                 },
                 "additionalProperties": false
               }
@@ -140,6 +150,9 @@
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
             "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
+            "penalty": { "type": "number" },
             "question": { "$ref": "#/definitions/markdown" },
             "figure": { "$ref": "#/definitions/markdown" },
 
@@ -160,7 +173,12 @@
             "marks": { "type": "number", "default": "4" },
             "comments": { "$ref": "#/definitions/markdown" },
             "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
+            "penalty": { "type": "number" },
             "question": { "$ref": "#/definitions/markdown" },
+            "figure": { "$ref": "#/definitions/markdown" },
+            "figure-split": { "type": "number" },
             "answer": { "$ref": "#/definitions/markdown" }
           },
           "required": ["question"],
@@ -177,6 +195,10 @@
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
             "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
+            "penalty": { "type": "number" },
+            "shuffle": { "type": "boolean" },
             "question": { "$ref": "#/definitions/markdown" },
             "figure": { "$ref": "#/definitions/markdown" },
             "figure-split": { "type": "number" },
@@ -207,6 +229,10 @@
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
             "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
+            "penalty": { "type": "number" },
+            "shuffle": { "type": "boolean" },
             "cols": { "type": "integer", "default": "1" },
             "question": { "$ref": "#/definitions/markdown" },
             "figure": { "$ref": "#/definitions/markdown" },
@@ -230,6 +256,10 @@
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
             "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
+            "penalty": { "type": "number" },
+            "case_sensitive": { "type": "boolean" },
             "question": { "$ref": "#/definitions/markdown" },
             "figure": { "$ref": "#/definitions/markdown" },
             "figure-split": { "type": "number" },
@@ -252,6 +282,10 @@
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
             "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
+            "penalty": { "type": "number" },
+            "case_sensitive": { "type": "boolean" },
             "question": { "$ref": "#/definitions/markdown" },
             "figure": { "$ref": "#/definitions/markdown" },
             "figure-split": { "type": "number" },
@@ -277,11 +311,15 @@
             "marks": { "type": "number", "default": "2.5" },
             "comments": { "$ref": "#/definitions/markdown" },
             "feedback": { "$ref": "#/definitions/markdown" },
+            "feedback_correct": { "$ref": "#/definitions/markdown" },
+            "feedback_incorrect": { "$ref": "#/definitions/markdown" },
+            "penalty": { "type": "number" },
             "question": { "$ref": "#/definitions/markdown" },
             "figure": { "$ref": "#/definitions/markdown" },
             "figure-split": { "type": "number" },
             "answer": { "type": ["number", "string"] },
-            "tolerance": { "type": "number" }
+            "tolerance": { "type": "number" },
+            "tolerance_type": { "type": "string", "enum": ["absolute", "relative"] }
           },
           "required": ["question", "answer"],
           "additionalProperties": false

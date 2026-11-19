@@ -358,3 +358,29 @@ _figures_path: ../figures-quiz
     # Should only contain the MC question, no category question
     assert len(question_nodes) == 1
     assert question_nodes[0].attrib.get("type") == "multichoice"
+
+
+def test_moodle_export_escapes_xml_and_cdata():
+    from quizml.yaml.schema import load_schema
+
+    yaml_text = """
+title: "Signals & Systems"
+---
+- type: mc
+  id: "q&1"
+  title: "A & B"
+  question: "Check `a[b[0]]>1`."
+  choices:
+    - x: "Yes"
+    - o: "No"
+"""
+    yaml_doc = loads(yaml_text, schema=load_schema())
+    yaml_transcoded = MarkdownTranscoder(yaml_doc).transcode_target(
+        {"fmt": "html-mathml"}
+    )
+    template_path = (
+        Path(__file__).parent.parent / "src" / "quizml" / "templates" / "moodle.xml.j2"
+    )
+    rendered_xml = render(yaml_transcoded, template_path)
+    root = ET.fromstring(rendered_xml)
+    assert root.tag == "quiz"

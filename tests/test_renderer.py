@@ -296,3 +296,31 @@ def test_compile_quiz_embeds_input_path_in_latex_templates(tmp_path):
     assert r"\graphicspath{" not in tex_content
     assert r"\def\input@path{" in sol_content
     assert f"{{{quiz_dir.resolve()}/}}" in sol_content
+
+
+def test_preview_part_without_question_and_qti_named_jinja_template(tmp_path):
+    from pathlib import Path
+
+    from quizml.markdown import transcode
+    from quizml.rendering import render
+    from quizml.yaml import loads
+    from quizml.yaml.schema import load_schema
+
+    doc = loads(
+        "- type: part\n  title: Section A\n- type: tf\n  question: Ok?\n  answer: true\n",
+        schema=load_schema(),
+    )
+    tdoc = transcode(doc, format="html", math="mathml")
+    preview_tpl = (
+        Path(__file__).parent.parent
+        / "src"
+        / "quizml"
+        / "templates"
+        / "preview.html.j2"
+    )
+    html_out = render(tdoc, preview_tpl)
+    assert "Section A" in html_out
+
+    custom_tpl = tmp_path / "my_qti_export.xml.j2"
+    custom_tpl.write_text("<quiz><< questions|length >></quiz>", encoding="utf-8")
+    assert render(tdoc, custom_tpl) == "<quiz>2</quiz>"

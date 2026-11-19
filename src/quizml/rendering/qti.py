@@ -139,8 +139,9 @@ def _process_qti_html(
     if not html_str:
         return "", []
 
-    warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
-    soup = BeautifulSoup(str(html_str), "html.parser")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", XMLParsedAsHTMLWarning)
+        soup = BeautifulSoup(str(html_str), "html.parser")
     referenced_media = []
 
     for s in soup.find_all("style"):
@@ -280,6 +281,13 @@ def _process_questions_for_qti(
     return processed
 
 
+def _zip_writestr(zf: zipfile.ZipFile, filename: str, data: bytes) -> None:
+    """Write a ZIP entry with a fixed timestamp for deterministic builds."""
+    zinfo = zipfile.ZipInfo(filename, date_time=(2020, 1, 1, 0, 0, 0))
+    zinfo.compress_type = zipfile.ZIP_DEFLATED
+    zf.writestr(zinfo, data)
+
+
 def _render_qti12(
     qti_ctx: dict,
     tdir: Path,
@@ -305,11 +313,11 @@ def _render_qti12(
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("quiz.xml", quiz_xml.encode("utf-8"))
-        zf.writestr("imsmanifest.xml", manifest_xml.encode("utf-8"))
-        zf.writestr("assessment_meta.xml", meta_xml.encode("utf-8"))
+        _zip_writestr(zf, "quiz.xml", quiz_xml.encode("utf-8"))
+        _zip_writestr(zf, "imsmanifest.xml", manifest_xml.encode("utf-8"))
+        _zip_writestr(zf, "assessment_meta.xml", meta_xml.encode("utf-8"))
         for fname, bdata in media_store.items():
-            zf.writestr(fname, bdata)
+            _zip_writestr(zf, fname, bdata)
 
     return buf.getvalue()
 
@@ -322,8 +330,11 @@ def _render_qti21(
 ) -> bytes:
     """Renders a QTI 2.1 package directory into an in-memory ZIP archive."""
     media_store: dict[str, bytes] = {}
+    item_questions = [
+        q for q in qti_ctx.get("questions", []) if q.get("type") != "part"
+    ]
     processed_questions = _process_questions_for_qti(
-        qti_ctx.get("questions", []), media_store, qti_version="2.1"
+        item_questions, media_store, qti_version="2.1"
     )
 
     media_resources = []
@@ -360,9 +371,9 @@ def _render_qti21(
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("imsmanifest.xml", manifest_xml.encode("utf-8"))
+        _zip_writestr(zf, "imsmanifest.xml", manifest_xml.encode("utf-8"))
         if assessment_xml:
-            zf.writestr("assessment.xml", assessment_xml.encode("utf-8"))
+            _zip_writestr(zf, "assessment.xml", assessment_xml.encode("utf-8"))
 
         item_template = tdir / "item.xml.j2"
         for idx, item_q in enumerate(processed_questions, start=1):
@@ -370,12 +381,12 @@ def _render_qti21(
             item_ctx["q"] = item_q
             item_ctx["item_index"] = idx
             item_xml = render_template(item_ctx, item_template, search_dirs, **kwargs)
-            zf.writestr(f"items/item_{idx}.xml", item_xml.encode("utf-8"))
+            _zip_writestr(zf, f"items/item_{idx}.xml", item_xml.encode("utf-8"))
 
         for fname, bdata in media_store.items():
-            zf.writestr(fname, bdata)
-            zf.writestr(f"items/{fname}", bdata)
-            zf.writestr(f"images/{fname}", bdata)
+            _zip_writestr(zf, fname, bdata)
+            _zip_writestr(zf, f"items/{fname}", bdata)
+            _zip_writestr(zf, f"images/{fname}", bdata)
 
     return buf.getvalue()
 

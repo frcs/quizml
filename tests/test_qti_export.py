@@ -307,3 +307,32 @@ title: "Exam with Sections"
         )
         # Should have root_section, section_1, and section_3
         assert len(sections) >= 2
+
+
+def test_qti12_choice_images_extracted_and_deterministic_zip():
+    from quizml.yaml.schema import load_schema
+
+    yaml_text = """
+title: "Img Quiz"
+---
+- type: mc
+  question: "Pick:"
+  choices:
+    - x: "![d](tests/fixtures/figures/dogcat.jpg)"
+    - o: "None"
+"""
+    yaml_doc = loads(yaml_text, schema=load_schema())
+    yaml_transcoded = MarkdownTranscoder(yaml_doc, base_dir=".").transcode_target(
+        {"fmt": "html-mathml"}
+    )
+    pkg_template_dir = (
+        Path(__file__).parent.parent / "src" / "quizml" / "templates" / "qti12"
+    )
+    z1 = render_qti(yaml_transcoded, pkg_template_dir)
+    z2 = render_qti(yaml_transcoded, pkg_template_dir)
+    assert z1 == z2
+
+    with zipfile.ZipFile(io.BytesIO(z1), "r") as zf:
+        quiz_xml = zf.read("quiz.xml").decode("utf-8")
+        assert "data:image/" not in quiz_xml
+        assert "images/img_" in quiz_xml

@@ -328,3 +328,39 @@ def test_qti21_table_and_media_cleaning():
     assert "<img" in cleaned_12
     assert 'src="images/img_' in cleaned_12
     assert 'width="10"' in cleaned_12
+
+
+def test_qti21_untitled_question_and_feedback_no_nested_p():
+    from quizml.yaml.schema import load_schema
+
+    yaml_text = """
+title: "Untitled Test"
+---
+- type: part
+  title: "Part 1"
+- type: mc
+  question: "What is 1+1?"
+  feedback_correct: "Great!"
+  choices:
+    - x: "2"
+    - o: "3"
+"""
+    yaml_doc = loads(yaml_text, schema=load_schema())
+    yaml_transcoded = MarkdownTranscoder(yaml_doc).transcode_target(
+        {"fmt": "html-mathml"}
+    )
+    pkg_template_dir = (
+        Path(__file__).parent.parent / "src" / "quizml" / "templates" / "qti21"
+    )
+    zip_bytes = render_qti(yaml_transcoded, pkg_template_dir)
+
+    with zipfile.ZipFile(io.BytesIO(zip_bytes), "r") as zf:
+        assert "items/item_1.xml" in zf.namelist()
+        assert "items/item_2.xml" not in zf.namelist()
+        item_xml = zf.read("items/item_1.xml").decode("utf-8")
+        manifest_xml = zf.read("imsmanifest.xml").decode("utf-8")
+        assert 'title="Question 1"' in item_xml
+        assert 'title="None"' not in item_xml
+        assert ">None<" not in manifest_xml
+        assert "<p><p>" not in item_xml
+        ET.fromstring(item_xml)

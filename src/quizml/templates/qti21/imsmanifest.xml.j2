@@ -39,7 +39,7 @@
         <imsmd:lom>
           <imsmd:general>
             <imsmd:title>
-              <imsmd:langstring xml:lang="en"><< q.title | default("Question " ~ loop.index) | e >></imsmd:langstring>
+              <imsmd:langstring xml:lang="en"><< q.title | default("Question " ~ loop.index, true) | e >></imsmd:langstring>
             </imsmd:title>
           </imsmd:general>
         </imsmd:lom>
