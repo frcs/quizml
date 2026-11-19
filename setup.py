@@ -12,7 +12,14 @@ class BuildPy(build_py):
         super().run()
         source = Path(__file__).parent / "docs"
         target = Path(self.build_lib) / "quizml" / "docs"
-        shutil.copytree(source, target, dirs_exist_ok=True)
+        shutil.copytree(
+            source,
+            target,
+            dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns(
+                "figures", "*.key", "*.pdf", "*.gif", "*.jpg", "*.png"
+            ),
+        )
 
     def get_outputs(self, include_bytecode=1):
         outputs = super().get_outputs(include_bytecode=include_bytecode)
