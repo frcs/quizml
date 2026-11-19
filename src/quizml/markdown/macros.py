@@ -8,6 +8,16 @@ recursively into standard LaTeX for engines like ``latex2mathml``.
 import re
 
 
+def _is_escaped(text: str, pos: int) -> bool:
+    """Return True if the character at ``pos`` is preceded by an odd number of backslashes."""
+    backslashes = 0
+    idx = pos - 1
+    while idx >= 0 and text[idx] == "\\":
+        backslashes += 1
+        idx -= 1
+    return backslashes % 2 == 1
+
+
 def extract_braced(text: str, pos: int) -> tuple[str | None, int]:
     """Find matching ``{...}`` starting at ``pos``, handling nested braces."""
     while pos < len(text) and text[pos].isspace():
@@ -17,9 +27,9 @@ def extract_braced(text: str, pos: int) -> tuple[str | None, int]:
     depth = 0
     start = pos + 1
     for i in range(pos, len(text)):
-        if text[i] == "{" and (i == 0 or text[i - 1] != "\\"):
+        if text[i] == "{" and not _is_escaped(text, i):
             depth += 1
-        elif text[i] == "}" and (i == 0 or text[i - 1] != "\\"):
+        elif text[i] == "}" and not _is_escaped(text, i):
             depth -= 1
             if depth == 0:
                 return text[start:i], i + 1
@@ -194,6 +204,7 @@ def preprocess_latex_for_mathml(latex_str: str) -> str:
         return ""
 
     latex_str = _split_inline_math_in_text_macros(latex_str)
+    had_alignat = bool(re.search(r"\\begin\{alignat\*?\}", latex_str))
 
     # Convert alignment environments to matrix so latex2mathml emits <mtable>.
     latex_str = re.sub(
@@ -211,7 +222,8 @@ def preprocess_latex_for_mathml(latex_str: str) -> str:
     )
 
     if r"\begin{matrix}" in latex_str:
-        latex_str = re.sub(r"&+", "&", latex_str)
+        if had_alignat:
+            latex_str = re.sub(r"&+", "&", latex_str)
         latex_str = re.sub(
             r"(\\begin\{matrix\}\s*|\\\\\s*)&", lambda m: m.group(1), latex_str
         )

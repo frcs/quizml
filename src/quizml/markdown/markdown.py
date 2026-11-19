@@ -102,7 +102,7 @@ def transcode_md_in_yaml(yaml_data: Any, md_dict: dict[str, Any]) -> Any:
         return node
 
     def header_key_filter(key: str) -> bool:
-        return key != "inputbasename" and not key.startswith("_")
+        return key not in ("type", "inputbasename") and not key.startswith("_")
 
     if isinstance(yaml_data, dict) and (
         "header" in yaml_data or "questions" in yaml_data
@@ -291,13 +291,14 @@ class MarkdownTranscoder:
 
         norm_opts = normalize_markdown_options(opts)
         html_pre = norm_opts.get("html_pre", "")
+        user_pre = norm_opts.get("user_pre", "")
         html_css = norm_opts.get("html_css", "")
         tools = norm_opts.get("tools") or {}
         dpi = norm_opts.get("png_dpi", "")
         png_scale = norm_opts.get("png_scale", "")
         svg_scale = norm_opts.get("svg_scale", "")
         key = (
-            f"{norm_opts.get('fmt', 'html')}:PRE:{html_pre}CSS:{html_css}"
+            f"{norm_opts.get('fmt', 'html')}:PRE:{html_pre}:USER_PRE:{user_pre}CSS:{html_css}"
             f"POSTPROCESS:{norm_opts.get('html_postprocess', '')}"
             f":DPI:{dpi}:SCALE:{png_scale}:{svg_scale}"
             f":TOOLS:{sorted(tools.items())}"

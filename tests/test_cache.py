@@ -42,3 +42,16 @@ def test_get_cache_dir_recreates_after_clear(tmp_path, monkeypatch):
 
     assert cache.get_cache_dir() == Path(cache_dir)
     assert cache_dir.is_dir()
+
+
+def test_save_to_cache_atomic_and_compute_hash_delimiter(tmp_path, monkeypatch):
+    from quizml import cache
+
+    monkeypatch.setattr(cache, "CACHE_DIR", str(tmp_path))
+    cache.save_to_cache("k1", {"v": 42})
+    assert cache.get_from_cache("k1") == {"v": 42}
+    assert list(tmp_path.glob("*.tmp")) == []
+
+    h1 = cache.compute_hash("ab", "c")
+    h2 = cache.compute_hash("a", "bc")
+    assert h1 != h2

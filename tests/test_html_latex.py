@@ -450,3 +450,51 @@ def test_table_rendered_as_svg_image_for_blackboard(tmp_path):
         rendered_preview = preview_doc["questions"][0]["question"].strip()
         assert "<table>" in rendered_preview
         assert 'src="data:image/svg+xml;base64,inline_x"' in rendered_preview
+
+
+def test_stage4_css_error_dedup_user_pre_and_svg_spaces():
+    from quizml.exceptions import MarkdownImageError
+    from quizml.markdown import MarkdownTranscoder
+    from quizml.markdown.html_renderer import _append_unique, get_eq_list_from_doc
+    from quizml.markdown.image_embedding import convert_css_values_to_pixels
+    from quizml.markdown.latex_renderer import _build_svg_converter_cmd
+    from quizml.markdown.markdown import _parse_markdown_documents
+
+    with pytest.raises(MarkdownImageError):
+        convert_css_values_to_pixels("auto")
+
+    asts = _parse_markdown_documents(["Find $x$.", "Compute $x$."])
+    eq_list = []
+    for d in asts.values():
+        eq_list = _append_unique(eq_list, get_eq_list_from_doc(d))
+    assert len(eq_list) == 1
+
+    cmd = _build_svg_converter_cmd(
+        "/tmp/my dir/in.svg",
+        "/tmp/my dir/out.pdf",
+        "my-conv --in {input} --out {output}",
+    )
+    assert cmd == [
+        "my-conv",
+        "--in",
+        "/tmp/my dir/in.svg",
+        "--out",
+        "/tmp/my dir/out.pdf",
+    ]
+
+    transcoder = MarkdownTranscoder({"questions": []})
+    transcoder.md_list = [r"$\foo$"]
+    transcoder.ast_dict = _parse_markdown_documents([r"$\foo$"])
+    d1 = transcoder.html_dict(
+        {
+            "fmt": "html-mathml",
+            "user_pre": r"\newcommand{\foo}{x}",
+        }
+    )
+    d2 = transcoder.html_dict(
+        {
+            "fmt": "html-mathml",
+            "user_pre": r"\newcommand{\foo}{y}",
+        }
+    )
+    assert d1[r"$\foo$"] != d2[r"$\foo$"]

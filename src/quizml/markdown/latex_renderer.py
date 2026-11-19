@@ -28,7 +28,10 @@ def _build_svg_converter_cmd(
     if converter:
         if isinstance(converter, str):
             if "{input}" in converter or "{output}" in converter:
-                return shlex.split(converter.format(input=svg_path, output=pdf_path))
+                return [
+                    part.format(input=svg_path, output=pdf_path)
+                    for part in shlex.split(converter)
+                ]
             if converter == "rsvg-convert":
                 return ["rsvg-convert", "-f", "pdf", "-o", pdf_path, svg_path]
             if converter == "inkscape":
@@ -133,10 +136,8 @@ def resolve_image_path(
 
     src_base_name = os.path.splitext(src)[0]
     for ext in (".pdf", ".png", ".jpg", ".jpeg"):
-        if found_in_search_dirs:
-            candidate = find_path(src_base_name + ext, [os.path.dirname(actual_src)])
-            if candidate:
-                return src_base_name + ext
+        if found_in_search_dirs and Path(actual_src).with_suffix(ext).exists():
+            return src_base_name + ext
         candidate = find_path(src_base_name + ext, dirs_to_check)
         if candidate:
             if candidate[1] is not None and candidate[1] < len(search_dirs or []):
@@ -235,12 +236,6 @@ class QuizMLYamlLaTeXRenderer(LaTeXRenderer):
             return s[1:-1]
         finally:
             token.src = original_src
-
-    def render_figure(self, token: Any) -> str:
-        s = self.render_inner(token)
-        if self.caption:
-            return s[1:-1]
-        return s
 
 
 def get_latex_dict(

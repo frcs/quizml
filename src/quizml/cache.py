@@ -3,8 +3,10 @@ import functools
 import hashlib
 import json
 import logging
+import os
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 import platformdirs
@@ -79,8 +81,10 @@ def compute_hash(content, settings_str="", tool_versions=None):
     """Computes a SHA256 hash for the given content and settings."""
     m = hashlib.sha256()
     m.update(content.encode("utf-8"))
+    m.update(b"\0")
     m.update(settings_str.encode("utf-8"))
     if tool_versions:
+        m.update(b"\0")
         m.update(json.dumps(tool_versions, sort_keys=True).encode("utf-8"))
     return m.hexdigest()
 
@@ -99,9 +103,23 @@ def get_from_cache(key):
 
 
 def save_to_cache(key, data):
-    """Saves data to cache."""
-    cache_path = get_cache_dir() / f"{key}.json"
+    """Saves data to cache atomically."""
+    cache_dir = get_cache_dir()
+    cache_path = cache_dir / f"{key}.json"
+    tmp_path = None
     try:
-        cache_path.write_text(json.dumps(data), encoding="utf-8")
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=cache_dir,
+            prefix=f".{key}.",
+            suffix=".tmp",
+            delete=False,
+        ) as tmp_file:
+            tmp_path = Path(tmp_file.name)
+            tmp_file.write(json.dumps(data))
+        os.replace(tmp_path, cache_path)
     except OSError:
+        if tmp_path is not None:
+            tmp_path.unlink(missing_ok=True)
         logging.warning(f"Failed to write cache for {key}")

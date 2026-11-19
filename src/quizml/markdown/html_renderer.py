@@ -53,9 +53,15 @@ code {
 
 
 def _append_unique(lst1: list[Any], lst2: list[Any]) -> list[Any]:
-    """Append items from ``lst2`` into ``lst1`` if not already present."""
+    """Append items from ``lst2`` into ``lst1`` deduplicated by equation key."""
+    seen = {
+        _equation_key(item) if isinstance(item, (MathInline, MathDisplay)) else id(item)
+        for item in lst1
+    }
     for a in lst2:
-        if a not in lst1:
+        k = _equation_key(a) if isinstance(a, (MathInline, MathDisplay)) else id(a)
+        if k not in seen:
+            seen.add(k)
             lst1.append(a)
     return lst1
 
@@ -506,7 +512,9 @@ class QuizMLYamlHTMLRenderer(HTMLRenderer):
         )
         width_attr_str = token.width.strip()
 
-        linewidth_match = re.match(r"^(\d*\.?\d*)\s*\\linewidth$", width_attr_str)
+        linewidth_match = re.match(
+            r"^(\d+(?:\.\d+)?|\.\d+)?\s*\\linewidth$", width_attr_str
+        )
         if linewidth_match:
             factor = (
                 float(linewidth_match.group(1)) if linewidth_match.group(1) else 1.0
@@ -525,14 +533,29 @@ class QuizMLYamlHTMLRenderer(HTMLRenderer):
         return f'<img src="{data64_img}" alt="{alt_text}" style="width:{css_width};" >'
 
 
-def get_html(doc: Any, opts: dict[str, Any]) -> str:
+def get_html(
+    doc: Any,
+    opts: dict[str, Any],
+    base_dir: str | Path | None = None,
+    search_dirs: Sequence[str | Path] | None = None,
+) -> str:
     """Render HTML for a single Mistletoe AST ``doc``."""
     table_as_image = _render_tables_as_images(opts)
     eq_list = get_eq_list_from_doc(doc)
     if table_as_image:
-        eq_list = _append_unique(eq_list, _get_table_math_tokens_from_doc(doc))
+        eq_list = _append_unique(
+            eq_list,
+            _get_table_math_tokens_from_doc(
+                doc, base_dir=base_dir, search_dirs=search_dirs
+            ),
+        )
     eq_dict = _build_equations_for_format(eq_list, opts)
-    with QuizMLYamlHTMLRenderer(eq_dict, table_as_image=table_as_image) as renderer:
+    with QuizMLYamlHTMLRenderer(
+        eq_dict,
+        base_dir=base_dir,
+        search_dirs=search_dirs,
+        table_as_image=table_as_image,
+    ) as renderer:
         return renderer.render(doc)
 
 

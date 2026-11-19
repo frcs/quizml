@@ -38,6 +38,7 @@ def embed_pdf(
     pdf_filename: str | Path,
     base_dir: str | Path | None = None,
     search_dirs: Sequence[str | Path] | None = None,
+    gs_cmd: str = "gs",
 ) -> tuple[int, int, str]:
     """Rasterize a PDF image into a PNG via Ghostscript and return its base64 tuple."""
     resolved = _resolve_asset_path(
@@ -52,7 +53,7 @@ def embed_pdf(
         try:
             subprocess.check_call(
                 [
-                    "gs",
+                    gs_cmd,
                     "-dBATCH",
                     "-q",
                     "-dNOPAUSE",
@@ -83,6 +84,7 @@ def embed_base64(
     pathname: str | Path,
     base_dir: str | Path | None = None,
     search_dirs: Sequence[str | Path] | None = None,
+    gs_cmd: str = "gs",
 ) -> tuple[int, int, str]:
     """Read an image file and return ``(width_px, height_px, data_uri)``."""
     path = _resolve_asset_path(pathname, base_dir=base_dir, search_dirs=search_dirs)
@@ -95,7 +97,9 @@ def embed_base64(
     elif suffix in (".jpeg", ".jpg"):
         ext = "jpeg"
     elif suffix == ".pdf":
-        return embed_pdf(str(path), base_dir=base_dir, search_dirs=search_dirs)
+        return embed_pdf(
+            str(path), base_dir=base_dir, search_dirs=search_dirs, gs_cmd=gs_cmd
+        )
     else:
         raise MarkdownImageError(
             f"unsupported image format '{suffix}'. "
@@ -122,13 +126,15 @@ def convert_css_values_to_pixels(value: str) -> float:
 
     Follows W3C CSS Values and Units (96px = 1in = 2.54cm = 72pt = 6pc).
     """
-    regex = r"(\d*\.?\d*)\s*([a-zA-Z]*)"
-    m = re.search(regex, value, re.MULTILINE)
+    regex = r"^\s*(\d+(?:\.\d+)?|\.\d+)\s*([a-zA-Z]*)\s*$"
+    m = re.match(regex, value)
     if m:
         val = float(m.group(1))
         unit = m.group(2)
     else:
-        raise MarkdownImageError("Sorry, bad size value when reading CSS dimensions")
+        raise MarkdownImageError(
+            f"Sorry, bad size value when reading CSS dimensions: '{value}'"
+        )
 
     if unit == "pt":
         val = val * 1.333

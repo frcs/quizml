@@ -78,3 +78,14 @@ def test_circular_macro_safety():
     # Should terminate safely without infinite loop
     result = expander.expand(r"\foo", max_depth=5)
     assert result in (r"\bar", r"\foo")
+
+
+def test_macro_ending_with_latex_newline_and_matrix_empty_columns():
+    from quizml.markdown.macros import LatexMacroExpander, preprocess_latex_for_mathml
+
+    exp = LatexMacroExpander(r"\newcommand{\nl}{a \\}")
+    assert "nl" in exp.macros
+    assert exp.expand(r"\nl") == r"a \\"
+
+    matrix_out = preprocess_latex_for_mathml(r"\begin{matrix} a && c \end{matrix}")
+    assert "a && c" in matrix_out
